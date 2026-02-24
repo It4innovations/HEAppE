@@ -50,7 +50,7 @@ public class JobReportingService : IJobReportingService
 
     public IEnumerable<UserGroupListReportExt> ListAdaptorUserGroups(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -65,7 +65,7 @@ public class JobReportingService : IJobReportingService
     public IEnumerable<ProjectReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime,
         string[] subProjects, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -86,7 +86,7 @@ public class JobReportingService : IJobReportingService
     public ProjectReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
         string[] subProjects, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -104,7 +104,7 @@ public class JobReportingService : IJobReportingService
     public IEnumerable<ProjectAggregatedReportExt> AggregatedUserGroupResourceUsageReport(DateTime startTime,
         DateTime endTime, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -132,7 +132,7 @@ public class JobReportingService : IJobReportingService
 
     public ProjectExtendedReportExt ResourceUsageReportForJob(long jobId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -149,7 +149,7 @@ public class JobReportingService : IJobReportingService
 
     public IEnumerable<JobStateAggregationReportExt> GetJobsStateAgregationReport(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -161,7 +161,7 @@ public class JobReportingService : IJobReportingService
 
     public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,

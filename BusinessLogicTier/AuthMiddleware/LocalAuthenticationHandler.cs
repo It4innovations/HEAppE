@@ -62,7 +62,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
         try
         {
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
                 _logger?.LogInformation("Getting Service API Key from header for authentication.");
                 var match = Regex.Match(extractedApiKey, @"^([^:]+):(.+)$");

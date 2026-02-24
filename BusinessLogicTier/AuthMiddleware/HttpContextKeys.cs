@@ -61,7 +61,7 @@ public class HttpContextKeys : IHttpContextKeys
     {
         _logger?.LogInformation("Authorizing with UserOrg");
 
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this, _logger);
         AdaptorUser user = null;
         try

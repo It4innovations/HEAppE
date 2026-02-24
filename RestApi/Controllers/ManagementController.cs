@@ -108,7 +108,7 @@ public class ManagementController : BaseController<ManagementController>
 
         _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Administrator);
         List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()
                 ?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();

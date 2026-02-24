@@ -104,7 +104,7 @@ namespace HEAppE.RestApi.Logging
         {
             try
             {
-                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
                     unitOfWork, userOrg, _sshCertificateAuthorityService, keys, _logger);
                 

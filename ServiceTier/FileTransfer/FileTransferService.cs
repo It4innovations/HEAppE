@@ -39,7 +39,7 @@ public class FileTransferService : IFileTransferService
 
     public async Task<FileTransferMethodExt> TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -55,7 +55,7 @@ public class FileTransferService : IFileTransferService
 
     public async Task<FileTransferMethodExt> RequestFileTransfer(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -71,7 +71,7 @@ public class FileTransferService : IFileTransferService
 
     public void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -87,7 +87,7 @@ public class FileTransferService : IFileTransferService
     public JobFileContentExt[] DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId,
         TaskFileOffsetExt[] taskFileOffsets, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -108,7 +108,7 @@ public class FileTransferService : IFileTransferService
 
     public FileInformationExt[] ListChangedFilesForJob(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -124,7 +124,7 @@ public class FileTransferService : IFileTransferService
 
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
@@ -140,7 +140,7 @@ public class FileTransferService : IFileTransferService
     public async Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
         await Task.Delay(1);
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -156,7 +156,7 @@ public class FileTransferService : IFileTransferService
     public async Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
         await Task.Delay(1);
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -172,7 +172,7 @@ public class FileTransferService : IFileTransferService
     public async Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode)
     {
         await Task.Delay(1);
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);

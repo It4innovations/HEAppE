@@ -49,7 +49,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                 {
                     if (!BusinessLogicConfiguration.SharedAccountsPoolMode)
                     {
-                        using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                        using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                         IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                         var allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccount();

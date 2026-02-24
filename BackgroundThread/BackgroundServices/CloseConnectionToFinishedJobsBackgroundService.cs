@@ -47,7 +47,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
             {
                 try
                 {
-                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()

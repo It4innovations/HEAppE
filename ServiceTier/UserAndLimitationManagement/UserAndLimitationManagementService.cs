@@ -89,7 +89,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
 
         var result = string.Empty;
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var userLogic =
                 LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
@@ -106,7 +106,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         AuthenticationCredentialsExt credentials, long projectId)
     {
         if (credentials is OpenIdCredentialsExt openIdCredentials)
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
                 var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
                 var user = await userLogic.AuthenticateUserToOpenIdAsync(new OpenIdCredentials
@@ -141,7 +141,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var (loggedUser, projects) =
                 GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Reporter);
@@ -153,7 +153,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var (loggedUser, projects) =
                 GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Reporter);
@@ -164,7 +164,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var (loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, requestedRole);
             return loggedUser is not null;
@@ -173,7 +173,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public AdaptorUserExt GetCurrentUserInfo(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var loggedUser = userLogic.GetUserForSessionCode(sessionCode);
@@ -214,7 +214,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
-        CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
+        CheckUserRoleForProject(logger, loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
         if (loggedUser == null)
         {
             throw new UnauthorizedAccessException("Unauthorized");
@@ -298,7 +298,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     ///     <see cref="requiredUserRole" />
     /// </exception>
     /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
-    private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId,
+    private static void CheckUserRoleForProject(ILogger logger, AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId,
         bool overrideProjectValidityCheck = false)
     {
         var hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x =>
@@ -314,7 +314,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             !x.IsDeleted);
         if (!hasRequiredRole)
         {
-            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");

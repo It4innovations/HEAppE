@@ -26,9 +26,9 @@ public class DatabaseUnitOfWork : IUnitOfWork
 {
     #region Constructors
 
-    public DatabaseUnitOfWork()
+    public DatabaseUnitOfWork(ILogger logger)
     {
-        _context = new MiddlewareContext(logger: null);
+        _context = new MiddlewareContext(logger);
     }
 
     #endregion

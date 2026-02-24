@@ -34,7 +34,7 @@ public class DataTransferService : IDataTransferService
     public DataTransferMethodExt RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
         string sessionCode)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
@@ -48,7 +48,7 @@ public class DataTransferService : IDataTransferService
 
     public void CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
@@ -61,7 +61,7 @@ public class DataTransferService : IDataTransferService
     public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
@@ -75,7 +75,7 @@ public class DataTransferService : IDataTransferService
     public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
@@ -90,7 +90,7 @@ public class DataTransferService : IDataTransferService
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode,
         Stream responseStream, CancellationToken cancellationToken)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);

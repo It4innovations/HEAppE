@@ -46,7 +46,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
             {
                 try
                 {
-                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory()

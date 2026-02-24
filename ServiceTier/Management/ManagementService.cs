@@ -63,7 +63,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"CreateCommandTemplateModel: Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ProjectId: {modelProjectId}, ClusterNodeTypeId: {modelClusterNodeTypeId}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, modelProjectId, true);
@@ -82,7 +82,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"CreateCommandTemplateFromGeneric: GenericCommandTemplateId: {genericCommandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Manager, projectId, true);
@@ -101,7 +101,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"ModifyCommandTemplateModel: Id: {modelId}, Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ClusterNodeTypeId: {modelClusterNodeTypeId}, IsEnabled: {modelIsEnabled}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelId)
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -124,7 +124,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"ModifyCommandTemplateFromGeneric: Id: {commandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Manager, projectId, true);
@@ -143,7 +143,7 @@ public class ManagementService : IManagementService
     public void RemoveCommandTemplate(long commandTemplateId, string sessionCode)
     {
         _logger?.LogInformation($"RemoveCommandTemplate: Id: {commandTemplateId}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
@@ -160,7 +160,7 @@ public class ManagementService : IManagementService
 
     public List<ProjectExt> ListProjects(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -173,7 +173,7 @@ public class ManagementService : IManagementService
 
     public ProjectExt GetProjectByAccountingString(string accountingString, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -186,7 +186,7 @@ public class ManagementService : IManagementService
 
     public ProjectExt GetProjectById(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -202,7 +202,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}, IsOneToOneMapping: {isOneToOneMapping}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -219,7 +219,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, id, true);
@@ -233,7 +233,7 @@ public class ManagementService : IManagementService
     public void RemoveProject(long id, string sessionCode)
     {
         _logger?.LogInformation($"RemoveProject: Id: {id}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, id, true);
@@ -244,7 +244,7 @@ public class ManagementService : IManagementService
 
     public ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, true);
@@ -256,7 +256,7 @@ public class ManagementService : IManagementService
     
     public ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, true);
@@ -271,7 +271,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, true);
@@ -286,7 +286,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, true);
@@ -299,7 +299,7 @@ public class ManagementService : IManagementService
     public void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
     {
         _logger?.LogInformation($"RemoveProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, true);
@@ -310,7 +310,7 @@ public class ManagementService : IManagementService
 
     public async Task<List<PublicKeyExt>> GetSecureShellKeys(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -339,7 +339,7 @@ public class ManagementService : IManagementService
         string newPassword, long projectId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -371,7 +371,7 @@ public class ManagementService : IManagementService
         long projectId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -401,7 +401,7 @@ public class ManagementService : IManagementService
         long projectId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -427,7 +427,7 @@ public class ManagementService : IManagementService
 
     public async Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -455,7 +455,7 @@ public class ManagementService : IManagementService
     public async Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -483,7 +483,7 @@ public class ManagementService : IManagementService
     public async Task<List<ClusterAccessReportExt>> TestClusterAccessForAccount(long projectId, string sessionCode,
         string username)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -512,7 +512,7 @@ public class ManagementService : IManagementService
     public async Task<List<ClusterAccountStatusExt>> ClusterAccountStatus(long projectId, string sessionCode,
         string username)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -548,7 +548,7 @@ public class ManagementService : IManagementService
 
     public ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -565,7 +565,7 @@ public class ManagementService : IManagementService
     {
         _logger?.LogInformation(
             $"CreateCommandTemplateParameter: Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}, CommandTemplateId: {modelCommandTemplateId}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId)
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelCommandTemplateId);
@@ -591,7 +591,7 @@ public class ManagementService : IManagementService
         string modelDescription, string modelSessionCode)
     {
         _logger?.LogInformation($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
@@ -617,7 +617,7 @@ public class ManagementService : IManagementService
     public string RemoveCommandTemplateParameter(long id, string modelSessionCode)
     {
         _logger?.LogInformation($"RemoveCommandTemplateParameter: Id: {id}");
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
@@ -637,7 +637,7 @@ public class ManagementService : IManagementService
 
     public List<ExtendedCommandTemplateExt> ListCommandTemplates(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
@@ -647,7 +647,7 @@ public class ManagementService : IManagementService
 
     public ExtendedCommandTemplateExt ListCommandTemplate(long commandTemplateId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
@@ -670,7 +670,7 @@ public class ManagementService : IManagementService
 
     public SubProjectExt ListSubProject(long subProjectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var subProject = unitOfWork.SubProjectRepository.GetById(subProjectId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
@@ -681,7 +681,7 @@ public class ManagementService : IManagementService
 
     public List<SubProjectExt> ListSubProjects(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -694,7 +694,7 @@ public class ManagementService : IManagementService
     public SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
         DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, modelProjectId, true);
@@ -709,7 +709,7 @@ public class ManagementService : IManagementService
         DateTime modelStartDate,
         DateTime? modelEndDate, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var subProject = unitOfWork.SubProjectRepository.GetById(modelId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
@@ -725,7 +725,7 @@ public class ManagementService : IManagementService
 
     public void RemoveSubProject(long modelId, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var subProject = unitOfWork.SubProjectRepository.GetById(modelId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
@@ -751,7 +751,7 @@ public class ManagementService : IManagementService
     private void ComputeAccountingTask(DateTime modelStartTime, DateTime modelEndTime, long projectId,
         string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
@@ -763,7 +763,7 @@ public class ManagementService : IManagementService
 
     public List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
@@ -773,7 +773,7 @@ public class ManagementService : IManagementService
 
     public ExtendedClusterExt GetClusterById(long clusterId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -786,7 +786,7 @@ public class ManagementService : IManagementService
     
     public List<ExtendedClusterExt> GetClusters(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -803,7 +803,7 @@ public class ManagementService : IManagementService
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -821,7 +821,7 @@ public class ManagementService : IManagementService
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -836,7 +836,7 @@ public class ManagementService : IManagementService
 
     public void RemoveCluster(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -848,7 +848,7 @@ public class ManagementService : IManagementService
 
     public List<ClusterNodeTypeExt> ListClusterNodeTypes(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -861,7 +861,7 @@ public class ManagementService : IManagementService
 
     public ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -877,7 +877,7 @@ public class ManagementService : IManagementService
         string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -895,7 +895,7 @@ public class ManagementService : IManagementService
         int? maxWalltime, string clusterAllocationName, long? clusterId, long? fileTransferMethodId,
         long? clusterNodeTypeAggregationId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -910,7 +910,7 @@ public class ManagementService : IManagementService
 
     public void RemoveClusterNodeType(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -922,7 +922,7 @@ public class ManagementService : IManagementService
 
     public ClusterProxyConnectionExt GetClusterProxyConnectionById(long clusterProxyConnectionId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -935,7 +935,7 @@ public class ManagementService : IManagementService
 
     public List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -951,7 +951,7 @@ public class ManagementService : IManagementService
     public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username,
         string password, ProxyType type, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -966,7 +966,7 @@ public class ManagementService : IManagementService
     public ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username,
         string password, ProxyType type, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -980,7 +980,7 @@ public class ManagementService : IManagementService
 
     public void RemoveClusterProxyConnection(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -992,7 +992,7 @@ public class ManagementService : IManagementService
 
     public List<FileTransferMethodNoCredentialsExt> ListFileTransferMethods(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1005,7 +1005,7 @@ public class ManagementService : IManagementService
 
     public FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1019,7 +1019,7 @@ public class ManagementService : IManagementService
     public FileTransferMethodNoCredentialsExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol,
         long clusterId, int? port, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1034,7 +1034,7 @@ public class ManagementService : IManagementService
     public FileTransferMethodNoCredentialsExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol,
         long clusterId, int? port, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1048,7 +1048,7 @@ public class ManagementService : IManagementService
 
     public void RemoveFileTransferMethod(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1060,7 +1060,7 @@ public class ManagementService : IManagementService
 
     public ClusterNodeTypeAggregationExt GetClusterNodeTypeAggregationById(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1073,7 +1073,7 @@ public class ManagementService : IManagementService
 
     public List<ClusterNodeTypeAggregationExt> GetClusterNodeTypeAggregations(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1088,7 +1088,7 @@ public class ManagementService : IManagementService
         string allocationType, DateTime validityFrom,
         DateTime? validityTo, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1105,7 +1105,7 @@ public class ManagementService : IManagementService
         string allocationType, DateTime validityFrom,
         DateTime? validityTo, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1120,7 +1120,7 @@ public class ManagementService : IManagementService
 
     public void RemoveClusterNodeTypeAggregation(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1132,7 +1132,7 @@ public class ManagementService : IManagementService
 
     public List<ClusterNodeTypeAggregationAccountingExt> ListClusterNodeTypeAggregationAccountings(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1147,7 +1147,7 @@ public class ManagementService : IManagementService
     public ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1162,7 +1162,7 @@ public class ManagementService : IManagementService
     public ClusterNodeTypeAggregationAccountingExt CreateClusterNodeTypeAggregationAccounting(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1177,7 +1177,7 @@ public class ManagementService : IManagementService
     public void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1189,7 +1189,7 @@ public class ManagementService : IManagementService
 
     public List<AccountingExt> ListAccountings(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1202,7 +1202,7 @@ public class ManagementService : IManagementService
 
     public AccountingExt GetAccountingById(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1216,7 +1216,7 @@ public class ManagementService : IManagementService
     public AccountingExt CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1230,7 +1230,7 @@ public class ManagementService : IManagementService
     public AccountingExt ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1243,7 +1243,7 @@ public class ManagementService : IManagementService
 
     public void RemoveAccounting(long id, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1256,7 +1256,7 @@ public class ManagementService : IManagementService
     public ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId,
         long clusterNodeTypeAggregationId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1271,7 +1271,7 @@ public class ManagementService : IManagementService
     public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1289,7 +1289,7 @@ public class ManagementService : IManagementService
     public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1303,7 +1303,7 @@ public class ManagementService : IManagementService
     public ProjectClusterNodeTypeAggregationExt CreateProjectClusterNodeTypeAggregation(long projectId,
         long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1319,7 +1319,7 @@ public class ManagementService : IManagementService
     public ProjectClusterNodeTypeAggregationExt ModifyProjectClusterNodeTypeAggregation(long projectId,
         long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1335,7 +1335,7 @@ public class ManagementService : IManagementService
     public void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1347,7 +1347,7 @@ public class ManagementService : IManagementService
 
     public async Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1360,7 +1360,7 @@ public class ManagementService : IManagementService
 
     public StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1373,7 +1373,7 @@ public class ManagementService : IManagementService
 
     public AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1387,7 +1387,7 @@ public class ManagementService : IManagementService
 
     public AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1401,7 +1401,7 @@ public class ManagementService : IManagementService
 
     public string DeleteAdaptorUser(string modelUsername, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1414,7 +1414,7 @@ public class ManagementService : IManagementService
 
     public AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1429,7 +1429,7 @@ public class ManagementService : IManagementService
     public AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole,
         string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1444,7 +1444,7 @@ public class ManagementService : IManagementService
     public AdaptorUserExt RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole,
         string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1458,7 +1458,7 @@ public class ManagementService : IManagementService
 
     public AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1474,7 +1474,7 @@ public class ManagementService : IManagementService
         string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId,
         long modelClusterNodeTypeId, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             //manager in project
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
@@ -1492,7 +1492,7 @@ public class ManagementService : IManagementService
         string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId,
         bool modelIsEnabled, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             //get template to find project id
             var commandTemplateToModify = unitOfWork.CommandTemplateRepository.GetById(modelId);
@@ -1520,7 +1520,7 @@ public class ManagementService : IManagementService
 
     public AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1535,7 +1535,7 @@ public class ManagementService : IManagementService
     public AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole,
         string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1550,7 +1550,7 @@ public class ManagementService : IManagementService
     public AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId,
         AdaptorUserRoleType modelRole, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1564,7 +1564,7 @@ public class ManagementService : IManagementService
 
     public List<AdaptorUserExt> ListAdaptorUsers(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
@@ -1579,7 +1579,7 @@ public class ManagementService : IManagementService
 
     public async Task<string> BackupDatabase(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1592,7 +1592,7 @@ public class ManagementService : IManagementService
 
     public string BackupDatabaseTransactionLogs(string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1605,7 +1605,7 @@ public class ManagementService : IManagementService
 
     public List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -1619,7 +1619,7 @@ public class ManagementService : IManagementService
 
     public void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,

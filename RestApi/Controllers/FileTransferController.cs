@@ -278,7 +278,7 @@ public class FileTransferController : BaseController<FileTransferController>
 
             long jobSpecificationId;
             long? taskSpecificationId = null;
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
                 var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                           throw new Exception("NotExistingJob");

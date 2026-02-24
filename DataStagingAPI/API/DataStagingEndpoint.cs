@@ -211,7 +211,7 @@ public class DataStagingEndpoint : IApiRoute
         static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
             IHttpContextKeys httpContextKeys, ILogger logger, AdaptorUserRoleType requiredUserRole)
         {
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger))
             {
                 var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys,
                     logger, requiredUserRole, projectId);

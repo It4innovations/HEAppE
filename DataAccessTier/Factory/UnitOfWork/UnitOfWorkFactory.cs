@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.UnitOfWork;
 
 namespace HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -15,7 +16,7 @@ public abstract class UnitOfWorkFactory
 
     #region Abstract Methods
 
-    public abstract IUnitOfWork CreateUnitOfWork();
+    public abstract IUnitOfWork CreateUnitOfWork(ILogger logger);
 
     #endregion
 

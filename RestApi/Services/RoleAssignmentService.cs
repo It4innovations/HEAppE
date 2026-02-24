@@ -35,7 +35,7 @@ public class RoleAssignmentService : IHostedService
         {
             _logger?.LogInformation("Starting post-startup role assignment procedure via IHostedService.");
             List<AdaptorUserGroup> userGroups;
-            using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork())
+            using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork(_logger))
             {
                 var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
                 userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
@@ -47,7 +47,7 @@ public class RoleAssignmentService : IHostedService
                 {
                     // 2. Pro KAŽDOU skupinu vytvoříme nový, čistý UnitOfWork
                     // Tím se vyhneme chybě "already being tracked"
-                    using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
+                    using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
                     {
                         _logger?.LogDebug($"Processing roles for group: {userGroup.Name}");
                         var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);

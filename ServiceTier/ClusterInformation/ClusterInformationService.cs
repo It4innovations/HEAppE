@@ -56,7 +56,7 @@ public class ClusterInformationService : IClusterInformationService
         string commandTemplateName,
         bool forceRefresh)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
 
         var roles = new List<AdaptorUserRoleType> { AdaptorUserRoleType.Reporter, AdaptorUserRoleType.ManagementAdmin, AdaptorUserRoleType.Manager };
 
@@ -124,7 +124,7 @@ public class ClusterInformationService : IClusterInformationService
 
     public ClusterClearCacheInfoExt ListAvailableClustersClearCache(string sessionCode)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
 
         // Validate user and projects
         var (loggedUser, projectIds) = UserAndLimitationManagementService
@@ -162,7 +162,7 @@ public class ClusterInformationService : IClusterInformationService
     public async Task<IEnumerable<string>> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, projectId);
@@ -195,7 +195,7 @@ public class ClusterInformationService : IClusterInformationService
     public async Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId,
         string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Reporter, projectId);

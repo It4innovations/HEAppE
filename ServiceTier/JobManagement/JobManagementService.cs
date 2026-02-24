@@ -50,7 +50,7 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CreateJob(JobSpecificationExt specification, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId);
@@ -72,7 +72,7 @@ public class JobManagementService : IJobManagementService
 
     public SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
@@ -86,7 +86,7 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
@@ -100,7 +100,7 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
@@ -114,7 +114,7 @@ public class JobManagementService : IJobManagementService
 
     public bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
@@ -132,7 +132,7 @@ public class JobManagementService : IJobManagementService
 
     public SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
 
         var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
             sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Submitter);
@@ -170,7 +170,7 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
@@ -190,7 +190,7 @@ public class JobManagementService : IJobManagementService
 
     public void CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
@@ -204,7 +204,7 @@ public class JobManagementService : IJobManagementService
 
     public void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
@@ -218,7 +218,7 @@ public class JobManagementService : IJobManagementService
 
     public IEnumerable<string> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var task = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
             if (task is null) throw new InputValidationException("NotExistingTask", submittedTaskInfoId);
@@ -235,7 +235,7 @@ public class JobManagementService : IJobManagementService
         long modelTasksPerNode,
         long modelWallTimeInMinutes, string modelSessionCode)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, modelProjectId);
