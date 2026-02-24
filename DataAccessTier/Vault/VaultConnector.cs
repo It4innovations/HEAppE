@@ -18,7 +18,7 @@ public class VaultConnector : IVaultConnector
     private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
     
     // Static HttpClient prevents Socket Exhaustion issues
-    private static readonly HttpClient _httpClient = new HttpClient { 
+    private static readonly HttpClient _httpClient = new HttpClient {
         BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress) 
     };
 

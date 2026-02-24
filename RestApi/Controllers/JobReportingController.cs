@@ -44,7 +44,7 @@ public class JobReportingController : BaseController<JobReportingController>
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobReportingService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobReportingService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, logger);
     }
 
     #endregion

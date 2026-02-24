@@ -23,9 +23,9 @@ internal class LinuxCommands : ICommands
     /// <summary>
     ///     Constructor
     /// </summary>
-    internal LinuxCommands()
+    internal LinuxCommands(ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
     }
 
     #endregion

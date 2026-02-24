@@ -30,7 +30,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion

@@ -17,11 +17,11 @@ internal class DatabaseBackupService : IDatabaseBackupService
 {
     #region Constructors
 
-    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector)
+    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector, ILogger logger)
     {
         _context = context;
         _vaultConnector = vaultConnector;
-        _logger = null;
+        _logger = logger;
     }
 
     #endregion

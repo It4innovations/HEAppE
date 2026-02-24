@@ -66,7 +66,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <returns></returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _linuxSchedulerAdapterInstance ??= new LinuxLocalSchedulerAdapter(CreateDataConvertor(logger));
+        return _linuxSchedulerAdapterInstance ??= new LinuxLocalSchedulerAdapter(CreateDataConvertor(logger), logger);
     }
 
     /// <summary>

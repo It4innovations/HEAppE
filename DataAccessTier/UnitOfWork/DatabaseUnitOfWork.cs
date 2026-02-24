@@ -28,6 +28,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
 
     public DatabaseUnitOfWork(ILogger logger)
     {
+        _logger = logger;
         _context = new MiddlewareContext(logger);
     }
 
@@ -61,6 +62,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
 
     #region Instances
 
+    private readonly ILogger _logger;
     private readonly MiddlewareContext _context;
 
     private IVaultConnector _vaultConnector { get; } = new VaultConnector();
@@ -405,7 +407,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         get
         {
             return _databaseBackupService =
-                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector());
+                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(), _logger);
         }
     }
 

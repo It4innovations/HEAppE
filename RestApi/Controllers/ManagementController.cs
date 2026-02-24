@@ -60,7 +60,7 @@ public class ManagementController : BaseController<ManagementController>
     public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
         _userAndManagementService = new UserAndLimitationManagementService(memoryCache, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 

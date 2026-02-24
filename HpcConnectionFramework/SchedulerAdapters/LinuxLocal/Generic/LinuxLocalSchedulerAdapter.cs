@@ -30,11 +30,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     ///     Constructs Linux Local scheduler adapeter
     /// </summary>
     /// <param name="convertor">Convertor</param>
-    public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
         _convertor = convertor;
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(_logger);
     }
 
     #endregion
