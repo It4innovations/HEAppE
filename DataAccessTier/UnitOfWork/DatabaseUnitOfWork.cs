@@ -195,7 +195,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _clusterAuthenticationCredentialsRepository = _clusterAuthenticationCredentialsRepository
                                                                  ?? new ClusterAuthenticationCredentialsRepository(
-                                                                     _context, _vaultConnector);
+                                                                     _context, _vaultConnector, _logger);
         }
     }
 

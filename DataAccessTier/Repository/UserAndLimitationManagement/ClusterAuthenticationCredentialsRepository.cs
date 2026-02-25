@@ -18,13 +18,15 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     IClusterAuthenticationCredentialsRepository
 {
     private readonly IVaultConnector _vaultConnector;
+    private readonly ILogger _logger;
 
     #region Constructors
 
-    internal ClusterAuthenticationCredentialsRepository(MiddlewareContext context, IVaultConnector vaultConnector)
+    internal ClusterAuthenticationCredentialsRepository(MiddlewareContext context, IVaultConnector vaultConnector, ILogger logger)
         : base(context)
     {
         _vaultConnector = vaultConnector;
+        _logger = logger;
     }
 
     #endregion
@@ -95,7 +97,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     public override async Task<IList<ClusterAuthenticationCredentials>> GetAllAsync()
     {
         var credentials = _dbSet.Include(x=>x.ClusterProjectCredentials).ToList();
-        var result = await WithVaultData(credentials, logger: null);
+        var result = await WithVaultData(credentials, _logger);
         return result.ToList();
     }
 

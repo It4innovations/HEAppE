@@ -20,7 +20,7 @@ public class RoleAssignmentService : IHostedService
     public RoleAssignmentService(IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
     {
         _serviceProvider = serviceProvider;
-        _logger = loggerFactory.CreateLogger("HEAppE.RestApi.Services");
+        _logger = loggerFactory.CreateLogger("HEAppE.RestApi.Services.RoleAssignmentService");
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
