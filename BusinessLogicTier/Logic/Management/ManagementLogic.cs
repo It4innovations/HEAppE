@@ -541,6 +541,33 @@ public class ManagementLogic : IManagementLogic
                     cred.ModifiedAt = modified;
                 }
             }
+            
+            //copy credentials from other assignments if existing
+            var otherAssignmentsForExisting = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
+            var uniqueCredentialsToCopyForExisting = otherAssignmentsForExisting
+                .Where(x => x.ClusterId != clusterId)
+                .SelectMany(x => x.ClusterProjectCredentials)
+                .GroupBy(x => x.AdaptorUserId)
+                .Select(g => g.First())
+                .ToList();
+            
+            foreach (var cpc in uniqueCredentialsToCopyForExisting)
+            {
+                if (!existingAssignment.ClusterProjectCredentials.Any(x => x.AdaptorUserId == cpc.AdaptorUserId && !x.IsDeleted))
+                {
+                    var newCpc = new ClusterProjectCredential
+                    {
+                        ClusterProject = existingAssignment,
+                        ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                        IsServiceAccount = cpc.IsServiceAccount,
+                        CreatedAt = modified,
+                        IsDeleted = false,
+                        IsInitialized = cpc.IsInitialized, 
+                        AdaptorUserId = cpc.AdaptorUserId,
+                    };
+                    existingAssignment.ClusterProjectCredentials.Add(newCpc);
+                }
+            }
 
             project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(project);
