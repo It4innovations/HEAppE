@@ -485,11 +485,19 @@ public class ManagementLogic : IManagementLogic
 
     }
     
+    /// <summary>
+    /// Get all project to cluster assignments for a project
+    /// </summary>
+    /// <param name="projectId"></param>
+    /// <returns></returns>
     public List<ClusterProject> GetProjectAssignmentToClusters(long projectId)
     {
-        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId).Where(x=> !x.IsDeleted).ToList();
-        return projectAssignmentToCluster;
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository
+            .GetClusterProjectForProject(projectId)
+            .Where(x => !x.IsDeleted)
+            .ToList();
 
+        return projectAssignmentToCluster;
     }
 
     /// <summary>
@@ -506,50 +514,77 @@ public class ManagementLogic : IManagementLogic
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        
         _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
-        var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
 
-        if (cp != null)
-            //Cluster to project is marked as deleted, update it
-            return !cp.IsDeleted
-                ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
-
-
-        //Create cluster to project mapping
+        var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
         var modified = DateTime.UtcNow;
+
+        if (existingAssignment != null)
+        {
+            if (!existingAssignment.IsDeleted)
+            {
+                throw new InputValidationException("ProjectAlreadyExistWithCluster");
+            }
+
+            existingAssignment.IsDeleted = false;
+            existingAssignment.ModifiedAt = modified;
+            existingAssignment.ScratchStoragePath = CleanPath(scratchStoragePath);
+            existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath ?? scratchStoragePath);
+            
+            foreach (var cred in existingAssignment.ClusterProjectCredentials)
+            {
+                if (cred.IsDeleted)
+                {
+                    cred.IsDeleted = false;
+                    cred.ModifiedAt = modified;
+                }
+            }
+
+            project.ModifiedAt = modified;
+            _unitOfWork.ProjectRepository.Update(project);
+            _unitOfWork.ClusterProjectRepository.Update(existingAssignment);
+            _unitOfWork.Save();
+
+            _logger.Info($"Resurrected Project ID '{projectId}' assignment to Cluster ID '{clusterId}'.");
+            return existingAssignment;
+        }
+
         ClusterProject clusterProject = new()
         {
             ClusterId = clusterId,
             ProjectId = projectId,
-            ScratchStoragePath = scratchStoragePath
-                .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
-                .TrimEnd('\\', '/'),
-            ProjectStoragePath = (string.IsNullOrEmpty(projectStoragePath)?
-                scratchStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/') :
-                projectStoragePath?.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/')),
+            ScratchStoragePath = CleanPath(scratchStoragePath),
+            ProjectStoragePath = CleanPath(projectStoragePath ?? scratchStoragePath),
             CreatedAt = modified,
             IsDeleted = false,
+            ClusterProjectCredentials = new List<ClusterProjectCredential>()
         };
 
-        var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
-        foreach (var c in cps)
+        var otherAssignments = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
+        
+        var uniqueCredentialsToCopy = otherAssignments
+            .Where(x => !x.IsDeleted && x.ClusterId != clusterId)
+            .SelectMany(x => x.ClusterProjectCredentials)
+            .Where(x => !x.IsDeleted)
+            .GroupBy(x => x.AdaptorUserId) 
+            .Select(g => g.First()) 
+            .ToList();
+
+        foreach (var cpc in uniqueCredentialsToCopy)
         {
-            foreach(var cpc in c.ClusterProjectCredentials)
+            var newCpc = new ClusterProjectCredential
             {
-                var newCpc = new ClusterProjectCredential
-                {
-                    ClusterProject = clusterProject,
-                    ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
-                    IsServiceAccount = cpc.IsServiceAccount,
-                    CreatedAt = modified,
-                    IsDeleted = cpc.IsServiceAccount,
-                    IsInitialized = cpc.IsInitialized,
-                    AdaptorUserId = cpc.AdaptorUserId,
-                };
-                clusterProject.ClusterProjectCredentials.Add(newCpc);
-            }
+                ClusterProject = clusterProject,
+                ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                IsServiceAccount = cpc.IsServiceAccount,
+                CreatedAt = modified,
+                IsDeleted = false,
+                IsInitialized = false, 
+                AdaptorUserId = cpc.AdaptorUserId,
+            };
+            clusterProject.ClusterProjectCredentials.Add(newCpc);
         }
 
         project.ModifiedAt = modified;
@@ -557,7 +592,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
         _unitOfWork.Save();
 
-        _logger.Info($"Created Project ID '{projectId} assignment to Cluster ID '{clusterId}'.");
+        _logger.Info($"Created Project ID '{projectId}' assignment to Cluster ID '{clusterId}'.");
         return clusterProject;
     }
 
@@ -576,33 +611,18 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
             ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
-        var modified = DateTime.UtcNow;
-        clusterProject.ScratchStoragePath = scratchStoragePath
-            .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
-        clusterProject.ProjectStoragePath = projectStoragePath
-            .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
-        clusterProject.ModifiedAt = modified;
-        clusterProject.IsDeleted = false;
-        clusterProject.Project.ModifiedAt = modified;
-        //reference existing credentials if exist for the project, otherwise create new uninitialized credentials for the cluster-project mapping
-        var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
-        foreach (var c in cps)        
+        if (clusterProject.IsDeleted)
         {
-            foreach(var cpc in c.ClusterProjectCredentials.Where(a=> a.ClusterProject.ClusterId != clusterId))
-            {                
-                    var newCpc = new ClusterProjectCredential
-                    {                        
-                        ClusterProject = clusterProject,
-                        ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
-                        IsServiceAccount = cpc.IsServiceAccount,
-                        CreatedAt = modified,
-                        IsDeleted = cpc.IsServiceAccount,
-                        IsInitialized = cpc.IsInitialized,
-                        AdaptorUserId = cpc.AdaptorUserId,
-                    };
-                    clusterProject.ClusterProjectCredentials.Add(newCpc);
-            }
+             throw new InputValidationException("CannotModifyDeletedAssignment");
         }
+
+        var modified = DateTime.UtcNow;
+        clusterProject.ScratchStoragePath = CleanPath(scratchStoragePath);
+        clusterProject.ProjectStoragePath = CleanPath(projectStoragePath);
+        clusterProject.ModifiedAt = modified;
+        
+        clusterProject.Project.ModifiedAt = modified;
+
         _unitOfWork.ProjectRepository.Update(clusterProject.Project);
         _unitOfWork.ClusterProjectRepository.Update(clusterProject);
         _unitOfWork.Save();
@@ -623,30 +643,60 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
             ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
+        if (clusterProject.IsDeleted) return;
+
         var modified = DateTime.UtcNow;
         clusterProject.IsDeleted = true;
         clusterProject.ModifiedAt = modified;
-        clusterProject.ClusterProjectCredentials.ForEach(x =>
+        
+        var otherProjectAssignments = _unitOfWork.ClusterProjectRepository
+            .GetClusterProjectForProject(projectId)
+            .Where(cp => !cp.IsDeleted && cp.ClusterId != clusterId)
+            .ToList();
+
+        foreach (var x in clusterProject.ClusterProjectCredentials)
         {
             x.IsDeleted = true;
             x.ModifiedAt = modified;
-            x.ClusterAuthenticationCredentials.IsDeleted = true;
-        });
 
-        if(clusterProject.Project is null)
-        {
-            _logger.Info($"Project with ID '{projectId}' not found for Cluster ID '{clusterId}' while deleting ProjectAssignmentToCluster reference.");
+            if (x.ClusterAuthenticationCredentials != null)
+            {
+                var authId = x.ClusterAuthenticationCredentials.Id;
+                
+                bool isUsedElsewhere = otherProjectAssignments
+                    .SelectMany(cp => cp.ClusterProjectCredentials)
+                    .Any(cpc => !cpc.IsDeleted && cpc.ClusterAuthenticationCredentials?.Id == authId);
+                
+                if (!isUsedElsewhere)
+                {
+                    x.ClusterAuthenticationCredentials.IsDeleted = true;
+                }
+            }
         }
-        else
+
+        if (clusterProject.Project != null)
         {
             clusterProject.Project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(clusterProject.Project);
+        }
+        else
+        {
+            _logger.Warn($"Project ID '{projectId}' logic clean-up: Project entity not found during assignment removal.");
         }
         
         _unitOfWork.ClusterProjectRepository.Update(clusterProject);
         _unitOfWork.Save();
 
         _logger.Info($"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'");
+    }
+
+    private string CleanPath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return string.Empty;
+
+        return path
+            .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
+            .TrimEnd('\\', '/');
     }
 
     /// <summary>
