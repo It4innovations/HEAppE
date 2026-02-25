@@ -31,6 +31,12 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .FirstOrDefault();
     }
     
+    public ClusterProject GetClusterProjectForClusterAndProjectIncludingDeleted(long clusterId, long projectId)
+    {
+        return _context.ClusterProjects
+            .IgnoreQueryFilters() 
+            .FirstOrDefault(x => x.ClusterId == clusterId && x.ProjectId == projectId);
+    }
     public List<ClusterProject> GetClusterProjectForProject(long projectId)
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)

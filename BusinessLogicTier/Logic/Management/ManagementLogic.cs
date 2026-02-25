@@ -518,7 +518,7 @@ public class ManagementLogic : IManagementLogic
         _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
-        var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+        var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProjectIncludingDeleted(clusterId, projectId);
         var modified = DateTime.UtcNow;
         
         var otherAssignments = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId)
