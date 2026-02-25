@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.2.4
 
 ### Fixed
-- Corrected automatic `ClusterAccount` init procedure when calling any endpoint which directs to connection to cluster.
-- Extended allowed length for Cluster attributes validation for `Cluster` endpoints.
-- Project to Cluster assignment `ClusterProjectCredentials` synchronization at `PUT` request (modification).
+- Corrected the `IsInitialized` flag handling for new cluster project credentials.
+- Extended string length limits for cluster attribute validation to prevent API errors.
+- Fixed various issues ensuring credentials remain consistent across project-cluster assignments and cluster info updates.
 
+### Performance
+- Disabled minimum request and response data rates to prevent premature connection timeouts in specific network environments.
 
 ## V6.2.3
 
