@@ -44,6 +44,12 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .ToList();
     }
     
+    public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId)
+    {
+        return _context.ClusterProjects.IgnoreQueryFilters().Where(cp => cp.ProjectId == projectId)
+            .ToList();
+    }
+    
         public IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId)
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId);

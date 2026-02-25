@@ -10,6 +10,7 @@ public interface IClusterProjectRepository : IRepository<ClusterProject>
     ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId);
 
     ClusterProject GetClusterProjectForClusterAndProjectIncludingDeleted(long clusterId, long projectId);
+    public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId);
     
     public List<ClusterProject> GetClusterProjectForProject(long projectId);
     

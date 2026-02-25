@@ -517,67 +517,47 @@ public class ManagementLogic : IManagementLogic
         _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
-        var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProjectIncludingDeleted(clusterId, projectId);
-        var modified = DateTime.UtcNow;
-        
-        var otherAssignments = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId)
-            .Where(x => x.ClusterId != clusterId && !x.IsDeleted)
-            .ToList();
-
-        var credentialsToPropagate = otherAssignments
-            .SelectMany(x => x.ClusterProjectCredentials)
-            .Where(cpc => !cpc.IsDeleted)
-            .GroupBy(x => x.AdaptorUserId)
-            .Select(g => g.First())
-            .ToList();
-
-        if (existingAssignment != null)
+        var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+        if (existingAssignment != null && !existingAssignment.IsDeleted)
         {
-            if (!existingAssignment.IsDeleted)
-            {
-                throw new InputValidationException("ProjectAlreadyExistWithCluster");
-            }
-            
+            throw new InputValidationException("ProjectAlreadyAssignedToCluster", projectId, clusterId);
+        }
+        else if (existingAssignment != null && existingAssignment.IsDeleted)
+        {
             existingAssignment.IsDeleted = false;
-            existingAssignment.ModifiedAt = modified;
+            existingAssignment.ModifiedAt = DateTime.UtcNow;
             existingAssignment.ScratchStoragePath = CleanPath(scratchStoragePath);
-            existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath ?? scratchStoragePath);
+            existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath);
             
-            if (existingAssignment.ClusterProjectCredentials == null)
-                existingAssignment.ClusterProjectCredentials = new List<ClusterProjectCredential>();
-
-            foreach (var cpc in credentialsToPropagate)
+            //check if any of the existing credentials for the assignment is deleted and same ClusterAuthenticationCredentialsId is assigned to different existingAssignment, if yes, then un-delete them as well
+            foreach (var credential in existingAssignment.ClusterProjectCredentials)
             {
-                var existingCpc = existingAssignment.ClusterProjectCredentials
-                    .FirstOrDefault(x => x.AdaptorUserId == cpc.AdaptorUserId);
-
-                if (existingCpc != null)
+                if (credential.IsDeleted)
                 {
-                    existingCpc.IsDeleted = false;
-                    existingCpc.ModifiedAt = modified;
-                    existingCpc.ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials;
-                }
-                else
-                {
-                    existingAssignment.ClusterProjectCredentials.Add(new ClusterProjectCredential
+                    var authId = credential.ClusterAuthenticationCredentialsId;
+                    var isUsedElsewhere = _unitOfWork.ClusterProjectRepository
+                        .GetClusterProjectForProject(projectId)
+                        .Where(x => !x.IsDeleted && x.ClusterId != clusterId)
+                        .SelectMany(cp => cp.ClusterProjectCredentials)
+                        .Any(cpc => !cpc.IsDeleted && cpc.ClusterAuthenticationCredentialsId == authId);
+                    
+                    if (isUsedElsewhere)
                     {
-                        ClusterProject = existingAssignment,
-                        ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
-                        IsServiceAccount = cpc.IsServiceAccount,
-                        CreatedAt = modified,
-                        IsDeleted = false,
-                        IsInitialized = cpc.IsInitialized,
-                        AdaptorUserId = cpc.AdaptorUserId,
-                    });
+                        credential.IsDeleted = false;
+                        credential.ModifiedAt = DateTime.UtcNow;
+                        
+                        if (credential.ClusterAuthenticationCredentials != null)
+                        {
+                            credential.ClusterAuthenticationCredentials.IsDeleted = false;
+                        }
+                    }
                 }
             }
-
-            project.ModifiedAt = modified;
-            _unitOfWork.ProjectRepository.Update(project);
+            
             _unitOfWork.ClusterProjectRepository.Update(existingAssignment);
             _unitOfWork.Save();
-
-            _logger.Info($"Resurrected Project ID '{projectId}' assignment to Cluster ID '{clusterId}'.");
+            
+            _logger.Info($"Re-assigned Project ID '{projectId}' to Cluster ID '{clusterId}' by un-deleting the previous assignment.");
             return existingAssignment;
         }
         
@@ -586,35 +566,39 @@ public class ManagementLogic : IManagementLogic
             ClusterId = clusterId,
             ProjectId = projectId,
             ScratchStoragePath = CleanPath(scratchStoragePath),
-            ProjectStoragePath = CleanPath(projectStoragePath ?? scratchStoragePath),
-            CreatedAt = modified,
-            IsDeleted = false,
-            ClusterProjectCredentials = new List<ClusterProjectCredential>()
+            ProjectStoragePath = CleanPath(projectStoragePath),
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
         };
+        
+        //if for project already exists assignment to cluster with different cluster, then copy ClusterProjectCredentials from one of the existing assignments to new assignment
+        //get assignments which has not referenced cluster id
+        var existingClusterProjects = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId)
+            .Where(x => !x.IsDeleted && x.ClusterId != clusterId);
 
-        foreach (var cpc in credentialsToPropagate)
+        foreach (var existingClusterProject in existingClusterProjects)
         {
-            if (!clusterProject.ClusterProjectCredentials.Any(x => x.AdaptorUserId == cpc.AdaptorUserId))
+            //get credentials for existing assignment
+            var existingCredentials = existingClusterProject.ClusterProjectCredentials.Where(x => !x.IsDeleted).ToList();
+            foreach (var existingCredential in existingCredentials)
             {
-                clusterProject.ClusterProjectCredentials.Add(new ClusterProjectCredential
+                //copy
+                var newCredential = new ClusterProjectCredential
                 {
-                    ClusterProject = clusterProject,
-                    ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
-                    IsServiceAccount = cpc.IsServiceAccount,
-                    CreatedAt = modified,
+                    ClusterAuthenticationCredentialsId = existingCredential.ClusterAuthenticationCredentialsId,
+                    CreatedAt = DateTime.UtcNow,
                     IsDeleted = false,
-                    IsInitialized = cpc.IsInitialized,
-                    AdaptorUserId = cpc.AdaptorUserId,
-                });
+                    AdaptorUserId = existingCredential.AdaptorUserId,
+                    ClusterProject = clusterProject,
+                    IsInitialized = existingCredential.IsInitialized,
+                };
+                clusterProject.ClusterProjectCredentials.Add(newCredential);
             }
         }
-
-        project.ModifiedAt = modified;
-        _unitOfWork.ProjectRepository.Update(project);
+        
+        //save
         _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
         _unitOfWork.Save();
-
-        _logger.Info($"Created Project ID '{projectId}' assignment to Cluster ID '{clusterId}'.");
         return clusterProject;
     }
 
