@@ -26,6 +26,8 @@ public class AuthorizationKeyFilter : IEndpointFilter
     /// <returns></returns>
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
+        //if AuthorizationHeader is passed skip
+        if (context.HttpContext.Request.Headers.ContainsKey("Authorization")) return await next(context);
         if (!(context.HttpContext.Request.Headers.TryGetValue(_options.AuthenticationParamHeaderName,
                 out var authKey) && authKey == _options.AuthenticationToken)) return TypedResults.Unauthorized();
 

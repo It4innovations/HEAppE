@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.4
+
+### Fixed
+- Corrected the `IsInitialized` flag handling for new cluster project credentials.
+- Extended string length limits for cluster attribute validation to prevent API errors.
+- Fixed various issues ensuring credentials remain consistent across project-cluster assignments and cluster info updates.
+
+### Performance
+- Disabled minimum request and response data rates to prevent premature connection timeouts in specific network environments.
+
 ## V6.2.3
 
 ### Added
