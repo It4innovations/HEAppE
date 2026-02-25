@@ -35,6 +35,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     {
         return _context.ClusterProjects
             .IgnoreQueryFilters() 
+            .Include(x => x.ClusterProjectCredentials) // <--- TOTO CHYBĚLO
             .FirstOrDefault(x => x.ClusterId == clusterId && x.ProjectId == projectId);
     }
     public List<ClusterProject> GetClusterProjectForProject(long projectId)
