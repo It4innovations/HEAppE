@@ -43,7 +43,7 @@ internal class MiddlewareContext : DbContext
                             // Connection to Database works and Database not exist
                             if (!Database.CanConnect())
                             {
-                                _logger?.LogInformation("Starting migration and seeding into the new database.");
+                                _logger.LogInformation("Starting migration and seeding into the new database.");
                                 Database.Migrate();
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
@@ -52,19 +52,19 @@ internal class MiddlewareContext : DbContext
                             {
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-                                _logger?.LogInformation(
+                                _logger.LogInformation(
                                     $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
                                 
                                 if (lastAppliedMigration is null)
                                 {
-                                    _logger?.LogInformation("Starting migration into the new database.");
+                                    _logger.LogInformation("Starting migration into the new database.");
                                     Database.Migrate();
                                     lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 }
                                 else if (DatabaseMigrationSettings.AutoMigrateDatabase &&
                                          lastAppliedMigration != lastDefinedMigration)
                                 {
-                                    _logger?.LogInformation("Applying newer migrations to the database.");
+                                    _logger.LogInformation("Applying newer migrations to the database.");
                                     Database.Migrate();
                                     _isMigrated = true;
                                 }
@@ -76,7 +76,7 @@ internal class MiddlewareContext : DbContext
                                 if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
                                     throw new DbContextException("MigrationCountMismatch");
 
-                                _logger?.LogInformation(
+                                _logger.LogInformation(
                                     "Application and database migrations are the same. Starting seeding data into the database.");
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
@@ -279,7 +279,7 @@ internal class MiddlewareContext : DbContext
     //Does not contain modification of existing data or adding new records
     private void EnsureDatabaseSeeded()
     {
-        _logger?.LogInformation("Seed data into tha database started.");
+        _logger.LogInformation("Seed data into tha database started.");
 
         InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
         InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
@@ -370,18 +370,18 @@ internal class MiddlewareContext : DbContext
                         clusterAuthenticationCredential, clusters.First());
         });
         SaveChanges();
-        _logger?.LogInformation("Seed data into the database completed.");
+        _logger.LogInformation("Seed data into the database completed.");
     }
 
     private void ValidateSeed()
     {
-        _logger?.LogInformation("Seed validation has started.");
+        _logger.LogInformation("Seed validation has started.");
         ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates,
             MiddlewareContextSettings.ClusterProjects);
         ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings
             .ClusterAuthenticationCredentials);
         ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
-        _logger?.LogInformation("Seed validation completed.");
+        _logger.LogInformation("Seed validation completed.");
     }
 
     private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(
@@ -454,7 +454,7 @@ internal class MiddlewareContext : DbContext
         if (items == null || items.Count() == 0) return;
 
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
-        _logger?.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
+        _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
         Database.OpenConnection();
         try
@@ -477,12 +477,12 @@ internal class MiddlewareContext : DbContext
         catch (Exception e)
         {
             Database.CloseConnection();
-            _logger?.LogError($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
+            _logger.LogError($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
         }
         finally
         {
             Database.CloseConnection();
-            _logger?.LogInformation($"Inserting or updating seed into {tableName} is completed.");
+            _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
     }
 
@@ -515,7 +515,7 @@ internal class MiddlewareContext : DbContext
                     var vaultData = await vaultConnector
                         .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id);
 
-                    _logger?.LogInformation(vaultData.Id > 0
+                    _logger.LogInformation(vaultData.Id > 0
                         ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
                         : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
                     var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();

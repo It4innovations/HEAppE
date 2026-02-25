@@ -123,7 +123,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             if (archiveLogs)
             {
-                _logger?.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
+                _logger.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
                 jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
             }
             return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);

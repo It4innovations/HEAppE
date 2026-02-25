@@ -101,13 +101,13 @@ internal class DatabaseBackupService : IDatabaseBackupService
             }
             else
             {
-                _logger?.LogWarning($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
+                _logger.LogWarning($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
             }
             #endregion
             
             #region HashiCorp Vault backup
 
-            _logger?.LogInformation("Starting HashiCorp Vault snapshot as part of full backup.");
+            _logger.LogInformation("Starting HashiCorp Vault snapshot as part of full backup.");
             try
             {
                 byte[] vaultSnapshot = await _vaultConnector.CreateSnapshot();
@@ -124,12 +124,12 @@ internal class DatabaseBackupService : IDatabaseBackupService
                         string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName);
                         await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
                     }
-                    _logger?.LogDebug("Vault snapshot included in backup successfully.");
+                    _logger.LogDebug("Vault snapshot included in backup successfully.");
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, $"Vault backup failed, but continuing with DB backup: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed, but continuing with DB backup: {ex.Message}");
             }
 
             #endregion

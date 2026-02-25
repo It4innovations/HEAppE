@@ -28,7 +28,7 @@ public class SSHGenerator
         CipherType = CipherGeneratorConfiguration.Type;
         if (CipherGeneratorConfiguration.Type == FileTransferCipherType.Unknown)
         {
-            _logger?.LogWarning(
+            _logger.LogWarning(
                 "Wrong fill \"TypeName\" or \"Size\" in \"appsetting.json\" config file. HEAppE uses default algorithm for generating temporary keys RSA (4096)!");
             CipherType = FileTransferCipherType.RSA4096;
         }

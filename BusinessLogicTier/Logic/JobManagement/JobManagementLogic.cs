@@ -98,7 +98,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var credentials = await clusterLogic.GetNextAvailableUserCredentials(
             specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
-        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
         foreach (var task in specification.Tasks)
         {
@@ -149,7 +149,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         if(jobInfo.Specification.Tasks.Any(x=>x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
@@ -191,7 +191,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
         var serviceAccount = await
@@ -219,7 +219,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual async Task<SubmittedJobInfo> CancelJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"User {loggedUser.GetLogIdentification()} is canceling the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
@@ -263,7 +263,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
@@ -291,7 +291,7 @@ internal class JobManagementLogic : IJobManagementLogic
     
     public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
@@ -412,7 +412,7 @@ internal class JobManagementLogic : IJobManagementLogic
             //if some jobs need to be checked log
             if (userJobsGroup.Any())
             {
-                _logger?.LogInformation(
+                _logger.LogInformation(
                     $"Triggered automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
             }
 
@@ -436,7 +436,7 @@ internal class JobManagementLogic : IJobManagementLogic
                                 .GetInstance(cluster.SchedulerType)
                                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id, logger: _logger)
                                 .CancelJob(tasks, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken);
-                            tasks.ForEach(x => _logger?.LogWarning($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
+                            tasks.ForEach(x => _logger.LogWarning($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
 
                         }
                         finally
@@ -523,7 +523,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
-        _logger?.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
+        _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
@@ -539,7 +539,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash)
     {
-        _logger?.LogInformation(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
+        _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
@@ -845,7 +845,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
         catch (Exception ex)
         {
-            logger?.LogError("Error combining submitted job info from cluster: " + ex.Message);
+            logger.LogError("Error combining submitted job info from cluster: " + ex.Message);
             throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", dbJobInfo.Id);
         }
         
@@ -867,7 +867,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ? await unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id, logger: logger)
             : jobSpecification.ClusterUser;
-        logger?.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
+        logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
         return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, null);
     }
 

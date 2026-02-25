@@ -120,12 +120,12 @@ public class FileTransferLogic : IFileTransferLogic
                 
                 if (clusterUser == null)
                 {
-                    _logger?.LogWarning(
+                    _logger.LogWarning(
                         $"Cluster user is null for temporary file transfer key(s) in cluster \"{clusterName}\". Skipping removal of file transfer keys for this user.");
                     continue;
                 }
 
-                _logger?.LogInformation(
+                _logger.LogInformation(
                     $"Removing file transfer key for user \"{userName}\" in cluster \"{clusterName}\"");
                 
                 long? adaptorUserId = (tempKey.Key.Project?.IsOneToOneMapping == true)
@@ -145,7 +145,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public async Task<FileTransferMethod> TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -191,7 +191,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public async Task<FileTransferMethod> GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -211,13 +211,13 @@ public class FileTransferLogic : IFileTransferLogic
                 FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath)
         };
 
-        _logger?.LogInformation($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
+        _logger.LogInformation($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
         if (jobInfo.Specification.ClusterUser.AuthenticationType ==
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
         {
             var credentials =
                 await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetByIdAsync(jobInfo.Specification.ClusterUser.Id);
-            _logger?.LogDebug($"ClusterUser: {credentials}");
+            _logger.LogDebug($"ClusterUser: {credentials}");
             transferMethod.Credentials = new FileTransferKeyCredentials
             {
                 Username = jobInfo.Specification.ClusterUser.Username,
@@ -273,7 +273,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -298,7 +298,7 @@ public class FileTransferLogic : IFileTransferLogic
     public IList<JobFileContent> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId,
         TaskFileOffset[] taskFileOffsets, AdaptorUser loggedUser)
     {
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Getting part of job files from cluster for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -577,7 +577,7 @@ public class FileTransferLogic : IFileTransferLogic
         IRexFileSystemManager fileManager,
         AdaptorUser loggedUser)
     {
-        _logger?.LogInformation($"Getting file from archive for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}");
+        _logger.LogInformation($"Getting file from archive for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}");
 
         try
         {

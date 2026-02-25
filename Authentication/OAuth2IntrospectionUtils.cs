@@ -29,11 +29,11 @@ public class OAuth2IntrospectionUtils
             claims["permissions"] = user.FindAll("permission").Select(c => c.Value).ToArray();
         
             // Log extracted claims for debugging
-            logger?.LogDebug($"Extracted introspection claims: {string.Join(", ", claims.Where(kv => kv.Value != null).Select(kv => $"{kv.Key}: {kv.Value}"))}");
+            logger.LogDebug($"Extracted introspection claims: {string.Join(", ", claims.Where(kv => kv.Value != null).Select(kv => $"{kv.Key}: {kv.Value}"))}");
         }
         else
         {
-            logger?.LogWarning("User is not authenticated or introspection claims are missing");
+            logger.LogWarning("User is not authenticated or introspection claims are missing");
         }
     
         return claims;

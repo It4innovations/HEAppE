@@ -56,7 +56,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError(ex, "An error occured during execution of the ClusterProjectCredentialsCheckLog background service. ");
+                    _logger.LogError(ex, "An error occured during execution of the ClusterProjectCredentialsCheckLog background service. ");
                 }
             }
 

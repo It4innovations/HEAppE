@@ -72,7 +72,7 @@ namespace HEAppE.ConnectionPool
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
                 poolCleanTimer.AutoReset = false;
-                _logger?.LogDebug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
+                _logger.LogDebug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
             }
         }
 
@@ -85,9 +85,9 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
         {
-            _logger?.LogDebug($"[User:{credentials.Id}] Requesting connection.");
+            _logger.LogDebug($"[User:{credentials.Id}] Requesting connection.");
             var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
-                _logger?.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+                _logger.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
                 return new SharedUserContext(_maxConnectionsPerUser);
             });
 
@@ -101,13 +101,13 @@ namespace HEAppE.ConnectionPool
                     {
                         s.ReferenceCount++;
                         s.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                        _logger?.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {i}. RefCount: {s.ReferenceCount}");
+                        _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {i}. RefCount: {s.ReferenceCount}");
                         return s.ConnectionInfo;
                     }
                 }
             }
 
-            _logger?.LogDebug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
+            _logger.LogDebug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
             
             await EnsureVaultDataLoadedAsync(credentials);
             await userContext.UserSemaphore.WaitAsync();
@@ -119,20 +119,20 @@ namespace HEAppE.ConnectionPool
                 {
                     if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
                     {
-                        _logger?.LogDebug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
+                        _logger.LogDebug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
                         userContext.UserSemaphore.Release();
                         slot.ReferenceCount++;
                         return slot.ConnectionInfo;
                     }
 
-                    _logger?.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
+                    _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
                     var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
                     slot.ConnectionInfo = newConnection;
                     
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
                     if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
                     {
-                        _logger?.LogDebug("Starting cleanup timer.");
+                        _logger.LogDebug("Starting cleanup timer.");
                         poolCleanTimer.Start();
                     }
 
@@ -142,7 +142,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger?.LogError($"[User:{credentials.Id}] Connection setup failed", ex);
+                _logger.LogError($"[User:{credentials.Id}] Connection setup failed", ex);
                 userContext.UserSemaphore.Release();
                 throw;
             }
@@ -168,13 +168,13 @@ namespace HEAppE.ConnectionPool
                                 slot.ReferenceCount = 0;
                                 slot.LastReleasedTime = DateTime.UtcNow;
                             }
-                            _logger?.LogDebug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
+                            _logger.LogDebug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
                             return;
                         }
                     }
                 }
             }
-            _logger?.LogWarning($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
+            _logger.LogWarning($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
         }
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -182,7 +182,7 @@ namespace HEAppE.ConnectionPool
             // clear logging thread properties
             //LogicalThreadContext.Properties.Clear(); // TODO: what was this for... ?
 
-            _logger?.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
+            _logger.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
             int closedCount = 0;
             try
             {
@@ -197,7 +197,7 @@ namespace HEAppE.ConnectionPool
                             if (slot.ConnectionInfo == null) continue;
                             
                             bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
-                            _logger?.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
+                            _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
                             if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
                             {
                                 connToRemove = slot.ConnectionInfo;
@@ -207,24 +207,24 @@ namespace HEAppE.ConnectionPool
 
                         if (connToRemove != null)
                         {
-                            _logger?.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
+                            _logger.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
                             RemovePhysicalConnection(connToRemove, userContext);
                             closedCount++;
                         }
                     }
                 }
             }
-            catch (Exception ex) { _logger?.LogError(ex, "Pool cleanup error"); }
+            catch (Exception ex) { _logger.LogError(ex, "Pool cleanup error"); }
             finally
             {
-                if (closedCount > 0) _logger?.LogDebug($"Cleanup finished. Closed {closedCount} connections.");
+                if (closedCount > 0) _logger.LogDebug($"Cleanup finished. Closed {closedCount} connections.");
                 if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
                 {
                     poolCleanTimer.Start();
                 }
                 else
                 {
-                    _logger?.LogDebug("Cleanup timer stopped (pool at or below minSize).");
+                    _logger.LogDebug("Cleanup timer stopped (pool at or below minSize).");
                 }
             }
         }
@@ -233,10 +233,10 @@ namespace HEAppE.ConnectionPool
         {
             if (cred.IsVaultDataLoaded) return;
             
-            _logger?.LogDebug($"[User:{cred.Id}] Loading vault data...");
+            _logger.LogDebug($"[User:{cred.Id}] Loading vault data...");
             var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
             {
-                _logger?.LogDebug($"[User:{id}] Fetching vault data from service (Shared Task).");
+                _logger.LogDebug($"[User:{id}] Fetching vault data from service (Shared Task).");
                 var connector = new VaultConnector(_logger);
                 return await connector.GetClusterAuthenticationCredentials(id);
             });
@@ -248,7 +248,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger?.LogError($"[User:{cred.Id}] Failed to load vault data", ex);
+                _logger.LogError($"[User:{cred.Id}] Failed to load vault data", ex);
                 _vaultCache.TryRemove(cred.Id, out _);
                 throw;
             }
@@ -262,13 +262,13 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
+                _logger.LogWarning($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
             }
             finally
             {
                 Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
                 context.UserSemaphore.Release();
-                _logger?.LogDebug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
+                _logger.LogDebug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
             }
         }
         
@@ -281,9 +281,9 @@ namespace HEAppE.ConnectionPool
             {
                 username = info.ConnectionInfo.Username;
             }
-            _logger?.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
+            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
             _adapter.Connect(connection.Connection);
-            _logger?.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
+            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
             
             return connection;
         }

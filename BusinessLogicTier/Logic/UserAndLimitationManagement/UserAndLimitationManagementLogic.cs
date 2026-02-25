@@ -83,7 +83,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
-            _logger?.LogInformation("Authenticating local user with session code.");
+            _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);
         }
 
@@ -137,7 +137,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public async Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials)
     {
-        _logger?.LogInformation($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
+        _logger.LogInformation($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
 
         var user = await HandleOpenIdAuthenticationAsync(credentials);
         return user;
@@ -155,7 +155,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _logger?.LogInformation(
+            _logger.LogInformation(
                 $"OpenId: user \"{adaptorUser.Username}\" wants to authenticate to the OpenStack project \"{projectId}\".");
 
             if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
@@ -188,7 +188,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             _unitOfWork.OpenStackSessionRepository.Insert(openStackSession);
             _unitOfWork.Save();
 
-            _logger?.LogInformation(
+            _logger.LogInformation(
                 $"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
             return openStackCredentials;
         }
@@ -358,7 +358,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _logger?.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
             return GetOrRegisterLexisCredentials(result);
         }
@@ -453,7 +453,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             try
             {
                 user = CreateUser(openIdUser.UserName, openIdUser.Email, changedTime, AdaptorUserType.OpenId);
-                _logger?.LogInformation($"OpenId: Created new HEAppE account for user: \"{user}\"");
+                _logger.LogInformation($"OpenId: Created new HEAppE account for user: \"{user}\"");
             }
             catch (Exception)
             {
@@ -474,7 +474,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
             {
-                _logger?.LogWarning($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                _logger.LogWarning($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
                 continue;
             }
 
@@ -482,7 +482,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
 
             hasUserGroup = true;
-            _logger?.LogInformation($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
+            _logger.LogInformation($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
         }
 
         _unitOfWork.Save();
@@ -574,7 +574,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser GetActiveUser(string username)
     {
-        _logger?.LogInformation($"User \"{username}\" wants to authenticate to the system.");
+        _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
         return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
                throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
     }

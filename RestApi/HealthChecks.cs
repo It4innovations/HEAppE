@@ -194,7 +194,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
         }
         catch (Exception e)
         {
-            logger?.LogError(e, $"Database connection health check failed.");
+            logger.LogError(e, $"Database connection health check failed.");
             return false;
         }
         return true;
@@ -252,12 +252,12 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
         {
             var result = await httpClient.GetStringAsync(path);
             var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
-            logger?.LogWarning($"Obtained health information");
+            logger.LogWarning($"Obtained health information");
             return response;
         }
         catch (Exception e)
         {
-            logger?.LogError(e, $"Vault health check failed.");
+            logger.LogError(e, $"Vault health check failed.");
         }
 
         return null;

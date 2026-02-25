@@ -99,7 +99,7 @@ public class NoAuthenticationSshClient : SshClient
         };
 
         proc.Start();
-        _logger?.LogInformation($"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+        _logger.LogInformation($"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
         var result = proc.StandardOutput.ReadToEnd();
         var error = proc.StandardError.ReadToEnd();
         proc.WaitForExit();

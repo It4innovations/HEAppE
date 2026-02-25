@@ -172,7 +172,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
                 username: credential.Username
             );
-            _logger?.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+            _logger.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         }
         return credentials;
     }
@@ -186,7 +186,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             true,
             adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
             username: credential.Username);
-        _logger?.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+        _logger.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         return credential;
     }
 
@@ -213,7 +213,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             {
                 if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
                 {
-                    _logger?.LogInformation($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
+                    _logger.LogInformation($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
                     var initializedCredentials = InitializeCredentials(projectId, clusterId, adaptorUserId);
                     return await GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
                         adaptorUserId.Value);
@@ -258,7 +258,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             // No user has been used from this cluster
             // return first usable account
             ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
-            _logger?.LogDebug("Using initial cluster account: {0}", firstCredentials.Username);
+            _logger.LogDebug("Using initial cluster account: {0}", firstCredentials.Username);
             return firstCredentials;
         }
 
@@ -269,7 +269,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         creds ??= firstCredentials;
 
         ClusterUserCache.SetLastUserId(cluster, serviceCredentials, creds.Id);
-        _logger?.LogDebug("Using cluster account: {0}", creds.Username);
+        _logger.LogDebug("Using cluster account: {0}", creds.Username);
         
         
         return creds;
@@ -305,7 +305,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             if (isAutoInitEnabled && isNotInitializedError)
             {
-                _logger?.LogInformation("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
+                _logger.LogInformation("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
                     clusterId, projectId, onlyServiceAccounts);
                 
                 return await InitializeClusterCredentials(
@@ -323,7 +323,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long projectId, 
         long adaptorUserId)
     {
-        _logger?.LogInformation("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
+        _logger.LogInformation("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
 
         //invoke management logic and run CreateSecureShellKey
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
@@ -384,7 +384,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         AdaptorUserProjectClusterUserCache.SetLastUserId(
             adaptorUserId, projectId, clusterId, serviceCredentials.Id, creds.Id);
         
-        _logger?.LogDebug("Using cluster account: {0}", creds.Username);
+        _logger.LogDebug("Using cluster account: {0}", creds.Username);
 
         return creds;
     }

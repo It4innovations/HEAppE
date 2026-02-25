@@ -246,11 +246,11 @@ public class RexSchedulerWrapper : IRexScheduler
                 jobInfo.Specification.ClusterUser.Username, false);
             if (!isUpdated)
             {
-                _logger?.LogWarning($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                _logger.LogWarning($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
             else
             {
-                _logger?.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
             _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
@@ -274,7 +274,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"Error deleting job directory for job {jobInfo.Id}", ex);
+            _logger.LogError($"Error deleting job directory for job {jobInfo.Id}", ex);
             return false;
         }
         finally
@@ -391,7 +391,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _logger?.LogError(
+            _logger.LogError(
                 $"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}, {ex.Message}",
                 ex);
             return false;
@@ -412,7 +412,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _logger?.LogError(
+            _logger.LogError(
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
             return false;
         }

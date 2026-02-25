@@ -84,7 +84,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         {
             var message =
                 $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
-            _logger?.LogError(message);
+            _logger.LogError(message);
             throw new ArgumentException(message);
         }
 
@@ -96,7 +96,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
             if (!string.IsNullOrEmpty(result))
             { 
-                _logger?.LogInformation($"User {credentials.Username} authenticated successfully.");
+                _logger.LogInformation($"User {credentials.Username} authenticated successfully.");
             }
         }
         return result;
@@ -125,11 +125,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
                 if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
                 {
-                    _logger?.LogInformation($"Using Memory Cache to get value for key.");
+                    _logger.LogInformation($"Using Memory Cache to get value for key.");
                     return value;
                 }
 
-                _logger?.LogInformation($"Reloading Memory Cache value for key.");
+                _logger.LogInformation($"Reloading Memory Cache value for key.");
                 var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, projectId);
                 _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(),
                     TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));

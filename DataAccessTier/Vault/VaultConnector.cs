@@ -28,7 +28,7 @@ public class VaultConnector : IVaultConnector
     };
 
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
-    protected readonly ILogger _logger = null;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Get cluster authentication credentials with cache support.
@@ -40,7 +40,7 @@ public class VaultConnector : IVaultConnector
         return await _cache.GetOrCreateAsync(id, entry =>
         {
             entry.SlidingExpiration = TimeSpan.FromMinutes(5);
-            _logger?.LogDebug($"Cache miss for ID: {id}, fetching from Vault.");
+            _logger.LogDebug($"Cache miss for ID: {id}, fetching from Vault.");
             return GetClusterAuthenticationCredentialsInternal(id);
         });
     }
@@ -56,12 +56,12 @@ public class VaultConnector : IVaultConnector
         {
             var result = await _httpClient.GetStringAsync(path);
             var vaultPart = ClusterProjectCredentialVaultPart.FromVaultJsonData(result);
-            _logger?.LogDebug($"Retrieved vault ClusterProjectCredential with ID: {id}");
+            _logger.LogDebug($"Retrieved vault ClusterProjectCredential with ID: {id}");
             return vaultPart;
         }
         catch (HttpRequestException e)
         {
-            _logger?.LogWarning($"Vault request for Id: {id} not found. Exception: {e}");
+            _logger.LogWarning($"Vault request for Id: {id} not found. Exception: {e}");
             return ClusterProjectCredentialVaultPart.Empty;
         }
     }
@@ -76,17 +76,17 @@ public class VaultConnector : IVaultConnector
         var content = data.AsVaultDataJsonObject();
         var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
-        _logger?.LogDebug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
+        _logger.LogDebug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
         var result = await _httpClient.PostAsync(path, payload);
 
         if (result.IsSuccessStatusCode)
         {
-            _logger?.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
+            _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
             _cache.Remove(data.Id); // Invalidate shared cache
             return true;
         }
 
-        _logger?.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
+        _logger.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
         return false;
     }
 
@@ -102,12 +102,12 @@ public class VaultConnector : IVaultConnector
 
         if (result.IsSuccessStatusCode)
         {
-            _logger?.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
+            _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
             _cache.Remove(id); // Invalidate shared cache
         }
         else
         {
-            _logger?.LogWarning($"Failed to delete vault ClusterProjectCredential with ID: {id}");
+            _logger.LogWarning($"Failed to delete vault ClusterProjectCredential with ID: {id}");
         }
     }
     
@@ -118,7 +118,7 @@ public class VaultConnector : IVaultConnector
 
     public async Task<byte[]> CreateSnapshot()
     {
-        _logger?.LogInformation("Initiating Vault backup using TAR format.");
+        _logger.LogInformation("Initiating Vault backup using TAR format.");
     
         string vaultSourcePath = "/opt/vault-backup-access/data";
 
@@ -126,20 +126,20 @@ public class VaultConnector : IVaultConnector
         {
             if (!Directory.Exists(vaultSourcePath))
             {
-                _logger?.LogError($"Source path {vaultSourcePath} does not exist.");
+                _logger.LogError($"Source path {vaultSourcePath} does not exist.");
                 return Array.Empty<byte>();
             }
 
             using (var ms = new MemoryStream())
             {
                 await Task.Run(() => TarFile.CreateFromDirectory(vaultSourcePath, ms, false));
-                _logger?.LogInformation("Vault backup successfully archived into TAR format.");
+                _logger.LogInformation("Vault backup successfully archived into TAR format.");
                 return ms.ToArray();
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"TAR backup failed: {ex.Message}");
+            _logger.LogError($"TAR backup failed: {ex.Message}");
             return Array.Empty<byte>();
         }
     }

@@ -86,7 +86,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
 
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
-        _logger?.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var sshCommandBase64 =
             $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
@@ -150,7 +150,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                         .Select(s => s.Groups.GetValueOrDefault("JobId").Value));
                 }
 
-            _logger?.LogWarning(
+            _logger.LogWarning(
                 $"Scheduled Job ids: \"{missingJobIds}\" are not in PBS Professional scheduler database. Mentioned jobs were canceled!");
             var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
             if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
@@ -180,7 +180,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             submitedTasksInfo.ToList().ForEach(f =>
                 cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
             var sshCommand = cmdBuilder.ToString();
-            _logger?.LogInformation(
+            _logger.LogInformation(
                 $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
@@ -202,7 +202,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     {
         SshCommandWrapper command = null;
         var sshCommand = $"{_commands.InterpreterCommand} 'qstat -Q -f {nodeType.Queue}'";
-        _logger?.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
         try
         {
@@ -238,7 +238,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         });
 
         var sshCommand = cmdBuilder.ToString();
-        _logger?.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);

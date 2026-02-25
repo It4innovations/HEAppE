@@ -33,7 +33,7 @@ public class RoleAssignmentService : IHostedService
     {
         try
         {
-            _logger?.LogInformation("Starting post-startup role assignment procedure via IHostedService.");
+            _logger.LogInformation("Starting post-startup role assignment procedure via IHostedService.");
             List<AdaptorUserGroup> userGroups;
             using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork(_logger))
             {
@@ -49,7 +49,7 @@ public class RoleAssignmentService : IHostedService
                     // Tím se vyhneme chybě "already being tracked"
                     using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
                     {
-                        _logger?.LogDebug($"Processing roles for group: {userGroup.Name}");
+                        _logger.LogDebug($"Processing roles for group: {userGroup.Name}");
                         var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
                     
                         if (localGroup != null)
@@ -58,16 +58,16 @@ public class RoleAssignmentService : IHostedService
                         }
                     }
                 }
-                _logger?.LogInformation("Role assignment procedure finished successfully.");
+                _logger.LogInformation("Role assignment procedure finished successfully.");
             }
             else
             {
-                _logger?.LogWarning("Role assignment skipped: No AdaptorUserGroup found in database.");
+                _logger.LogWarning("Role assignment skipped: No AdaptorUserGroup found in database.");
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occurred during the role assignment service execution.");
+            _logger.LogError(ex, "An error occurred during the role assignment service execution.");
         }
     }
 

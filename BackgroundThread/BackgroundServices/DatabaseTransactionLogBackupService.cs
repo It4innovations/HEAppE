@@ -43,7 +43,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "An error occured during execution of the DatabaseTransactionLogBackup background service: ");
+                _logger.LogError(ex, "An error occured during execution of the DatabaseTransactionLogBackup background service: ");
             }
 
             try
@@ -73,7 +73,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured during check if database transaction logs backup can be performed.");
+            _logger.LogError(ex, "An error occured during check if database transaction logs backup can be performed.");
             return false;
         }
     }
@@ -92,18 +92,18 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
             await cmd.ExecuteNonQueryAsync();
 
-            _logger?.LogInformation($"Transaction logs backup file was created to: {backupPath}");
+            _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
             {
                 var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _logger?.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured during execution of the transaction logs backup.");
+            _logger.LogError(ex, "An error occured during execution of the transaction logs backup.");
         }
     }
 
@@ -136,14 +136,14 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning(ex, $"Failed to delete transaction logs backup '{item.File.FullName}'");
+                        _logger.LogWarning(ex, $"Failed to delete transaction logs backup '{item.File.FullName}'");
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured while removing older transaction logs backups.");
+            _logger.LogError(ex, "An error occured while removing older transaction logs backups.");
         }
     }
 

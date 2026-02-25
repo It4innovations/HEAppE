@@ -75,7 +75,7 @@ internal class LinuxCommands : ICommands
         var genericCommandParameters = new List<string>();
         var shellCommand = $"cat {userScriptPath}";
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
-        _logger?.LogInformation($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
         foreach (Match match in Regex.Matches(sshCommand.Result,
                      @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n",
@@ -100,7 +100,7 @@ internal class LinuxCommands : ICommands
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}",
             _logger);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
     }
 
@@ -122,7 +122,7 @@ internal class LinuxCommands : ICommands
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}",
             _logger);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
     }
 
@@ -140,7 +140,7 @@ internal class LinuxCommands : ICommands
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}",
             _logger);
-        _logger?.LogInformation($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+        _logger.LogInformation($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ internal class LinuxCommands : ICommands
             if (cmdBuilder.Length + cmdText.Length > 55000)
             {
                 sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString(), _logger);
-                _logger?.LogInformation(
+                _logger.LogInformation(
                     $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
                 cmdBuilder.Clear();
             }
@@ -172,7 +172,7 @@ internal class LinuxCommands : ICommands
         if (cmdBuilder.Length > 0)
         {
             sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString(), _logger);
-            _logger?.LogInformation(
+            _logger.LogInformation(
                 $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
     }
@@ -204,11 +204,11 @@ internal class LinuxCommands : ICommands
                 $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
-        _logger?.LogInformation($"Create job directory command: \"{cmdBuilder}\"");
+        _logger.LogInformation($"Create job directory command: \"{cmdBuilder}\"");
         
         var sshCommand =
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString(), _logger);
-        _logger?.LogInformation($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+        _logger.LogInformation($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
     /// <summary>
@@ -223,12 +223,12 @@ internal class LinuxCommands : ICommands
         {
             var sshCommand =
                 SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
-            _logger?.LogInformation($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
+            _logger.LogInformation($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
             return true;
         }
         catch (SshCommandException ex)
         {
-            _logger?.LogError($"Job directory \"{jobInfo.Specification.Id}\" was not deleted. Error: \"{ex.Message}\"");
+            _logger.LogError($"Job directory \"{jobInfo.Specification.Id}\" was not deleted. Error: \"{ex.Message}\"");
             return false;
         }
     }
@@ -296,21 +296,21 @@ internal class LinuxCommands : ICommands
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString(), _logger);
             if (sshCommand.ExitStatus != 0)
             {
-                _logger?.LogError($"Initialization failed: {sshCommand.Result}");
+                _logger.LogError($"Initialization failed: {sshCommand.Result}");
                 return false;
             }
             return true;
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"Exception: {ex.Message}");
+            _logger.LogError($"Exception: {ex.Message}");
             return false;
         }
     }
 
     public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
-        _logger?.LogInformation($"Copying job files to cluster");
+        _logger.LogInformation($"Copying job files to cluster");
         var cmdBuilder = new StringBuilder();
         foreach (var sourceDestination in sourceDestinations)
         {
@@ -322,15 +322,15 @@ internal class LinuxCommands : ICommands
 
         try
         {
-            _logger?.LogInformation($"Copy job files command: \"{cmdBuilder}\"");
+            _logger.LogInformation($"Copy job files command: \"{cmdBuilder}\"");
             var sshCommand =
                 SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection),
                     cmdBuilder.ToString(), _logger);
-            _logger?.LogInformation($"Copy job files result: \"{sshCommand.Result}\"");
+            _logger.LogInformation($"Copy job files result: \"{sshCommand.Result}\"");
         }
         catch (SshCommandException ex)
         {
-            _logger?.LogError($"Copy job files failed: \"{ex.Message}\"");
+            _logger.LogError($"Copy job files failed: \"{ex.Message}\"");
             return false;
         }
 

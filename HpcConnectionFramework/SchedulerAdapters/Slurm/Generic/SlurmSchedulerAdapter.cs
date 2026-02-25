@@ -127,7 +127,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         ClusterAuthenticationCredentials credentials)
     {
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
-        _logger?.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
         // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
@@ -175,7 +175,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
         catch (SshCommandException)
         {
-            _logger?.LogWarning(
+            _logger.LogWarning(
                 $"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
             return Enumerable.Empty<SubmittedTaskInfo>();
         }
@@ -203,7 +203,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
 
         var sshCommand = cmdBuilder.ToString();
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"",
             _logger);
 
@@ -225,7 +225,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         var sshCommand =
             $"{_commands.InterpreterCommand} 'sinfo -t alloc {allocationCluster}--partition={nodeType.Queue} -h -o \"%.6D\"'";
-        _logger?.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
         try
         {
@@ -261,7 +261,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         });
 
         var sshCommand = cmdBuilder.ToString();
-        _logger?.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);

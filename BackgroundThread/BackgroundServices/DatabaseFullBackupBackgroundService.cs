@@ -57,7 +57,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "An error occured during execution of the DatabaseFullBackup background service: ");
+                _logger.LogError(ex, "An error occured during execution of the DatabaseFullBackup background service: ");
             }
 
             try
@@ -86,7 +86,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured during check if full database backup can be performed: ");
+            _logger.LogError(ex, "An error occured during check if full database backup can be performed: ");
             return false;
         }
     }
@@ -109,13 +109,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
             await cmd.ExecuteNonQueryAsync();
 
-            _logger?.LogInformation($"Database backup file was created to: {backupPath}");
+            _logger.LogInformation($"Database backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
             {
                 string nasFile = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _logger?.LogInformation($"Database backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
             }
             
             if (Directory.Exists(confsDirectory))
@@ -162,12 +162,12 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, $"Vault backup failed: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured during execution of the database backup: ");
+            _logger.LogError(ex, "An error occured during execution of the database backup: ");
         }
     }
 
@@ -195,13 +195,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                 foreach (var item in group.Skip(keep))
                 {
                     try { item.File.Delete(); }
-                    catch (Exception ex) { _logger?.LogWarning(ex, $"Failed to delete backup file '{item.File.FullName}'"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, $"Failed to delete backup file '{item.File.FullName}'"); }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occured while removing older database backup files. ");
+            _logger.LogError(ex, "An error occured while removing older database backup files. ");
         }
     }
 

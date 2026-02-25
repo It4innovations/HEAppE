@@ -101,7 +101,7 @@ public class DataTransferLogic : IDataTransferLogic
         AdaptorUser loggedUser)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Getting data transfer method for submitted task id: \"{submittedTaskInfoId}\" with user: \"{loggedUser.GetLogIdentification()}\"");
 
         if (taskInfo.State == TaskState.Running)
@@ -144,7 +144,7 @@ public class DataTransferLogic : IDataTransferLogic
     public void EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Removing data transfer method for submitted task id: \"{taskInfo.Id}\" with user: \"{loggedUser.GetLogIdentification()}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
@@ -171,7 +171,7 @@ public class DataTransferLogic : IDataTransferLogic
     /// <param name="taskInfo">Task Info</param>
     public void CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo)
     {
-        _logger?.LogInformation($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
+        _logger.LogInformation($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
         var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
             .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id, logger: _logger);
@@ -186,7 +186,7 @@ public class DataTransferLogic : IDataTransferLogic
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
@@ -197,7 +197,7 @@ public class DataTransferLogic : IDataTransferLogic
             throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
 
         var allocatedPort = getTunnelsInfos.LastOrDefault(f => f.RemotePort == nodePort).LocalPort.Value;
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"Allocated port for task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" is: \"{allocatedPort}\"");
         
         var options = new RestClientOptions($"http://localhost:{allocatedPort}")
@@ -219,16 +219,16 @@ public class DataTransferLogic : IDataTransferLogic
        
         if((int)response.StatusCode == 0 && response.ErrorMessage.Contains("Connection refused"))
         {
-            _logger?.LogError($"Connection refused for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
-            _logger?.LogInformation($"Attempting to recreate tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            _logger.LogError($"Connection refused for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            _logger.LogInformation($"Attempting to recreate tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             //try to open the tunnel again
             lock (_lockTunnelObj)
             {
-                _logger?.LogInformation($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+                _logger.LogInformation($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
                 scheduler.RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
                 scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
-                _logger?.LogInformation($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+                _logger.LogInformation($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             }
             var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
                 .LastOrDefault(f => f.RemotePort == nodePort);
@@ -238,7 +238,7 @@ public class DataTransferLogic : IDataTransferLogic
                 throw new InvalidOperationException($"No tunnel found for RemotePort={nodePort} on node {nodeIPAddress}.");
             }
             allocatedPort = tunnel.LocalPort.Value;
-            _logger?.LogInformation($"New allocated port after tunnel recreation: {allocatedPort}");
+            _logger.LogInformation($"New allocated port after tunnel recreation: {allocatedPort}");
             options = new RestClientOptions($"http://localhost:{allocatedPort}")
             {
                 Encoding = Encoding.UTF8,
@@ -267,7 +267,7 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
             logBuilder.AppendLine($"NodePort: {nodePort}");
-            _logger?.LogInformation(logBuilder.ToString());
+            _logger.LogInformation(logBuilder.ToString());
 
             throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
         }
@@ -282,7 +282,7 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
             logBuilder.AppendLine($"NodePort: {nodePort}");
-            _logger?.LogInformation(logBuilder.ToString());
+            _logger.LogInformation(logBuilder.ToString());
         }
 
         return response.Content;
@@ -292,7 +292,7 @@ public class DataTransferLogic : IDataTransferLogic
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-        _logger?.LogInformation(
+        _logger.LogInformation(
             $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
@@ -326,20 +326,20 @@ public class DataTransferLogic : IDataTransferLogic
         {
             //if no content type is set, default to application/json
             request.AddHeader("content-type", "raw");
-            _logger?.LogInformation($"No content-type header found, defaulting to 'raw' for task ID: {submittedTaskInfoId}");
+            _logger.LogInformation($"No content-type header found, defaulting to 'raw' for task ID: {submittedTaskInfoId}");
         }
         
         //if content type is set to json, send json body, else send raw body
         if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower().Contains("json")))
         {
             request.AddStringBody(httpPayload, DataFormat.Json);
-            _logger?.LogInformation($"Adding JSON body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
+            _logger.LogInformation($"Adding JSON body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
         }
         else
         {
             //default to raw
             request.AddBody(payload);
-            _logger?.LogInformation($"Adding raw body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
+            _logger.LogInformation($"Adding raw body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
         }
 
         var response = await basicRestClient.ExecuteAsync(request);
@@ -360,7 +360,7 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
             logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
             logBuilder.AppendLine($"Content-Length: {payload.Length}");
-            _logger?.LogInformation(logBuilder.ToString());
+            _logger.LogInformation(logBuilder.ToString());
 
             throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
         }
@@ -379,7 +379,7 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
             logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
             logBuilder.AppendLine($"Content-Length: {payload.Length}");
-            _logger?.LogInformation(logBuilder.ToString());
+            _logger.LogInformation(logBuilder.ToString());
         }
 
         return response.Content;
@@ -390,7 +390,7 @@ public class DataTransferLogic : IDataTransferLogic
         Stream responseStream, CancellationToken cancellationToken)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-        _logger?.LogInformation($"HTTP POST (streaming) from task: \"{submittedTaskInfoId}\" with remote node IP: \"{nodeIPAddress}\"");
+        _logger.LogInformation($"HTTP POST (streaming) from task: \"{submittedTaskInfoId}\" with remote node IP: \"{nodeIPAddress}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, logger: _logger);
@@ -440,14 +440,14 @@ public class DataTransferLogic : IDataTransferLogic
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger?.LogError($"HTTP POST failed for task {submittedTaskInfoId}: {response.StatusCode} - {errorContent}");
+                _logger.LogError($"HTTP POST failed for task {submittedTaskInfoId}: {response.StatusCode} - {errorContent}");
                 throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
             }
 
             var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
             var isEventStream = contentType.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase);
 
-            _logger?.LogInformation($"Response content-type: {contentType}, streaming mode for task {submittedTaskInfoId}");
+            _logger.LogInformation($"Response content-type: {contentType}, streaming mode for task {submittedTaskInfoId}");
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
             
@@ -475,20 +475,20 @@ public class DataTransferLogic : IDataTransferLogic
                 
                 if (totalBytes % 10240 == 0)
                 {
-                    _logger?.LogDebug($"Streamed {totalBytes} bytes for task {submittedTaskInfoId}");
+                    _logger.LogDebug($"Streamed {totalBytes} bytes for task {submittedTaskInfoId}");
                 }
             }
 
-            _logger?.LogInformation($"Streaming completed: {totalBytes} bytes for task {submittedTaskInfoId}");
+            _logger.LogInformation($"Streaming completed: {totalBytes} bytes for task {submittedTaskInfoId}");
         }
         catch (OperationCanceledException)
         {
-            _logger?.LogInformation($"Streaming cancelled for task {submittedTaskInfoId}");
+            _logger.LogInformation($"Streaming cancelled for task {submittedTaskInfoId}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"Streaming failed for task {submittedTaskInfoId}: {ex.Message}", ex);
+            _logger.LogError($"Streaming failed for task {submittedTaskInfoId}: {ex.Message}", ex);
             throw;
         }
     }
