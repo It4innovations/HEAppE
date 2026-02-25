@@ -59,6 +59,29 @@ public class DataStagingEndpoint : IApiRoute
                 generatedOperation.Description = "Obtain credentials and information for ensuring job data transfer.";
                 return generatedOperation;
             });
+        
+        //add ProvideCredentials and input ProvideCredentialsModel
+            group.MapPost("ProvideCredentials", async ([Validate] ProvideCredentialsModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                    [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
+                {
+                    logger.LogDebug(
+                        """Endpoint: "DataStaging" Method: "ProvideCredentials" Parameters: "{@model}" """, model);
+                    var fileTransferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+                    var result = await fileTransferService.ProvideCredentials(model.ProjectId, model.ClusterId);
+                    return Results.Ok(result);
+                }).Produces<FileTransferMethodExt>()
+                .ProducesValidationProblem()
+                .ProducesProblem(StatusCodes.Status401Unauthorized)
+                .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+                .ProducesProblem(StatusCodes.Status429TooManyRequests)
+                .ProducesProblem(StatusCodes.Status500InternalServerError)
+                .RequestSizeLimit(98)
+                .WithOpenApi(generatedOperation =>
+                {
+                    generatedOperation.Summary = "Provide credentials for data transfer.";
+                    generatedOperation.Description = "Provide credentials for data transfer to support uploading files to cluster-project directory.";
+                    return generatedOperation;
+                });
 
 
         group.MapPost("DownloadPartsOfJobFilesFromCluster", ([Validate] DownloadPartsOfJobFilesFromClusterModel model,

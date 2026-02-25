@@ -571,6 +571,57 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
+    public async Task<FileTransferMethod> ProvideCredentials(long modelProjectId, long modelClusterId, AdaptorUser loggedUser)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId);
+        var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(modelClusterId, modelProjectId);
+        
+        if (clusterProject == null)
+            throw new InvalidRequestException("NotExistingClusterProject", modelClusterId, modelProjectId);
+        
+        var cluster = clusterProject.Cluster;
+        
+        var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var clusterUserAuthCredentials = await clusterLogic.GetNextAvailableUserCredentials(modelClusterId, modelProjectId, false, loggedUser.Id);
+
+        if (clusterUserAuthCredentials == null)
+            throw new ClusterAuthenticationException("NotExistingClusterAuthenticationCredentials", loggedUser.Id, modelClusterId);
+
+        SignResponse response = new SignResponse();
+        string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
+
+        if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+        {
+            response = await _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname);
+        }
+
+        var transferMethod = new FileTransferMethod
+        {
+            Protocol = cluster.FileTransferMethods.FirstOrDefault()!.Protocol,
+            Port = cluster.FileTransferMethods.FirstOrDefault()!.Port ?? 22,
+            Cluster = cluster,
+            ServerHostname = cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname,
+            Credentials = new FileTransferKeyCredentials
+            {
+                Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) 
+                    ? response.PosixUsername 
+                    : clusterUserAuthCredentials.Username,
+                Password = clusterUserAuthCredentials.Password,
+                FileTransferCipherType = clusterUserAuthCredentials.CipherType,
+                CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
+                PrivateKey = clusterUserAuthCredentials.PrivateKey,
+                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) 
+                    ? response.SshCert 
+                    : (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKeyCertificate) ? null : clusterUserAuthCredentials.PrivateKeyCertificate),
+                Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase,
+                PublicKey = publicKey
+            }
+        };
+
+        return transferMethod;
+    }
+
     private byte[] HandleDeletedJobFileDownload(
         SubmittedJobInfo jobInfo,
         string relativeFilePath,
