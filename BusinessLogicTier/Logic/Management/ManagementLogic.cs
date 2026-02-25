@@ -567,24 +567,30 @@ public class ManagementLogic : IManagementLogic
         var uniqueCredentialsToCopy = otherAssignments
             .Where(x => !x.IsDeleted && x.ClusterId != clusterId)
             .SelectMany(x => x.ClusterProjectCredentials)
-            .Where(x => !x.IsDeleted)
             .GroupBy(x => x.AdaptorUserId) 
             .Select(g => g.First()) 
             .ToList();
 
         foreach (var cpc in uniqueCredentialsToCopy)
         {
-            var newCpc = new ClusterProjectCredential
+            if (cpc.IsDeleted)
             {
-                ClusterProject = clusterProject,
-                ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
-                IsServiceAccount = cpc.IsServiceAccount,
-                CreatedAt = modified,
-                IsDeleted = false,
-                IsInitialized = false, 
-                AdaptorUserId = cpc.AdaptorUserId,
-            };
-            clusterProject.ClusterProjectCredentials.Add(newCpc);
+                cpc.IsDeleted = false;
+            }
+            else
+            {
+                var newCpc = new ClusterProjectCredential
+                {
+                    ClusterProject = clusterProject,
+                    ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                    IsServiceAccount = cpc.IsServiceAccount,
+                    CreatedAt = modified,
+                    IsDeleted = false,
+                    IsInitialized = false, 
+                    AdaptorUserId = cpc.AdaptorUserId,
+                };
+                clusterProject.ClusterProjectCredentials.Add(newCpc);
+            }
         }
 
         project.ModifiedAt = modified;
