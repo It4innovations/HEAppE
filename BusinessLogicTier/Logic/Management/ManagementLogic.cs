@@ -565,7 +565,7 @@ public class ManagementLogic : IManagementLogic
         var otherAssignments = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
         
         var uniqueCredentialsToCopy = otherAssignments
-            .Where(x => !x.IsDeleted && x.ClusterId != clusterId)
+            .Where(x => x.ClusterId != clusterId)
             .SelectMany(x => x.ClusterProjectCredentials)
             .GroupBy(x => x.AdaptorUserId) 
             .Select(g => g.First()) 
@@ -576,6 +576,8 @@ public class ManagementLogic : IManagementLogic
             if (cpc.IsDeleted)
             {
                 cpc.IsDeleted = false;
+                cpc.ClusterAuthenticationCredentials.IsDeleted = false;
+                cpc.ModifiedAt = modified;
             }
             else
             {
