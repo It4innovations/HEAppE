@@ -602,6 +602,7 @@ public class FileTransferLogic : IFileTransferLogic
             Port = cluster.FileTransferMethods.FirstOrDefault()!.Port ?? 22,
             Cluster = cluster,
             ServerHostname = cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname,
+            SharedBasePath = clusterProject.ScratchStoragePath,
             Credentials = new FileTransferKeyCredentials
             {
                 Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) 
