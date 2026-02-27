@@ -1,6 +1,8 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
@@ -63,17 +65,12 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
 
     public bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName)
     {
-        var permission = permissions.Permissions.FirstOrDefault(p =>
-            string.Equals(p.ClusterName, clusterName, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(p.QueueName, queueName, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(p.ProjectResource, accountingString, StringComparison.OrdinalIgnoreCase));
-
-        if (permission == null) return false;
-
-        var template = permission.CommandTemplates.FirstOrDefault(ct => 
-            string.Equals(ct.Name, templateName, StringComparison.OrdinalIgnoreCase));
-
-        return template != null && template.Enabled;
+        return permissions.Permissions
+        .Where(p => string.Equals(p.ProjectResource, accountingString, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.ClusterName, clusterName, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.QueueName, queueName, StringComparison.OrdinalIgnoreCase))
+        .Any(p => p.CommandTemplates.Any(ct => 
+            string.Equals(ct.Name, templateName, StringComparison.OrdinalIgnoreCase) && ct.Enabled));
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string accessToken, object body = null)
@@ -94,18 +91,33 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
     private async Task<T> SendAsync<T>(HttpRequestMessage request)
     {
         using var httpClient = _httpClientFactory.CreateClient(ClientName);
-        try
+        using var response = await httpClient.SendAsync(request);
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
         {
-            using var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new AuthenticationTypeException("InvalidToken");
-            }
-            return await response.Content.ReadFromJsonAsync<T>();
+            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
-        catch (Exception)
+        else
         {
-            throw new AuthenticationTypeException("InvalidToken");
+            string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+            //_logger.LogError($"UserOrg API Error: {details}"); TODO: logger
+
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.BadRequest:
+                    throw new AuthenticationTypeException("BadRequest", details);
+                case HttpStatusCode.Unauthorized:
+                    throw new AuthenticationTypeException("InvalidToken", details);
+                case HttpStatusCode.NotFound:
+                    throw new AuthenticationTypeException("NotFound", details);
+                case HttpStatusCode.InternalServerError:
+                    throw new AuthenticationTypeException("ServerError", details);
+                case HttpStatusCode.BadGateway:
+                    throw new AuthenticationTypeException("UpstreamError", details);
+                default:
+                    throw new AuthenticationTypeException("ExternalApiError", details);
+            }
         }
     }
 }

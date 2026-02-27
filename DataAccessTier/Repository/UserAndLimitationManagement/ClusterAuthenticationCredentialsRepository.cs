@@ -132,13 +132,32 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
-        bool requireIsInitialized, long? adaptorUserId, ILogger logger)
+        bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false)
     {
-        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
+        var project = _context.Projects.Find(projectId);
+        if (project is null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+        
+        var isOneToOneMapping = project.IsOneToOneMapping;
+
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
-            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
-        var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
-        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+            cac.ClusterProjectCredentials.Any(cpc => 
+                cpc.ClusterProject.ProjectId == projectId && 
+                (
+                    isAdministrator || 
+                    (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null)
+                ) && 
+                (!requireIsInitialized || cpc.IsInitialized)
+            )
+        );
+
+        var credentials = clusterAuthenticationCredentials?.ToList();
+
+        //return ids of credentials for logging
+        var credentialIds = credentials?.Select(c => c.Id).ToList();
+        _logger.LogDebug($"Found credentials for project {projectId} with adaptorUserId {adaptorUserId}: {string.Join(", ", credentialIds ?? new List<long>())}");
+        
+        if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
             logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
@@ -146,21 +165,39 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         return (await WithVaultData(credentials, logger));
     }
-    
+
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false)
     {
-        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => cac.Username == username &&
-            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
-        var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
-        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        var project = _context.Projects.Find(projectId);
+        if (project is null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        var isOneToOneMapping = project.IsOneToOneMapping;
+
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => 
+            cac.Username == username &&
+            cac.ClusterProjectCredentials.Any(cpc => 
+                cpc.ClusterProject.ProjectId == projectId && 
+                (
+                    isAdministrator || 
+                    (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null)
+                ) && 
+                (!requireIsInitialized || cpc.IsInitialized)
+            )
+        );
+
+        var credentials = clusterAuthenticationCredentials?.ToList();
+        //return ids of credentials for logging
+        var credentialIds = credentials?.Select(c => c.Id).ToList();
+        _logger.LogDebug($"Found credentials for project {projectId} with adaptorUserId {adaptorUserId} and username {username}: {string.Join(", ", credentialIds ?? new List<long>())}");
+        if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
             logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
-        return (await WithVaultData(credentials, logger));
+        return await WithVaultData(credentials, logger);
     }
 
     /*

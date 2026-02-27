@@ -24,7 +24,7 @@ public class ModifyClusterModel : SessionCodeModel
     /// Name
     /// </summary>
     [DataMember(Name = "Name", IsRequired = true)]
-    [StringLength(50)]
+    [StringLength(250)]
     [Description("Name")]
     public string Name { get; set; }
 
@@ -32,7 +32,7 @@ public class ModifyClusterModel : SessionCodeModel
     /// Description
     /// </summary>
     [DataMember(Name = "Description", IsRequired = false)]
-    [StringLength(100)]
+    [StringLength(200)]
     [Description("Description")]
     public string Description { get; set; }
 
@@ -40,7 +40,7 @@ public class ModifyClusterModel : SessionCodeModel
     /// Master node name
     /// </summary>
     [DataMember(Name = "MasterNodeName", IsRequired = true)]
-    [StringLength(100)]
+    [StringLength(250)]
     [Description("Master node name")]
     public string MasterNodeName { get; set; }
 
@@ -84,7 +84,7 @@ public class ModifyClusterModel : SessionCodeModel
     /// Domain name
     /// </summary>
     [DataMember(Name = "DomainName", IsRequired = true)]
-    [StringLength(20)]
+    [StringLength(250)]
     [Description("Domain name")]
     public string DomainName { get; set; }
 

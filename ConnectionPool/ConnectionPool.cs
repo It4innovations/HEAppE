@@ -53,10 +53,12 @@ namespace HEAppE.ConnectionPool
         private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
         private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
             = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
+        private readonly int _connectionRetryAttempts = 3;
+        private readonly int _connectionTimeoutMs =  30000;
             
         private readonly Timer poolCleanTimer;
 
-        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int? port, ILogger logger)
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger)
         {
             _logger = logger;
             _masterNodeName = masterNodeName;
@@ -65,6 +67,8 @@ namespace HEAppE.ConnectionPool
             _maxConnectionsPerUser = maxSize; 
             _adapter = adapter;
             _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
+            _connectionRetryAttempts = retryAttempts;
+            _connectionTimeoutMs = timeoutMs;
 
             if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
@@ -276,15 +280,51 @@ namespace HEAppE.ConnectionPool
         {
             var connectionObject = _adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
-            var username = connection.AuthCredentials.Username;
-            if (connectionObject is SshClient info)
-            {
-                username = info.ConnectionInfo.Username;
-            }
-            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
-            _adapter.Connect(connection.Connection);
-            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
             
+            var username = connection.AuthCredentials.Username;
+            if (connectionObject is SshClient sshClient)
+            {
+                username = sshClient.ConnectionInfo.Username;
+                sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+            }
+            else if (connectionObject is ScpClient scpClient)
+            {
+                username = scpClient.ConnectionInfo.Username;
+                scpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+            }
+            else if (connectionObject is SftpClient sftpClient)
+            {
+                username = sftpClient.ConnectionInfo.Username;
+                sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+            }
+
+            int maxRetries = _connectionRetryAttempts;
+            int currentAttempt = 0;
+
+            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection. Max retries: {maxRetries}, Timeout: {_connectionTimeoutMs}ms");
+
+            while (true)
+            {
+                try
+                {
+                    _adapter.Connect(connection.Connection);
+                    _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    currentAttempt++;
+                    
+                    if (currentAttempt > maxRetries)
+                    {
+                        _logger.LogError(ex, $"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt} attempts.");
+                        throw;
+                    }
+                    _logger.LogWarning($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
+                    Thread.Sleep(1000);
+                }
+            }
+
             return connection;
         }
     }

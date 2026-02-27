@@ -8,6 +8,9 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement;
 public interface IClusterProjectRepository : IRepository<ClusterProject>
 {
     ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId);
+
+    ClusterProject GetClusterProjectForClusterAndProjectIncludingDeleted(long clusterId, long projectId);
+    public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId);
     
     public List<ClusterProject> GetClusterProjectForProject(long projectId);
     
@@ -17,5 +20,5 @@ public interface IClusterProjectRepository : IRepository<ClusterProject>
 
     public void AddClusterProjectCredentialCheckLog(ClusterProjectCredentialCheckLog checkLog);
 
-    public List<ClusterProjectCredential> GetAllClusterProjectCredentialsUntracked();
+    public List<ClusterProjectCredential> GetAllActiveClusterProjectCredentialsUntracked();
 }

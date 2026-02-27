@@ -15,8 +15,8 @@ public interface IJobManagementLogic
     Task<SubmittedJobInfo> CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser);
-    SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser);
-    SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser);
+    SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
+    SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser, bool checkSharedJobInfoAccess = false);
     IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);
     IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfosForSubmitterId(long submitterId);
     IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos();

@@ -15,9 +15,9 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
         string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger);
 
     Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
-        bool requireIsInitialized, long? adaptorUserId, ILogger logger);
+        bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false);
     Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(string username,
-        long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger);
+        long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false);
     Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(long clusterId, long projectId,
         bool requireIsInitialized, long? adaptorUserId, ILogger logger);
     Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,

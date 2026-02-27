@@ -31,9 +31,22 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .FirstOrDefault();
     }
     
+    public ClusterProject GetClusterProjectForClusterAndProjectIncludingDeleted(long clusterId, long projectId)
+    {
+        return _context.ClusterProjects
+            .IgnoreQueryFilters() 
+            .Include(x => x.ClusterProjectCredentials) // <--- TOTO CHYBĚLO
+            .FirstOrDefault(x => x.ClusterId == clusterId && x.ProjectId == projectId);
+    }
     public List<ClusterProject> GetClusterProjectForProject(long projectId)
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)
+            .ToList();
+    }
+    
+    public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId)
+    {
+        return _context.ClusterProjects.IgnoreQueryFilters().Where(cp => cp.ProjectId == projectId)
             .ToList();
     }
     
@@ -70,13 +83,15 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
         _context.ClusterProjectCredentialsCheckLog.Add(checkLog);
     }
 
-    public List<ClusterProjectCredential> GetAllClusterProjectCredentialsUntracked()
+    public List<ClusterProjectCredential> GetAllActiveClusterProjectCredentialsUntracked()
     {
         var result = _context.ClusterProjectCredentials
             .Include(cpc => cpc.ClusterProject)
             .Include(cpc => cpc.ClusterProject.Cluster)
             .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
             .Include(cpc => cpc.ClusterProject.Project)
+            .Where(cpc => cpc.ClusterProject.Project.EndDate > DateTime.UtcNow &&
+                          cpc.ClusterProject.Project.StartDate <= DateTime.UtcNow)
             .Include(cpc => cpc.ClusterAuthenticationCredentials)
             .AsNoTracking()
             .ToList();

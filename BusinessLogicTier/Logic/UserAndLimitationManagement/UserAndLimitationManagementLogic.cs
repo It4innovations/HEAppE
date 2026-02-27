@@ -204,14 +204,24 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                loggedUser.Groups.FirstOrDefault() ?? _unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
     }
 
-    public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)
+    public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo, bool isAdminOverride = false)
     {
+        if (isAdminOverride)
+        {
+            return true;
+        }
         return jobInfo.Submitter.Id == loggedUser.Id;
     }
 
-    public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo)
+    public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo, bool checkSharedJobInfoAccess = false)
     {
-        return taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
+        bool isOwner = taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
+        if (isOwner) 
+            return true;
+        if (!checkSharedJobInfoAccess || taskInfo.Project == null) 
+            return false;
+        var project = _unitOfWork.ProjectRepository.GetById(taskInfo.Project.Id);
+        return project is { IsOneToOneMapping: false };
     }
 
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
@@ -391,13 +401,18 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
         DateTime changedTime = DateTime.UtcNow;
+        if (string.IsNullOrEmpty(lexisUser.Email))
+        {
+            throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
+        }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
         
         if (user is null)
         {
             try 
             {
-                user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                string username = $"{LexisAuthenticationConfiguration.HEAppEUserPrefix}{lexisUser.KeycloakSid}_{lexisUser.UserName}";
+                user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             catch (Exception)
             {
@@ -621,12 +636,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         var validProjectIds = new HashSet<long>(
             projects?.Where(x => x != null).Select(x => x.Id) ?? Enumerable.Empty<long>()
         );
-        
-        var groupRoles = loggedUser.AdaptorUserUserGroupRoles
-            .GroupBy(x => x.AdaptorUserGroup)
-            .Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+    
+        var allGroupRoles = loggedUser.AdaptorUserUserGroupRoles
+            .Where(x => !x.IsDeleted);
 
-        foreach (var groupRole in groupRoles)
+        foreach (var groupRole in allGroupRoles)
         {
             var project = _unitOfWork.AdaptorUserGroupRepository
                 .GetAllWithAdaptorUserGroupsAndActiveProjects()
@@ -636,7 +650,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             {
                 continue;
             }
-            
+        
             var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
             project.CommandTemplates = commandTemplates.ToList();
 
@@ -647,7 +661,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             });
         }
 
-        return projectReferences.Distinct();
+        return projectReferences;
     }
 
     #endregion

@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.NetworkShare;
 using HEAppE.FileTransferFramework.Sftp;
+using HEAppE.HpcConnectionFramework.Configuration;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
@@ -72,6 +73,8 @@ public abstract class FileSystemFactory
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
                 CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
+                HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
+                HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                 configuration.Cluster.Port,
                 logger);
 

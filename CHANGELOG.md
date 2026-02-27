@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.4
+
+### Fixed
+- Corrected the `IsInitialized` flag handling for new cluster project credentials.
+- Extended string length limits for cluster attribute validation to prevent API errors.
+- Fixed various issues ensuring credentials remain consistent across project-cluster assignments and cluster info updates.
+
+### Performance
+- Disabled minimum request and response data rates to prevent premature connection timeouts in specific network environments.
+
+## V6.2.3
+
+### Added
+- **User-specific tunnel reuse**: Implemented logic to identify and reuse existing active tunnels for the same user and task. This prevents redundant SSH connection overhead and optimizes local port utilization.
+- **Resilient Database Restore:** Optimized the restoration workflow by pre-fetching backup metadata, implementing atomic state switching to prevent connection hijacking, and adding automatic recovery failsafes to eliminate the risk of databases remaining in a Restoring state.
+- Added logic for invalidation all caches with required admin role.
+
+### Changed
+- UserOrg Command Template authorization service now grants access if the template is enabled in at least one matching project resource entry (if enabled).
+
+## V6.2.2
+
+### Changed
+- Increased accounting string attribute length in the `Project` object to 150 characters.
+- Enhanced HPC connection robustness to Retry and timeout logic when Initializing connection via `SSH`, `SFPT` client.
+- Extended length of string atrributes of `CommandTemplate` to 1000 characters.
+- Optimised data transfer and tunnel management.
+- Propagated `SSH Client` error to HEAppE API responses. 
+
+
+## V6.2.1
+
+### Added
+- **Robust Role Validation**: Added `HashSet`-based deduplication and enhanced navigation property checks to ensure data integrity during system role synchronization.
+- Extended `TestClusterAccessForAccount` logging to handle error states more efectively.
+- Increased string length for selected attributes of `Cluster`, `ClusterNodeType` and `AdaptorUser` domain object properties to 250.
+
+
+### Fixed
+- **EF Change Tracker Sync**: Resolved issues where the role assignment logic would fail to recognize recently added entities in the same transaction.
+- Fixed error in automatic procedure for the cluster script initialization on the cluster side.
+- Removed external network configuration from the docker compose to allow run multiple HEAppE instances at one VM.
+- Fixed UserRole Assignment for User which created new Project.
+
 ## V6.2.0
 
 ### Added

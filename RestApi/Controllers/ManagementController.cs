@@ -227,7 +227,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model">CreateCommandTemplateModel</param>
     /// <returns></returns>
     [HttpPost("CommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -264,7 +264,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     [HttpPost("GenericCommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -304,19 +304,19 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="fromGenericModel">CreateCommandTemplateFromGenericModel</param>
     /// <returns></returns>
     [HttpPost("CommandTemplateFromGeneric")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
+    public async Task<IActionResult> CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var commandTemplate = _managementService.CreateCommandTemplateFromGeneric(
+        var commandTemplate = await _managementService.CreateCommandTemplateFromGeneric(
             fromGenericModel.GenericCommandTemplateId, fromGenericModel.Name, fromGenericModel.ProjectId,
             fromGenericModel.Description, fromGenericModel.ExtendedAllocationCommand, fromGenericModel.ExecutableFile,
             fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
@@ -330,7 +330,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model">ModifyCommandTemplateModel</param>
     /// <returns></returns>
     [HttpPut("CommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -356,7 +356,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     [HttpPut("GenericCommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -388,12 +388,12 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
+    public async Task<IActionResult> ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var commandTemplate = _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId,
+        var commandTemplate = await _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId,
             fromGenericModel.Name, fromGenericModel.ProjectId, fromGenericModel.Description,
             fromGenericModel.ExtendedAllocationCommand,
             fromGenericModel.ExecutableFile, fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
@@ -1003,7 +1003,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("ProjectAssignmentToCluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1029,7 +1029,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("ProjectAssignmentToCluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

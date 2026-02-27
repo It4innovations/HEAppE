@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -38,7 +39,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
     {
         await Task.Yield();
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled) return;
+        if (SshCaSettings.UseCertificateAuthorityForAuthentication) return;
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -243,7 +243,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         //check that at least one project is available
         if (!groups.Any())
         {
-            throw new InsufficientRoleException("MissingRoleForAnyGroup", allowedRole.ToString());
+            throw new InsufficientRoleException($"MissingRole:{allowedRole.ToString()}");
         }
         var projects = groups
             .Select(r => r.AdaptorUserGroup.Project)
@@ -301,7 +301,24 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     private static void CheckUserRoleForProject(ILogger logger, AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId,
         bool overrideProjectValidityCheck = false)
     {
-        var hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x =>
+        var hasRequiredRole = CheckIfUserHasRoleForProject(user, requiredUserRole, projectId, overrideProjectValidityCheck);
+        if (!hasRequiredRole)
+        {
+            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+            throw new InsufficientRoleException($"MissingRole:{requiredUserRole.ToString()}_ForProject:{projectId}");
+        }
+    }
+    
+    public static bool CheckIfUserHasRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId,
+        bool overrideProjectValidityCheck = false)
+    {
+        if (projectId == 0)
+            return false;
+        return user.AdaptorUserUserGroupRoles.Any(x =>
             x.AdaptorUserRole != null &&
             x.AdaptorUserRole.ContainedRoleTypes != null &&
             x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == requiredUserRole) &&
@@ -312,15 +329,6 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             (overrideProjectValidityCheck ||
              x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow) &&
             !x.IsDeleted);
-        if (!hasRequiredRole)
-        {
-            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
-            var project = unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-
-            throw new InsufficientRoleException("MissingRoleForProject", requiredUserRole.ToString(), projectId);
-        }
     }
 
     #region Instances

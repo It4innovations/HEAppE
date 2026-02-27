@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using HEAppE.BackgroundThread.Configuration;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace HEAppE.BackgroundThread.BackgroundServices;
+
+public class RoleAssignmentBackgroundService : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger _logger;
+    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.RoleAssignmentSyncCheck);
+
+    public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory, ILoggerFactory loggerFactory)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.RoleAssignmentBackgroundService");
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await Task.Yield();
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                _logger.LogInformation("Starting system role assignment synchronization.");
+                
+                using (IServiceScope scope = _scopeFactory.CreateScope())
+                {
+                    using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork(_logger))
+                    {
+                        var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
+                        var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
+
+                        foreach (var userGroup in userGroups)
+                        {
+                            if (stoppingToken.IsCancellationRequested) break;
+
+                            using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
+                            {
+                                var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
+                                if (localGroup != null)
+                                {
+                                    RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _logger);
+                                }
+                            }
+                        }
+                    }
+                }
+                _logger.LogInformation("Role assignment synchronization finished successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Role assignment failed, will retry in next interval.");
+            }
+
+            try
+            {
+                await Task.Delay(_interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+}
