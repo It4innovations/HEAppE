@@ -192,4 +192,27 @@ public class FileTransferService : IFileTransferService
             return fileTransferLogic.UploadFileToJobExecutionDir(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
         }
     }
+
+    public async Task<FileTransferMethodExt> ProvideCredentials(long modelProjectId, long modelClusterId)
+    {
+        //test if user is authorized with Bearer token and project is configured as 1:1 user mapping
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
+                string.Empty, unitOfWork, _userOrgService, _sshCertificateAuthorityService,
+                _httpContextKeys, AdaptorUserRoleType.Submitter, modelProjectId);
+            //check if project is configured as 1:1 user mapping
+            var project = unitOfWork.ProjectRepository.GetById(modelProjectId) ?? throw new InputValidationException("NotExistingProject", modelProjectId);
+            if (!project.IsOneToOneMapping)
+            {
+                throw new InputValidationException("ProjectNotOneToOneMapping", modelProjectId);
+            }
+            var cluster = unitOfWork.ClusterRepository.GetById(modelClusterId) ?? throw new InputValidationException("NotExistingCluster", modelClusterId);
+            
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService,
+                _sshCertificateAuthorityService, _httpContextKeys);
+            var fileTransferMethod = await fileTransferLogic.ProvideCredentials(modelProjectId, modelClusterId, loggedUser);
+            return fileTransferMethod.ConvertIntToExt();
+        }
+    }
 }

@@ -320,6 +320,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         if (projectId == 0)
             return false;
+        if (user is null)
+        {
+            //unauthorized user, no roles
+            return false;
+        }
         return user.AdaptorUserUserGroupRoles.Any(x =>
             x.AdaptorUserRole != null &&
             x.AdaptorUserRole.ContainedRoleTypes != null &&
