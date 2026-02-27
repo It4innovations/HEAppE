@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## V6.2.6
+
+### Changed
+- Make CA name attribute in appsettings optional for SSH CA service.
+
 ## V6.2.5
 
 ### Added
