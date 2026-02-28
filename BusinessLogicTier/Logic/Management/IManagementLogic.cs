@@ -51,8 +51,21 @@ public interface IManagementLogic
         string newPassword, long projectId, long? adaptorUserId, bool isAdministrator);
     Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
         long? adaptorUserId);
+    
     Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId, bool isAdministrator);
+    
     Task RemoveSecureShellKey(string publicKey, long projectId, bool isAdministrator);
+
+    Task<CredentialResponse> CreateCredentialAsync(long projectId, long? adaptorUserId, string username, 
+                                                   ClusterAuthenticationCredentialsAuthType authType, string? privateKey, string? passphrase);
+
+    Task<List<CredentialResponse>> GetCredentialsAsync(long projectId, long? adaptorUserId, bool isAdministrator);
+
+    Task<CredentialResponse> ModifyCredentialAsync(string username, long projectId, long? adaptorUserId, bool isAdministrator, 
+                                              ClusterAuthenticationCredentialsAuthType authType);
+
+    Task RemoveCredentialAsync(string username, long projectId, bool isAdministrator);
+
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,

@@ -70,6 +70,15 @@ public interface IManagementService
 
     Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
+    Task<CredentialResponseExt> CreateCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+                                                      string? privateKey, string? passphrase);
+    
+    Task<List<CredentialResponseExt>> GetCredentialsAsync(long projectId, string sessionCode);
+
+    Task<CredentialResponseExt> ModifyCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType);
+    
+    Task RemoveCredential(long projectId, string sessionCode, string username);
+
     public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 

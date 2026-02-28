@@ -75,6 +75,20 @@ public static class ManagementConverts
         return convert;
     }
 
+    public static CredentialResponseExt ConvertIntToExt(this CredentialResponse credential)
+    {
+        var convert = new CredentialResponseExt
+        {
+            Id = credential.Id,
+            Username = credential.Username,
+            AuthType = credential.AuthType,
+            IsGenerated = credential.IsGenerated,
+            PublicKeyFingerprint = credential.PublicKeyFingerprint,
+            PublicKeyExt = credential.PublicKeyExt,
+        };
+        return convert;
+    }
+
     public static ClusterInitReportExt ConvertIntToExt(this ClusterInitReport report)
     {
         var convert = new ClusterInitReportExt

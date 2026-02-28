@@ -456,6 +456,118 @@ public class ManagementService : IManagementService
             await managementLogic.RemoveSecureShellKey(username, projectId, isAdministrator);
         }
     }
+    
+    public async Task<CredentialResponseExt> CreateCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+                                                                   string? privateKey, string? passphrase)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
+            }
+            
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            return (await managementLogic.CreateCredentialAsync(projectId,
+                project.IsOneToOneMapping ? loggedUser.Id : null, username, authType, privateKey, passphrase)).ConvertIntToExt();
+        }
+    }
+
+    public async Task<List<CredentialResponseExt>> GetCredentialsAsync(long projectId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
+            }
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            return (await managementLogic.GetCredentialsAsync(projectId,
+                adaptorUserId: loggedUser.Id, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public async Task<CredentialResponseExt> ModifyCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
+            }
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            return (await managementLogic.ModifyCredentialAsync(username, projectId, project.IsOneToOneMapping ? loggedUser.Id : null, isAdministrator, authType)).ConvertIntToExt();
+        }
+    }
+
+    public async Task RemoveCredential(long projectId, string sessionCode, string username)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
+            }
+            
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            await managementLogic.RemoveCredentialAsync(username, projectId, isAdministrator);
+        }
+    }
 
     public async Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username)
