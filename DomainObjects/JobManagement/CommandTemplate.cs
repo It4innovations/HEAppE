@@ -17,7 +17,7 @@ public class CommandTemplate : IdentifiableDbEntity
 
     [Required] [StringLength(1000)] public string ExecutableFile { get; set; }
 
-    [StringLength(1000)] public string CommandParameters { get; set; }
+    [StringLength(10000)] public string CommandParameters { get; set; }
 
     [StringLength(1000)] public string PreparationScript { get; set; }
 

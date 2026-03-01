@@ -23,7 +23,7 @@ public class CommandTemplateParameterValueExt
     /// Parameter value
     /// </summary>
     [DataMember(Name = "ParameterValue")]
-    [StringLength(100000)]
+    [StringLength(1000)]
     [Description("Parameter value")]
     public string ParameterValue { get; set; }
 
