@@ -67,7 +67,8 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             CommandTemplatePermissionsModel permissionsModel = await _userOrgService.GetCommandTemplatePermissionsAsync(
                 _httpContextKeys.Context.LEXISToken,
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
+                _logger);
 
             var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(specification.ProjectId)
                           ?? throw new RequestedObjectDoesNotExistException("NotExistingProject", specification.ProjectId);

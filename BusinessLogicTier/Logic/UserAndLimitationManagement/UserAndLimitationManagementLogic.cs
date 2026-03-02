@@ -369,7 +369,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         try
         {
             _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, _logger);
             return GetOrRegisterLexisCredentials(result);
         }
         catch (HttpRequestException ex)

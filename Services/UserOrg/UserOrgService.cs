@@ -14,8 +14,8 @@ namespace HEAppE.Services.UserOrg;
 
 public interface IUserOrgService
 {
-    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken);
-    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier);
+    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, ILogger logger);
+    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, ILogger logger);
     void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName);
     bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName);
 }
@@ -34,17 +34,17 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         return string.Join("/", cleanedSegments);
     }
 
-    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken)
+    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, ILogger logger)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint
         );
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
-        return await SendAsync<UserInfoExtendedModel>(request);
+        return await SendAsync<UserInfoExtendedModel>(request, logger);
     }
 
-    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier)
+    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, ILogger logger)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
@@ -52,7 +52,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
             heappeInstanceIdentifier
         );
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
-        return await SendAsync<CommandTemplatePermissionsModel>(request);
+        return await SendAsync<CommandTemplatePermissionsModel>(request, logger);
     }
 
     public void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName)
@@ -88,7 +88,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         return request;
     }
 
-    private async Task<T> SendAsync<T>(HttpRequestMessage request)
+    private async Task<T> SendAsync<T>(HttpRequestMessage request, ILogger logger)
     {
         using var httpClient = _httpClientFactory.CreateClient(ClientName);
         using var response = await httpClient.SendAsync(request);
@@ -101,7 +101,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            //_logger.LogError($"UserOrg API Error: {details}"); TODO: logger
+            logger.LogError($"UserOrg API Error: {details}");
 
             switch (response.StatusCode)
             {

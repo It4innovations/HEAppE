@@ -75,7 +75,8 @@ public class ClusterInformationService : IClusterInformationService
         {
             lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
                 _httpContextKeys.Context.LEXISToken,
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
+                _logger);
         }
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
