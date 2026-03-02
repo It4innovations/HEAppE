@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -17,481 +18,271 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
 
 internal class JobReportingLogic : IJobReportingLogic
 {
-    #region Constructors
+    protected readonly IUnitOfWork _unitOfWork;
+    protected readonly ILog _log;
 
-    /// <summary>
-    ///     Constructor
-    /// </summary>
-    /// <param name="unitOfWork">Unit of work</param>
     internal JobReportingLogic(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
-    #endregion
-
-    #region Instance
-
-    /// <summary>
-    ///     Unit of work
-    /// </summary>
-    protected readonly IUnitOfWork _unitOfWork;
-
-    /// <summary>
-    ///     Log instance
-    /// </summary>
-    protected readonly ILog _log;
-
-    #endregion
-
-    #region IJobReporting Methods
-
-    /// <summary>
-    ///     Returns list of all UserGroups and all Projects in groups
-    /// </summary>
-    /// <returns></returns>
     public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
     {
-        var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-            .Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y =>
-                y.AdaptorUserId == userId &&
-                y.AdaptorUserRole.ContainedRoleTypes.Any(a => a == AdaptorUserRoleType.GroupReporter)));
-        var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport
+        var enumerable = projects as Project[] ?? projects.ToArray();
+        var projectIds = enumerable?.Select(p => p.Id).ToList() ?? new List<long>();
+        if (!projectIds.Any()) return Enumerable.Empty<UserGroupListReport>();
+        
+        var groupsRaw = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(x => x.AdaptorUserUserGroupRoles).ThenInclude(r => r.AdaptorUserRole)
+            .Where(x => x.ProjectId.HasValue && projectIds.Contains(x.ProjectId.Value))
+            .Where(x => x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId))
+            .ToList();
+        
+        var filteredGroups = groupsRaw.Where(g => g.AdaptorUserUserGroupRoles.Any(y => 
+                y.AdaptorUserId == userId && 
+                y.AdaptorUserRole != null && 
+                y.AdaptorUserRole.ContainedRoleTypes.Any(a => a == AdaptorUserRoleType.GroupReporter)))
+            .DistinctBy(g => g.Project?.Id)
+            .ToList();
+        
+        var pIds = filteredGroups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
+        var subProjects = enumerable.Where(p => p.SubProjects != null).SelectMany(p => p.SubProjects).Select(sp => sp.Identifier).ToArray();
+        var jobsLookup = GetJobsLookup(pIds, DateTime.MinValue, DateTime.UtcNow, subProjects);
+
+        return filteredGroups.Select(g => new UserGroupListReport
         {
-            AdaptorUserGroup = adaptorUserGroup,
-            Project = GetProjectReport(adaptorUserGroup.Project, DateTime.MinValue, DateTime.UtcNow, null),
-            UsageType = adaptorUserGroup.Project.UsageType
+            AdaptorUserGroup = g,
+            Project = BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()),
+            UsageType = g.Project?.UsageType ?? 0
         }).ToList();
-        return userGroupReports;
     }
-
-    /// <summary>
-    ///     Returns resource usage report for Job
-    /// </summary>
-    /// <param name="jobId">Job ID</param>
-    /// <returns></returns>
-    /// <exception cref="ApplicationException"></exception>
-    public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds)
+public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds)
     {
-        var job = _unitOfWork.SubmittedJobInfoRepository.GetById(jobId) ??
-                  throw new ResourceUsageException("JobNotSpecified", jobId);
+        var jobData = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+            .Include(j => j.Submitter)
+            .Include(j => j.Project).ThenInclude(p => p.AdaptorUserGroups)
+            .Include(j => j.Specification).ThenInclude(s => s.SubProject)
+            .Include(j => j.Tasks).ThenInclude(t => t.NodeType).ThenInclude(nt => nt.Cluster)
+            .Include(j => j.Tasks).ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Tasks).ThenInclude(t => t.Specification).ThenInclude(s => s.CommandTemplate)
+            .AsNoTracking()
+            .Where(j => j.Id == jobId)
+            .Select(j => new {
+                Job = j,
+                Submitter = j.Submitter,
+                Project = j.Project,
+                Spec = j.Specification,
+                SubProj = j.Specification != null ? j.Specification.SubProject : null,
+                Tasks = j.Tasks.Select(t => new {
+                    t,
+                    nt = t.NodeType,
+                    c = t.NodeType != null ? t.NodeType.Cluster : null,
+                    rc = t.ResourceConsumed,
+                    tspec = t.Specification,
+                    tmpl = t.Specification != null ? t.Specification.CommandTemplate : null
+                }).ToList()
+            })
+            .FirstOrDefault() ?? throw new ResourceUsageException("JobNotSpecified", jobId);
 
-        if (!reporterGroupIds.Intersect(job.Project.AdaptorUserGroups.Select(x => x.Id)).Any())
+        var projectGroups = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .Where(g => g.Project != null && g.ProjectId == jobData.Project.Id).ToList();
+        var rGroupIds = reporterGroupIds?.ToList() ?? new List<long>();
+        
+        if (jobData.Project == null || !projectGroups.Any())
             throw new ResourceUsageException("ReporterNoAccessToJob", jobId);
+        
+        var job = jobData.Job;
+        job.Project = jobData.Project;
+        job.Submitter = jobData.Submitter;
+        job.Specification = jobData.Spec;
+        if (job.Specification != null) job.Specification.SubProject = jobData.SubProj;
+        
+        job.Tasks = jobData.Tasks.Select(x => {
+            x.t.NodeType = x.nt;
+            if (x.t.NodeType != null) x.t.NodeType.Cluster = x.c;
+            x.t.ResourceConsumed = x.rc;
+            x.t.Specification = x.tspec;
+            if (x.t.Specification != null) x.t.Specification.CommandTemplate = x.tmpl;
+            return x.t;
+        }).ToList();
 
-        return new ProjectReport
-        {
-            Clusters = GetClusterReportsForJob(job),
-            Project = job.Project
-        };
+        return new ProjectReport { Clusters = GetClusterReportsForJob(job), Project = job.Project };
     }
 
-    /// <summary>
-    ///     Returns aggregated job reports by state
-    /// </summary>
-    /// <returns></returns>
     public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
     {
-        if (projects == null) return Enumerable.Empty<JobStateAggregationReport>();
+        var ids = projects?.Select(p => p.Id).ToList();
+        if (ids == null || !ids.Any()) return Enumerable.Empty<JobStateAggregationReport>();
 
-        var allowedProjectIds = projects
-            .Where(p => p != null)
-            .Select(p => p.Id)
-            .ToHashSet();
-
-        return _unitOfWork.SubmittedJobInfoRepository.GetAll()
-            .Where(x => x.Project != null && allowedProjectIds.Contains(x.Project.Id))
+        return _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .Where(x => x.Project != null && ids.Contains(x.Project.Id))
             .GroupBy(g => g.State)
-            .Select(s => new JobStateAggregationReport
-            {
-                State = s.Key,
-                Count = s.Count()
-            })
+            .Select(s => new JobStateAggregationReport { State = s.Key, Count = s.Count() })
             .ToList();
     }
 
-    /// <summary>
-    ///     Returns Resource Usage Report for all Jobs
-    /// </summary>
-    /// <returns></returns>
     public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo)
     {
-        if (groupIds == null || !groupIds.Any()) return Enumerable.Empty<ProjectReport>();
+        var ids = groupIds?.ToList();
+        if (ids == null || !ids.Any()) return Enumerable.Empty<ProjectReport>();
 
-        DateTime _timeFrom = timeFrom ?? DateTime.MinValue;
-        DateTime _timeTo = timeTo ?? DateTime.UtcNow;
-        
-        var groups = _unitOfWork.AdaptorUserGroupRepository.GetGroupsWithProjects(groupIds);
-
-        return groups
-            .Select(group => GetProjectReport(group.Project, _timeFrom, _timeTo, subProjects))
-            .Where(report => report != null)
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Where(g => ids.Contains(g.Id))
             .ToList();
+
+        var pIds = groups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
+        var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects);
+
+        return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()))
+                     .Where(r => r != null).ToList();
     }
 
-    /// <summary>
-    ///     Returns report for specific user
-    /// </summary>
-    /// <param name="userId">User ID</param>
-    /// <param name="reporterGroupIds"></param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <param name="subProjects"></param>
-    /// <returns></returns>
-    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds,
-        DateTime startTime, DateTime endTime, string[] subProjects)
+    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime, string[] subProjects)
     {
-        var user = _unitOfWork.AdaptorUserRepository.GetById(userId) ??
-                   throw new ResourceUsageException("UserNotSpecified", userId);
-        var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
-        var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
-        return reporterAndUserGroupsIntersect
-            .Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)).ToList();
+        var userGroupIds = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .Where(g => g.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserId == userId))
+            .Select(g => g.Id)
+            .ToList();
+
+        if (!userGroupIds.Any()) throw new ResourceUsageException("UserNotSpecified", userId);
+
+        var targetGroupIds = (reporterGroupIds ?? Enumerable.Empty<long>()).Intersect(userGroupIds).ToList();
+
+        return JobsDetailedReport(targetGroupIds, subProjects, startTime, endTime);
     }
 
-    /// <summary>
-    ///     Returns Report for specific UserGroup
-    /// </summary>
-    /// <param name="groupId">Group ID</param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <param name="subProjects"></param>
-    /// <returns></returns>
-    /// <exception cref="ApplicationException"></exception>
-    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
-        string[] subProjects)
+    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string[] subProjects)
     {
-        var group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ??
-                    throw new ResourceUsageException("GroupNotSpecified", groupId);
-        return GetProjectReport(group.Project, startTime, endTime, subProjects);
+        return JobsDetailedReport(new[] { groupId }, subProjects, startTime, endTime).FirstOrDefault();
     }
 
-    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime,
-        DateTime endTime)
+    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime)
     {
-        var group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ??
-                    throw new ResourceUsageException("GroupNotSpecified", groupId);
-        return GetProjectAggregatedReport(group.Project, startTime, endTime);
+        var group = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(g => g.Project).ThenInclude(p => p.SubProjects)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .FirstOrDefault(g => g.Id == groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
+
+        if (group.Project == null) return null;
+
+        var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null)[group.Project.Id].ToList();
+
+        return new ProjectAggregatedReport
+        {
+            Project = group.Project,
+            SubProjects = group.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
+                SubProject = sp,
+                Clusters = BuildClusterAggregatedReports(group.Project, jobs.Where(j => j.Specification?.SubProjectId == sp.Id))
+            }).ToList() ?? new List<SubProjectAggregatedReport>(),
+            Clusters = BuildClusterAggregatedReports(group.Project, jobs)
+        };
     }
 
-    /// <summary>
-    ///     Returns aggregated UserGroup Resource Usage Report for specific user (all referenced Groups to User)
-    /// </summary>
-    /// <param name="userId">User ID</param>
-    /// <param name="groupIds">Group IDs</param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <returns></returns>
-    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds,
-        DateTime startTime, DateTime endTime)
+    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
     {
-        return groupIds.Select(groupId => UserGroupResourceAggregatedUsageReport(groupId, startTime, endTime)).ToList();
+        return (groupIds?.ToList() ?? new List<long>())
+            .Select(id => UserGroupResourceAggregatedUsageReport(id, startTime, endTime))
+            .Where(r => r != null).ToList();
     }
 
-    #endregion
+    private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects)
+    {
+        var pIds = projectIds?.ToList();
+        if (pIds == null || !pIds.Any()) return Enumerable.Empty<SubmittedJobInfo>().ToLookup(x => 0L);
 
-    #region Private Methods
+        var query = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(j => j.Submitter)
+            .Include(j => j.Project)
+            .Include(j => j.Specification).ThenInclude(s => s.SubProject)
+            .Include(j => j.Tasks).ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks).ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Tasks).ThenInclude(t => t.Specification).ThenInclude(s => s.CommandTemplate)
+            .Where(j => j.Project != null && pIds.Contains(j.Project.Id))
+            .Where(j => j.StartTime >= start && j.EndTime <= end);
 
-    /// <summary>
-    ///     Returns project report for specified Project
-    /// </summary>
-    /// <param name="project">Project</param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <param name="subProjects"></param>
-    /// <returns></returns>
-    private ProjectReport GetProjectReport(Project project, DateTime startTime, DateTime endTime,
-        string[] subProjects)
+        if (subProjects?.Any() == true)
+            query = query.Where(j => j.Specification != null && j.Specification.SubProject != null && subProjects.Contains(j.Specification.SubProject.Identifier));
+
+        return query.ToList().ToLookup(j => j.Project.Id);
+    }
+
+    private ProjectReport BuildProjectReport(Project project, IEnumerable<SubmittedJobInfo> jobs)
     {
         if (project == null) return null;
-        var projectReport = new ProjectReport
-        {
+        var jobsList = jobs?.ToList() ?? new List<SubmittedJobInfo>();
+
+        return new ProjectReport {
             Project = project,
-            Clusters = GetClusterReports(project, startTime, endTime, subProjects)
+            Clusters = project.ClusterProjects?.Select(cp => cp.Cluster).Where(c => c != null).Distinct().Select(cluster => new ClusterReport {
+                Cluster = cluster,
+                ClusterNodeTypes = cluster.NodeTypes?.Select(nt => new ClusterNodeTypeReport {
+                    ClusterNodeType = nt,
+                    Jobs = jobsList.Where(j => j.Tasks != null && j.Tasks.Any(t => t.NodeType != null && t.NodeType.Id == nt.Id))
+                        .Select(j => new JobReport {
+                            SubmittedJobInfo = j,
+                            Tasks = j.Tasks.Where(t => t.NodeType != null && t.NodeType.Id == nt.Id).Select(t => new TaskReport {
+                                SubmittedTaskInfo = t,
+                                Usage = Math.Round(t.ResourceConsumed?.Value ?? 0, 3)
+                            }).ToList()
+                        }).ToList()
+                }).ToList() ?? new List<ClusterNodeTypeReport>()
+            }).ToList() ?? new List<ClusterReport>()
         };
-        return projectReport;
     }
 
-    private ProjectAggregatedReport GetProjectAggregatedReport(Project project, DateTime startTime, DateTime endTime)
+    private List<ClusterAggregatedReport> BuildClusterAggregatedReports(Project project, IEnumerable<SubmittedJobInfo> jobs)
     {
-        if (project == null) return null;
-        var projectReport = new ProjectAggregatedReport
-        {
-            Project = project,
-            SubProjects = GetSubProjectAggregatedReports(project, startTime, endTime),
-            Clusters = GetClusterAggregatedReports(project, startTime, endTime)
-        };
-        return projectReport;
-    }
-
-    private List<SubProjectAggregatedReport> GetSubProjectAggregatedReports(Project project, DateTime startTime,
-        DateTime endTime)
-    {
-        var subProjectReports = project.SubProjects.Select(subProject => new SubProjectAggregatedReport
-        {
-            SubProject = subProject,
-            Clusters = GetClusterSubProjectAggregatedReports(subProject, startTime, endTime)
-        }).ToList();
-        return subProjectReports;
-    }
-
-    private List<ClusterAggregatedReport> GetClusterSubProjectAggregatedReports(SubProject subProject,
-        DateTime startTime, DateTime endTime)
-    {
-        var clusters = subProject.Project.ClusterProjects.Where(cp => cp.Project.Id == subProject.Project.Id)
-            .Select(x => x.Cluster)
-            .Distinct().ToList();
-        var clusterReports = clusters.Select(cluster => new ClusterAggregatedReport
-        {
+        var jobsList = jobs?.ToList() ?? new List<SubmittedJobInfo>();
+        return project.ClusterProjects?.Select(cp => cp.Cluster).Where(c => c != null).Distinct().Select(cluster => new ClusterAggregatedReport {
             Cluster = cluster,
-            ClusterNodeTypesAggregations =
-                GetClusterNodeTypeSubProjectAggregationReports(cluster, subProject, startTime, endTime)
-        }).ToList();
-        return clusterReports;
+            ClusterNodeTypesAggregations = cluster.NodeTypes?
+                .GroupBy(nt => nt.ClusterNodeTypeAggregation)
+                .Select(g => new ClusterNodeTypeAggregatedReport {
+                    ClusterNodeTypeAggregation = g.Key,
+                    ClusterNodeTypes = g.Select(nt => new ClusterNodeTypeReport {
+                        ClusterNodeType = nt,
+                        Jobs = jobsList.Where(j => j.Tasks != null && j.Tasks.Any(t => t.NodeType != null && t.NodeType.Id == nt.Id))
+                            .Select(j => new JobReport {
+                                SubmittedJobInfo = j,
+                                Tasks = j.Tasks.Where(t => t.NodeType != null && t.NodeType.Id == nt.Id).Select(t => new TaskReport {
+                                    SubmittedTaskInfo = t,
+                                    Usage = Math.Round(t.ResourceConsumed?.Value ?? 0, 3)
+                                }).ToList()
+                            }).ToList()
+                    }).ToList()
+                }).ToList() ?? new List<ClusterNodeTypeAggregatedReport>()
+        }).ToList() ?? new List<ClusterAggregatedReport>();
     }
 
-    private List<ClusterNodeTypeAggregatedReport> GetClusterNodeTypeSubProjectAggregationReports(Cluster cluster,
-        SubProject subProject, DateTime startTime, DateTime endTime)
-    {
-        var nodeTypeGrouping = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
-            .Distinct()
-            .OrderBy(x => x.Id)
-            .GroupBy(u => u.ClusterNodeTypeAggregation)
-            .ToList();
-
-        var reports = new List<ClusterNodeTypeAggregatedReport>();
-        foreach (var group in nodeTypeGrouping)
-        {
-            var aggregationReport = new ClusterNodeTypeAggregatedReport
-            {
-                ClusterNodeTypeAggregation = group.Key,
-                ClusterNodeTypes = group.Select(nodeType => new ClusterNodeTypeReport
-                {
-                    ClusterNodeType = nodeType,
-                    Jobs = GetJobSubProjectReports(nodeType.Id, subProject, startTime, endTime)
-                }).ToList()
-            };
-            reports.Add(aggregationReport);
-        }
-
-        return reports;
-    }
-
-    private List<JobReport> GetJobSubProjectReports(long nodeTypeId, SubProject subProject, DateTime startTime,
-        DateTime endTime)
-    {
-        var jobsInSubProject = _unitOfWork.SubmittedJobInfoRepository.GetAll()
-            .Where(x => x.Project.Id == subProject.ProjectId &&
-                        x.Specification.SubProjectId.HasValue &&
-                        x.Specification.SubProjectId.Value == subProject.Id &&
-                        x.StartTime >= startTime &&
-                        x.EndTime <= endTime &&
-                        x.Tasks.Any(y => y.NodeType.Id == nodeTypeId));
-
-        var jobReports = jobsInSubProject.Select(job => new JobReport
-        {
-            SubmittedJobInfo = job,
-            Tasks = GetTaskReportsForJob(job, nodeTypeId, subProject.ProjectId)
-        }).ToList();
-        return jobReports;
-    }
-
-    /// <summary>
-    ///     Returns Cluster reports for specified Project
-    /// </summary>
-    /// <param name="project"></param>
-    /// <param name="startTime"></param>
-    /// <param name="endTime"></param>
-    /// <param name="subProjects"></param>
-    /// <returns></returns>
-    private List<ClusterReport> GetClusterReports(Project project, DateTime startTime, DateTime endTime,
-        string[] subProjects)
-    {
-        var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
-            .Select(x => x.Cluster)
-            .Distinct().ToList();
-        var clusterReports = clusters.Select(cluster => new ClusterReport
-        {
-            Cluster = cluster,
-            ClusterNodeTypes = GetClusterNodeTypeReports(cluster, project, startTime, endTime, subProjects)
-        }).ToList();
-        return clusterReports;
-    }
-
-    private List<ClusterAggregatedReport> GetClusterAggregatedReports(Project project, DateTime startTime,
-        DateTime endTime)
-    {
-        var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
-            .Select(x => x.Cluster)
-            .Distinct().ToList();
-        var clusterReports = clusters.Select(cluster => new ClusterAggregatedReport
-        {
-            Cluster = cluster,
-            ClusterNodeTypesAggregations = GetClusterNodeTypeAggregationReports(cluster, project, startTime, endTime)
-        }).ToList();
-        return clusterReports;
-    }
-
-    private List<ClusterNodeTypeAggregatedReport> GetClusterNodeTypeAggregationReports(Cluster cluster, Project project,
-        DateTime startTime, DateTime endTime)
-    {
-        var nodeTypeGrouping = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
-            .Distinct()
-            .OrderBy(x => x.Id)
-            .GroupBy(u => u.ClusterNodeTypeAggregation)
-            .ToList();
-
-        var reports = new List<ClusterNodeTypeAggregatedReport>();
-        foreach (var group in nodeTypeGrouping)
-        {
-            var aggregationReport = new ClusterNodeTypeAggregatedReport
-            {
-                ClusterNodeTypeAggregation = group.Key,
-                ClusterNodeTypes = group.Select(nodeType => new ClusterNodeTypeReport
-                {
-                    ClusterNodeType = nodeType,
-                    Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime, null)
-                }).ToList()
-            };
-            reports.Add(aggregationReport);
-        }
-
-        return reports;
-    }
-
-    /// <summary>
-    ///     Returns ClusterNodeType reports for specified Project
-    /// </summary>
-    /// <param name="cluster"></param>
-    /// <param name="project">Project</param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <param name="subProjects"></param>
-    private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project,
-        DateTime startTime, DateTime endTime, string[] subProjects)
-    {
-        var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
-            .Distinct()
-            .OrderBy(x => x.Id)
-            .ToList();
-
-        var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport
-        {
-            ClusterNodeType = nodeType,
-            Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime, subProjects)
-        }).ToList();
-        return nodeTypeReports;
-    }
-
-    /// <summary>
-    ///     Returns job reports for specified NodeType and Project
-    /// </summary>
-    /// <param name="nodeTypeId">ClusterNodeType ID</param>
-    /// <param name="projectId">Project ID</param>
-    /// <param name="startTime">StartTime</param>
-    /// <param name="endTime">EndTime</param>
-    /// <param name="subProjects"></param>
-    /// <returns></returns>
-    private List<JobReport> GetJobReports(long nodeTypeId, long projectId, DateTime startTime, DateTime endTime,
-        string[] subProjects)
-    {
-        var jobsInProjectQuery =
-            _unitOfWork.SubmittedJobInfoRepository.GetJobsForReport(startTime, endTime, projectId, nodeTypeId);
-
-        if (subProjects != null && subProjects.Any())
-            jobsInProjectQuery =
-                jobsInProjectQuery.Where(job => subProjects.Contains(job.Specification.SubProject?.Identifier));
-        var jobReports = jobsInProjectQuery.Select(job => new JobReport
-        {
-            SubmittedJobInfo = job,
-            Tasks = GetTaskReportsForJob(job, nodeTypeId, projectId)
-        }).ToList();
-
-        return jobReports;
-    }
-
-    /// <summary>
-    ///     Returns list of task reports for specified Job
-    /// </summary>
-    /// <param name="job">Job</param>
-    /// <param name="nodeTypeId">ClusterNodeType ID</param>
-    /// <param name="projectId">Project ID</param>
-    /// <returns></returns>
-    private List<TaskReport> GetTaskReportsForJob(SubmittedJobInfo job, long nodeTypeId, long projectId)
-    {
-        var tasks = job.Tasks.Where(x =>
-            x.Project.Id == projectId && x.Specification.ClusterNodeType.Id == nodeTypeId).ToList();
-        var taskReports = tasks.Select(task => new TaskReport
-        {
-            SubmittedTaskInfo = task,
-            Usage = Math.Round(task.ResourceConsumed?.Value ?? 0, 3)
-        }).ToList();
-        return taskReports;
-    }
-
-    /// <summary>
-    ///     Takes a job and returns a list of reports for each unique cluster in the job
-    /// </summary>
-    /// <param name="job"></param>
-    /// <returns></returns>
     private List<ClusterReport> GetClusterReportsForJob(SubmittedJobInfo job)
     {
-        var clusters = job.Tasks.Select(x => x.NodeType.Cluster).Distinct().ToList();
-        var clusterReports = clusters.Select(cluster => new ClusterReport
-        {
-            Cluster = cluster,
-            ClusterNodeTypes = GetClusterNodeTypeReportsForJob(job)
+        if (job?.Tasks == null) return new List<ClusterReport>();
+        return job.Tasks.Where(t => t.NodeType?.Cluster != null).GroupBy(t => t.NodeType.Cluster).Select(cg => new ClusterReport {
+            Cluster = cg.Key,
+            ClusterNodeTypes = cg.GroupBy(t => t.NodeType).Select(ng => new ClusterNodeTypeReport {
+                ClusterNodeType = ng.Key,
+                Jobs = new List<JobReport> { new JobReport { 
+                    SubmittedJobInfo = job, 
+                    Tasks = ng.Select(t => new TaskReport { 
+                        SubmittedTaskInfo = t, 
+                        Usage = Math.Round(t.ResourceConsumed?.Value ?? 0, 3)
+                    }).ToList() 
+                } }
+            }).ToList()
         }).ToList();
-        return clusterReports;
-    }
-
-    /// <summary>
-    ///     Takes a job and returns a list of reports for each unique node type in the job
-    /// </summary>
-    /// <param name="job">Job</param>
-    /// <returns></returns>
-    private List<ClusterNodeTypeReport> GetClusterNodeTypeReportsForJob(SubmittedJobInfo job)
-    {
-        // Get a list of unique node types in the job
-        var nodeTypes = job.Tasks
-            .Select(x => x.NodeType)
-            .Distinct()
-            .ToList();
-
-        var jobReports = new List<JobReport>();
-        var reports = new List<ClusterNodeTypeReport>();
-        foreach (var nodeType in nodeTypes)
-        {
-            var tasksForNodeType = job.Tasks.Where(x => x.NodeType.Id == nodeType.Id);
-            var jobReport = new JobReport
-            {
-                SubmittedJobInfo = job,
-                Tasks = new List<TaskReport>()
-            };
-
-            foreach (var task in tasksForNodeType.Distinct())
-            {
-                var taskReport = new TaskReport
-                {
-                    SubmittedTaskInfo = task,
-                    Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task) ?? 0
-                };
-                jobReport.Tasks.Add(taskReport);
-            }
-
-            jobReports.Add(jobReport);
-            var nodeTypeReport = new ClusterNodeTypeReport
-            {
-                ClusterNodeType = nodeType,
-                Jobs = jobReports
-            };
-
-            reports.Add(nodeTypeReport);
-        }
-
-        return reports;
     }
 }
-
-#endregion

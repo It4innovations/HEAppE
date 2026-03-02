@@ -19,4 +19,7 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
     public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId);
 
     public SubmittedJobInfo GetByIdWithTasks(long id);
+
+    public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters();
+    IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters();
 }

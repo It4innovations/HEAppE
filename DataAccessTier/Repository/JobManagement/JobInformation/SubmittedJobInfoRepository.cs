@@ -85,5 +85,21 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .FirstOrDefault(j => j.Id == id);
     }
 
+    public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters()
+    {
+        //return include all and ignore query filters
+        return _dbSet.IgnoreQueryFilters()
+            .Include(j => j.Tasks)
+            .Include(j => j.Specification)
+            .Include(j => j.Project)
+            .ToList();  
+    }
+
+    public IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters()
+    {
+        return _dbSet
+            .IgnoreQueryFilters();
+    }
+
     #endregion
 }

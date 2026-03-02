@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
@@ -11,4 +12,5 @@ public interface IAdaptorUserRepository : IRepository<AdaptorUser>
     AdaptorUser GetByNameIgnoreQueryFilters(string username);
     AdaptorUser GetByEmailIgnoreQueryFilters(string email);
     List<AdaptorUser> GetAllUsersInGroup(long groupId);
+    IQueryable<AdaptorUser> GetQueryableWithoutFilters();
 }

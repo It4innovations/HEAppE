@@ -83,6 +83,12 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .ToList();
     }
 
+    public IQueryable<AdaptorUser> GetQueryableWithoutFilters()
+    {
+        return _dbSet
+            .IgnoreQueryFilters();
+    }
+
     public AdaptorUser GetByEmail(string email)
     {
         return GetAll().Where(w => w.Email == email)
