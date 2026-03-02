@@ -21,7 +21,17 @@ namespace SshCaAPI
 
         public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
         {
-            string url = $"{baseUri}/{caName}/";
+            //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
+            string url = string.Empty;
+            if (string.IsNullOrEmpty(caName))
+            {
+                url = baseUri;
+            }
+            else
+            {
+                url = $"{baseUri.TrimEnd('/')}/{caName}";
+            }
+            
             if (string.IsNullOrEmpty(baseUri) && string.IsNullOrEmpty(caName))
             {
                 return;

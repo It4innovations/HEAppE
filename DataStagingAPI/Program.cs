@@ -7,6 +7,7 @@ using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DataStagingAPI;
@@ -74,6 +75,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 });
 
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
+builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
 
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));

@@ -266,11 +266,12 @@ internal class LinuxCommands : ICommands
                 git clone --single-branch -b {branch} --quiet {repoUrl} ""$REPO_DIR"" 2>&1 || {{ echo ""GIT_ERROR""; exit 1; }};
                 UPDATE_NEEDED=1;
             else
-                cd ""$REPO_DIR"" && git fetch origin {branch} --quiet;
-                LOCAL_HASH=$(git rev-parse HEAD);
-                REMOTE_HASH=$(git rev-parse origin/{branch});
+                cd ""$REPO_DIR"" && 
+                git fetch origin {branch} --quiet && 
+                LOCAL_HASH=$(git rev-parse HEAD) &&
+                REMOTE_HASH=$(git rev-parse FETCH_HEAD);
                 if [ ""$LOCAL_HASH"" != ""$REMOTE_HASH"" ]; then
-                    git reset --hard origin/{branch} --quiet;
+                    git reset --hard FETCH_HEAD --quiet;
                     UPDATE_NEEDED=1;
                 fi;
                 cd - > /dev/null;

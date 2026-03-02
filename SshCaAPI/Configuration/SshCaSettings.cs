@@ -18,7 +18,7 @@
         /// <summary>
         ///     Certification authority name
         /// </summary>
-        public static string CAName { get; set; } = "sshca";
+        public static string CAName { get; set; } = string.Empty;
 
         /// <summary>
         ///     Client authentication token (only used for testing purpose)

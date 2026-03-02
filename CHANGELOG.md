@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## V6.2.8
+
+### Changed
+- Significant performance enhancements were implemented for endpoints responsible for fetching large volumes of job-related data.
+- The reporting engine now leverages IQueryable methods, allowing for more efficient database communication and reduced memory overhead.
+- By utilizing AsNoTracking() and AsSplitQuery(), the system now bypasses unnecessary entity tracking and handles complex data relationships with fewer database roundtrips.
+- The reporting logic directly constructs optimized queries, ensuring faster response times even when processing extensive job histories or accounting records.
+
+## V6.2.7
+
+### Changed
+- Improved `HEAppE Scripts` remote repository update logic when synchronizing with the remote repository at job creation.
+
+## V6.2.6
+
+### Changed
+- Make CA name attribute in appsettings optional for SSH CA service.
+
+## V6.2.5
+
+### Added
+- Extended `DataStagingApi` with `ProvideCredentials` endpoint.
+
 ## V6.2.4
 
 ### Fixed
