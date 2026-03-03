@@ -34,6 +34,7 @@ public class LexisAuthMiddleware
         }
 
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+        log.Info($"LexisAuthenticationConfiguration.UseBearerAuth: {LexisAuthenticationConfiguration.UseBearerAuth}, JwtTokenIntrospectionConfiguration.IsEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, Authorization header present: {authHeader != null}");
         if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && authHeader?.StartsWith("Bearer ") == true)
         {
             log.Info("AuthMiddleware invoked for Bearer header");
