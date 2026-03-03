@@ -444,8 +444,14 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             notInitializedCredentials = notInitializedCredentials.Append(serviceAccount);
         }
         
+        _log.InfoFormat("Found {0} credentials that are not initialized for ClusterId: {1}, ProjectId: {2}, AdaptorUser: {3}, UseCert={4}", notInitializedCredentials.Count(), clusterId, projectId, adaptorUserId, SshCaSettings.UseCertificateAuthorityForAuthentication);
+        foreach (var credential in notInitializedCredentials)
+        {
+            _log.InfoFormat("Not initialized credential: {0}", credential.Username);
+        }
         if (notInitializedCredentials.ToList().Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication && adaptorUserId.HasValue)
         {
+            _log.Debug($"No credentials found for ClusterId: {clusterId}, ProjectId: {projectId}. Attempting to create and initialize credentials for adaptor user {adaptorUserId.Value}.");
             var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId.Value);
             notInitializedCredentials = newCredentials.ToList(); 
         }
