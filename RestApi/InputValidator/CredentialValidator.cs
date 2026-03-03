@@ -24,13 +24,10 @@ public class CredentialValidator : AbstractValidator
     private string ValidateCreateCredentialModel(CreateCredentialModel ext)
     {
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
-        if (string.IsNullOrEmpty(ext.Username))
-            _messageBuilder.AppendLine("Username can not be null or empty.");
-
-        ValidateId(ext.ProjectId, "ProjectId");
-
         if (!sessionCodeValidation.IsValid) 
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(ext.ProjectId, "ProjectId");
         
         if(ext.AuthType == ClusterAuthenticationCredentialsAuthType.Kerberos)
         {
