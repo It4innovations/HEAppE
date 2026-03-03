@@ -34,7 +34,7 @@ public class LexisAuthMiddleware
         }
 
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        if ((LexisAuthenticationConfiguration.UseBearerAuth || LexisAuthenticationConfiguration.UseBearerAuth) && authHeader?.StartsWith("Bearer ") == true)
+        if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && authHeader?.StartsWith("Bearer ") == true)
         {
             log.Info("AuthMiddleware invoked for Bearer header");
             string token = authHeader["Bearer ".Length..].Trim();
