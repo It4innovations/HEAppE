@@ -345,12 +345,6 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: false))
             .ToList(); 
         
-        if (credentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication)
-        {
-            var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId);
-            credentials = newCredentials.ToList(); 
-        }
-        
         if (credentials.Count == 0)
         {
             throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
@@ -448,6 +442,12 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                     .GetAuthenticationCredentialsForClusterAndProject(
                         clusterId, projectId, false, adaptorUserId);
             notInitializedCredentials = notInitializedCredentials.Append(serviceAccount);
+        }
+        
+        if (notInitializedCredentials.ToList().Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication && adaptorUserId.HasValue)
+        {
+            var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId.Value);
+            notInitializedCredentials = newCredentials.ToList(); 
         }
        
 
