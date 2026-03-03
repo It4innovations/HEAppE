@@ -36,9 +36,6 @@ public class CredentialValidator : AbstractValidator
         {
             if(!string.IsNullOrEmpty(ext.Passphrase))
                 _messageBuilder.AppendLine("Passphrase is not applicable for Kerberos credentials.");
-            
-            if(ext.KerberosAuth == null)
-                _messageBuilder.AppendLine("KerberosAuth cannot be null for Kerberos credentials.");
         }
 
         return _messageBuilder.ToString();
