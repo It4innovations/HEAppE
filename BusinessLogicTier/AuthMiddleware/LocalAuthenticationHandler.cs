@@ -37,7 +37,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         if (!Request.Headers.ContainsKey(ApiKeyHeaderName))
         {
-            this.Logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            this.Logger.LogInformation($"No {ApiKeyHeaderName} Key header found, attempting internal service authentication.");
             // Create claims based on the authenticated service user
             var claims = new[]
             {
@@ -54,7 +54,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         
         if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var extractedApiKey))
         {
-            this.Logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            this.Logger.LogInformation($"No {ApiKeyHeaderName} Key header found, attempting internal service authentication.");
             return AuthenticateResult.Fail("Missing API Key");
         }
 

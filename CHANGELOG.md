@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.9
+
+### Fixed
+- Enabled and configured JWT token introspection for Bearer authentication to ensure correct token validation.
+- Fixed status code mapping in exception-middleware for external services which HEAppE calls; NotFound and BadRequest are now correctly returned as 401 Unauthorized.
+- Fixed and relocated the initialization logic for missing credentials to improve system robustness.
+- Resolved issues with uninitialized credentials through improved initialization flow and enhanced diagnostic logging.
+
+### Changed
+- Refactored Bearer authentication conditions for better consistency and reliability.
+- Added detailed logging for LexisAuth middleware to assist with authentication troubleshooting.
+
 
 ## V6.2.8
 
