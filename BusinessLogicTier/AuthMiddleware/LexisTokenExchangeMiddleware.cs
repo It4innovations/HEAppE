@@ -42,9 +42,19 @@ public class LexisTokenExchangeMiddleware
             var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
             contextKeysService.Context.LEXISToken = incomingToken;
 
-            if (LexisAuthenticationConfiguration.UseBearerAuth && !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+            if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
-                Log.Info("LexisTokenExchangeMiddleware: Extracting LEXIS token (No exchange flow)");
+                if ((LexisAuthenticationConfiguration.UseBearerAuth && JwtTokenIntrospectionConfiguration.IsEnabled) || JwtTokenIntrospectionConfiguration.IsEnabled)
+                {
+                    Log.Info($"LexisTokenExchangeMiddleware: Introspection enabled but Lexis token exchange flow disabled. Using incoming token as FIP token.");
+                    context.Request.Headers["Authorization"] = $"Bearer {incomingToken}";
+                    contextKeysService.Context.FIPToken = incomingToken;
+                    Log.Debug($"LexisTokenExchangeMiddleware: FIP Token set to incoming token: {incomingToken}");
+                }
+                else if (LexisAuthenticationConfiguration.UseBearerAuth && !JwtTokenIntrospectionConfiguration.IsEnabled)
+                {
+                    Log.Info($"LexisTokenExchangeMiddleware: Bearer auth enabled but introspection disabled. Using incoming token.");
+                }
             }
             else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {

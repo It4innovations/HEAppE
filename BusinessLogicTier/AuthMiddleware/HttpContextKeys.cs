@@ -140,9 +140,6 @@ public class HttpContextKeys : IHttpContextKeys
             if (!response.IsSuccessStatusCode)
             {
                 _log.Error($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
-                
-                // Místo EnsureSuccessStatusCode() vyhodíme ExternalException, 
-                // kterou ExceptionMiddleware umí zachytit a nezpůsobí 500.
                 throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}");
             }
 
