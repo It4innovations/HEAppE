@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -19,65 +20,63 @@ public class RoleAssignmentConfiguration
 
     public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger, bool doNotSave = false)
     {
-        AssignSpecificRole(Administrators, AdaptorUserRoleType.Administrator, group, unitOfWork, logger);
-        AssignSpecificRole(Maintainers, AdaptorUserRoleType.Maintainer, group, unitOfWork, logger);
-        AssignSpecificRole(Managers, AdaptorUserRoleType.Manager, group, unitOfWork, logger);
-        AssignSpecificRole(Submitters, AdaptorUserRoleType.Submitter, group, unitOfWork, logger);
-        AssignSpecificRole(Reporters, AdaptorUserRoleType.Reporter, group, unitOfWork, logger);
-        AssignSpecificRole(GroupReporters, AdaptorUserRoleType.GroupReporter, group, unitOfWork, logger);
-        AssignSpecificRole(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin, group, unitOfWork, logger);
-        if (doNotSave) return;
-        unitOfWork.Save();
+        var totalAssigned = new HashSet<string>();
+        var totalMissing = new HashSet<string>();
+        int totalAlreadyHad = 0;
+
+        void Process(string[] usernames, AdaptorUserRoleType role)
+        {
+            var res = AssignSpecificRole(usernames, role, group, unitOfWork);
+            foreach (var u in res.Assigned) totalAssigned.Add(u);
+            foreach (var u in res.Missing) totalMissing.Add(u);
+            totalAlreadyHad += res.ExistingCount;
+        }
+
+        Process(Administrators, AdaptorUserRoleType.Administrator);
+        Process(Maintainers, AdaptorUserRoleType.Maintainer);
+        Process(Managers, AdaptorUserRoleType.Manager);
+        Process(Submitters, AdaptorUserRoleType.Submitter);
+        Process(Reporters, AdaptorUserRoleType.Reporter);
+        Process(GroupReporters, AdaptorUserRoleType.GroupReporter);
+        Process(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin);
+
+        if (totalAssigned.Any())
+            logger.Info($"Group '{group.Name}': SUCCESSfully assigned roles to: {string.Join(", ", totalAssigned)}");
+
+        if (totalMissing.Any())
+            logger.Warn($"Group '{group.Name}': MISSING users in DB: {string.Join(", ", totalMissing.Distinct())}");
+
+        logger.Debug($"Group '{group.Name}' summary: {totalAssigned.Count} new, {totalAlreadyHad} existing, {totalMissing.Count} missing.");
+
+        if (!doNotSave) unitOfWork.Save();
     }
 
-    private static void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
+    private static (List<string> Assigned, List<string> Missing, int ExistingCount) AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group, IUnitOfWork unitOfWork)
     {
-        if (usernames == null || usernames.Length == 0) return;
+        var assigned = new List<string>();
+        var missing = new List<string>();
+        int existingCount = 0;
 
-        var distinctUsernames = new HashSet<string>(usernames);
-        var assignedUsers = new List<string>();
-        var missingUsers = new List<string>();
-        var alreadyHadRoleCount = 0;
+        if (usernames == null || usernames.Length == 0) return (assigned, missing, existingCount);
 
-        foreach (var username in distinctUsernames)
+        foreach (var username in new HashSet<string>(usernames))
         {
             var user = unitOfWork.AdaptorUserRepository.GetByName(username);
             if (user != null)
             {
-                bool alreadyHasRole = user.AdaptorUserUserGroupRoles?.Any(r => 
-                    r.AdaptorUserGroupId == group.Id && 
-                    r.AdaptorUserRoleId == (long)roleType) ?? false;
+                bool hasRole = user.AdaptorUserUserGroupRoles?.Any(r => 
+                    r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)roleType) ?? false;
 
-                if (!alreadyHasRole)
+                if (!hasRole)
                 {
                     user.CreateSpecificUserRoleForUser(group, roleType);
                     unitOfWork.AdaptorUserRepository.Update(user);
-                    assignedUsers.Add(username);
+                    assigned.Add(username);
                 }
-                else
-                {
-                    alreadyHadRoleCount++;
-                }
+                else existingCount++;
             }
-            else
-            {
-                missingUsers.Add(username);
-            }
+            else missing.Add(username);
         }
-        
-        if (assignedUsers.Any())
-        {
-            logger.Info($"SUCCESSfully assigned role '{roleType}' in group '{group.Name}' to: {string.Join(", ", assignedUsers)}");
-        }
-
-        if (missingUsers.Any())
-        {
-            logger.Warn($"MISSING in Database (found in config): {string.Join(", ", missingUsers)}");
-        }
-
-        if (alreadyHadRoleCount > 0 || assignedUsers.Any() || missingUsers.Any())
-        {
-            logger.Debug($"Summary for '{roleType}'/'{group.Name}': {assignedUsers.Count} new, {alreadyHadRoleCount} existing, {missingUsers.Count} missing.");
-        }
+        return (assigned, missing, existingCount);
     }
 }
