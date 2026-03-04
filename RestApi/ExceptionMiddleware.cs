@@ -182,8 +182,10 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status403Forbidden;
                 break;
             case ExternalException:
-                problem.Title = "External Problem";
+                problem.Title = "External Service Error";
                 problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                logLevel = LogLevel.Error;
                 break;
             case BadHttpRequestException badReqException:
                 problem.Title = badReqException.Message;
