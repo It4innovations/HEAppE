@@ -85,14 +85,23 @@ public class LexisAuthMiddleware
         using var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
 
-        await _next(context);
+        try
+        {
+            await _next(context);
+        }
+        finally
+        {
+            if (responseBody.CanRead)
+            {
+                responseBody.Seek(0, SeekOrigin.Begin);
+                string responseText = await new StreamReader(responseBody).ReadToEndAsync();
+                responseBody.Seek(0, SeekOrigin.Begin);
 
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-        string responseText = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-
-        Log.Info($"[Response] Path: {context.Request.Path}, StatusCode: {context.Response.StatusCode}, Body: {responseText}");
-
-        await responseBody.CopyToAsync(originalBodyStream);
+                Log.Info($"[Response] Path: {context.Request.Path}, StatusCode: {context.Response.StatusCode}, Body: {responseText}");
+                
+                await responseBody.CopyToAsync(originalBodyStream);
+            }
+            context.Response.Body = originalBodyStream;
+        }
     }
 }

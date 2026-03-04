@@ -49,29 +49,12 @@ public class ExpirioService : IExpirioService
         if (response.IsSuccessStatusCode)
         {
             _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}");
-            var dto = JsonSerializer.Deserialize<KerberosExchangeResponse>(content);
-            return dto?.Content ?? throw new ExpirioException("Empty ticket in response.");
+            return ParseTokenResponse(content);
         }
         else
         {
-            string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            _logger.Error($"[Expirio Error] Kerberos exchange failed. Details: {details}");
-
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.BadRequest:
-                    throw new ExpirioBadRequestException("Bad Expirio Kerberos ticket request", details);
-                case HttpStatusCode.Unauthorized:
-                    throw new ExpirioUnauthorizedException("Unauthorized Expirio Kerberos ticket request", details);
-                case HttpStatusCode.NotFound:
-                    throw new ExpirioNotFoundException("Not Found on Expirio Kerberos ticket request", details);
-                case HttpStatusCode.InternalServerError:
-                    throw new ExpirioServerException("Internal Server Error on Expirio Kerberos ticket request", details);
-                case HttpStatusCode.BadGateway:
-                    throw new ExpirioUpstreamException("Bad Gateway on Expirio Kerberos ticket request", details);
-                default:
-                    throw new ExpirioException("Error while getting Expirio Kerberos ticket.", details);
-            }
+            HandleErrorResponse(response, content, "Kerberos ticket");
+            return null; 
         }
     }
 
@@ -98,29 +81,60 @@ public class ExpirioService : IExpirioService
         if (response.IsSuccessStatusCode)
         {
             _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-            var dto = JsonSerializer.Deserialize<ExchangeResponse>(content);
-            return dto?.Content ?? throw new ExpirioException("Empty data in response.");
+            return ParseTokenResponse(content);
         }
         else
         {
-            string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            _logger.Error($"[Expirio Error] Token exchange failed. Details: {details}");
+            HandleErrorResponse(response, content, "data");
+            return null;
+        }
+    }
 
-            switch (response.StatusCode)
+    private string ParseTokenResponse(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            throw new ExpirioException("Empty response from Expirio.");
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.ValueKind == JsonValueKind.String)
             {
-                case HttpStatusCode.BadRequest:
-                    throw new ExpirioBadRequestException("Bad Expirio data request", details);
-                case HttpStatusCode.Unauthorized:
-                    throw new ExpirioUnauthorizedException("Unauthorized Expirio data request", details);
-                case HttpStatusCode.NotFound:
-                    throw new ExpirioNotFoundException("Not Found on Expirio data request", details);
-                case HttpStatusCode.InternalServerError:
-                    throw new ExpirioServerException("Internal Server Error on Expirio data request", details);
-                case HttpStatusCode.BadGateway:
-                    throw new ExpirioUpstreamException("Bad Gateway on Expirio data request", details);
-                default:
-                    throw new ExpirioException("Error while getting Expirio data.", details);
+                return doc.RootElement.GetString();
             }
+
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("Content", out var contentProp))
+            {
+                return contentProp.GetString();
+            }
+            
+            return content.Trim('"');
+        }
+        catch (JsonException)
+        {
+            return content.Trim('"');
+        }
+    }
+
+    private void HandleErrorResponse(HttpResponseMessage response, string content, string context)
+    {
+        string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+        _logger.Error($"[Expirio Error] Exchange failed for {context}. Details: {details}");
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.BadRequest:
+                throw new ExpirioBadRequestException($"Bad Expirio {context} request", details);
+            case HttpStatusCode.Unauthorized:
+                throw new ExpirioUnauthorizedException($"Unauthorized Expirio {context} request", details);
+            case HttpStatusCode.NotFound:
+                throw new ExpirioNotFoundException($"Not Found on Expirio {context} request", details);
+            case HttpStatusCode.InternalServerError:
+                throw new ExpirioServerException($"Internal Server Error on Expirio {context} request", details);
+            case HttpStatusCode.BadGateway:
+                throw new ExpirioUpstreamException($"Bad Gateway on Expirio {context} request", details);
+            default:
+                throw new ExpirioException($"Error while getting Expirio {context}.", details);
         }
     }
 }
