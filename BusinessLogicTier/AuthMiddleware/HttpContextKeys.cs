@@ -9,6 +9,8 @@ using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.Exceptions.External; // Důležité pro vyhazování známých výjimek
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
@@ -18,7 +20,6 @@ using Microsoft.Extensions.Options;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
-
 
 public interface IRequestContext
 {
@@ -45,7 +46,6 @@ public interface IHttpContextKeys
     
     IRequestContext Context { get;  }
 }
-
 
 public class HttpContextKeys : IHttpContextKeys
 {
@@ -140,7 +140,10 @@ public class HttpContextKeys : IHttpContextKeys
             if (!response.IsSuccessStatusCode)
             {
                 _log.Error($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
-                response.EnsureSuccessStatusCode();
+                
+                // Místo EnsureSuccessStatusCode() vyhodíme ExternalException, 
+                // kterou ExceptionMiddleware umí zachytit a nezpůsobí 500.
+                throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}");
             }
 
             _log.Debug($"[SshCaExchange Response] Success: {response.StatusCode}");
@@ -153,10 +156,14 @@ public class HttpContextKeys : IHttpContextKeys
             _context.SshCaToken = tokenResponse.AccessToken;
             return tokenResponse.AccessToken;
         }
+        catch (ExternalException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _log.Error("[SshCaExchange] Failed to exchange SSH CA token.", ex);
-            throw;
+            throw new ExternalException("Internal error during SSH CA token exchange.", ex);
         }
     }
 
