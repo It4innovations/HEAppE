@@ -1,7 +1,7 @@
-
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,12 +18,12 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public static class JwtIntrospectionExtensions
 {
+    private static readonly ILog Log = LogManager.GetLogger(typeof(JwtIntrospectionExtensions));
+
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register OAuth2 Introspection if enabled
         if (true)
         {
-            // Default authentication scheme with runtime selection
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = "SmartScheme";
@@ -35,20 +35,17 @@ public static class JwtIntrospectionExtensions
                 options.ForwardDefaultSelector = context =>
                 {
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        
-                    // If Bearer token is present, use OAuth2 Introspection
-                    if ((JwtTokenIntrospectionConfiguration.IsEnabled) && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    if (JwtTokenIntrospectionConfiguration.IsEnabled && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
+                        Log.Debug($"[SmartScheme] Path: {context.Request.Path} -> OAuth2Introspection");
                         return OAuth2IntrospectionDefaults.AuthenticationScheme;
                     }
-
-                    // Otherwise (no header or custom API Key header), route to LocalScheme or LexisAuthenticationConfiguration.UseBearerAuth
+                    Log.Debug($"[SmartScheme] Path: {context.Request.Path} -> LocalScheme");
                     return "LocalScheme";
                 };
             })
             .AddScheme<AuthenticationSchemeOptions, LocalAuthenticationHandler>("LocalScheme", null);
 
-      
             services.AddAuthentication()
                 .AddOAuth2Introspection(OAuth2IntrospectionDefaults.AuthenticationScheme, options =>
                 {
@@ -67,75 +64,72 @@ public static class JwtIntrospectionExtensions
                     options.TokenRetriever = request =>
                     {
                         var authHeader = request.Headers["Authorization"].FirstOrDefault();
-                        if (authHeader?.StartsWith("Bearer ") != true)
-                            return null; // skip introspection → local login
-                        return authHeader["Bearer ".Length..].Trim();
+                        return authHeader?.StartsWith("Bearer ") == true ? authHeader["Bearer ".Length..].Trim() : null;
                     };
 
                     options.Events = new OAuth2IntrospectionEvents
                     {
+                        OnAuthenticationFailed = context =>
+                        {
+                            Log.Error($"[Introspection] Auth Failed. Error: {context.Error}. Path: {context.HttpContext.Request.Path}");
+                            context.Fail("Invalid token or not active");
+                            return Task.CompletedTask;
+                        },
                         OnTokenValidated = async context =>
                         {
-                            if (string.IsNullOrEmpty(context.SecurityToken))
-                                return; // local login, skip introspection
+                            Log.Info($"[Introspection] Token Validated. User: {context.Principal?.Identity?.Name}. Claims: {string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}"))}");
 
-                            var sshCaService = context.HttpContext.RequestServices
-                                .GetRequiredService<ISshCertificateAuthorityService>();
-                            var userOrgService = context.HttpContext.RequestServices
-                                .GetRequiredService<IUserOrgService>();
+                            var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
+                            var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
 
                             try
                             {
-                                await context.HttpContext.RequestServices
-                                    .GetRequiredService<IHttpContextKeys>()
-                                    .Authorize(sshCaService, userOrgService);
+                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().Authorize(sshCaService, userOrgService);
+                                Log.Debug("[Introspection] Internal Authorization Success");
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                Log.Error($"[Introspection] Internal Authorization Failed: {ex.Message}");
                                 context.Fail("Unauthorized");
                                 return;
                             }
 
-                            if(JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
-                            { 
-                                // Optional: exchange SSH CA token
+                            if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+                            {
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
-                          
-                                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                                string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-                                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
-
-                                var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
-                                {
-                                    Address = JwtTokenIntrospectionConfiguration.Authority,
-                                    Policy = new DiscoveryPolicy
-                                    {
-                                        RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
-                                        ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
-                                        ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
-                                    }
-                                });
-
-                                if (disco.IsError)
-                                    throw new Exception($"Discovery error: {disco.Error}");
-
-                                await context.HttpContext.RequestServices
-                                    .GetRequiredService<IHttpContextKeys>()
-                                    .ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(JwtTokenIntrospectionConfiguration.Authority, client);
                             }
                         }
                     };
                 });
 
-            // Add user-agent for introspection backchannel
+            services.AddTransient<LoggingHandler>();
             services.AddHttpClient(OAuth2IntrospectionDefaults.BackChannelHttpClientName)
+                .AddHttpMessageHandler<LoggingHandler>()
                 .ConfigureHttpClient(client =>
                 {
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
                 });
         }
-
         return services;
+    }
+}
+
+public class LoggingHandler : DelegatingHandler
+{
+    private static readonly ILog Log = LogManager.GetLogger(typeof(LoggingHandler));
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+    {
+        var requestContent = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
+        Log.Debug($"[Introspection Request] {request.Method} {request.RequestUri} Content: {requestContent}");
+
+        var response = await base.SendAsync(request, cancellationToken);
+
+        var responseContent = response.Content != null ? await response.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
+        Log.Debug($"[Introspection Response] Status: {response.StatusCode} Content: {responseContent}");
+
+        return response;
     }
 }

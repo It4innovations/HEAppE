@@ -23,16 +23,19 @@ public class ExpirioService : IExpirioService
     public ExpirioService(IHttpClientFactory httpClientFactory)
     {
         _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        //_logger = loggerFactory.CreateLogger("HEAppE.ServicesOld.Expirio");
         _httpClientFactory = httpClientFactory;
     }
 
     public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default)
     {
-        _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
+        _logger.Info("[Expirio] Method: ExchangeTokenForKerberos");
 
         var jsonRequest = JsonSerializer.Serialize(request);
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/kerberos/exchange")
+        var url = $"{ExpirioSettings.BaseUrl}/kerberos/exchange";
+        
+        _logger.Debug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
@@ -45,12 +48,15 @@ public class ExpirioService : IExpirioService
 
         if (response.IsSuccessStatusCode)
         {
+            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}");
             var dto = JsonSerializer.Deserialize<KerberosExchangeResponse>(content);
             return dto?.Content ?? throw new ExpirioException("Empty ticket in response.");
         }
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+            _logger.Error($"[Expirio Error] Kerberos exchange failed. Details: {details}");
+
             switch (response.StatusCode)
             {
                 case HttpStatusCode.BadRequest:
@@ -71,10 +77,14 @@ public class ExpirioService : IExpirioService
 
     public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default)
     {
-        _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeToken\"\n\n");
+        _logger.Info("[Expirio] Method: ExchangeToken");
 
         var jsonRequest = JsonSerializer.Serialize(request);
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/exchange")
+        var url = $"{ExpirioSettings.BaseUrl}/exchange";
+
+        _logger.Debug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
@@ -87,12 +97,15 @@ public class ExpirioService : IExpirioService
 
         if (response.IsSuccessStatusCode)
         {
+            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
             var dto = JsonSerializer.Deserialize<ExchangeResponse>(content);
             return dto?.Content ?? throw new ExpirioException("Empty data in response.");
         }
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+            _logger.Error($"[Expirio Error] Token exchange failed. Details: {details}");
+
             switch (response.StatusCode)
             {
                 case HttpStatusCode.BadRequest:

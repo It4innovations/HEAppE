@@ -61,7 +61,7 @@ public class HttpContextKeys : IHttpContextKeys
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
     {
-        _log.Info("Authorizing with UserOrg");
+        _log.Info("[Authorize] Starting UserOrg authorization flow.");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
@@ -70,7 +70,7 @@ public class HttpContextKeys : IHttpContextKeys
         {
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
-                _log.Info("Using Bearer authentication for Lexis");
+                _log.Info("[Authorize] Using Bearer authentication for Lexis.");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = Context.LEXISToken
@@ -78,38 +78,44 @@ public class HttpContextKeys : IHttpContextKeys
             }
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
-                _log.Info("Using Bearer authentication with JWT token introspection");
+                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
+                _log.Info($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
+                
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
-                        Context.LEXISToken : Context.FIPToken
+                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.FIPToken
                 });
             }
             
             if(user != null)
             {
-                _log.Info($"Authorized user: {user.Username}:{user.Email} (ID: {user.Id})");
+                _log.Info($"[Authorize] Success. User: {user.Username}:{user.Email} (ID: {user.Id})");
                 _context.AdaptorUserId = user.Id;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
+            }
+            else
+            {
+                _log.Warn("[Authorize] Authorization returned null user.");
             }
             
             return user;
         }
         catch (Exception ex)
         {
-            _log.Error("Error during authorization", ex);
+            _log.Error("[Authorize] Exception occurred during authorization.", ex);
             throw;
         }
     }
 
     public async Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient)
     {
-        _log.Info($"Exchanging token for SSH CA token from {tokenExchangeAddress}");
+        _log.Info($"[SshCaExchange Request] URL: {tokenExchangeAddress}");
+        
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
         var clientSecret = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientSecret;
 
-        var authHeader = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{clientId}:{clientSecret}"));
-        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
+        var authHeaderValue = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{clientId}:{clientSecret}"));
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeaderValue);
 
         var form = new Dictionary<string, string>
         {
@@ -119,22 +125,44 @@ public class HttpContextKeys : IHttpContextKeys
             ["audience"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.Audience
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Post, tokenExchangeAddress)
+        LogRequestDetails(tokenExchangeAddress, form);
+
+        try
         {
-            Content = new FormUrlEncodedContent(form)
-        };
+            var request = new HttpRequestMessage(HttpMethod.Post, tokenExchangeAddress)
+            {
+                Content = new FormUrlEncodedContent(form)
+            };
 
-        var response = await httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+            var response = await httpClient.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
 
-        var content = await response.Content.ReadAsStringAsync();
-        var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(content, new System.Text.Json.JsonSerializerOptions
+            if (!response.IsSuccessStatusCode)
+            {
+                _log.Error($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
+                response.EnsureSuccessStatusCode();
+            }
+
+            _log.Debug($"[SshCaExchange Response] Success: {response.StatusCode}");
+
+            var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(content, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            _context.SshCaToken = tokenResponse.AccessToken;
+            return tokenResponse.AccessToken;
+        }
+        catch (Exception ex)
         {
-            PropertyNameCaseInsensitive = true
-        });
+            _log.Error("[SshCaExchange] Failed to exchange SSH CA token.", ex);
+            throw;
+        }
+    }
 
-        _context.SshCaToken = tokenResponse.AccessToken;
-        return tokenResponse.AccessToken;
+    private void LogRequestDetails(string url, Dictionary<string, string> form)
+    {
+        _log.Debug($"[SshCaExchange Details] URL: {url}, GrantType: {form["grant_type"]}, Audience: {form["audience"]}");
     }
 
     private class TokenResponse
@@ -146,4 +174,3 @@ public class HttpContextKeys : IHttpContextKeys
         [JsonPropertyName("scope")] public string Scope { get; set; }
     }
 }
-

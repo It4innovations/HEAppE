@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Refactored Bearer authentication conditions for better consistency and reliability.
 - Added detailed logging for LexisAuth middleware to assist with authentication troubleshooting.
+- Standardize and improve logging across authentication components for better observability and debugging.
 
 
 ## V6.2.8
