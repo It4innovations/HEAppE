@@ -54,7 +54,7 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [ProducesResponseType(typeof(CredentialResponseExt), StatusCodes.Status200OK)]
+
     public async Task<IActionResult> CreateCredential([FromBody] CreateCredentialModel model)
     {
         //TODO: use logger?
@@ -66,7 +66,7 @@ public class CredentialsController : ControllerBase
             throw new InputValidationException(validationResult.Message);
 
         var result = await _managementService.CreateCredentialAsync(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
-                                                                    model.ProvidedPrivateKey, model.Passphrase);
+                                                                    model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
         return Ok(result);
     }
 
@@ -75,14 +75,13 @@ public class CredentialsController : ControllerBase
     /// </summary>
     [HttpGet("GetCredentials")]
     [RequestSizeLimit(2000)]
-    [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
+     [ProducesResponseType(typeof(List<CredentialResponseExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [ProducesResponseType(typeof(List<CredentialResponseExt>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCredentials(long projectId, [FromQuery] string sessionCode)
+      public async Task<IActionResult> GetCredentials(long projectId, [FromQuery] string sessionCode)
     {
         /* TODO: use logger?
         _logger.LogDebug(
