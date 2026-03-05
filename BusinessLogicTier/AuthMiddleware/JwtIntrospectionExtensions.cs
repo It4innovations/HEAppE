@@ -98,7 +98,18 @@ public static class JwtIntrospectionExtensions
                             {
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
-                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(JwtTokenIntrospectionConfiguration.Authority, client);
+                                //get token endpoint from discovery document
+                                var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
+                                if (disco.IsError)                                {
+                                    Log.Error($"[Introspection] Discovery document retrieval failed: {disco.Error}");
+                                    context.Fail("Token exchange failed");
+                                    return;
+                                }
+                                else
+                                {
+                                    Log.Debug($"[Introspection] Discovery document retrieved successfully. Token endpoint: {disco.TokenEndpoint}");
+                                }
+                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
                             }
                         }
                     };
