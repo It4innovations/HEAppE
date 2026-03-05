@@ -101,7 +101,7 @@ builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
 builder.Services.AddHttpClient("LexisTokenExchangeClient");
-builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
 
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 
@@ -223,7 +223,7 @@ builder.Services.AddSwaggerGen(options =>
         { key, new List<string>() }
     };
     options.AddSecurityRequirement(requirement);
-    
+
     options.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
     {
         Description = "Service API Key authentication. Enter the key below.",
@@ -232,7 +232,7 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "ApiKeyScheme"
     });
-    
+
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -295,7 +295,6 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseCors("HEAppEDefaultOrigins");
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
@@ -312,11 +311,11 @@ app.UseSwagger(swagger =>
             }
         };
     });
-    
+
     var routePrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
         ? string.Empty
         : APIAdoptions.SwaggerConfiguration.HostPostfix + "/";
-    
+
     swagger.RouteTemplate = $"{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
@@ -325,7 +324,7 @@ app.UseSwaggerUI(swaggerUI =>
     var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
         ? string.Empty
         : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
-        
+
     swaggerUI.SwaggerEndpoint(
         $"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json",
         APIAdoptions.SwaggerConfiguration.Title);
@@ -334,10 +333,13 @@ app.UseSwaggerUI(swaggerUI =>
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
 });
 
-app.UseMiddleware<LogUserContextMiddleware>();
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
+// log user context middleware have to be after all authentications to get user properties inside
+app.UseMiddleware<LogUserContextMiddleware>();
+// exception middleware have to be after log user context middleware to log user properties for exceptions
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.RegisterApiRoutes();
