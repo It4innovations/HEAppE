@@ -75,10 +75,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
             return submittedTasksInfo;
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
             throw new SlurmException(
-                "GetActualTasksInfo",
+                "GetActualTasksInfo", ex,
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
                 command.Result,
                 command.Error)
@@ -147,7 +147,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         catch (Exception ex)
         {
             // Ensure detailed error reporting if the cluster communication fails
-            throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
+            throw new SlurmException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
                 command?.Error ?? ex.Message, command?.Result)
             {
                 CommandError = command?.Error ?? ex.Message
@@ -232,9 +232,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
-            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error)
+            throw new SlurmException("ClusterUsageException", ex, nodeType.Name, command.Result, command.Error)
             {
                 CommandError = command.Error
             };
@@ -271,9 +271,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 .Distinct()
                 .ToList();
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
-            throw new SlurmException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result,
+            throw new SlurmException("GetAllocatedNodesException", ex, taskInfo.ScheduledJobId, command.Result,
                 command.Error, sshCommand)
             {
                 CommandError = command.Error

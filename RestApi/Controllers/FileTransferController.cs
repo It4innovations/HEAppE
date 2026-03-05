@@ -71,8 +71,6 @@ public class FileTransferController : BaseController<FileTransferController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -102,9 +100,6 @@ public class FileTransferController : BaseController<FileTransferController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
-
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -135,9 +130,6 @@ public class FileTransferController : BaseController<FileTransferController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug(
-            $"Endpoint: \"FileTransfer\" Method: \"DownloadPartsOfJobFilesFromCluster\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -176,7 +168,6 @@ public class FileTransferController : BaseController<FileTransferController>
                 SessionCode = sessionCode,
                 SubmittedJobInfoId = submittedJobInfoId
             };
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -206,8 +197,6 @@ public class FileTransferController : BaseController<FileTransferController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadFileFromCluster\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -274,8 +263,6 @@ public class FileTransferController : BaseController<FileTransferController>
             var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
             var validator = new UploadFileToClusterModelValidator();
             validator.ValidateAndThrow(model);
-            _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
-
             long jobSpecificationId;
             long? taskSpecificationId = null;
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())

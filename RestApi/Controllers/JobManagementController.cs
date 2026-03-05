@@ -66,7 +66,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateJob(CreateJobByProjectModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -91,8 +90,6 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"SubmitJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -122,8 +119,6 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -153,8 +148,6 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DeleteJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -190,7 +183,6 @@ public class JobManagementController : BaseController<JobManagementController>
         {
             SessionCode = sessionCode
         };
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"ListJobsForCurrentUser\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -222,7 +214,6 @@ public class JobManagementController : BaseController<JobManagementController>
                 SessionCode = sessionCode,
                 SubmittedJobInfoId = submittedJobInfoId
             };
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CurrentInfoForJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -252,8 +243,6 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataToTemp\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -284,8 +273,6 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataFromTemp\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -319,7 +306,6 @@ public class JobManagementController : BaseController<JobManagementController>
             SessionCode = sessionCode,
             SubmittedTaskInfoId = submittedTaskInfoId
         };
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"AllocatedNodesIPs\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -340,7 +326,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> DryRunJob(DryRunJobModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DryRunJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

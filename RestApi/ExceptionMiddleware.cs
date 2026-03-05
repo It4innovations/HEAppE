@@ -185,7 +185,7 @@ public class ExceptionMiddleware
                 problem.Title = "External Service Error";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
-                logLevel = LogLevel.Error;
+                logLevel = LogLevel.Warning;
                 break;
             case BadHttpRequestException badReqException:
                 problem.Title = badReqException.Message;
