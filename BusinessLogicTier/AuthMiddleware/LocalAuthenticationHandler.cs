@@ -107,7 +107,9 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 var principal = new ClaimsPrincipal(identity);
                 var ticket = new AuthenticationTicket(principal, Scheme.Name);
                 
-                _httpContextKeys.Context.AdaptorUserId = user.Id; 
+                _httpContextKeys.Context.AdaptorUserId = user.Id;
+                _httpContextKeys.Context.UserName = user.Username;
+                _httpContextKeys.Context.Email = user.Email;
                 this.Logger.LogInformation("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, user.Username, Request.Path);
 
                 return AuthenticateResult.Success(ticket);
