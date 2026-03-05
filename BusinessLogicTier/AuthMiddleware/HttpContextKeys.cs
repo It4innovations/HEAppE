@@ -23,7 +23,9 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public interface IRequestContext
 {
-    public long AdaptorUserId { get; set; } 
+    public long AdaptorUserId { get; set; }
+    public string UserName { get; set; }
+    public string Email { get; set; }
     public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
@@ -32,7 +34,9 @@ public interface IRequestContext
 
 public class RequestContext : IRequestContext
 {
-    public long AdaptorUserId { get; set; } 
+    public long AdaptorUserId { get; set; }
+    public string UserName { get; set; }
+    public string Email { get; set; }
     public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
@@ -91,6 +95,8 @@ public class HttpContextKeys : IHttpContextKeys
             {
                 _log.Info($"[Authorize] Success. User: {user.Username}:{user.Email} (ID: {user.Id})");
                 _context.AdaptorUserId = user.Id;
+                _context.UserName = user.Username;
+                _context.Email = user.Email;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
             }
             else

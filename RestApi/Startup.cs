@@ -147,10 +147,10 @@ public class Startup
             SshCaSettings.CAName,
             SshCaSettings.ConnectionTimeoutInSeconds
         ));
-        
+
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-        
+
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
@@ -163,7 +163,7 @@ public class Startup
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
-        
+
         services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -190,10 +190,10 @@ public class Startup
             .OrResult(r => (int)r.StatusCode >= 500 || r.StatusCode == HttpStatusCode.RequestTimeout)
             .WaitAndRetryAsync(ExpirioSettings.MaxRetries, _ => TimeSpan.FromMilliseconds(ExpirioSettings.RetryInitialDelayMs)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(
-                                            handledEventsAllowedBeforeBreaking: 5, 
+                                            handledEventsAllowedBeforeBreaking: 5,
                                             durationOfBreak: TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)
                                             ));
-        
+
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
@@ -215,10 +215,10 @@ public class Startup
                     .AllowAnyMethod();
             });
         });
-        
-        
+
+
         services.AddHttpClient("LexisTokenExchangeClient");
-        services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+        services.AddSingleton<ILexisTokenService, LexisTokenService>();
 
         services.AddSwaggerGen(gen =>
         {
@@ -241,7 +241,7 @@ public class Startup
                     Array.Empty<string>()
                 }
             });
-            
+
             //if introspection is enabled, add JWT Bearer authentication
             //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
@@ -290,72 +290,72 @@ public class Startup
                     Url = new Uri(SwaggerConfiguration.ContactUrl)
                 }
             });
-            
 
-                // Swagger document for DetailedJobReporting (Private API)
-                gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
+
+            // Swagger document for DetailedJobReporting (Private API)
+            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
+            {
+                Version = SwaggerConfiguration.Version,
+                Title = string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
+                    "Detailed Job Reporting API" :
+                    SwaggerConfiguration.DetailedJobReportingTitle,
+                Description = SwaggerConfiguration.Description,
+                TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
+                License = new OpenApiLicense
                 {
-                    Version = SwaggerConfiguration.Version,
-                    Title = string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
-                        "Detailed Job Reporting API" :
-                        SwaggerConfiguration.DetailedJobReportingTitle,
-                    Description = SwaggerConfiguration.Description,
-                    TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
-                    License = new OpenApiLicense
-                    {
-                        Name = SwaggerConfiguration.License,
-                        Url = new Uri(SwaggerConfiguration.LicenseUrl)
-                    },
-                    Contact = new OpenApiContact
-                    {
-                        Name = SwaggerConfiguration.ContactName,
-                        Email = SwaggerConfiguration.ContactEmail,
-                        Url = new Uri(SwaggerConfiguration.ContactUrl)
-                    }
-                });
-
-                // Merged Swagger document for py4heappe client
-                gen.SwaggerDoc("py4heappe", new OpenApiInfo
+                    Name = SwaggerConfiguration.License,
+                    Url = new Uri(SwaggerConfiguration.LicenseUrl)
+                },
+                Contact = new OpenApiContact
                 {
-                    Version = SwaggerConfiguration.Version,
-                    Title = "py4heappe API",
-                    Description = "Merged API documentation for py4heappe client",
-                    TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
-                    License = new OpenApiLicense
-                    {
-                        Name = SwaggerConfiguration.License,
-                        Url = new Uri(SwaggerConfiguration.LicenseUrl)
-                    },
-                    Contact = new OpenApiContact
-                    {
-                        Name = SwaggerConfiguration.ContactName,
-                        Email = SwaggerConfiguration.ContactEmail,
-                        Url = new Uri(SwaggerConfiguration.ContactUrl)
-                    }
-                });
+                    Name = SwaggerConfiguration.ContactName,
+                    Email = SwaggerConfiguration.ContactEmail,
+                    Url = new Uri(SwaggerConfiguration.ContactUrl)
+                }
+            });
 
-                // Group APIs into documents based on ApiExplorerSettings
-                gen.DocInclusionPredicate((documentName, apiDescription) =>
+            // Merged Swagger document for py4heappe client
+            gen.SwaggerDoc("py4heappe", new OpenApiInfo
+            {
+                Version = SwaggerConfiguration.Version,
+                Title = "py4heappe API",
+                Description = "Merged API documentation for py4heappe client",
+                TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
+                License = new OpenApiLicense
                 {
-                    // Include in DetailedJobReporting document if tagged
-                    if (documentName == "DetailedJobReporting")
-                        return apiDescription.GroupName == "DetailedJobReporting";
+                    Name = SwaggerConfiguration.License,
+                    Url = new Uri(SwaggerConfiguration.LicenseUrl)
+                },
+                Contact = new OpenApiContact
+                {
+                    Name = SwaggerConfiguration.ContactName,
+                    Email = SwaggerConfiguration.ContactEmail,
+                    Url = new Uri(SwaggerConfiguration.ContactUrl)
+                }
+            });
 
-                    // Include in the public document if not in DetailedJobReporting
-                    if (documentName == SwaggerConfiguration.Version)
-                        return string.IsNullOrEmpty(apiDescription.GroupName);
+            // Group APIs into documents based on ApiExplorerSettings
+            gen.DocInclusionPredicate((documentName, apiDescription) =>
+            {
+                // Include in DetailedJobReporting document if tagged
+                if (documentName == "DetailedJobReporting")
+                    return apiDescription.GroupName == "DetailedJobReporting";
 
-                    // Include everything in the merged document
-                    if (documentName == "py4heappe")
-                        return true;
+                // Include in the public document if not in DetailedJobReporting
+                if (documentName == SwaggerConfiguration.Version)
+                    return string.IsNullOrEmpty(apiDescription.GroupName);
 
-                    return false;
-                });
-                
-            
-                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                gen.IncludeXmlComments(xmlPath);
+                // Include everything in the merged document
+                if (documentName == "py4heappe")
+                    return true;
+
+                return false;
+            });
+
+
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            gen.IncludeXmlComments(xmlPath);
         });
 
         services.AddRazorPages();
@@ -423,7 +423,7 @@ public class Startup
             //swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
             swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
         });
-        
+
         app.UseSwagger(swagger =>
         {
             swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
@@ -461,17 +461,20 @@ public class Startup
 
         app.UseRouting();
 
-        app.UseMiddleware<LogUserContextMiddleware>();
-        app.UseMiddleware<ExceptionMiddleware>();
         app.UseMiddleware<LexisAuthMiddleware>();
 
         //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisTokenExchangeMiddleware>();
             app.UseAuthentication();
+
+            // log user context middleware have to be after all authentications to get user properties inside
+            app.UseMiddleware<LogUserContextMiddleware>();
+            // exception middleware have to be after log user context middleware to log user properties for exceptions
+            app.UseMiddleware<ExceptionMiddleware>();
+
             app.UseAuthorization();
         }
-
 
         app.UseEndpoints(endpoints =>
         {
@@ -486,13 +489,13 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
-        
+
         //app.UseHealthChecks("/health", new HealthCheckOptions() {
         //    ResponseWriter = HEAppEHealth.ResponseWriter,
         //    AllowCachingResponses = false, // use custom caching
         //});
     }
-    
+
 
     #endregion
 
