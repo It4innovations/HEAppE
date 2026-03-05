@@ -77,6 +77,8 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
+//add expirio settings
+builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
