@@ -71,7 +71,7 @@ public interface IManagementService
     Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
     Task<CredentialResponseExt> CreateCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
-                                                      string? privateKey, string? passphrase);
+                                                      bool? generateNewKey, string? privateKey, string? password, string? passphrase);                                              
     
     Task<List<CredentialResponseExt>> GetCredentialsAsync(long projectId, string sessionCode);
 
