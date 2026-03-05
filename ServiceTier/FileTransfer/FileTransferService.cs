@@ -29,7 +29,7 @@ public class FileTransferService : IFileTransferService
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
     
-    public FileTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
+    public FileTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger? logger)
     {
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;

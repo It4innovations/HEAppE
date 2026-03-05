@@ -119,7 +119,7 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 });
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-builder.Services.AddScoped<FileTransferService>();
+//builder.Services.AddScoped<FileTransferService>(); // cannot resolve ILogger, TODO: remove this line
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
