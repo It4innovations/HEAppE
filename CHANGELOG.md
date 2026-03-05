@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored Bearer authentication conditions for better consistency and reliability.
 - Added detailed logging for LexisAuth middleware to assist with authentication troubleshooting.
 - Standardize and improve logging across authentication components for better observability and debugging.
+- Added global HTTP retry policy for all Servicies called by HEAppE Middleware.
+- Added `JobId` and `User` conext into logs for authorization header token based and `X-API-KEY` auth for service access.
 
 
 ## V6.2.8
