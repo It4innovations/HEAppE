@@ -98,6 +98,11 @@ public static class JwtIntrospectionExtensions
                             {
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
+                         
+                                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                                string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                                //add user agent
+                                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
                                 //get token endpoint from discovery document
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
                                 if (disco.IsError)                                {
