@@ -1,3 +1,4 @@
+#pragma warning disable CS8601
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 

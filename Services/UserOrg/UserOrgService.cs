@@ -1,3 +1,4 @@
+#pragma warning disable CS8625, CS8600, CS8603, CS8602, CS8604
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;

@@ -1,3 +1,4 @@
+#pragma warning disable CS0618, CS1998
 using System;
 using System.Security.Claims;
 using System.Text.Encodings.Web;

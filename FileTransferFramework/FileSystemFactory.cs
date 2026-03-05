@@ -1,3 +1,4 @@
+#pragma warning disable CS1030
 ﻿using System;
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
