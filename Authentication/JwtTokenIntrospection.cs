@@ -5,6 +5,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.HpcConnectionFramework.Configuration;
+using log4net;
 using Microsoft.Extensions.Logging;
 
 namespace HEAppE.Authentication;
@@ -26,7 +28,9 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
         {
             BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority)
         };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware (contact: support.heappe@it4i.cz)");
+        var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+        var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
         _logger = logger;
     }

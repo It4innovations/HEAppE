@@ -125,7 +125,9 @@ public static class JwtIntrospectionExtensions
                 .AddHttpMessageHandler<LoggingHandler>()
                 .ConfigureHttpClient(client =>
                 {
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
+                    var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                    var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
                 });
         }
         return services;
