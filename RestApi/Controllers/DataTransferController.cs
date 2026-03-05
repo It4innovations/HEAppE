@@ -40,6 +40,9 @@ public class DataTransferController : BaseController<DataTransferController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)

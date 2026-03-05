@@ -38,6 +38,9 @@ public class JobReportingController : BaseController<JobReportingController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public JobReportingController(ILogger<JobReportingController> logger, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IMemoryCache memoryCache) : base(logger,
         memoryCache)

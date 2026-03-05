@@ -42,10 +42,14 @@ public class FileTransferController : BaseController<FileTransferController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
+        _userOrgService = userOrgService;
         _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
@@ -232,10 +236,11 @@ public class FileTransferController : BaseController<FileTransferController>
     ///     Upload job to file to job execution dir
     /// </summary>
     /// <param name="sessionCode">sessionCode</param>
-    /// <param name="createdJobInfoId">createdJobInfoId</param>
     /// <param name="files">files</param>
     /// <param name="sshCertificateAuthorityService">sshCertificateAuthorityService</param>
     /// <param name="httpContextKeys">httpContextKeys</param>
+    /// <param name="taskId"></param>
+    /// <param name="jobId"></param>
     /// <returns></returns>
     [HttpPost("UploadFilesToJobExecutionDir")]
     [RequestSizeLimit(2_200_000_000)]

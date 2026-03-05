@@ -25,8 +25,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;

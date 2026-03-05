@@ -13,6 +13,8 @@ using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Mvc;
+#pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
+using System;
 using SshCaAPI;
 
 namespace HEAppE.DataStagingAPI.API;

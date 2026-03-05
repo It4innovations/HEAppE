@@ -209,7 +209,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 return await GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
                     adaptorUserId.Value);
             }
-            catch (NotAllowedException ex)
+            catch (NotAllowedException )
             {
                 if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
                 {

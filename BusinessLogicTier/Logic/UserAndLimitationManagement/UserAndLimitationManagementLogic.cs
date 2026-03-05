@@ -372,7 +372,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
             return GetOrRegisterLexisCredentials(result);
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException )
         {
             throw new AuthenticationTypeException("InvalidToken");
         }

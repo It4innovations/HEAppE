@@ -38,6 +38,8 @@ public class JobManagementController : BaseController<JobManagementController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
     public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)

@@ -4,6 +4,8 @@ using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 
+#pragma warning disable CS0612
+
 namespace HEAppE.RestApi.InputValidator;
 
 public class ManagementValidator : AbstractValidator

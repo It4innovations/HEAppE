@@ -42,6 +42,8 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
     public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
         base(logger, cacheProvider)

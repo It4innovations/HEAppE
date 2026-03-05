@@ -28,17 +28,9 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
-using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
@@ -56,6 +48,9 @@ public class ManagementController : BaseController<ManagementController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
