@@ -97,7 +97,7 @@ public class LexisAuthMiddleware
                 string responseText = await new StreamReader(responseBody).ReadToEndAsync();
                 responseBody.Seek(0, SeekOrigin.Begin);
 
-                Log.Info($"[Response] Path: {context.Request.Path}, StatusCode: {context.Response.StatusCode}, Body: {responseText}");
+                Log.Debug($"[Response] Path: {context.Request.Path}, StatusCode: {context.Response.StatusCode}, Body: {responseText}");
                 
                 await responseBody.CopyToAsync(originalBodyStream);
             }
