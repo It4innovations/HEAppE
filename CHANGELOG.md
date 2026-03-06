@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.9
+
 ### Added
 - Enabled and configured JWT token introspection for Bearer authentication to ensure correct token validation.
 - Introduced dynamic User-Agent for introspection clients and automated token endpoint discovery.
