@@ -36,8 +36,45 @@ public class LogRequestEndpointFilter : IEndpointFilter
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        LogRequestDetails(context);
-        return await next(context);
+        long? jobId = null;
+        foreach (var arg in context.Arguments)
+        {
+            if (arg == null) continue;
+            var type = arg.GetType();
+            var propNames = new[] { "JobId", "SubmittedJobInfoId", "CreatedJobInfoId", "jobId", "submittedJobInfoId", "createdJobInfoId" };
+            foreach (var name in propNames)
+            {
+                var prop = type.GetProperty(name, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (prop != null)
+                {
+                    var val = prop.GetValue(arg);
+                    if (val is long id && id > 0)
+                    {
+                        jobId = id;
+                        break;
+                    }
+                }
+            }
+            if (jobId.HasValue) break;
+        }
+
+        if (jobId.HasValue)
+        {
+            HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);
+        }
+
+        try
+        {
+            LogRequestDetails(context);
+            return await next(context);
+        }
+        finally
+        {
+            if (jobId.HasValue)
+            {
+                HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+            }
+        }
     }
 
     private void LogRequestDetails(EndpointFilterInvocationContext context)
