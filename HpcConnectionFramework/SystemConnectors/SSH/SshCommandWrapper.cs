@@ -9,7 +9,6 @@ public class SshCommandWrapper
 {
     #region Instances
 
-    private readonly SshCommand _sshCommand;
     private int _exitStatus;
     private string _error;
     private string _result;
@@ -17,14 +16,12 @@ public class SshCommandWrapper
 
     #endregion
 
-    #region Properties
-
     /// <summary>
     ///     Command exit status
     /// </summary>
     public int ExitStatus
     {
-        get => _sshCommand?.ExitStatus ?? _exitStatus;
+        get => _exitStatus;
         internal set => _exitStatus = value;
     }
 
@@ -33,7 +30,7 @@ public class SshCommandWrapper
     /// </summary>
     public string Error
     {
-        get => _sshCommand?.Error ?? _error;
+        get => _error;
         internal set => _error = value;
     }
 
@@ -42,7 +39,7 @@ public class SshCommandWrapper
     /// </summary>
     public string Result
     {
-        get => _sshCommand?.Result ?? _result;
+        get => _result;
         internal set => _result = value;
     }
 
@@ -51,11 +48,9 @@ public class SshCommandWrapper
     /// </summary>
     public string CommandText
     {
-        get => _sshCommand?.CommandText ?? _commandText;
+        get => _commandText;
         internal set => _commandText = value;
     }
-
-    #endregion
 
     #region Constructors
 
@@ -64,7 +59,6 @@ public class SshCommandWrapper
     /// </summary>
     public SshCommandWrapper()
     {
-        _sshCommand = null;
         _exitStatus = 0;
         _error = string.Empty;
         _result = string.Empty;
@@ -77,7 +71,11 @@ public class SshCommandWrapper
     /// <param name="sshCommand">SSh command</param>
     public SshCommandWrapper(SshCommand sshCommand)
     {
-        _sshCommand = sshCommand;
+        _exitStatus = sshCommand.ExitStatus ?? 0;
+        _error = string.IsNullOrEmpty(sshCommand.Error) ? string.Empty : sshCommand.Error;
+        _result = string.IsNullOrEmpty(sshCommand.Result) ? string.Empty : sshCommand.Result;
+        _commandText = string.IsNullOrEmpty(sshCommand.CommandText) ? string.Empty : sshCommand.CommandText;
+        sshCommand.Dispose();
     }
 
     #endregion
