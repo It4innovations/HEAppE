@@ -1,104 +1,116 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using log4net;
 
 namespace HEAppE.Utils;
 
-public class ResourceAccountingUtils
+public static class ResourceAccountingUtils
 {
+    private static readonly DataTable _calculator = new DataTable();
+    private static readonly char[] _operators = "+-*/%()".ToCharArray();
+
     public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
     {
-        logger.Info(
-            $"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
+        if (dbTaskInfo == null || submittedTaskInfo == null)
+        {
+            logger?.Error("Cannot compute accounting: dbTaskInfo or submittedTaskInfo is null.");
+            return;
+        }
 
-        var accounting = dbTaskInfo?.NodeType
+        logger?.Info($"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
+
+        var accounting = dbTaskInfo.NodeType
             ?.ClusterNodeTypeAggregation
             ?.ClusterNodeTypeAggregationAccountings
-            ?.Where(x =>
-                x.Accounting is { IsDeleted: false } &&
-                x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
+            ?.Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
             .OrderByDescending(x => x.Accounting.ValidityFrom)
             .ThenByDescending(x => x.Accounting.Id)
             .Select(x => x.Accounting)
             .FirstOrDefault();
 
-
         if (accounting == null)
         {
-            logger.Info($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
+            logger?.Info($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
             return;
         }
 
-        logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
+        logger?.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
 
         if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
+        {
             submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
-                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
-                .Where(x => x.Length == 2) // Ensure that the split results in exactly two elements
-                .ToDictionary(x => x[0], x => x[1]);
+                ?.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Split('=', StringSplitOptions.RemoveEmptyEntries))
+                .Where(x => x.Length == 2)
+                .GroupBy(x => x[0])
+                .ToDictionary(g => g.Key, g => g.First()[1]) ?? new Dictionary<string, string>();
+        }
 
-        var resourceAccountingValue =
-            CalculateAllocatedResources(accounting.Formula, submittedTaskInfo.ParsedParameters, logger);
-        if (dbTaskInfo.ResourceConsumed == null)
-        {
-            dbTaskInfo.ResourceConsumed = new ResourceConsumed
-            {
-                Value = resourceAccountingValue,
-                LastUpdatedAt = DateTime.UtcNow,
-                Accounting = accounting
-            };
-        }
-        else
-        {
-            dbTaskInfo.ResourceConsumed.Value = resourceAccountingValue;
-            dbTaskInfo.ResourceConsumed.LastUpdatedAt = DateTime.UtcNow;
-            dbTaskInfo.ResourceConsumed.Accounting = accounting;
-        }
+        var resourceAccountingValue = CalculateAllocatedResources(accounting.Formula, submittedTaskInfo.ParsedParameters, logger);
+
+        dbTaskInfo.ResourceConsumed ??= new ResourceConsumed();
+        dbTaskInfo.ResourceConsumed.Value = resourceAccountingValue;
+        dbTaskInfo.ResourceConsumed.LastUpdatedAt = DateTime.UtcNow;
+        dbTaskInfo.ResourceConsumed.Accounting = accounting;
     }
 
-    private static double CalculateAllocatedResources(string accountingFormula,
-        Dictionary<string, string> parsedParameters, ILog logger)
+    private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILog logger)
     {
-        if (accountingFormula == null || string.IsNullOrEmpty(accountingFormula)) return 0;
-        accountingFormula = accountingFormula.Replace(" ", string.Empty);
-        logger.Info($"Using accounting formula: {accountingFormula}");
-        var accountingFormulaProperties =
-            accountingFormula.Split("+-*/%()".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-        var filteredParsedParameters = parsedParameters.Where(w => accountingFormulaProperties.Contains(w.Key));
+        if (string.IsNullOrWhiteSpace(accountingFormula)) return 0;
 
-        foreach (var accountingFormulaProperty in filteredParsedParameters)
+        accountingFormula = accountingFormula.Replace(" ", string.Empty);
+        string originalFormula = accountingFormula;
+
+        var formulaProperties = accountingFormula.Split(_operators, StringSplitOptions.RemoveEmptyEntries);
+
+        var relevantParams = parsedParameters
+            .Where(w => formulaProperties.Contains(w.Key))
+            .OrderByDescending(w => w.Key.Length);
+
+        var paramLogs = new List<string>();
+
+        foreach (var param in relevantParams)
+        {
             try
             {
                 double value = 0;
-                logger.Info(
-                    $"Parsing accounting formula property: {accountingFormulaProperty.Key} with value: {accountingFormulaProperty.Value}");
-                if (!double.TryParse(accountingFormulaProperty.Value, out value))
-                    if (TimeSpan.TryParse(accountingFormulaProperty.Value, out var time))
-                        value = time.TotalHours;
-                logger.Info($"Parsed value: {value}");
+                string normalizedValue = param.Value.Replace(',', '.');
 
-                accountingFormula =
-                    accountingFormula.Replace(accountingFormulaProperty.Key, value.ToString().Replace(',', '.'));
+                if (double.TryParse(normalizedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out double dVal))
+                {
+                    value = dVal;
+                }
+                else if (TimeSpan.TryParse(param.Value, CultureInfo.InvariantCulture, out TimeSpan time))
+                {
+                    value = time.TotalHours;
+                }
+
+                paramLogs.Add($"{param.Key}='{param.Value}'->{value}");
+
+                accountingFormula = accountingFormula.Replace(param.Key, value.ToString(CultureInfo.InvariantCulture));
             }
             catch (Exception ex)
             {
-                logger.Error(ex.Message);
+                logger?.Error($"Error processing parameter {param.Key}: {ex.Message}");
             }
-
-        logger.Info($"Parsed accounting formula: {accountingFormula}");
+        }
 
         try
         {
-            var result = new DataTable().Compute(accountingFormula, null);
-            return Convert.ToDouble(result);
+            var resultObj = _calculator.Compute(accountingFormula, null);
+            double finalResult = Convert.ToDouble(resultObj, CultureInfo.InvariantCulture);
+
+            logger?.Info($"Allocated Resources | OrigFormula: [{originalFormula}] | Params: [{string.Join(", ", paramLogs)}] | ParsedFormula: [{accountingFormula}] | Result: {finalResult}");
+
+            return finalResult;
         }
         catch (Exception ex)
         {
-            logger.Error(ex.Message);
+            logger?.Error($"Error computing final formula [{accountingFormula}]: {ex.Message}");
         }
 
         return 0;
