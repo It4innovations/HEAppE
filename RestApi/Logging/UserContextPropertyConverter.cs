@@ -15,19 +15,23 @@ public class UserContextPropertyConverter : PatternLayoutConverter
         var userId = loggingEvent.LookupProperty("userId");
         var userName = loggingEvent.LookupProperty("userName");
         var userEmail = loggingEvent.LookupProperty("userEmail");
+        var jobId = loggingEvent.LookupProperty("jobId");
 
-        if (userId != null || userName != null || userEmail != null)
+        bool hasUser = userId != null || userName != null || userEmail != null;
+        
+        if (hasUser)
         {
+            string uId = userId?.ToString() ?? "0";
             string uName = userName?.ToString();
             string uEmail = userEmail?.ToString();
 
             if (!string.IsNullOrEmpty(uName) && string.Equals(uName, uEmail, StringComparison.OrdinalIgnoreCase))
             {
-                writer.Write($"{userId} {uName}".TrimEnd());
+                writer.Write($"{uId} {uName}");
             }
             else
             {
-                writer.Write($"{userId} {userName} {userEmail}".TrimEnd());
+                writer.Write($"{uId} {uName ?? ""} {uEmail ?? ""}".Trim());
             }
         }
         else
@@ -35,12 +39,17 @@ public class UserContextPropertyConverter : PatternLayoutConverter
             var isUserAction = loggingEvent.LookupProperty("isUserAction");
             if (isUserAction != null && isUserAction.ToString().Equals("true", StringComparison.OrdinalIgnoreCase))
             {
-                writer.Write("Anonymous");
+                writer.Write("0 ANONYMOUS");
             }
             else
             {
-                writer.Write("System");
+                writer.Write("SYSTEM");
             }
+        }
+
+        if (jobId != null)
+        {
+            writer.Write($" #{jobId}");
         }
     }
 }
