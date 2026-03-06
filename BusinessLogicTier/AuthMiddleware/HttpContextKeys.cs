@@ -151,13 +151,21 @@ public class HttpContextKeys : IHttpContextKeys
 
             _log.Debug($"[SshCaExchange Response] Success: {response.StatusCode}");
 
-            var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(content, new System.Text.Json.JsonSerializerOptions
+            try
             {
-                PropertyNameCaseInsensitive = true
-            });
+                var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(content, new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
-            _context.SshCaToken = tokenResponse.AccessToken;
-            return tokenResponse.AccessToken;
+                _context.SshCaToken = tokenResponse.AccessToken;
+                return tokenResponse.AccessToken;
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                _log.Error($"[SshCaExchange] Failed to deserialize token response. Content: {content}", ex);
+                throw new ExternalException($"Token exchange service returned invalid JSON format: {ex.Message}");
+            }
         }
         catch (ExternalException)
         {

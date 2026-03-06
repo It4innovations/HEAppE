@@ -65,10 +65,17 @@ public class LexisTokenService : ILexisTokenService
 
         Log.Debug($"[TokenExchange Response] Success: {response.StatusCode}");
 
-        var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        string exchangedAccessToken = json.GetProperty("access_token").GetString();
-        
-        return await GetFipTokenInfoAsync(exchangedAccessToken);
+        try
+        {
+            var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
+            string exchangedAccessToken = json.GetProperty("access_token").GetString();
+            return await GetFipTokenInfoAsync(exchangedAccessToken);
+        }
+        catch (JsonException ex)
+        {
+            Log.Error($"[TokenExchange] Invalid JSON format. Response content: {responseContent}");
+            throw new Exception($"Failed to parse token exchange response: {ex.Message}", ex);
+        }
     }
 
     private async Task<string> GetFipTokenInfoAsync(string exchangedLexisAccessToken)
@@ -96,7 +103,15 @@ public class LexisTokenService : ILexisTokenService
 
         Log.Debug("[FipTokenInfo Response] Success");
 
-        var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        return json.GetProperty("access_token").GetString();
+        try
+        {
+            var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
+            return json.GetProperty("access_token").GetString();
+        }
+        catch (JsonException ex)
+        {
+            Log.Error($"[FipTokenInfo] Invalid JSON format. Response content: {responseContent}");
+            throw new Exception($"Failed to parse FIP token info response: {ex.Message}", ex);
+        }
     }
 }

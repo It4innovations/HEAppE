@@ -81,12 +81,20 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
             {
                 _logger.LogInformation("Token introspection successful");
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<TokenIntrospectionResult>(content, new JsonSerializerOptions
+                try
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    var result = JsonSerializer.Deserialize<TokenIntrospectionResult>(content, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
 
-                return result ?? new TokenIntrospectionResult { Active = false };
+                    return result ?? new TokenIntrospectionResult { Active = false };
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize introspection result. Content: {Content}", content);
+                    return new TokenIntrospectionResult { Active = false };
+                }
             }
 
             _logger.LogWarning("Token introspection failed with status: {StatusCode}", response.StatusCode);
@@ -107,14 +115,34 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
             var wellKnownUrl =
                 $"{JwtTokenIntrospectionConfiguration.Authority.TrimEnd('/')}/.well-known/openid-configuration";
 
-            WellKnownResponse? response = await _httpClient.GetFromJsonAsync<WellKnownResponse>(wellKnownUrl);
+            var httpResponse = await _httpClient.GetAsync(wellKnownUrl);
+            var content = await httpResponse.Content.ReadAsStringAsync();
 
-            if (response == null)
+            if (!httpResponse.IsSuccessStatusCode)
             {
-                _logger.LogError("Failed to deserialize well-known configuration from: {Url}", wellKnownUrl);
+                _logger.LogError("Discovery document request failed with status: {StatusCode}. Content: {Content}", httpResponse.StatusCode, content);
                 return null;
             }
-            return response.IntrospectionEndpoint;
+
+            try
+            {
+                WellKnownResponse? response = JsonSerializer.Deserialize<WellKnownResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (response == null)
+                {
+                    _logger.LogError("Failed to deserialize well-known configuration from: {Url}. Content: {Content}", wellKnownUrl, content);
+                    return null;
+                }
+                return response.IntrospectionEndpoint;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid JSON in discovery document. Url: {Url}. Content: {Content}", wellKnownUrl, content);
+                return null;
+            }
         }
         catch (Exception ex)
         {

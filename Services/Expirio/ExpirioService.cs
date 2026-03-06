@@ -96,6 +96,12 @@ public class ExpirioService : IExpirioService
         if (string.IsNullOrWhiteSpace(content))
             throw new ExpirioException("Empty response from Expirio.");
 
+        if (content.TrimStart().StartsWith("<", StringComparison.OrdinalIgnoreCase) || content.Contains("<html", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.Error($"[Expirio Error] Unexpected HTML response received despite 200 OK status. Content: {content}");
+            throw new ExpirioException("Failed to parse token. Received HTML instead of JSON token payload.");
+        }
+
         try
         {
             using var doc = JsonDocument.Parse(content);

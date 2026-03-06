@@ -108,7 +108,15 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         if (response.IsSuccessStatusCode)
         {
             _log.Debug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
-            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException ex)
+            {
+                _log.Error($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
+                throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
+            }
         }
         else
         {
