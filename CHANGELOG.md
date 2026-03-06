@@ -5,21 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## V6.2.9
+### Added
+- Enabled and configured JWT token introspection for Bearer authentication to ensure correct token validation.
+- Introduced dynamic User-Agent for introspection clients and automated token endpoint discovery.
+- Added max ssh client connections per user configuration and improved connection pooling.
+- Enhanced logging with early and consistent user context, including Job ID and user details.
+- Introduced a global HTTP retry policy for all external services called by HEAppE Middleware.
+- Added ExpirioSettings configuration binding and enhanced Swagger API documentation.
+- Differentiated user and system actions in logs for better auditability.
 
 ### Fixed
-- Enabled and configured JWT token introspection for Bearer authentication to ensure correct token validation.
-- Fixed status code mapping in exception-middleware for external services which HEAppE calls; NotFound and BadRequest are now correctly returned as 401 Unauthorized.
-- Fixed and relocated the initialization logic for missing credentials to improve system robustness.
-- Resolved issues with uninitialized credentials through improved initialization flow and enhanced diagnostic logging.
+- Mapped NotFound and BadRequest from external services to 401 Unauthorized status in exception-middleware.
+- Enhanced sbatch error handling and ID extraction in slurm-adapter.
+- Relocated and fixed initialization logic for missing credentials to improve system robustness.
+- Added "Failed to open a channel" to connection exceptions for SSH communication.
+- Improved JSON deserialization error handling for external API responses.
+- Corrected exception messages for missing credentials in cluster-info.
 
 ### Changed
+- Decoupled SshCommandWrapper from SshCommand and improved resource management.
 - Refactored Bearer authentication conditions for better consistency and reliability.
-- Added detailed logging for LexisAuth middleware to assist with authentication troubleshooting.
-- Standardize and improve logging across authentication components for better observability and debugging.
-- Added global HTTP retry policy for all Servicies called by HEAppE Middleware.
-- Added `JobId` and `User` conext into logs for authorization header token based and `X-API-KEY` auth for service access.
+- Centralized Job ID logging context and standardized user property conversion.
+- Reduced log level for response bodies in auth-middleware and removed verbose logging in performance-critical paths.
+- Improved resource accounting calculation reliability.
+- Refined Lexis token handling and improved external exception processing.
 
+### Chore
+- Disabled various compiler warnings and updated core dependencies.
+- Standardized API request logging and improved error reporting.
 
 ## V6.2.8
 
