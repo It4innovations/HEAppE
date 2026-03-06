@@ -95,7 +95,11 @@ namespace HEAppE.ConnectionPool
                 return new SharedUserContext(_maxConnectionsPerUser);
             });
 
-            // Fast path: reuse existing active connection
+            // Fast path: reuse existing active connection by finding the one with minimum load
+            int minRefSlotIndex = -1;
+            int minRefCount = int.MaxValue;
+            ConnectionSlot bestSlot = null;
+
             for (int i = 0; i < userContext.Slots.Length; i++)
             {
                 var s = userContext.Slots[i];
@@ -103,10 +107,32 @@ namespace HEAppE.ConnectionPool
                 {
                     if (s.ConnectionInfo != null && adapter.IsConnected(s.ConnectionInfo.Connection))
                     {
-                        s.ReferenceCount++;
-                        s.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                        log.Debug($"[User:{credentials.Id}] Reusing existing connection from slot {i}. RefCount: {s.ReferenceCount}");
-                        return s.ConnectionInfo;
+                        if (s.ReferenceCount < minRefCount)
+                        {
+                            minRefCount = s.ReferenceCount;
+                            minRefSlotIndex = i;
+                            bestSlot = s;
+                        }
+                    }
+                }
+            }
+
+            if (bestSlot != null)
+            {
+                // If we found a slot, and it has less than 8 concurrent uses (to avoid MaxSessions=10 limit)
+                // OR we have hit the maximum physical connections (UserSemaphore is 0), so we must reuse it anyway.
+                if (minRefCount < 8 || userContext.UserSemaphore.CurrentCount == 0)
+                {
+                    lock (bestSlot.SyncRoot)
+                    {
+                        // Double check it wasn't disconnected
+                        if (bestSlot.ConnectionInfo != null && adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
+                        {
+                            bestSlot.ReferenceCount++;
+                            bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                            log.Debug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
+                            return bestSlot.ConnectionInfo;
+                        }
                     }
                 }
             }
@@ -118,11 +144,25 @@ namespace HEAppE.ConnectionPool
 
             try
             {
-                var slot = userContext.GetNextSlot();
+                ConnectionSlot slot = null;
+                // Find an empty slot since we secured a permit to create one
+                for (int i = 0; i < userContext.Slots.Length; i++)
+                {
+                    if (userContext.Slots[i].ConnectionInfo == null || !adapter.IsConnected(userContext.Slots[i].ConnectionInfo.Connection))
+                    {
+                        slot = userContext.Slots[i];
+                        break;
+                    }
+                }
+
+                // Fallback (should theoretically not happen since permits == empty slots)
+                if (slot == null) slot = userContext.GetNextSlot();
+
                 lock (slot.SyncRoot)
                 {
                     if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
                     {
+                        // Some other thread just initialized it or we couldn't find an empty one
                         log.Debug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
                         userContext.UserSemaphore.Release();
                         slot.ReferenceCount++;

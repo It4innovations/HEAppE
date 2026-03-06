@@ -264,24 +264,23 @@ internal class LinuxCommands : ICommands
                 UPDATE_NEEDED=1;
             else
                 cd ""$REPO_DIR"" && 
-                git fetch origin {branch} --quiet && 
                 LOCAL_HASH=$(git rev-parse HEAD) &&
-                REMOTE_HASH=$(git rev-parse FETCH_HEAD);
-                if [ ""$LOCAL_HASH"" != ""$REMOTE_HASH"" ]; then
-                    git reset --hard FETCH_HEAD --quiet;
+                git pull origin {branch} --quiet && 
+                NEW_HASH=$(git rev-parse HEAD);
+                if [ ""$LOCAL_HASH"" != ""$NEW_HASH"" ]; then
                     UPDATE_NEEDED=1;
                 fi;
                 cd - > /dev/null;
             fi;
             if [ ! -d "".key_scripts"" ]; then UPDATE_NEEDED=1; fi;
             if [ ""$UPDATE_NEEDED"" -eq 1 ]; then
-                rm -rf .key_scripts;
                 SOURCE_PATH=$(find ""$REPO_DIR""/HPC -maxdepth 1 -type d -name "".key_scripts"" 2>/dev/null | head -n 1);
                 if [ -z ""$SOURCE_PATH"" ]; then
                     SOURCE_PATH=$(find ""$REPO_DIR"" -type d -name "".key_scripts"" | head -n 1);
                 fi;
                 if [ -z ""$SOURCE_PATH"" ]; then echo ""ERROR: .key_scripts not found""; exit 1; fi;
-                cp -r ""$SOURCE_PATH"" .key_scripts &&
+                mkdir -p .key_scripts &&
+                cp -rf ""$SOURCE_PATH""/* .key_scripts/ &&
                 chmod -R 755 .key_scripts &&
                 sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh &&
                 echo ""INSTALLED_UPDATED"";
