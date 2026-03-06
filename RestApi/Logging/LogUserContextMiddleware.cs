@@ -33,8 +33,13 @@ namespace HEAppE.RestApi.Logging
         public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService)
         {
             var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService);
+            var jobId = await ExtractJobId(context);
 
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
+            if (jobId.HasValue)
+            {
+                LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);
+            }
 
             try
             {
@@ -43,6 +48,7 @@ namespace HEAppE.RestApi.Logging
             finally
             {
                 LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                LoggingUtils.RemoveJobIdFromLogThreadContext();
             }
         }
 
@@ -92,6 +98,62 @@ namespace HEAppE.RestApi.Logging
                     var json = JsonDocument.Parse(body);
                     if (json.RootElement.TryGetProperty("SessionCode", out var prop))
                         return prop.GetString();
+                }
+                catch { }
+            }
+
+            return null;
+        }
+
+        private static async Task<long?> ExtractJobId(HttpContext context)
+        {
+            var possibleKeys = new[] { "JobId", "SubmittedJobInfoId", "CreatedJobInfoId", "jobId", "submittedJobInfoId", "createdJobInfoId" };
+            foreach (var key in possibleKeys)
+            {
+                if (context.Request.Query.TryGetValue(key, out var queryValues) && long.TryParse(queryValues.FirstOrDefault(), out var id))
+                {
+                    return id;
+                }
+            }
+            
+            foreach (var key in possibleKeys)
+            {
+                if (context.Request.RouteValues.TryGetValue(key, out var routeVal) && routeVal != null)
+                {
+                    if (long.TryParse(routeVal.ToString(), out var id))
+                    {
+                        return id;
+                    }
+                }
+            }
+            
+            if (context.Request.ContentLength > 0 && (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                context.Request.EnableBuffering();
+                var position = context.Request.Body.Position;
+                context.Request.Body.Position = 0;
+
+                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
+                var body = await reader.ReadToEndAsync();
+                context.Request.Body.Position = position;
+
+                try
+                {
+                    var json = JsonDocument.Parse(body);
+                    foreach (var key in possibleKeys)
+                    {
+                        if (json.RootElement.TryGetProperty(key, out var prop))
+                        {
+                            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out var id))
+                            {
+                                return id;
+                            }
+                            if (prop.ValueKind == JsonValueKind.String && long.TryParse(prop.GetString(), out var strId))
+                            {
+                                return strId;
+                            }
+                        }
+                    }
                 }
                 catch { }
             }
