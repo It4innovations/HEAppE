@@ -40,6 +40,8 @@ namespace HEAppE.RestApi.Logging
             {
                 LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);
             }
+            
+            log4net.LogicalThreadContext.Properties["isUserAction"] = true;
 
             try
             {
@@ -49,6 +51,7 @@ namespace HEAppE.RestApi.Logging
             {
                 LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
+                log4net.LogicalThreadContext.Properties.Remove("isUserAction");
             }
         }
 

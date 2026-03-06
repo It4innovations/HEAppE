@@ -1,3 +1,4 @@
+using System;
 using log4net.Core;
 using log4net.Layout.Pattern;
 using System.IO;
@@ -19,7 +20,16 @@ public class EmptyIfNullPropertyConverter : PatternLayoutConverter
         }
         else if (Option == "userName" || Option == "userId" || Option == "userEmail")
         {
-            writer.Write("System");
+            var isUserAction = loggingEvent.LookupProperty("isUserAction");
+            if (isUserAction != null && isUserAction.ToString()!.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Option == "userId") writer.Write("0");
+                else writer.Write("ANONYMOUS");
+            }
+            else
+            {
+                writer.Write("SYSTEM");
+            }
         }
     }
 }
