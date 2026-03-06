@@ -111,6 +111,10 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 _httpContextKeys.Context.AdaptorUserId = user.Id;
                 _httpContextKeys.Context.UserName = user.Username;
                 _httpContextKeys.Context.Email = user.Email;
+                
+                // Add to LogContext early so Auth logs also get the user
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(user.Id, user.Username, user.Email);
+                
                 this.Logger.LogInformation("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, user.Username, Request.Path);
 
                 return AuthenticateResult.Success(ticket);

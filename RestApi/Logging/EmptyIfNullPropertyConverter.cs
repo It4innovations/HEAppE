@@ -17,5 +17,9 @@ public class EmptyIfNullPropertyConverter : PatternLayoutConverter
         {
             writer.Write(propertyObj.ToString());
         }
+        else if (Option == "userName" || Option == "userId" || Option == "userEmail")
+        {
+            writer.Write("System");
+        }
     }
 }

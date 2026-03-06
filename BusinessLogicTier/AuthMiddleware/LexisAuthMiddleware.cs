@@ -60,6 +60,10 @@ public class LexisAuthMiddleware
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
                 Log.Info("AuthMiddleware: Internal Authorize success.");
+
+                // Add to LogContext early so Auth logs also get the user
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                    keys.Context.AdaptorUserId, keys.Context.UserName, keys.Context.Email);
             }
             catch (Exception ex)
             {
