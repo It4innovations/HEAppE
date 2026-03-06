@@ -21,9 +21,16 @@ public class EmptyIfNullPropertyConverter : PatternLayoutConverter
         else if (Option == "userName" || Option == "userId" || Option == "userEmail")
         {
             var isUserAction = loggingEvent.LookupProperty("isUserAction");
-            if (isUserAction != null && isUserAction.ToString()!.Equals("true", StringComparison.OrdinalIgnoreCase))
+            bool isUser = isUserAction != null && isUserAction.ToString()!.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+            if (isUser)
             {
                 if (Option == "userId") writer.Write("0");
+                else if (Option == "userName")
+                {
+                    var email = loggingEvent.LookupProperty("userEmail");
+                    writer.Write(email?.ToString() ?? "ANONYMOUS");
+                }
                 else writer.Write("ANONYMOUS");
             }
             else

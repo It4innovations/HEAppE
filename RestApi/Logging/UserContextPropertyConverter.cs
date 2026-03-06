@@ -23,8 +23,8 @@ public class UserContextPropertyConverter : PatternLayoutConverter
         if (userId != null || userName != null || userEmail != null)
         {
             string uId = userId?.ToString() ?? "0";
-            string uName = userName?.ToString() ?? "ANONYMOUS";
             string uEmail = userEmail?.ToString() ?? "ANONYMOUS";
+            string uName = userName?.ToString() ?? (uEmail != "ANONYMOUS" ? uEmail : "ANONYMOUS");
             
             writer.Write($"{uId} {uName} {uEmail}");
         }
