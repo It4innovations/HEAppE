@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mapped NotFound and BadRequest from external services to 401 Unauthorized status in exception-middleware.
 - Enhanced sbatch error handling and ID extraction in slurm-adapter.
 - Relocated and fixed initialization logic for missing credentials to improve system robustness.
-- Added "Failed to open a channel" to connection exceptions for SSH communication.
+- Added `Failed to open a channel` to connection exceptions for SSH communication.
 - Improved JSON deserialization error handling for external API responses.
 - Corrected exception messages for missing credentials in cluster-info.
 
