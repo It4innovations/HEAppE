@@ -185,37 +185,89 @@ builder.Services.AddSwaggerGen(options =>
     {
         Version = APIAdoptions.SwaggerConfiguration.Version,
         Title = APIAdoptions.SwaggerConfiguration.Title,
-        Description = APIAdoptions.SwaggerConfiguration.Description
+        Description = APIAdoptions.SwaggerConfiguration.Description,
+        TermsOfService = new Uri(APIAdoptions.SwaggerConfiguration.TermOfUsageUrl),
+        License = new OpenApiLicense
+        {
+            Name = APIAdoptions.SwaggerConfiguration.License,
+            Url = new Uri(APIAdoptions.SwaggerConfiguration.LicenseUrl)
+        },
+        Contact = new OpenApiContact
+        {
+            Name = APIAdoptions.SwaggerConfiguration.ContactName,
+            Email = APIAdoptions.SwaggerConfiguration.ContactEmail,
+            Url = new Uri(APIAdoptions.SwaggerConfiguration.ContactUrl)
+        }
     });
 
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    options.AddSecurityDefinition(APIAdoptions.AuthenticationParamHeaderName, new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme",
-        Name = "Authorization",
+        Description = $"{APIAdoptions.AuthenticationParamHeaderName} must appear in header",
+        Type = SecuritySchemeType.ApiKey,
+        Name = APIAdoptions.AuthenticationParamHeaderName,
+        In = ParameterLocation.Header,
+        Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
+    });
+
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+            BearerFormat = "JWT"
+        });
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    }
+    
+    var key = new OpenApiSecurityScheme
+    {
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = APIAdoptions.AuthenticationParamHeaderName
+        },
+        In = ParameterLocation.Header
+    };
+    var requirement = new OpenApiSecurityRequirement
+    {
+        { key, new List<string>() }
+    };
+    options.AddSecurityRequirement(requirement);
+    
+    options.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
+    {
+        Description = "Service API Key authentication. Enter the key below.",
+        Name = "X-API-Key",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT"
+        Scheme = "ApiKeyScheme"
     });
-
+    
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ServiceApiKey" }
             },
             Array.Empty<string>()
         }
-    });
-
-    options.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
-    {
-        Description = "Service API Key authentication.",
-        Name = "X-API-Key",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "ApiKeyScheme"
     });
 });
 
