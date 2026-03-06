@@ -26,22 +26,13 @@ public class LexisAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
     {
-        // Log Request
-        context.Request.EnableBuffering();
-        string requestBody = string.Empty;
-        using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
-        {
-            requestBody = await reader.ReadToEndAsync();
-            context.Request.Body.Position = 0;
-        }
-
-        Log.Info($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}, Query: {context.Request.QueryString}, Body: {requestBody}");
+        Log.Info($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
 
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
             Log.Info("AuthMiddleware: Anonymous endpoint detected.");
-            await ProceedWithResponseLogging(context);
+            await _next(context);
             return;
         }
 
@@ -80,32 +71,6 @@ public class LexisAuthMiddleware
             context.User = new ClaimsPrincipal(identity);
         }
 
-        await ProceedWithResponseLogging(context);
-    }
-
-    private async Task ProceedWithResponseLogging(HttpContext context)
-    {
-        var originalBodyStream = context.Response.Body;
-        using var responseBody = new MemoryStream();
-        context.Response.Body = responseBody;
-
-        try
-        {
-            await _next(context);
-        }
-        finally
-        {
-            if (responseBody.CanRead)
-            {
-                responseBody.Seek(0, SeekOrigin.Begin);
-                string responseText = await new StreamReader(responseBody).ReadToEndAsync();
-                responseBody.Seek(0, SeekOrigin.Begin);
-
-                Log.Debug($"[Response] Path: {context.Request.Path}, StatusCode: {context.Response.StatusCode}, Body: {responseText}");
-                
-                await responseBody.CopyToAsync(originalBodyStream);
-            }
-            context.Response.Body = originalBodyStream;
-        }
+        await _next(context);
     }
 }

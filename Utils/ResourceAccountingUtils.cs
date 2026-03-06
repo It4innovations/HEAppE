@@ -38,7 +38,7 @@ public static class ResourceAccountingUtils
             return;
         }
 
-        logger?.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
+        logger?.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {dbTaskInfo.Id}");
 
         if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
         {
