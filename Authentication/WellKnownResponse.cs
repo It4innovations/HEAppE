@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.Text.Json.Serialization;
 
 namespace HEAppE.Authentication;

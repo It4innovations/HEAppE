@@ -16,6 +16,7 @@ public static class AppExtensions
     {
         var group = app.MapGroup("api");
         group.AddEndpointFilterFactory(ValidationFilter.ValidationFilterFactory);
+        group.AddEndpointFilter<HEAppE.DataStagingAPI.EndpointFilters.LogRequestEndpointFilter>();
 
         var type = typeof(IApiRoute);
         var types = type.Assembly.GetTypes().Where(p => p.IsClass && p.IsAssignableTo(type));

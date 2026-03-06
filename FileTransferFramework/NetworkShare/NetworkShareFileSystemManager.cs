@@ -98,7 +98,7 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
             using var stream = File.OpenWrite(absoluteFilePath);
             fileStream.CopyTo(stream);
         }
-        catch (Exception ex)
+        catch (Exception )
         {
             return false;
         }

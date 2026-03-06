@@ -72,16 +72,16 @@ public abstract class SchedulerFactory
                         $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
 
                 var connectionPoolMinSize = 0;
-                var connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
+                var connectionPoolMaxSize = _connectionPoolSettings.MaxConnectionsPerUser;
                 
                 if (adaptorUserId != null)
                 {
                     var currentAdaptorUserId = key.AdaptorUserId;
                     
-                    connectionPoolMaxSize = clusterProject.ClusterProjectCredentials
-                        .Count(cpc => currentAdaptorUserId.HasValue ? cpc.AdaptorUserId == currentAdaptorUserId : cpc.AdaptorUserId == null);
+                    var hasCredentials = clusterProject.ClusterProjectCredentials
+                        .Any(cpc => currentAdaptorUserId.HasValue ? cpc.AdaptorUserId == currentAdaptorUserId : cpc.AdaptorUserId == null);
 
-                    if (connectionPoolMaxSize == 0)
+                    if (!hasCredentials)
                         throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
                 }
                 

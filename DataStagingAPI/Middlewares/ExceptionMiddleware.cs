@@ -131,8 +131,10 @@ public class ExceptionMiddleware
                 problem.Detail = _exceptionsLocalizer["InternalException"];
                 break;
             case ExternalException:
-                problem.Title = "External Problem";
+                problem.Title = "External Service Error";
                 problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                logLevel = LogLevel.Warning;
                 break;
             case BadHttpRequestException:
                 var badReqException = (BadHttpRequestException)exception;

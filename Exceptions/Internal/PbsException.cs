@@ -17,5 +17,9 @@ public class PbsException : InternalException
     {
     }
 
+    public PbsException(string message, Exception innerException, params object[] args) : base(message, innerException, args)
+    {
+    }
+
     public required string CommandError { get; init; }
 }

@@ -142,7 +142,7 @@ public class RSACertGeneratorV2 : GenericCertGeneratorV2
                 formattedPublicKey.Append($" {_publicComment}");
             return formattedPublicKey.ToString();
         }
-        catch (Exception e)
+        catch (Exception )
         {
             return "Unable to convert";
         }

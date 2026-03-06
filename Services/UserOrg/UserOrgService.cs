@@ -1,3 +1,4 @@
+#pragma warning disable CS8625, CS8600, CS8603, CS8602, CS8604
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
@@ -40,6 +41,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint
         );
+        _log.Debug($"[UserOrg Request] GetUserInfo: {relativeUri}");
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
         return await SendAsync<UserInfoExtendedModel>(request);
     }
@@ -51,6 +53,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
             LexisAuthenticationConfiguration.CommandTemplatePermissions, 
             heappeInstanceIdentifier
         );
+        _log.Debug($"[UserOrg Request] GetPermissions: {relativeUri} for Instance: {heappeInstanceIdentifier}");
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
         return await SendAsync<CommandTemplatePermissionsModel>(request);
     }
@@ -59,8 +62,10 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
     {
         if (!IsTemplateEnabledInLexis(permissions, clusterName, queueName, accountingString, commandTemplateName))
         {
+            _log.Warn($"[UserOrg Validation] Permission denied for Cluster:{clusterName}, Queue:{queueName}, Project:{accountingString}, Template:{commandTemplateName}");
             throw new UnauthorizedAccessException($"No LEXIS permissions for Cluster:{clusterName}, Queue:{queueName}, Project:{accountingString}, Template:{commandTemplateName}");
         }
+        _log.Debug($"[UserOrg Validation] Permission granted for Template:{commandTemplateName}");
     }
 
     public bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName)
@@ -84,24 +89,39 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         
         request.Headers.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
         
-        if (body != null) request.Content = JsonContent.Create(body);
+        if (body != null) 
+        {
+            request.Content = JsonContent.Create(body);
+            _log.Debug($"[UserOrg Request Body] {JsonSerializer.Serialize(body)}");
+        }
         return request;
     }
 
     private async Task<T> SendAsync<T>(HttpRequestMessage request)
     {
         using var httpClient = _httpClientFactory.CreateClient(ClientName);
+        _log.Info($"[UserOrg API] Sending {request.Method} request to {request.RequestUri}");
+        
         using var response = await httpClient.SendAsync(request);
         var content = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
         {
-            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            _log.Debug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
+            try
+            {
+                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException ex)
+            {
+                _log.Error($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
+                throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
+            }
         }
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            _log.Error($"UserOrg API Error: {details}");
+            _log.Error($"[UserOrg API Error] Details: {details}");
 
             switch (response.StatusCode)
             {

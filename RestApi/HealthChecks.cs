@@ -1,3 +1,4 @@
+#pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
 using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;

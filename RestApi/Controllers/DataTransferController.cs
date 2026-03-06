@@ -40,6 +40,9 @@ public class DataTransferController : BaseController<DataTransferController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
@@ -66,7 +69,6 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RequestDataTransfer(GetDataTransferMethodModel model)
     {
-        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"RequestDataTransfer\" Parameters: \"{model}\"");
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -89,7 +91,6 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CloseDataTransfer(EndDataTransferModel model)
     {
-        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"CloseDataTransfer\" Parameters: \"{model}\"");
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -112,7 +113,6 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> HttpGetToJobNodeAsync(HttpGetToJobNodeModel model)
     {
-        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpGetToJobNode\" Parameters: \"{model}\"");
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -135,7 +135,6 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> HttpPostToJobNodeAsync(HttpPostToJobNodeModel model)
     {
-        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpPostToJobNode\" Parameters: \"{model}\"");
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

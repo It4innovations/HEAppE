@@ -1,3 +1,4 @@
+#pragma warning disable CS0108
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;

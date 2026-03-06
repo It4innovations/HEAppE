@@ -1,3 +1,4 @@
+#pragma warning disable CS8602, CS8629, CS8604, CS8618
 ﻿using HEAppE.Exceptions.External;
 using HEAppE.RestUtils;
 using log4net;

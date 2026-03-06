@@ -6,9 +6,11 @@ using FluentValidation;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
+using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
@@ -17,6 +19,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Logging;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
@@ -26,13 +29,15 @@ using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Http;
 using Microsoft.OpenApi.Models;
 using Polly;
+using Polly.Extensions.Http;
 using Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
-
-
+using HEAppE.BackgroundThread.Configuration;
+using HEAppE.RestApi.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -62,6 +67,44 @@ else
         throw new Exception("Configuration files not found!");
 }
 
+builder.Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
+builder.Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
+builder.Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
+builder.Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
+builder.Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+builder.Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
+builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
+builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
+MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
+builder.Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
+builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
+builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+builder.Configuration.Bind("OpenStackSettings", new OpenStackSettings());
+builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
+builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
+builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
+builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
+
+
+var globalRetryPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError()
+    .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+        onRetry: (outcome, timespan, retryCount, context) =>
+        {
+            LogManager.GetLogger("RetryPolicy").Warn($"Retry {retryCount} after {timespan.TotalSeconds}s: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
+        });
+
+builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
+{
+    options.HttpMessageHandlerBuilderActions.Add(builder =>
+    {
+        builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(globalRetryPolicy));
+    });
+});
+
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024;
@@ -74,40 +117,29 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MinResponseDataRate = null;
 });
 
-builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
-builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
-
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
 
-builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
-
 builder.Services.AddInMemoryRateLimiting();
-
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
 builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+
 builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
     SshCaSettings.BaseUri,
     SshCaSettings.CAName,
     SshCaSettings.ConnectionTimeoutInSeconds
 ));
+
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
-
-builder.Services.AddHttpClient("LexisTokenExchangeClient");
-builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
-
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
-
-builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
-builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
-
 
 builder.Services.AddScoped<IExpirioService, ExpirioService>();
 
@@ -128,9 +160,7 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
-
 builder.Services.AddHttpClient("LexisTokenExchangeClient");
-builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
 builder.Services.AddAuthentication("Bearer");
 builder.Services.AddAuthorization();
 
@@ -138,8 +168,6 @@ if (true)
 {
     builder.Services.AddSmartAuthentication(builder.Configuration);
 }
-
-MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
 #pragma warning disable CS8604
 var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
@@ -206,6 +234,7 @@ builder.Services.AddSwaggerGen(options =>
             }
         });
     }
+    
     var key = new OpenApiSecurityScheme
     {
         Reference = new OpenApiReference
@@ -243,26 +272,18 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddLocalization();
-
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
-    var supportedCultures = new List<CultureInfo>
-    {
-        new("en"),
-        new("cs")
-    };
-
+    var supportedCultures = new List<CultureInfo> { new("en"), new("cs") };
     options.DefaultRequestCulture = new RequestCulture("en");
     options.SupportedCultures = supportedCultures;
 });
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("HEAppEDefaultOrigins", builder =>
+    options.AddPolicy("HEAppEDefaultOrigins", b =>
     {
-        builder.WithOrigins(APIAdoptions.AllowedHosts)
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        b.WithOrigins(APIAdoptions.AllowedHosts).AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -275,14 +296,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
-
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
 
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
-
 ServiceActivator.Configure(app.Services);
-
 
 var pathBase = APIAdoptions.SwaggerConfiguration.HostPostfix;
 if (!string.IsNullOrEmpty(pathBase))
@@ -292,7 +310,6 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseCors("HEAppEDefaultOrigins");
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
@@ -301,33 +318,15 @@ app.UseSwagger(swagger =>
 {
     swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
     {
-        swaggerDoc.Servers = new List<OpenApiServer>
-        {
-            new()
-            {
-                Url = $"{APIAdoptions.SwaggerConfiguration.Host}/{APIAdoptions.SwaggerConfiguration.HostPostfix}"
-            }
-        };
+        swaggerDoc.Servers = new List<OpenApiServer> { new() { Url = $"{APIAdoptions.SwaggerConfiguration.Host}/{APIAdoptions.SwaggerConfiguration.HostPostfix}" } };
     });
-    
-    var routePrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
-        ? string.Empty
-        : APIAdoptions.SwaggerConfiguration.HostPostfix + "/";
-    
     swagger.RouteTemplate = $"{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
 app.UseSwaggerUI(swaggerUI =>
 {
-    var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
-        ? string.Empty
-        : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
-        
-    swaggerUI.SwaggerEndpoint(
-        $"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json",
-        APIAdoptions.SwaggerConfiguration.Title);
-
-    swaggerUI.EnableTryItOutByDefault();
+    var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix) ? string.Empty : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
+    swaggerUI.SwaggerEndpoint($"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json", APIAdoptions.SwaggerConfiguration.Title);
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
 });
 
@@ -335,8 +334,8 @@ app.UseMiddleware<LogUserContextMiddleware>();
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.RegisterApiRoutes();
-
 app.Run();
