@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using System;
+using System.Collections.Generic;
 using System.Text;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
 
@@ -65,6 +66,21 @@ public class PbsProJobAdapter : ISchedulerJobAdapter
             var onCompletionValue = notifyOnCompletion ?? false ? "e" : string.Empty;
             _jobCommandBuilder.Append(@$" -M {mailAddress} -m {onFailureValue}{onStartValue}{onCompletionValue}");
         }
+    }
+
+    public void SetMemory(long memory)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void SetMemoryPerCPU(long memoryPerCPU)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void SetMemoryPerGPU(long memoryPerGPU)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion

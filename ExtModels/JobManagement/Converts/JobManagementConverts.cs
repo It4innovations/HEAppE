@@ -57,7 +57,10 @@ public static class JobManagementConverts
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             FileTransferMethodId = jobSpecification.FileTransferMethodId,
-            ClusterId = jobSpecification.ClusterId ?? 0
+            ClusterId = jobSpecification.ClusterId ?? 0,
+            Memory = jobSpecification.Memory,
+            MemoryPerCPU = jobSpecification.MemoryPerCPU,
+            MemoryPerGPU = jobSpecification.MemoryPerGPU
         };
 
         //Same Reference for DependOn tasks

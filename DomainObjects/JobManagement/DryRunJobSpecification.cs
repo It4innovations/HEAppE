@@ -12,4 +12,8 @@ public class DryRunJobSpecification
     public ClusterAuthenticationCredentials ClusterUser { get; set; }
     
     public bool IsGpuPartition { get; set; }
+
+    public long? Memory { get; set; }
+    public long? MemoryPerCPU { get; set; }
+    public long? MemoryPerGPU { get; set; }
 }

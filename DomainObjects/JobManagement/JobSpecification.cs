@@ -46,6 +46,10 @@ public class JobSpecification : CommonJobProperties
 
     public virtual ClusterAuthenticationCredentials ClusterUser { get; set; }
 
+    public long? Memory { get; set; }
+    public long? MemoryPerCPU { get; set; }
+    public long? MemoryPerGPU { get; set; }
+
     public override string ToString()
     {
         var result = new StringBuilder("JobSpecification: " + base.ToString());
@@ -60,6 +64,9 @@ public class JobSpecification : CommonJobProperties
         result.AppendLine("Cluster=" + Cluster);
         result.AppendLine("FileTransferMethod=" + FileTransferMethod);
         result.AppendLine("ClusterUser=" + ClusterUser);
+        result.AppendLine("Memory=" + Memory);
+        result.AppendLine("MemoryPerCPU=" + MemoryPerCPU);
+        result.AppendLine("MemoryPerGPU=" + MemoryPerGPU);
         var i = 0;
         foreach (var task in Tasks) result.AppendLine("Task" + i++ + ":" + task);
         return result.ToString();
