@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using System;
+using System.Collections.Generic;
 using System.Text;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 
@@ -70,6 +71,21 @@ internal class SlurmJobAdapter : ISchedulerJobAdapter
             mailParameters = mailParameters.Remove(mailParameters.Length - 1, 1);
             _jobCommandBuilder.Append($" --mail-user={mailAddress} --mail-type={mailParameters}");
         }
+    }
+
+    public void SetMemory(long memory)
+    {
+        _jobCommandBuilder.Append($" --mem={memory}");
+    }
+
+    public void SetMemoryPerCPU(long memoryPerCPU)
+    {
+        _jobCommandBuilder.Append($" --mem-per-cpu={memoryPerCPU}");
+    }
+
+    public void SetMemoryPerGPU(long memoryPerGPU)
+    {
+        _jobCommandBuilder.Append($" --mem-per-gpu={memoryPerGPU}");
     }
 
     #endregion

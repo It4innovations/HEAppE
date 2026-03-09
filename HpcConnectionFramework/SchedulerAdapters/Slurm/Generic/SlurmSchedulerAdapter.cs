@@ -428,7 +428,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         string script_name,
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
-        string output, string error, bool isGpuPartition
+        string output, string error, bool isGpuPartition,
+        int? mem, int? mem_per_cpu, int? mem_per_gpu
     )
     {
         if (time == null)
@@ -443,6 +444,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --output=" + output;
         result += " --error=" + error;
         result += isGpuPartition? $" --gpus={nodes}" : "";
+        result += mem_per_cpu.HasValue && mem_per_cpu >= 0 ? $"--mem-per-cpu={mem_per_cpu}" : "";
+        result += mem_per_gpu.HasValue && mem_per_gpu >= 0 ? $"--mem-per-cpu={mem_per_gpu}" : "";
         result += " --test-only " + script_name;
         return result;
     }
@@ -470,7 +473,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 time: TimeSpan.FromSeconds(1),
                 output: "dummy.out",
                 error: "dummy.err",
-                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU"))
+                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")),
+                mem: null, mem_per_cpu: null, mem_per_gpu: null
             ) + "\n";
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -524,7 +528,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             time: TimeSpan.FromMinutes(dryRunJobSpecification.WallTimeInMinutes),
             output: "dummy.out",
             error: "dummy.err",
-            isGpuPartition:dryRunJobSpecification.IsGpuPartition
+            isGpuPartition:dryRunJobSpecification.IsGpuPartition,
+            mem: dryRunJobSpecification.Memory.HasValue ? (int)dryRunJobSpecification.Memory : null,
+            mem_per_cpu: dryRunJobSpecification.MemoryPerCPU.HasValue ? (int)dryRunJobSpecification.MemoryPerCPU : null,
+            mem_per_gpu: dryRunJobSpecification.MemoryPerGPU.HasValue ? (int)dryRunJobSpecification.MemoryPerGPU : null
         ) + "\n";
 
         var sshCommand = $"{_commands.InterpreterCommand} eval `(" + sbatchCommand + ")`";

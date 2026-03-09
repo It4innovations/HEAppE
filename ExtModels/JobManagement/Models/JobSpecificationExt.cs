@@ -107,6 +107,28 @@ public class JobSpecificationExt
     public bool IsExtraLong { get; set; }
 
     /// <summary>
+    /// Is extra long
+    /// </summary>
+    [DataMember(Name = "Memory")]
+    [Description("Allocated memory for job")]
+    public long? Memory { get; set; }
+
+    /// <summary>
+    /// Is extra long
+    /// </summary>
+    [DataMember(Name = "MemoryPerCPU")]
+    [Description("Allocated memory for job (CPU)")]
+    public long? MemoryPerCPU { get; set; }
+
+    /// <summary>
+    /// Is extra long
+    /// </summary>
+    [DataMember(Name = "MemoryPerGPU")]
+    [Description("Allocated memory for job (GPU)")]
+    public long? MemoryPerGPU { get; set; }
+
+
+    /// <summary>
     /// Array of environment variables
     /// </summary>
     [DataMember(Name = "EnvironmentVariables")]
