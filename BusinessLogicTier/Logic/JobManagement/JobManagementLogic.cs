@@ -614,52 +614,75 @@ internal class JobManagementLogic : IJobManagementLogic
     protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
         IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic, ClusterAuthenticationCredentials credentials)
     {
-        var cluster = clusterLogic.GetClusterById(specification.ClusterId);
-        specification.Cluster = cluster;
+        try
+        {
+            var cluster = clusterLogic.GetClusterById(specification.ClusterId);
+            specification.Cluster = cluster;
 
-        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, null)
-            .GetFileTransferMethodsByClusterId(cluster.Id)
-            .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
+            specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, null)
+                .GetFileTransferMethodsByClusterId(cluster.Id)
+                .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        specification.ClusterUser = credentials;
-        specification.Submitter = loggedUser;
-        specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
-        specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
-        if (specification.SubProjectId.HasValue)
-            specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+            specification.ClusterUser = credentials;
+            specification.Submitter = loggedUser;
+            specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
+            specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
+            if (specification.SubProjectId.HasValue)
+                specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+        } catch (Exception ex)
+        {
+            _logger.LogError(ex, "A problem occured during preparation of job specification values.");
+            throw;
+        }
 
         foreach (var task in specification.Tasks)
         {
-            var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
-            if (commandTemplate != null && commandTemplate.IsGeneric)
+            try
             {
-                //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
-                //if you want to, refactoring is possible
-                var definedGenericCommandParameters = commandTemplate.TemplateParameters
-                    .Select(x => x.Identifier);
-                var userDefinedCommandParameters = task.CommandParameterValues
-                    .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
-                var userScriptParameter = task.CommandParameterValues
-                    .Where(x => definedGenericCommandParameters
-                        .Contains(x.CommandParameterIdentifier))
-                    .FirstOrDefault();
-                var userParametersParameterName = commandTemplate.TemplateParameters
-                    .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
-                    .FirstOrDefault().Identifier;
-                var parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
-
-                task.CommandParameterValues.Add(new CommandTemplateParameterValue
+                var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
+                if (commandTemplate != null && commandTemplate.IsGeneric)
                 {
-                    CommandParameterIdentifier = userParametersParameterName,
-                    Value = parsedUserParameter //validate if value does not contain some prohibited parameters
-                });
-                task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
+                    //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
+                    //if you want to, refactoring is possible
+                    var definedGenericCommandParameters = commandTemplate.TemplateParameters
+                        .Select(x => x.Identifier);
+                    var userDefinedCommandParameters = task.CommandParameterValues
+                        .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
+                    var userScriptParameter = task.CommandParameterValues
+                        .Where(x => definedGenericCommandParameters
+                            .Contains(x.CommandParameterIdentifier))
+                        .FirstOrDefault();
+                    var userParametersParameterName = commandTemplate.TemplateParameters
+                        .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
+                        .FirstOrDefault().Identifier;
+                    var parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
+
+                    task.CommandParameterValues.Add(new CommandTemplateParameterValue
+                    {
+                        CommandParameterIdentifier = userParametersParameterName,
+                        Value = parsedUserParameter //validate if value does not contain some prohibited parameters
+                    });
+                    task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "A problem occured during processing of taks's command template.");
+                throw;
             }
 
-            CompleteTaskSpecification(task, clusterLogic);
-            task.EnvironmentVariables =
-                CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
-                    .ToList();
+            try
+            {
+                CompleteTaskSpecification(task, clusterLogic);
+                task.EnvironmentVariables =
+                    CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
+                        .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An exception during completing task specification.");
+                throw;
+            }
         }
     }
 
