@@ -2,6 +2,7 @@
 using System.Collections.Concurrent; // NOVÉ: Pro ConcurrentDictionary
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -52,7 +53,7 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
-    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,long? adaptorUserId)
+    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, ILogger logger)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
@@ -92,10 +93,11 @@ public abstract class SchedulerFactory
                     connectionPoolMaxSize,
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
+                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, logger),
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
-                    clusterConf.Port);
+                    clusterConf.Port,
+                    logger);
             });
     }
 
@@ -117,22 +119,22 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
+    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, ILogger logger);
 
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected abstract ISchedulerAdapter CreateSchedulerAdapter();
+    protected abstract ISchedulerAdapter CreateSchedulerAdapter(ILogger logger);
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected abstract ISchedulerDataConvertor CreateDataConvertor();
+    protected abstract ISchedulerDataConvertor CreateDataConvertor(ILogger logger);
 
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
+    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger);
 
     #endregion
 }

@@ -5,12 +5,12 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.Exceptions.External;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.RestUtils;
-using log4net;
 using Newtonsoft.Json;
 using RestSharp;
 
@@ -29,8 +29,6 @@ public class OpenStack
     /// <param name="openStackAddress">OpenStack address..</param>
     public OpenStack(string openStackAddress)
     {
-        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
         if (string.IsNullOrEmpty(openStackAddress)) throw new AuthenticationTypeException("OpenStack-NotSpecifiedUrl");
 
         var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
@@ -107,11 +105,6 @@ public class OpenStack
     }
 
     #region Instances
-
-    /// <summary>
-    ///     Logger
-    /// </summary>
-    protected readonly ILog _logger;
 
     /// <summary>
     ///     Get RestClient for the base keycloak url.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using log4net;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Configuration;
@@ -18,7 +18,7 @@ public class RoleAssignmentConfiguration
     public static string[] Reporters { get; set; }
     public static string[] ManagementAdmins { get; set; }
 
-    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger, bool doNotSave = false)
+    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILogger logger, bool doNotSave = false)
     {
         var totalAssigned = new HashSet<string>();
         var totalMissing = new HashSet<string>();
@@ -41,12 +41,12 @@ public class RoleAssignmentConfiguration
         Process(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin);
 
         if (totalAssigned.Any())
-            logger.Info($"Group '{group.Name}': SUCCESSfully assigned roles to: {string.Join(", ", totalAssigned)}");
+            logger.LogInformation($"Group '{group.Name}': SUCCESSfully assigned roles to: {string.Join(", ", totalAssigned)}");
 
         if (totalMissing.Any())
-            logger.Warn($"Group '{group.Name}': MISSING users in DB: {string.Join(", ", totalMissing.Distinct())}");
+            logger.LogWarning($"Group '{group.Name}': MISSING users in DB: {string.Join(", ", totalMissing.Distinct())}");
 
-        logger.Debug($"Group '{group.Name}' summary: {totalAssigned.Count} new, {totalAlreadyHad} existing, {totalMissing.Count} missing.");
+        logger.LogDebug($"Group '{group.Name}' summary: {totalAssigned.Count} new, {totalAlreadyHad} existing, {totalMissing.Count} missing.");
 
         if (!doNotSave) unitOfWork.Save();
     }

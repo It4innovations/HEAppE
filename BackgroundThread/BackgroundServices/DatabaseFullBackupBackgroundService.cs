@@ -8,21 +8,22 @@ using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
 using HEAppE.DataAccessTier.Vault;
-using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
     private readonly TimeSpan _scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
-    private readonly ILog _log;
-    private readonly VaultConnector _vaultConnector = new VaultConnector();
+    private readonly ILogger _logger;
+    private readonly VaultConnector _vaultConnector;
 
-    public DatabaseFullBackupBackgroundService()
+    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseFullBackupBackgroundService");
+        _vaultConnector = new VaultConnector(_logger);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -56,7 +57,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _log.Error("An error occured during execution of the DatabaseFullBackup background service: ", ex);
+                _logger.LogError(ex, "An error occured during execution of the DatabaseFullBackup background service: ");
             }
 
             try
@@ -85,7 +86,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during check if full database backup can be performed: ", ex);
+            _logger.LogError(ex, "An error occured during check if full database backup can be performed: ");
             return false;
         }
     }
@@ -108,13 +109,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
             await cmd.ExecuteNonQueryAsync();
 
-            _log.Info($"Database backup file was created to: {backupPath}");
+            _logger.LogInformation($"Database backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
             {
                 string nasFile = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _log.Info($"Database backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
             }
             
             if (Directory.Exists(confsDirectory))
@@ -161,12 +162,12 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _log.Error($"Vault backup failed: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during execution of the database backup: ", ex);
+            _logger.LogError(ex, "An error occured during execution of the database backup: ");
         }
     }
 
@@ -194,13 +195,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                 foreach (var item in group.Skip(keep))
                 {
                     try { item.File.Delete(); }
-                    catch (Exception ex) { _log.Warn($"Failed to delete backup file '{item.File.FullName}'", ex); }
+                    catch (Exception ex) { _logger.LogWarning(ex, $"Failed to delete backup file '{item.File.FullName}'"); }
                 }
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured while removing older database backup files: ", ex);
+            _logger.LogError(ex, "An error occured while removing older database backup files. ");
         }
     }
 

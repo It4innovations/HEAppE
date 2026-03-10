@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
@@ -48,7 +48,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
         base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new ClusterInformationService(cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 
     #endregion

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -47,7 +48,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         
@@ -55,8 +56,9 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             uniqueIdentifier, 
             key => new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
-                CreateSchedulerAdapter()
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
+                CreateSchedulerAdapter(logger),
+                logger
             )
         );
     }
@@ -64,7 +66,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
         if (_schedulerAdapterInstance == null)
         {
@@ -72,7 +74,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             {
                 if (_schedulerAdapterInstance == null)
                 {
-                    _schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor());
+                    _schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor(logger), logger);
                 }
             }
         }
@@ -82,7 +84,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
         if (_convertorSingleton == null)
         {
@@ -90,7 +92,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             {
                 if (_convertorSingleton == null)
                 {
-                    _convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory());
+                    _convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory(), logger);
                 }
             }
         }
@@ -100,13 +102,13 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         var masterNodeName = configuration.MasterNodeName;
         
         return _connectorSingletons.GetOrAdd(
             masterNodeName, 
-            key => new SshConnector(sshCertificateAuthorityService)
+            key => new SshConnector(sshCertificateAuthorityService, logger)
         );
     }
 

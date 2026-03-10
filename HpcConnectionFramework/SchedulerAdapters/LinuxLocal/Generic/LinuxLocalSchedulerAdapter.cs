@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
-using log4net;
 using Renci.SshNet;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -16,6 +15,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 
@@ -30,11 +30,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     ///     Constructs Linux Local scheduler adapeter
     /// </summary>
     /// <param name="convertor">Convertor</param>
-    public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
+        _logger = logger;
         _convertor = convertor;
-        _log = LogManager.GetLogger(typeof(LinuxLocalSchedulerAdapter));
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(_logger);
     }
 
     #endregion
@@ -60,9 +60,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
                 .Replace('\\', '/');
             var cliCommand =
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cliCommand);
+            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cliCommand, _logger);
 
-            _log.Info($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
+            _logger.LogInformation($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
             submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
         }
 
@@ -74,9 +74,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     #region Instances
 
     /// <summary>
-    ///     Log4Net logger
+    ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     Convertor reference.
@@ -136,11 +136,12 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         string account = jobSpecification.ClusterUser.Username;
 
         var shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
         var sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}",
+            _logger);
 
         shellCommandSb.Clear();
         var localBasePath = jobSpecification.Cluster.ClusterProjects
@@ -153,12 +154,13 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         //log local HPC Run script to log file
         shellCommandSb.Append(
-            $" >> {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/job_log.txt");
+            $" >> {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/job_logger.Logtxt");
         shellCommand = shellCommandSb.ToString();
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}",
+            _logger);
 
         return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
     }
@@ -196,9 +198,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
         var command = commandSb.ToString();
 
-        _log.Info(
+        _logger.LogInformation(
             $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
-        SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), command);
+        SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), command, _logger);
     }
 
     /// <summary>
@@ -215,8 +217,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         };
 
         var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}");
-        _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
+            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
+            _logger);
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
         if (int.TryParse(command.Result, out var totalJobs)) usage.TotalJobs = totalJobs;
 
         return usage;
@@ -241,7 +244,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             allocationNodeSb.Append($":{taskInfo.NodeType.Cluster.Port.Value}");
 
         allocatedNodes.Add(allocationNodeSb.ToString());
-        _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\"");
         return allocatedNodes.Distinct();
     }
 
@@ -400,7 +403,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {                
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)

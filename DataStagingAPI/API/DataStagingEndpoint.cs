@@ -33,7 +33,7 @@ public class DataStagingEndpoint : IApiRoute
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
 
-                    var result = await (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys))
+                    var result = await (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger))
                         .TrustfulRequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode);
 
                     LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -55,7 +55,7 @@ public class DataStagingEndpoint : IApiRoute
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
                 {
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "ProvideCredentials" Parameters: "{@model}" """, model);
-                    var fileTransferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+                    var fileTransferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
                     var result = await fileTransferService.ProvideCredentials(model.ProjectId, model.ClusterId);
                     return Results.Ok(result);
                 }).Produces<FileTransferMethodExt>()
@@ -76,7 +76,7 @@ public class DataStagingEndpoint : IApiRoute
                 LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
 
-                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)
+                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)
                     .DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode);
 
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -103,7 +103,7 @@ public class DataStagingEndpoint : IApiRoute
                 validator.ValidateAndThrow(model);
 
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """, model);
-                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)
+                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)
                     .ListChangedFilesForJob(submittedJobInfoId, sessionCode);
 
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -126,7 +126,7 @@ public class DataStagingEndpoint : IApiRoute
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """, model);
 
-                    var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)
+                    var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)
                         .DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode);
 
                     LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -153,9 +153,9 @@ public class DataStagingEndpoint : IApiRoute
                     validator.ValidateAndThrow(model);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
 
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager);
 
-                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)
+                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)
                         .UploadFileToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode)).ToList();
                     
                     Task.WaitAll(tasks.ToArray());
@@ -186,9 +186,9 @@ public class DataStagingEndpoint : IApiRoute
                     validator.ValidateAndThrow(model);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """, model);
 
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager);
 
-                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)
+                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)
                         .UploadJobScriptToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode)).ToList();
 
                     Task.WaitAll(tasks.ToArray());
@@ -236,9 +236,10 @@ public class DataStagingEndpoint : IApiRoute
         return result;
     }
 
-    static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, AdaptorUserRoleType requiredUserRole)
+    static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
+        IHttpContextKeys httpContextKeys, ILogger logger, AdaptorUserRoleType requiredUserRole)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, requiredUserRole, projectId);
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
+        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, requiredUserRole, projectId);
     }
 }

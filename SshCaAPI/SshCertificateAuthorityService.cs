@@ -1,7 +1,6 @@
 #pragma warning disable CS8602, CS8629, CS8604, CS8618
 ﻿using HEAppE.Exceptions.External;
 using HEAppE.RestUtils;
-using log4net;
 using Newtonsoft.Json;
 using RestSharp;
 using SshCaAPI.Configuration;
@@ -16,11 +15,6 @@ namespace SshCaAPI
     public class SshCertificateAuthorityService : ISshCertificateAuthorityService
     {
         /// <summary>
-        ///     Logger
-        /// </summary>
-        protected readonly ILog _logger;
-
-        /// <summary>
         ///     Get RestClient for the base keycloak url.
         /// </summary>
         /// <returns>Configured rest client.</returns>
@@ -28,8 +22,6 @@ namespace SshCaAPI
 
         public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
         {
-            _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
             //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
             string url = string.Empty;
             if (string.IsNullOrEmpty(caName))
@@ -41,7 +33,7 @@ namespace SshCaAPI
                 url = $"{baseUri.TrimEnd('/')}/{caName}";
             }
             
-            if (string.IsNullOrEmpty(baseUri))
+            if (string.IsNullOrEmpty(baseUri) && string.IsNullOrEmpty(caName))
             {
                 return;
             }

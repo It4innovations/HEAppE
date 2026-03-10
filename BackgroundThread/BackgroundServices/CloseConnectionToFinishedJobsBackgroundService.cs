@@ -8,9 +8,9 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 
@@ -19,7 +19,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
-    private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
@@ -27,9 +27,10 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     public CloseConnectionToFinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.CloseConnectionToFinishedJobsBackgroundService");
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _scopeFactory = scopeFactory;
@@ -47,14 +48,14 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
             {
                 try
                 {
-                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()
-                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
                     
@@ -68,13 +69,13 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                         }
                         catch (Exception closeEx)
                         {
-                            _log.Warn($"Failed to close tunnels for task {task.Id}: ", closeEx);
+                            _logger.LogWarning($"Failed to close tunnels for task {task.Id}: ", closeEx);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the CloseConnectionToFinishedJobs background service: ", ex);
+                    _logger.LogError(ex, "An error occured during execution of the CloseConnectionToFinishedJobs background service: ");
                 }
             }
 

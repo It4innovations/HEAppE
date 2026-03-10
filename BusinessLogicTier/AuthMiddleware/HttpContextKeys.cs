@@ -14,16 +14,14 @@ using HEAppE.Exceptions.External; // Důležité pro vyhazování známých výj
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using IdentityModel.Client;
-using log4net;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public interface IRequestContext
 {
-    public long AdaptorUserId { get; set; }
+    public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
     public string UserInfo { get; set; }
@@ -34,7 +32,7 @@ public interface IRequestContext
 
 public class RequestContext : IRequestContext
 {
-    public long AdaptorUserId { get; set; }
+    public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
     public string UserInfo { get; set; }
@@ -55,26 +53,26 @@ public class HttpContextKeys : IHttpContextKeys
 {
     private readonly IRequestContext _context;
     public IRequestContext Context => _context;
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
-    public HttpContextKeys(IRequestContext context)
+    public HttpContextKeys(IRequestContext context, ILoggerFactory loggerFactory)
     {
         _context = context;
-        _log = LogManager.GetLogger(typeof(HttpContextKeys));
+        _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.HttpContextKeys");
     }
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
     {
-        _log.Info("[Authorize] Starting UserOrg authorization flow.");
+        _logger.LogInformation("[Authorize] Starting UserOrg authorization flow.");
 
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this, _logger);
         AdaptorUser user = null;
         try
         {
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
-                _log.Info("[Authorize] Using Bearer authentication for Lexis.");
+                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = Context.LEXISToken
@@ -83,8 +81,7 @@ public class HttpContextKeys : IHttpContextKeys
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
                 bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
-                _log.Info($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
-                
+                _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.FIPToken
@@ -93,7 +90,7 @@ public class HttpContextKeys : IHttpContextKeys
             
             if(user != null)
             {
-                _log.Info($"[Authorize] Success. User: {user.Username}:{user.Email} (ID: {user.Id})");
+                _logger.LogInformation($"[Authorize] Success. User: {user.Username}:{user.Email} (ID: {user.Id})");
                 _context.AdaptorUserId = user.Id;
                 _context.UserName = user.Username;
                 _context.Email = user.Email;
@@ -101,22 +98,21 @@ public class HttpContextKeys : IHttpContextKeys
             }
             else
             {
-                _log.Warn("[Authorize] Authorization returned null user.");
+                _logger.LogWarning("[Authorize] Authorization returned null user.");
             }
             
             return user;
         }
         catch (Exception ex)
         {
-            _log.Error("[Authorize] Exception occurred during authorization.", ex);
+            _logger.LogError(ex, "[Authorize] Exception occurred during authorization.");
             throw;
         }
     }
 
     public async Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient)
     {
-        _log.Info($"[SshCaExchange Request] URL: {tokenExchangeAddress}");
-        
+        _logger.LogInformation($"[SshCaExchange Request] URL: {tokenExchangeAddress}");
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
         var clientSecret = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientSecret;
 
@@ -137,33 +133,33 @@ public class HttpContextKeys : IHttpContextKeys
         {
             var request = new HttpRequestMessage(HttpMethod.Post, tokenExchangeAddress)
             {
-                Content = new FormUrlEncodedContent(form)
+               Content = new FormUrlEncodedContent(form)
             };
-
+            
             var response = await httpClient.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-
+            
             if (!response.IsSuccessStatusCode)
             {
-                _log.Error($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
-                throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}");
+               _logger.LogError($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
+               throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}");
             }
 
-            _log.Debug($"[SshCaExchange Response] Success: {response.StatusCode}");
+            _logger.LogDebug($"[SshCaExchange Response] Success: {response.StatusCode}");
 
             try
             {
                 var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(content, new System.Text.Json.JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                  PropertyNameCaseInsensitive = true
                 });
-
+                
                 _context.SshCaToken = tokenResponse.AccessToken;
                 return tokenResponse.AccessToken;
             }
             catch (System.Text.Json.JsonException ex)
             {
-                _log.Error($"[SshCaExchange] Failed to deserialize token response. Content: {content}", ex);
+                _logger.LogError($"[SshCaExchange] Failed to deserialize token response. Content: {content}", ex);
                 throw new ExternalException($"Token exchange service returned invalid JSON format: {ex.Message}");
             }
         }
@@ -173,14 +169,14 @@ public class HttpContextKeys : IHttpContextKeys
         }
         catch (Exception ex)
         {
-            _log.Error("[SshCaExchange] Failed to exchange SSH CA token.", ex);
+            _logger.LogError(ex, "[SshCaExchange] Failed to exchange SSH CA token.");
             throw new ExternalException("Internal error during SSH CA token exchange.", ex);
         }
     }
 
     private void LogRequestDetails(string url, Dictionary<string, string> form)
     {
-        _log.Debug($"[SshCaExchange Details] URL: {url}, GrantType: {form["grant_type"]}, Audience: {form["audience"]}");
+        _logger.LogDebug($"[SshCaExchange Details] URL: {url}, GrantType: {form["grant_type"]}, Audience: {form["audience"]}");
     }
 
     private class TokenResponse
