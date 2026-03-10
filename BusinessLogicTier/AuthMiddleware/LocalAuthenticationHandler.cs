@@ -1,3 +1,4 @@
+#pragma warning disable CS0618, CS1998
 using System;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -39,7 +40,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         if (!Request.Headers.ContainsKey(ApiKeyHeaderName))
         {
-            _logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            _logger.LogInformation($"[LocalAuth] No {ApiKeyHeaderName} header found. Path: {Request.Path}");
             // Create claims based on the authenticated service user
             var claims = new[]
             {
@@ -51,12 +52,14 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            
+            this.Logger.LogDebug("[LocalAuth] Proceeding with InternalUser identity.");
             return AuthenticateResult.Success(ticket);
         }
         
         if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var extractedApiKey))
         {
-            _logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            _logger.LogInformation($"[LocalAuth] {ApiKeyHeaderName} present but empty. Path: {Request.Path}");
             return AuthenticateResult.Fail("Missing API Key");
         }
 
@@ -64,29 +67,36 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         {
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
-                _logger.LogInformation("Getting Service API Key from header for authentication.");
+                _logger.LogInformation("[LocalAuth] Attempting Service API Key authentication.");
                 var match = Regex.Match(extractedApiKey, @"^([^:]+):(.+)$");
-                if (!match.Success) return null;
+                if (!match.Success) 
+                {
+                    _logger.LogWarning("[LocalAuth] API Key format is invalid (expected 'user:key').");
+                    return AuthenticateResult.Fail("Invalid API Key format");
+                }
 
                 string username = match.Groups[1].Value;
                 string rawApiKey = match.Groups[2].Value;
+
+                _logger.LogDebug($"[LocalAuth] Looking up user: {username}");
                 var user = unitOfWork.AdaptorUserRepository.GetByName(username);
+                
                 if (user == null)
                 {
-                    _logger.LogInformation("User not found, attempting internal service authentication.");
+                    _logger.LogInformation($"[LocalAuth] User '{username}' not found in database.");
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
+
                 string salt = user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
                 string saltedPassword = rawApiKey + salt;
                 string passwordHash = ComputeSha512Hash(saltedPassword);
+
                 if (!string.Equals(passwordHash, user.Password, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("API Key hash mismatch, attempting internal service authentication.");
+                    _logger.LogInformation($"[LocalAuth] API Key hash mismatch for user '{username}'.");
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
                 
-
-                // Create claims based on the authenticated service user
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Username ?? "service-account"),
@@ -95,22 +105,25 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                     new Claim("auth_method", "ApiKey")
                 };
              
-
                 var identity = new ClaimsIdentity(claims, Scheme.Name);
                 var principal = new ClaimsPrincipal(identity);
                 var ticket = new AuthenticationTicket(principal, Scheme.Name);
                 
-                //set adaptor user id in context
                 _httpContextKeys.Context.AdaptorUserId = user.Id; 
-                _logger.LogInformation("API Key authentication successful for user {userID}({username}).", user.Id, user.Username);
+                _httpContextKeys.Context.UserName = user.Username;
+                _httpContextKeys.Context.Email = user.Email;
+                
+                // Add to LogContext early so Auth logs also get the user
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(user.Id, user.Username, user.Email);
+                
+                _logger.LogInformation("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, user.Username, Request.Path);
 
                 return AuthenticateResult.Success(ticket);
             }
-            
         }
         catch (System.Exception ex)
         {
-            _logger.LogError(ex, "Error during API Key authentication");
+            _logger.LogError(ex, "[LocalAuth] Exception during authentication process.");
             return AuthenticateResult.Fail("Authentication process failed");
         }
     }

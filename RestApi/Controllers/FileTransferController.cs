@@ -42,10 +42,14 @@ public class FileTransferController : BaseController<FileTransferController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
+        _userOrgService = userOrgService;
         _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 
@@ -68,21 +72,11 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RequestFileTransfer(GetFileTransferMethodModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Close file transfer tunnel
@@ -99,23 +93,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CloseFileTransfer(EndFileTransferModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
-
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
             return Ok("File transfer closed");
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }       
-    }
 
     /// <summary>
     ///     Download part of job files from Cluster
@@ -132,23 +115,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug(
-            $"Endpoint: \"FileTransfer\" Method: \"DownloadPartsOfJobFilesFromCluster\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets,
                 model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Get all changes files during job execution
@@ -167,26 +139,16 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
-
             var model = new ListChangedFilesForJobModel
             {
                 SessionCode = sessionCode,
                 SubmittedJobInfoId = submittedJobInfoId
             };
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Download specific file from Cluster
@@ -203,22 +165,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult DownloadFileFromCluster(DownloadFileFromClusterModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadFileFromCluster\" Parameters: \"{model}\"");
             var validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath,
                 model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     static List<FileUploadResultExt> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
     {
@@ -243,10 +195,11 @@ public class FileTransferController : BaseController<FileTransferController>
     ///     Upload job to file to job execution dir
     /// </summary>
     /// <param name="sessionCode">sessionCode</param>
-    /// <param name="createdJobInfoId">createdJobInfoId</param>
     /// <param name="files">files</param>
     /// <param name="sshCertificateAuthorityService">sshCertificateAuthorityService</param>
     /// <param name="httpContextKeys">httpContextKeys</param>
+    /// <param name="taskId"></param>
+    /// <param name="jobId"></param>
     /// <returns></returns>
     [HttpPost("UploadFilesToJobExecutionDir")]
     [RequestSizeLimit(2_200_000_000)]
@@ -267,15 +220,9 @@ public class FileTransferController : BaseController<FileTransferController>
         [FromServices] IHttpContextKeys httpContextKeys
     )
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(jobId);
-
             var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
             var validator = new UploadFileToClusterModelValidator();
             validator.ValidateAndThrow(model);
-            _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
-
             long jobSpecificationId;
             long? taskSpecificationId = null;
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -305,11 +252,6 @@ public class FileTransferController : BaseController<FileTransferController>
             List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
             return Ok(result);
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }  
-    }
 
     #endregion
 }

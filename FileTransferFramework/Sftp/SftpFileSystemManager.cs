@@ -324,7 +324,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                 }
                 sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
             }
-            catch(Exception ex)
+            catch (Exception )
             {
                 try {
                     if (client.Exists(absoluteFilePath + ".part"))

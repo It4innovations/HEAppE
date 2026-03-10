@@ -1,5 +1,8 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
@@ -24,20 +27,22 @@ public class LexisAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
     {
-        _logger.LogInformation("AuthMiddleware invoked for request: " + context.Request.Path);
+        _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
         // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
-            _logger.LogInformation("AuthMiddleware invoked for anonymous endpoint");
+            _logger.LogInformation("AuthMiddleware: Anonymous endpoint detected.");
             await _next(context);
             return;
         }
 
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        if (LexisAuthenticationConfiguration.UseBearerAuth && authHeader?.StartsWith("Bearer ") == true)
+        _logger.LogInformation($"Auth Check - UseBearer: {LexisAuthenticationConfiguration.UseBearerAuth}, IntrospectionEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, HeaderPresent: {authHeader != null}");
+
+        if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && authHeader?.StartsWith("Bearer ") == true)
         {
-            _logger.LogInformation("AuthMiddleware invoked for Bearer header");
+            _logger.LogInformation("AuthMiddleware: Processing Bearer token.");
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
             
@@ -46,9 +51,15 @@ public class LexisAuthMiddleware
                 await keys.Authorize(sshCaService, userOrgService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
+                _logger.LogInformation("AuthMiddleware: Internal Authorize success.");
+
+                // Add to LogContext early so Auth logs also get the user
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                    keys.Context.AdaptorUserId, keys.Context.UserName, keys.Context.Email);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"AuthMiddleware: Internal Authorize failed: {ex.Message}");
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized");
                 return;
@@ -56,10 +67,9 @@ public class LexisAuthMiddleware
         }
         else
         {
+            _logger.LogInformation("AuthMiddleware: Falling back to LocalScheme.");
             var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
             context.User = new ClaimsPrincipal(identity);
-            await _next(context);
-            return;
         }
 
         await _next(context);

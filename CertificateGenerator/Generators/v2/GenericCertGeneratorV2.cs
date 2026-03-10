@@ -80,7 +80,7 @@ public abstract class GenericCertGeneratorV2
                 return ConvertToPublicPEM(publicKey);
             }
         }
-        catch (Exception e)
+        catch (Exception )
         {
             return "Unable to convert to PEM format";
         }

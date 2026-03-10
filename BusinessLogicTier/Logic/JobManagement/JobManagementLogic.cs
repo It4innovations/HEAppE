@@ -91,7 +91,8 @@ internal class JobManagementLogic : IJobManagementLogic
                     cluster.Name, 
                     queue.Name, 
                     project.AccountingString, 
-                    commandTemplate.Name
+                    commandTemplate.Name,
+                    _logger
                 );
             }
         }
@@ -443,8 +444,12 @@ internal class JobManagementLogic : IJobManagementLogic
                     {
                         try
                         {
-                            // enrich log context with job id
+                            // enrich log context with job id and user
                             LoggingUtils.AddJobIdToLogThreadContext(job.Id);
+                            if (job.Submitter != null)
+                            {
+                                LoggingUtils.AddUserPropertiesToLogThreadContext(job.Submitter.Id, job.Submitter.Username, job.Submitter.Email);
+                            }
 
                             SchedulerFactory
                                 .GetInstance(cluster.SchedulerType)
@@ -455,8 +460,12 @@ internal class JobManagementLogic : IJobManagementLogic
                         }
                         finally
                         {
-                            // remove job id property from thread log context
+                            // remove properties from thread log context
                             LoggingUtils.RemoveJobIdFromLogThreadContext();
+                            if (job.Submitter != null)
+                            {
+                                LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                            }
                         }                    
                     }
                 }
@@ -495,8 +504,12 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 try
                 {
-                    // enrich log context with job id
+                    // enrich log context with job id and user
                     LoggingUtils.AddJobIdToLogThreadContext(submittedJob.Id);
+                    if (submittedJob.Submitter != null)
+                    {
+                        LoggingUtils.AddUserPropertiesToLogThreadContext(submittedJob.Submitter.Id, submittedJob.Submitter.Username, submittedJob.Submitter.Email);
+                    }
 
                     foreach (var submittedTask in submittedJob.Tasks)
                     {
@@ -526,8 +539,12 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
                 finally
                 {
-                    // remove job id property from thread log context
+                    // remove properties from thread log context
                     LoggingUtils.RemoveJobIdFromLogThreadContext();
+                    if (submittedJob.Submitter != null)
+                    {
+                        LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                    }
                 }
             }
         }

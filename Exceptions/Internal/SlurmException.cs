@@ -17,5 +17,9 @@ public class SlurmException : InternalException
     {
     }
 
+    public SlurmException(string message, Exception innerException, params object[] args) : base(message, innerException, args)
+    {
+    }
+
     public required string CommandError { get; init; }
 }

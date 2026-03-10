@@ -209,7 +209,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 return await GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
                     adaptorUserId.Value);
             }
-            catch (NotAllowedException ex)
+            catch (NotAllowedException )
             {
                 if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
                 {
@@ -244,7 +244,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         
         
         if (credentials == null || credentials?.Count() == 0)
-            throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
+            throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationWithoutCredentials", clusterId, projectId);
 
         var serviceCredentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, null, _logger)
@@ -345,12 +345,6 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: false))
             .ToList(); 
         
-        if (credentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication)
-        {
-            var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId);
-            credentials = newCredentials.ToList(); 
-        }
-        
         if (credentials.Count == 0)
         {
             throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
@@ -429,37 +423,55 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long? adaptorUserId, bool onlyServiceAccounts)
     {
         var initializedCredentials = new List<ClusterAuthenticationCredentials>();
-        IEnumerable<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
+        List<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
         
         if (onlyServiceAccounts)
         {
             var serviceAccount = await
                                      _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger)
                                  ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
-            notInitializedCredentials = new List<ClusterAuthenticationCredentials> { serviceAccount };
+            notInitializedCredentials.Add(serviceAccount);
         }
         else
         {
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId,
                     projectId, false, adaptorUserId, _logger);
-            notInitializedCredentials = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForClusterAndProject(
-                        clusterId, projectId, false, adaptorUserId, _logger);
-            notInitializedCredentials = notInitializedCredentials.Append(serviceAccount);
+            var credentials = await
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, false, adaptorUserId, _logger);
+            notInitializedCredentials.AddRange(credentials);
+            
+            if (serviceAccount != null && notInitializedCredentials.All(c => c.Id != serviceAccount.Id))
+            {
+                notInitializedCredentials.Add(serviceAccount);
+            }
+        }
+        
+        _logger.LogInformation($"Found {notInitializedCredentials.Count} credentials that are not initialized for ClusterId: {clusterId}, ProjectId: {projectId}, AdaptorUser: {adaptorUserId}, UseCert={SshCaSettings.UseCertificateAuthorityForAuthentication}");
+        
+        foreach (var credential in notInitializedCredentials)
+        {
+            _logger.LogInformation($"Not initialized credential: {credential.Username}");
         }
        
+        if (notInitializedCredentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication && adaptorUserId.HasValue)
+        {
+            _logger.LogDebug($"No credentials found for ClusterId: {clusterId}, ProjectId: {projectId}. Attempting to create and initialize credentials for adaptor user {adaptorUserId.Value}.");
+            var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId.Value);
+            notInitializedCredentials = newCredentials.ToList(); 
+        }
 
         foreach (var credential in notInitializedCredentials)
         {
-            var clusterProjectCredential = credential.ClusterProjectCredentials.FirstOrDefault(cpc =>
+            if (credential == null) continue;
+
+            var clusterProjectCredential = credential.ClusterProjectCredentials?.FirstOrDefault(cpc =>
                 cpc.ClusterProject.ProjectId == projectId && cpc.ClusterProject.ClusterId == clusterId);
 
             if (clusterProjectCredential == null)
             {
-                throw new RequestedObjectDoesNotExistException(
-                    "ClusterProjectCombinationNotFound", clusterId, projectId);
+                _logger.LogWarning($"ClusterProjectCombinationNotFound for ClusterId: {clusterId}, ProjectId: {projectId}, User: {credential.Username}");
+                continue;
             }
 
             var initProject = clusterProjectCredential.ClusterProject.Project;
@@ -472,6 +484,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             string path = Path.Combine(initProject.AccountingString,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+                
             var isInitialized = scheduler.InitializeClusterScriptDirectory(
                 path,
                 true,
@@ -484,7 +497,6 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             if (isInitialized)
             {
                 clusterProjectCredential.IsInitialized = true;
-                
                 _unitOfWork.Save();
                 initializedCredentials.Add(credential);
             }

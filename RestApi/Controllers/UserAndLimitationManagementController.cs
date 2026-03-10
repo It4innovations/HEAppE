@@ -40,6 +40,8 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
         IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
@@ -67,8 +69,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AuthenticateLexisTokenAsync(AuthenticateLexisTokenModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateLexisToken\" Parameters: \"{model}\"");
         if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             _logger.LogInformation("Lexis token authentication is handled by middleware. Returning HEADER-AUTH-NEEDED.");
@@ -96,8 +96,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AuthenticateUserOpenIdAsync(AuthenticateUserOpenIdModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -119,8 +117,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AuthenticateUserOpenStackAsync(AuthenticateUserOpenIdOpenStackModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -142,8 +138,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AuthenticateUserPasswordAsync(AuthenticateUserPasswordModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -165,8 +159,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AuthenticateUserDigitalSignatureAsync(AuthenticateUserDigitalSignatureModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -188,8 +180,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CurrentUsageAndLimitationsForCurrentUser(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -211,8 +201,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ProjectsForCurrentUser(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"GetProjectsForCurrentUser\" Parameters: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -234,8 +222,6 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetCurrentUserInfo(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"UserAndLimitationManagement\" Method: \"CurrentUserInfo\" Parameters: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

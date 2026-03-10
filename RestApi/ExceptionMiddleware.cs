@@ -137,13 +137,9 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case AuthenticationTypeException:
-                problem.Title = "Authentication Problem";
+                problem.Title = "UserOrg Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
-                problem.Status = exception.Message is "InvalidToken" or
-                    "Expired" or
-                    "NotPresent" or "IntrospectionTokenNotValid"
-                    ? StatusCodes.Status401Unauthorized
-                    : StatusCodes.Status500InternalServerError;
+                problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
                 break;
             case SlurmException slurmException:
@@ -186,8 +182,10 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status403Forbidden;
                 break;
             case ExternalException:
-                problem.Title = "External Problem";
+                problem.Title = "External Service Error";
                 problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                logLevel = LogLevel.Warning;
                 break;
             case BadHttpRequestException badReqException:
                 problem.Title = badReqException.Message;

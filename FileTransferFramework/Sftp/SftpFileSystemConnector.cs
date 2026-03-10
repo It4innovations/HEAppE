@@ -1,3 +1,4 @@
+#pragma warning disable CA2200
 ﻿using System;
 using System.IO;
 using System.Text;

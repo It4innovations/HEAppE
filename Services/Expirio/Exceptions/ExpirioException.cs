@@ -1,11 +1,13 @@
+#pragma warning disable CS8618
 using System;
+using HEAppE.Exceptions.AbstractTypes;
 
 namespace Services.Expirio.Exceptions;
 
 /// <summary>
 ///     Represents base Expirio exception with information details
 /// </summary>
-public class ExpirioException : Exception
+public class ExpirioException : ExternalException
 {
     public ExpirioException(string message) : base(message)
     {

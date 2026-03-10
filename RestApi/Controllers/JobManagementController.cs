@@ -68,7 +68,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateJob(CreateJobByProjectModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -90,21 +89,11 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult SubmitJob(SubmitJobModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"SubmitJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Cancel job
@@ -121,21 +110,11 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CancelJob(CancelJobModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        } 
-    }
 
     /// <summary>
     ///     Delete job
@@ -152,11 +131,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult DeleteJob(DeleteJobModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DeleteJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -164,11 +138,6 @@ public class JobManagementController : BaseController<JobManagementController>
             if (isDeleted) return Ok("Job was deleted");
             return BadRequest("Job was not deleted");
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        } 
-    }
 
     /// <summary>
     ///     Get all jobs for user
@@ -192,7 +161,6 @@ public class JobManagementController : BaseController<JobManagementController>
         {
             SessionCode = sessionCode
         };
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"ListJobsForCurrentUser\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -215,26 +183,16 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
-
             var model = new CurrentInfoForJobModel
             {
                 SessionCode = sessionCode,
                 SubmittedJobInfoId = submittedJobInfoId
             };
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CurrentInfoForJob\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Copy job data to temp folder
@@ -251,22 +209,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataToTemp(CopyJobDataToTempModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataToTemp\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
             return Ok("Data were copied to Temp");
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }
-    }
 
     /// <summary>
     ///     Copy job data from temp folder
@@ -283,22 +231,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataFromTemp(CopyJobDataFromTempModel model)
     {
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
-
-            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataFromTemp\" Parameters: \"{model}\"");
             var validationResult = new JobManagementValidator(model).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
             return Ok("Data were copied from Temp");
         }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-        }    
-    }
 
     /// <summary>
     ///     Get Allocated Nodes IPs
@@ -321,7 +259,6 @@ public class JobManagementController : BaseController<JobManagementController>
             SessionCode = sessionCode,
             SubmittedTaskInfoId = submittedTaskInfoId
         };
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"AllocatedNodesIPs\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -342,7 +279,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> DryRunJob(DryRunJobModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DryRunJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
