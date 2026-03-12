@@ -457,7 +457,7 @@ public class ManagementService : IManagementService
         }
     }
     
-    public async Task<CredentialResponseExt> CreateCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+    public async Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
                                                                    bool? generateNewKey, string? privateKey, string? password, string? passphrase)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -481,12 +481,12 @@ public class ManagementService : IManagementService
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
-            return (await managementLogic.CreateCredentialAsync(projectId,
-                project.IsOneToOneMapping ? loggedUser.Id : null, username, authType, privateKey, passphrase)).ConvertIntToExt();
+            return (await managementLogic.CreateCredential(username, password, authType, generateNewKey, privateKey, passphrase, 
+                                                           projectId, project.IsOneToOneMapping ? loggedUser.Id : null)).ConvertIntToExt();
         }
     }
 
-    public async Task<List<CredentialResponseExt>> GetCredentialsAsync(long projectId, string sessionCode)
+    public async Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -509,12 +509,13 @@ public class ManagementService : IManagementService
             }
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
-            return (await managementLogic.GetCredentialsAsync(projectId,
+            return (await managementLogic.GetCredentials(projectId,
                 adaptorUserId: loggedUser.Id, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public async Task<CredentialResponseExt> ModifyCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType)
+    public async Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+                                                              bool? generateNewKey, string? privateKey, string? password, string? passphrase)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -537,7 +538,8 @@ public class ManagementService : IManagementService
             }
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
-            return (await managementLogic.ModifyCredentialAsync(username, projectId, project.IsOneToOneMapping ? loggedUser.Id : null, isAdministrator, authType)).ConvertIntToExt();
+            return (await managementLogic.ModifyCredential(username, password, authType, generateNewKey, privateKey, passphrase, 
+                                                           projectId, project.IsOneToOneMapping ? loggedUser.Id : null, isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -565,7 +567,7 @@ public class ManagementService : IManagementService
             
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
-            await managementLogic.RemoveCredentialAsync(username, projectId, isAdministrator);
+            await managementLogic.RemoveCredential(username, projectId, isAdministrator);
         }
     }
 

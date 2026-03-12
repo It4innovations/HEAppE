@@ -70,12 +70,13 @@ public interface IManagementService
 
     Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    Task<CredentialResponseExt> CreateCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+    Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
                                                       bool? generateNewKey, string? privateKey, string? password, string? passphrase);                                              
     
-    Task<List<CredentialResponseExt>> GetCredentialsAsync(long projectId, string sessionCode);
+    Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode);
 
-    Task<CredentialResponseExt> ModifyCredentialAsync(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType);
+    Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+                                                       bool? generateNewKey, string? privateKey, string? password, string? passphrase);
     
     Task RemoveCredential(long projectId, string sessionCode, string username);
 

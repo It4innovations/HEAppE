@@ -65,7 +65,7 @@ public class CredentialsController : ControllerBase
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        var result = await _managementService.CreateCredentialAsync(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
+        var result = await _managementService.CreateCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
                                                                     model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
         return Ok(result);
     }
@@ -75,7 +75,7 @@ public class CredentialsController : ControllerBase
     /// </summary>
     [HttpGet("GetCredentials")]
     [RequestSizeLimit(2000)]
-     [ProducesResponseType(typeof(List<CredentialResponseExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<CredentialResponseExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -90,12 +90,12 @@ public class CredentialsController : ControllerBase
         {
             ProjectId = projectId,
             SessionCode = sessionCode
-        };
-        var validationResult = new CredentialsValidator(model).Validate();
+        }; //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
+        var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        var result = await _managementService.GetCredentialsAsync(model.ProjectId, model.SessionCode);
+        var result = await _managementService.GetCredentials(model.ProjectId, model.SessionCode);
         return Ok(result);
     }
 
@@ -111,13 +111,15 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> ModifyCredential(CreateCredentialModel model)
     {
+        //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
         //TODO: use logger?
         //_logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCredential\"");
-        var validationResult = new CredentialsValidator(model).Validate();
+        var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        var result = await _managementService.ModifyCredentialAsync(model.ProjectId, model.SessionCode, model.Username, model.AuthType);
+        var result = await _managementService.ModifyCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
+                                                               model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
         return Ok(result);
     }
 
@@ -136,6 +138,7 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RemoveCredential(CreateCredentialModel model)
     {
+        //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
         //_logger.LogDebug("Endpoint: \"Management\" Method: \"RemoveCredential\"");
         var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
