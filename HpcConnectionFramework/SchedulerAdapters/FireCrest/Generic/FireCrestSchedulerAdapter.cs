@@ -251,6 +251,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
 
                     Console.WriteLine($"[SubmitJob] Converting script for Task {taskSpec.Id}...");
                     var finalScript = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, taskSpec);
+                    finalScript = finalScript.Replace("\r\n", "\n");
                     Console.WriteLine($"[SubmitJob] Script converted. Length: {finalScript?.Length ?? 0}");
 
                     string taskDirectoryPath =
@@ -430,6 +431,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
                     Console.WriteLine($"[GetActualTasksInfo] EXCEPTION for Job {task.ScheduledJobId}: {ex.Message}");
                     Console.WriteLine(ex.StackTrace);
                     _log.Error($"Error checking status for job {task.ScheduledJobId}: {ex.Message}", ex);
+                    throw;
                 }
             }
         }).GetAwaiter().GetResult();

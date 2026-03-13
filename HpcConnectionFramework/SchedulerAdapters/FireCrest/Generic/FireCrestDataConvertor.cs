@@ -13,36 +13,68 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.DTO;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
 #region Data Transfer Objects (DTOs) for FireCrest JSON
 
+internal class StringToLongConverter: JsonConverter<long?>
+{
+    public override long? Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+        {
+            var str = reader.GetString();
+            if (!string.IsNullOrEmpty(str) && int.TryParse(str, out int val))
+                return val;
+            return default;
+        }
+        return reader.GetInt32();
+    }
+
+    public override void Write(Utf8JsonWriter writer, long? value, JsonSerializerOptions options)
+    {
+        if (value != null)
+            writer.WriteNumberValue((long)value);
+        else
+            writer.WriteNullValue();
+    }
+}
+
 internal class FireCrestJob
 {
-    [JsonPropertyName("jobId")] public long JobId { get; set; }
+    [JsonConverter(typeof(StringToLongConverter))]
+    public long? JobId { get; set; }
 
-    [JsonPropertyName("name")] public string Name { get; set; }
+    public string Name { get; set; }
 
-    [JsonPropertyName("status")] public JobStatus Status { get; set; }
+    public JobStatus Status { get; set; }
 
-    [JsonPropertyName("time")] public TimeInfo Time { get; set; }
+    public string State { get; set; }
 
-    [JsonPropertyName("nodes")] public string Nodes { get; set; }
+    public TimeInfo Time { get; set; }
+
+    public string Nodes { get; set; }
+
+    public static readonly JsonSerializerOptions DeserializationOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 }
 
 internal class JobStatus
 {
-    [JsonPropertyName("state")] public string State { get; set; }
+    public string State { get; set; }
 }
 
 internal class TimeInfo
 {
-    [JsonPropertyName("start")] public long? Start { get; set; }
+    public long? Start { get; set; }
 
-    [JsonPropertyName("end")] public long? End { get; set; }
+    public long? End { get; set; }
 
-    [JsonPropertyName("elapsed")] public int? Elapsed { get; set; }
+    public int? Elapsed { get; set; }
 }
 
 #endregion
@@ -271,17 +303,28 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     {
         try
         {
-            var firecrestJob = JsonSerializer.Deserialize<FireCrestJob>(jobElement.GetRawText());
-            if (firecrestJob == null) return null;
+            var jobElementJSON = jobElement.GetRawText();
+            var firecrestJob = JsonSerializer.Deserialize<FireCrestJob>(jobElementJSON, FireCrestJob.DeserializationOptions);
+            if (firecrestJob == null)
+                return null;
 
             var nameParts = firecrestJob.Name.Split('-');
             string taskId = nameParts.LastOrDefault() ?? firecrestJob.Name;
+
+            // support various versions of firecrest
+            TaskState state = TaskState.Unknown;
+            if (firecrestJob.Status != null)
+                state = ConvertState(firecrestJob.Status?.State);
+            else if (firecrestJob.State != null)
+                state = ConvertState(firecrestJob.State);
+            else
+                throw new Exception("Cannot parse firecrest job state!");
 
             var taskInfo = new SubmittedTaskInfo
             {
                 ScheduledJobId = firecrestJob.JobId.ToString(),
                 Name = taskId,
-                State = ConvertState(firecrestJob.Status?.State),
+                State = state,
                 StartTime = ConvertFromUnixTimestamp(firecrestJob.Time?.Start),
                 EndTime = ConvertFromUnixTimestamp(firecrestJob.Time?.End),
                 AllocatedTime = firecrestJob.Time?.Elapsed,
@@ -293,7 +336,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         catch (Exception ex)
         {
             Console.WriteLine($"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}");
-            return null;
+            throw;
         }
     }
 
@@ -301,7 +344,8 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
 
     private DateTime? ConvertFromUnixTimestamp(long? timestamp)
     {
-        if (!timestamp.HasValue || timestamp.Value <= 0) return null;
+        if (!timestamp.HasValue || timestamp.Value <= 0)
+            return null;
         return DateTime.UnixEpoch.AddSeconds(timestamp.Value);
     }
 
