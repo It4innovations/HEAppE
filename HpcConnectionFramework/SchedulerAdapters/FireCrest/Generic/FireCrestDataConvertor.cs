@@ -12,8 +12,8 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.DTO;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using HEAppE.HpcConnectionFramework.SystemCommands;
+using log4net;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -61,28 +61,33 @@ internal class FireCrestJob
     {
         PropertyNameCaseInsensitive = true
     };
-}
 
-internal class JobStatus
-{
-    public string State { get; set; }
-}
 
-internal class TimeInfo
-{
-    public long? Start { get; set; }
+    internal class JobStatus
+    {
+        public string State { get; set; }
+    }
 
-    public long? End { get; set; }
+    internal class TimeInfo
+    {
+        public long? Start { get; set; }
 
-    public int? Elapsed { get; set; }
+        public long? End { get; set; }
+
+        public int? Elapsed { get; set; }
+    }
+
 }
 
 #endregion
 
 public class FireCrestDataConvertor : SchedulerDataConvertor
 {
+    private readonly ILog _logger;
+
     public FireCrestDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
     {
+        _logger = LogManager.GetLogger(typeof(FireCrestDataConvertor));
     }
 
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
