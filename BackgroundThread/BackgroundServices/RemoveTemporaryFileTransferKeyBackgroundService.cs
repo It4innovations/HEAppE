@@ -17,7 +17,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -61,7 +60,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

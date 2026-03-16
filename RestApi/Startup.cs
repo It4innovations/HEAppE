@@ -77,13 +77,12 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddBackgroundServices();
+        services.AddBackgroundServices(Configuration);
         services.AddMemoryCache();
 
         services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
         services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
-        Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
         Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
         Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
         Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());

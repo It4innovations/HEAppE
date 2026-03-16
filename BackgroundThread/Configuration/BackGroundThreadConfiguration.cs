@@ -29,10 +29,10 @@ public sealed class BackGroundThreadConfiguration
 
     public sealed class ClusterProjectCredentialsCheckConfiguration
     {
-        public static bool IsEnabled { get; set; } = false;
+        public bool IsEnabled { get; set; } = false;
 
-        public static int IntervalMinutes { get; set; } = 60;
+        public int IntervalMinutes { get; set; } = 60;
     };
 
-    public static ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheckSettings { get; } = new();
+    public static ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheckSettings { get; set; } = new();
 }

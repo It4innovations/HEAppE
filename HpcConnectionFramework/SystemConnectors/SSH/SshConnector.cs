@@ -134,8 +134,6 @@ public class SshConnector : IPoolableAdapter
     {
         if (connection is SshClient sshClient)
         {
-            if (!sshClient.IsConnected) return false;
-
             try
             {
                 return sshClient.IsConnected; 

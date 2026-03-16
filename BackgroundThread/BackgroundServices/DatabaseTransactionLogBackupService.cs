@@ -14,7 +14,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(DatabaseTransactionLogBackupConfiguration.BackupScheduleIntervalInMinutes);
     private readonly ILog _log;
 
     public DatabaseTransactionLogBackupService()
@@ -48,7 +47,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(DatabaseTransactionLogBackupConfiguration.BackupScheduleIntervalInMinutes), stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -169,7 +168,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         return BackupRetentionCategory.Daily;
     }
 
-    private static int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
+    private int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
     {
         return category switch
         {
