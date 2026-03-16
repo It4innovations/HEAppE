@@ -18,7 +18,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -80,7 +79,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

@@ -18,7 +18,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -78,7 +77,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

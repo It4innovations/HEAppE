@@ -17,7 +17,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -35,13 +34,14 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     {
         await Task.Yield();
 
-        if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
-        {
-            return;
-        }
-
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
+                continue;
+            }
+
             using (IServiceScope scope = _scopeFactory.CreateScope())
             {
                 try
@@ -62,7 +62,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
             }
             catch (OperationCanceledException)
             {

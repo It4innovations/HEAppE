@@ -16,7 +16,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
     private readonly ILog _log;
     private readonly VaultConnector _vaultConnector = new VaultConnector();
 
@@ -38,7 +37,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                 if (backupCanBeDone)
                 {
                     DateTime now = DateTime.Now;
-                    if (now.TimeOfDay >= _scheduledTime && now.TimeOfDay < _scheduledTime.Add(TimeSpan.FromMinutes(2)))
+                    TimeSpan scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
+
+                    if (now.TimeOfDay >= scheduledTime && now.TimeOfDay < scheduledTime.Add(TimeSpan.FromMinutes(2)))
                     {
                         await DoFullBackupAsync();
 
@@ -48,7 +49,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                             ApplyRetentionPolicy(DatabaseFullBackupConfiguration.NASPath);
                         }
 
-                        DateTime tomorrow = DateTime.Today.AddDays(1).Add(_scheduledTime);
+                        DateTime tomorrow = DateTime.Today.AddDays(1).Add(scheduledTime);
                         await Task.Delay(tomorrow - DateTime.Now, stoppingToken);
                         continue;
                     }
@@ -223,7 +224,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         return BackupRetentionCategory.Daily;
     }
 
-    private static int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
+    private int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
     {
         return category switch
         {

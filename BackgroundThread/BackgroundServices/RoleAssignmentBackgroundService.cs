@@ -17,7 +17,6 @@ public class RoleAssignmentBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private static readonly ILog _log = LogManager.GetLogger(typeof(RoleAssignmentBackgroundService));
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.RoleAssignmentSyncCheck);
 
     public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory)
     {
@@ -64,7 +63,7 @@ public class RoleAssignmentBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.RoleAssignmentSyncCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {
