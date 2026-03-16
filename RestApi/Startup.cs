@@ -83,9 +83,6 @@ public class Startup
         services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
         services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
-        Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
-        Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
-        Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
         Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());

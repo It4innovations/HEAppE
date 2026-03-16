@@ -20,14 +20,17 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public ClusterProjectCredentialsCheckLogBackgroundService(
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        BackGroundThreadConfiguration configuration)
     {
         _log = LogManager.GetLogger(GetType());
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,9 +39,9 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
+            if (!_configuration.ClusterProjectCredentialsCheckSettings.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
             {
-                await Task.Delay(TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_configuration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
                 continue;
             }
 
@@ -62,7 +65,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
             try
             {
-                await Task.Delay(TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_configuration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
             }
             catch (OperationCanceledException)
             {

@@ -47,7 +47,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
         {
             string dateTimeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             string confsDirectory = "/opt/heappe/confs/";
-            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.LocalPath,
+            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath,
                 $"confs_and_vault_backup_{dateTimeStamp}");
 
 
@@ -57,16 +57,16 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 throw new DatabaseBackupException("FullBackupCantBeDone");
 
             var databaseName = _context.Database.GetDbConnection().Database;
-            var backupFileName = $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
-            var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+            var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
+            var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
             string sql = $"BACKUP DATABASE [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
             await _context.Database.ExecuteSqlRawAsync(sql);
 
             // Copy to NAS
-            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
             {
-                var nasFile = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
+                var nasFile = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
 
@@ -89,9 +89,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
                     Directory.CreateDirectory(Path.GetDirectoryName(localDestFile)!);
                     File.Copy(fileInfo.FullName, localDestFile, overwrite: true);
 
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
                     {
-                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.NASPath,
+                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath,
                             $"confs_backup_{dateTimeStamp}");
                         string nasDestFile = Path.Combine(nasFolder, relativePath);
 
@@ -120,9 +120,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
                     string confsVaultPath = Path.Combine(backupConfsDirectory, vaultBackupFileName);
                     await File.WriteAllBytesAsync(confsVaultPath, vaultSnapshot);
                     
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
                     {
-                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName);
+                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, vaultBackupFileName);
                         await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
                     }
                     _log.Debug("Vault snapshot included in backup successfully.");
@@ -155,16 +155,16 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 throw new DatabaseBackupException("BackupTransactionLogsCantBeDone");
 
             var databaseName = _context.Database.GetDbConnection().Database;
-            var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
-            var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.LocalPath, backupFileName);
+            var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
+            var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
             string sql = $"BACKUP LOG [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
             _context.Database.ExecuteSqlRaw(sql);
 
             // Copy to NAS
-            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))
             {
-                var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.NASPath, backupFileName);
+                var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
 
@@ -227,11 +227,11 @@ internal class DatabaseBackupService : IDatabaseBackupService
     /// <param name="includeLogs"></param>
    public void RestoreDatabase(string backupFileName, bool includeLogs)
     {
-        var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+        var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
         if (!File.Exists(backupPath))
         {
-            var nasPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath ?? "", backupFileName);
+            var nasPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath ?? "", backupFileName);
             if (File.Exists(nasPath)) backupPath = nasPath;
             else throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
         }

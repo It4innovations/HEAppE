@@ -22,16 +22,19 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public ClusterAccountRotationJobBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        BackGroundThreadConfiguration configuration)
     {
         _log = LogManager.GetLogger(GetType());
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -77,7 +80,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.ClusterAccountRotationJobCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {
