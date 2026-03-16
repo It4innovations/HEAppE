@@ -7,6 +7,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -38,6 +39,7 @@ public abstract class SchedulerFactory
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
                 SchedulerType.HyperQueue => new HyperQueueSchedulerFactory(),
+                SchedulerType.FireCrest => new FireCrestSchedulerFactory(),
                 _ => throw new SchedulerException("NotValidType", type)
             };
             _schedulerFactoryPoolSingletons.Add(type, factoryInstance);

@@ -46,7 +46,8 @@ public static class ClusterInformationConverts
         return convert;
     }
     
-    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects,
+        bool onlyActive)
     {
         var convert = new ExtendedClusterExt
         {
@@ -76,7 +77,12 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+            SchedulerType.FireCrest => SchedulerTypeExt.FireCrest,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Scheduler type",
+                $"<{string.Join(", ", Enum.GetValues(typeof(SchedulerTypeExt)).Cast<int>())}>"
+            )
         };
     }
     
@@ -87,7 +93,12 @@ public static class ClusterInformationConverts
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
+            ClusterConnectionProtocol.FirecrestApi => ClusterConnectionProtocolExt.FirecrestApi,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Connection protocol",
+                $"<{string.Join(", ", Enum.GetValues(typeof(ClusterConnectionProtocolExt)).Cast<int>())}>"
+            )
         };
     }
 
@@ -133,7 +144,8 @@ public static class ClusterInformationConverts
         return convert;
     }
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects,
+        bool onlyActive)
     {
         var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
         var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));

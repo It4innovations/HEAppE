@@ -36,7 +36,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
-        return GetAll().Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+        return GetAll().Where(w => w.State > JobState.Configuring && w.State < JobState.Finished)
             .ToList();
     }
 

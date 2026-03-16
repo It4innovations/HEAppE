@@ -290,7 +290,8 @@ internal class JobManagementLogic : IJobManagementLogic
     
     public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
+        _logger.Info(
+            $"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
@@ -468,12 +469,14 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
             }
 
-            IRexScheduler scheduler = !project.IsOneToOneMapping ?
-                scheduler = SchedulerFactory
+            IRexScheduler scheduler = !project.IsOneToOneMapping
+                ? scheduler = SchedulerFactory
                     .GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, project, _sshCertificateAuthorityService, null) : null;
 
-            Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null ? scheduler : SchedulerFactory
+            Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null
+                ? scheduler
+                : SchedulerFactory
                 .GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId);
 
@@ -510,6 +513,12 @@ internal class JobManagementLogic : IJobManagementLogic
 
                     foreach (var submittedTask in submittedJob.Tasks)
                     {
+                        // Skip tasks that were not queried (e.g. Finished, Failed, or Configuring)
+                        if (!(submittedTask.State > TaskState.Configuring && (submittedTask.State <= TaskState.Running || submittedTask.State == TaskState.Canceled)))
+                        {
+                            continue;
+                        }
+                       
                         var actualUnfinishedSchedulerTaskInfo =
                             actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w =>
                                 w.ScheduledJobId == submittedTask.ScheduledJobId);
@@ -527,9 +536,9 @@ internal class JobManagementLogic : IJobManagementLogic
                         }
                     }
 
-                    if (isNeedUpdateJobState)
+                    var jobStateChanged = UpdateJobStateByTasks(submittedJob);
+                    if (isNeedUpdateJobState || jobStateChanged)
                     {
-                        UpdateJobStateByTasks(submittedJob);
                         _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
                         isNeedUpdateJobState = false;
                     }
@@ -830,37 +839,44 @@ internal class JobManagementLogic : IJobManagementLogic
         return result;
     }
 
-    protected static void UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
+    public static bool UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
     {
         dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
         dbJobInfo.EndTime = dbJobInfo.Tasks.Where(t => t.EndTime.HasValue).LastOrDefault()?.EndTime;
         dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime ?? 0);
 
         var continuousJobState = JobState.Finished;
-        var minTaskState = TaskState.Canceled;
+        var minTaskState = TaskState.Deleted;
         foreach (var task in dbJobInfo.Tasks)
         {
-            minTaskState = task.State < minTaskState ? task.State : minTaskState;
+            if (task.State < minTaskState)
+                minTaskState = task.State;
+
             if (task.State == TaskState.Failed)
             {
                 continuousJobState = JobState.Failed;
-                break;
             }
-
-            if (task.State == TaskState.Running)
-            {
-                continuousJobState = JobState.Running;
-                break;
-            }
-
-            if (task.State == TaskState.Canceled)
+            else if (task.State == TaskState.Canceled && continuousJobState != JobState.Failed)
             {
                 continuousJobState = JobState.Canceled;
-                break;
             }
         }
 
-        dbJobInfo.State = (JobState)minTaskState < continuousJobState ? (JobState)minTaskState : continuousJobState;
+        JobState newState;
+        if ((JobState)minTaskState < JobState.Finished)
+        {
+            newState = (JobState)minTaskState;
+        }
+        else
+        {
+            newState = continuousJobState;
+        }
+
+        var stateChanged = dbJobInfo.State != newState;
+
+        dbJobInfo.State = newState;
+
+        return stateChanged;
     }
 
     protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
@@ -888,6 +904,11 @@ internal class JobManagementLogic : IJobManagementLogic
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
             .ToList();
+
+        if (!unfinishedTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
 
         var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
 

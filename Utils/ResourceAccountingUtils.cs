@@ -40,7 +40,7 @@ public static class ResourceAccountingUtils
 
         logger?.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {dbTaskInfo.Id}");
 
-        if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
+        if ((submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0) && !string.IsNullOrEmpty(submittedTaskInfo.AllParameters))
         {
             submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
                 ?.Split(' ', StringSplitOptions.RemoveEmptyEntries)

@@ -66,15 +66,25 @@ public class RexSchedulerWrapper : IRexScheduler
     public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster, sshCaToken);
-        try
+        var cluster = jobSpecification.Cluster;
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+            var tasks = _adapter.SubmitJob(null, jobSpecification, credentials);
             return tasks;
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster, sshCaToken);
+            try
+            {
+                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+                return tasks;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -87,25 +97,45 @@ public class RexSchedulerWrapper : IRexScheduler
     public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
-        var cluster = submitedTasksInfo.FirstOrDefault().Specification.JobSpecification.Cluster;
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
-        try
+        if (submitedTasksInfo == null || !submitedTasksInfo.Any())
         {
-            var allTasks = new List<SubmittedTaskInfo>();
-            var groupedTasksByUser = submitedTasksInfo
-                .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
 
+        var cluster = submitedTasksInfo.First().Specification.JobSpecification.Cluster;
+        var allTasks = new List<SubmittedTaskInfo>();
+        var groupedTasksByUser = submitedTasksInfo
+            .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        {
             foreach (var groupedTasksByUsername in groupedTasksByUser)
             {
-                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster, groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
+                var tasks = _adapter.GetActualTasksInfo(null, cluster,
+                    groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
                 allTasks.AddRange(tasks);
             }
 
             return allTasks;
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+            try
+            {
+                foreach (var groupedTasksByUsername in groupedTasksByUser)
+                {
+                        var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster,
+                            groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
+                    allTasks.AddRange(tasks);
+                }
+
+                return allTasks;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -119,15 +149,22 @@ public class RexSchedulerWrapper : IRexScheduler
         ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
         var cluster = submitedTasksInfo.FirstOrDefault().Specification.JobSpecification.Cluster;
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
-        try
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            _adapter.CancelJob(schedulerConnection.Connection, submitedTasksInfo, message);
+            _adapter.CancelJob(null, submitedTasksInfo, message);
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
-        }
+           var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+           try
+           {
+               _adapter.CancelJob(schedulerConnection.Connection, submitedTasksInfo, message);
+           }
+           finally
+           {
+               _connectionPool.ReturnConnection(schedulerConnection);
+           }
+       }
     }
 
     /// <summary>
@@ -218,7 +255,8 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
         try
         {
-            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys, project.AccountingString);
+            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys,
+                project.AccountingString);
         }
         finally
         {
@@ -234,29 +272,38 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="sharedAccountsPoolMode"></param>
     public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode, string sshCaToken)
     {
-        var schedulerConnection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
-        try
-        {
-            var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
-                ?.ScratchStoragePath;
-            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
+        var cluster = jobInfo.Specification.Cluster;
 
-            bool isUpdated = _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
-                jobInfo.Specification.ClusterUser.Username, false);
-            if (!isUpdated)
-            {
-                _log.Warn($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
-            else
-            {
-                _log.Info($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
-            _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
-        }
-        finally
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _adapter.CreateJobDirectory(null, jobInfo, localBasePath, sharedAccountsPoolMode);
+        }
+        else
+        {
+            var schedulerConnection =
+                _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
+            try
+            {
+                var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
+                    ?.ScratchStoragePath;
+                string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
+    
+                bool isUpdated = _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
+                    jobInfo.Specification.ClusterUser.Username, false);
+                if (!isUpdated)
+                {
+                    _log.Warn($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                }
+                else
+                {
+                    _log.Info($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                }
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -266,20 +313,37 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="jobInfo">Job info</param>
     public bool DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, string sshCaToken)
     {
-        var schedulerConnection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
-        try
+        var cluster = jobInfo.Specification.Cluster;
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+            try
+            {
+                return _adapter.DeleteJobDirectory(null, jobInfo, localBasePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+                return false;
+            }
         }
-        catch (Exception ex)
-        {
-            _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
-            return false;
-        }
-        finally
-        {
-            _connectionPool.ReturnConnection(schedulerConnection);
+        else
+        {        
+            var schedulerConnection =
+                _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
+            try
+            {
+                return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+                return false;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -387,7 +451,8 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, sshCaToken);
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
-                clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
+                clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
+                clusterAuthCredentials.Username, isServiceAccount);
         }
         catch (Exception ex)
         {
