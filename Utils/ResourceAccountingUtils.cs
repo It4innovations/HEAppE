@@ -60,13 +60,15 @@ public static class ResourceAccountingUtils
 
     private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILog logger)
     {
-        if (string.IsNullOrWhiteSpace(accountingFormula)) return 0;
+        if (string.IsNullOrWhiteSpace(accountingFormula))
+            return 0;
 
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
         string originalFormula = accountingFormula;
 
         var formulaProperties = accountingFormula.Split(_operators, StringSplitOptions.RemoveEmptyEntries);
-
+        
+        parsedParameters ??= [];
         var relevantParams = parsedParameters
             .Where(w => formulaProperties.Contains(w.Key))
             .OrderByDescending(w => w.Key.Length);
