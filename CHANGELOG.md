@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.11
+
+### Performance
+- Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
+
 ## V6.2.10
 
 ### Fixed
