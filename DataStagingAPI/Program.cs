@@ -4,6 +4,7 @@ using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
+using HEAppE.BackgroundThread;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -67,10 +68,6 @@ else
         throw new Exception("Configuration files not found!");
 }
 
-builder.Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
-builder.Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
-builder.Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
-builder.Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
 builder.Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
 builder.Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
 builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
@@ -152,6 +149,7 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
 builder.Services.AddScoped<FileTransferService>();
+builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {

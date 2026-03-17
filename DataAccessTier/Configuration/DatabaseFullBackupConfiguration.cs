@@ -4,33 +4,35 @@ namespace HEAppE.DataAccessTier.Configuration;
 
 public sealed class DatabaseFullBackupConfiguration
 {
+    public static DatabaseFullBackupConfiguration Current { get; set; } = new();
+
     /// <summary>
     ///     Enable automatic scheduled full database backup.
     /// </summary>
-    public static bool ScheduledBackupEnabled { get; set; }
+    public bool ScheduledBackupEnabled { get; set; }
     
     /// <summary>
     ///     Scheduled daily run time of backup in en-US time format.
     /// </summary>
-    public static string ScheduledRuntime { get; set; } = "02:00:00";
+    public string ScheduledRuntime { get; set; } = "02:00:00";
 
     /// <summary>
     ///     Path to save database backup file.
     /// </summary>
-    public static string LocalPath { get; set; } = @"/opt/heappe/backups/database";
+    public string LocalPath { get; set; } = @"/opt/heappe/backups/database";
 
     /// <summary>
     ///     NAS path to save database backup file.
     /// </summary>
-    public static string NASPath { get; set; }
+    public string NASPath { get; set; }
 
     /// <summary>
     ///     Backup file name prefix.
     /// </summary>
-    public static string BackupFileNamePrefix { get; set; } = "HEAppE";
+    public string BackupFileNamePrefix { get; set; } = "HEAppE";
 
     /// <summary>
     ///     Retention policy of backup files.
     /// </summary>
-    public static RetentionPolicy RetentionPolicy { get; set; }
+    public RetentionPolicy RetentionPolicy { get; set; }
 }
