@@ -75,9 +75,10 @@ public interface IManagementService
     
     Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode);
 
-    Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
-                                                       bool? generateNewKey, string? privateKey, string? password, string? passphrase);
-    
+    //Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+    //                                                   bool? generateNewKey, string? privateKey, string? password, string? passphrase);
+    Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId,string sessionCode);
+
     Task RemoveCredential(long projectId, string sessionCode, string username);
 
     public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,

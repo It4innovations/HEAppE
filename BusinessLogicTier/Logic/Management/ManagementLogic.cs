@@ -1035,6 +1035,7 @@ public class ManagementLogic : IManagementLogic
             .ToList();
     }
 
+/*
     public async Task<List<CredentialResponse>> ModifyCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, 
                                                                   string? privateKey, string? passphrase, long projectId, long? adaptorUserId, bool isAdministrator)
     {
@@ -1062,7 +1063,7 @@ public class ManagementLogic : IManagementLogic
         foreach (var credentials in credsList)
         {
             credentials.AuthenticationType = authType;
-            if(authType != ClusterAuthenticationCredentialsAuthType.Kerberos)
+            //if(authType != ClusterAuthenticationCredentialsAuthType.Kerberos)
             {
                 credentials.PrivateKeyPassphrase = passphrase;
                 credentials.PrivateKey = secureShellKey.PrivateKeyPEM;
@@ -1086,8 +1087,52 @@ public class ManagementLogic : IManagementLogic
                 .DistinctBy(x => x.Username)
                 .ToList();
     }
+*/
+    public async Task<List<CredentialResponse>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, 
+                                                                 long? adaptorUserId, bool isAdministrator)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project is null)
+        {
+            _logger.Error($"Project with ID {projectId} not found or has already ended.");
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
+        
+        if (isAdministrator)
+        {
+            _logger.Info($"Administrator is renaming credentials for project ID {projectId}. Mapping check bypassed.");
+        }
+        else if (project.IsOneToOneMapping)
+        {
+            _logger.Info($"Project with ID {projectId} is one-to-one mapping, returning only service account credentials for user {adaptorUserId}.");
+        }
+        else
+        {
+            _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
+        }
+        
+        var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                .GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator))
+                .Where(x => !x.IsDeleted)
+                .ToList();
 
-    public async Task RemoveCredential(string username, long projectId, bool isAdministrator)
+        foreach (var cred in credentials)
+        {
+            cred.Username = newUsername;
+            cred.Password = newPassword;
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
+            _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
+        }
+
+        _unitOfWork.Save();
+
+        return credentials
+                .Select(CredentialResponse.GetCredential)
+                .DistinctBy(x=>x.Username)
+                .ToList();
+    }
+
+    public async Task RemoveCredential(string username, long projectId)
     {
         var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
         
@@ -1100,7 +1145,7 @@ public class ManagementLogic : IManagementLogic
             throw new InvalidRequestException("HPCIdentityNotFound");
 
         var modificationDate = DateTime.UtcNow;
-        _logger.Info($"Removing credentials for user {clusterAuthenticationCredentials.First().Username}.");
+        _logger.Info($"Removing credentials for user {filteredCredentials.First().Username}.");
         foreach (var credentials in filteredCredentials)
         {
             credentials.IsDeleted = true;

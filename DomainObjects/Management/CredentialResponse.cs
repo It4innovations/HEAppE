@@ -17,6 +17,7 @@ public class CredentialResponse
         {
             Id = clusterCredentials.Id,
             Username = clusterCredentials.Username,
+            AuthType = clusterCredentials.AuthenticationType,
             IsGenerated = clusterCredentials.IsGenerated,
             PublicKeyFingerprint = clusterCredentials.PublicKeyFingerprint,
             PublicKeyExt = clusterCredentials.PublicKey

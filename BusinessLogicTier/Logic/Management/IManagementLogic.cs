@@ -61,10 +61,12 @@ public interface IManagementLogic
 
     Task<List<CredentialResponse>> GetCredentials(long projectId, long? adaptorUserId, bool isAdministrator);
 
-    Task<List<CredentialResponse>> ModifyCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, 
-                                                    string? privateKey, string? passphrase, long projectId, long? adaptorUserId, bool isAdministrator);
+    //Task<List<CredentialResponse>> ModifyCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, 
+    //                                                string? privateKey, string? passphrase, long projectId, long? adaptorUserId, bool isAdministrator);
+    Task<List<CredentialResponse>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, 
+                                                    long? adaptorUserId, bool isAdministrator);
 
-    Task RemoveCredential(string username, long projectId, bool isAdministrator);
+    Task RemoveCredential(string username, long projectId);
 
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);

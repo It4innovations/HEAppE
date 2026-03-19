@@ -81,16 +81,15 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-      public async Task<IActionResult> GetCredentials(long projectId, [FromQuery] string sessionCode)
+    public async Task<IActionResult> GetCredentials(long projectId, string sessionCode)
     {
         /* TODO: use logger?
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetCredentials\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");*/
-        CreateCredentialModel model = new()
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetCredentials\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");*/
+        GetCredentialsModel model = new()
         {
             ProjectId = projectId,
-            SessionCode = sessionCode
-        }; //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
+            SessionCode = sessionCode,
+        };
         var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
@@ -100,34 +99,32 @@ public class CredentialsController : ControllerBase
     }
 
     /// <summary>
-    /// Modifies credentials for a project.
+    /// Modifies credential for a project.
     /// </summary>
-    [HttpGet("ModifyCredential")]
+    [HttpPut("ModifyCredential")]
     [RequestSizeLimit(2000)]
     [ProducesResponseType(typeof(List<CredentialResponseExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> ModifyCredential(CreateCredentialModel model)
+    public async Task<IActionResult> ModifyCredential(ModifyCredentialModel model)
     {
-        //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
         //TODO: use logger?
         //_logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCredential\"");
         var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        var result = await _managementService.ModifyCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
-                                                               model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
+        //var result = await _managementService.ModifyCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
+        //                                                       model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
+        var result = await _managementService.ModifyCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
         return Ok(result);
     }
 
     /// <summary>
     ///     Remove credential for a project.
     /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
     [HttpDelete("RemoveCredential")]
     [RequestSizeLimit(2000)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
@@ -136,9 +133,9 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RemoveCredential(CreateCredentialModel model)
+    public async Task<IActionResult> RemoveCredential(RemoveCredentialModel model)
     {
-        //TODO: CreateCredentialModel used for every call of this family? If so, maybe change name to "CredentialModel"
+        //TODO: use logger?
         //_logger.LogDebug("Endpoint: \"Management\" Method: \"RemoveCredential\"");
         var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 

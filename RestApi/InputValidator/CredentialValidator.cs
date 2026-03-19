@@ -29,7 +29,10 @@ public class CredentialValidator : AbstractValidator
         private Dictionary<string, List<Conditional>> _conditionals;
 
         public RulesDefinition()
-        { _rules = []; }
+        { 
+            _rules = []; 
+            _conditionals = new ();
+        }
 
         public void AddRule(string key, Requirement req, List<Conditional> condRules=null)
         {
@@ -55,81 +58,83 @@ public class CredentialValidator : AbstractValidator
             bool res = true;
             foreach(Conditional conditional in _conditionals[key])
             {
-                res &= (conditional.Value == obj.GetType().GetProperty(conditional.Field).GetValue(obj));
+                res &= object.Equals(conditional.Value, obj.GetType().GetProperty(conditional.Field).GetValue(obj));
             }
             return res;
         }
     }
 
-    static readonly Dictionary<ClusterAuthenticationCredentialsAuthType, RulesDefinition> _validationRules;
+    static readonly Dictionary<ClusterAuthenticationCredentialsAuthType, RulesDefinition> _validationCreateCredentialRules;
 
     static CredentialValidator()
     {
         #region Rules assignment
-        _validationRules = new();
+        _validationCreateCredentialRules = new();
+
+        //TODO: Change rule keys from string to enum
 
         var passwordRules = new RulesDefinition();
         passwordRules.AddRule("Password", Requirement.Required);
         passwordRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         passwordRules.AddRule("Passphrase", Requirement.Forbidden);
         passwordRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.Password, passwordRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.Password, passwordRules);
 
         var passwordInteractiveRules = new RulesDefinition();
         passwordInteractiveRules.AddRule("Password", Requirement.Optional);
         passwordInteractiveRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         passwordInteractiveRules.AddRule("Passphrase", Requirement.Forbidden);
         passwordInteractiveRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractive, passwordInteractiveRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractive, passwordInteractiveRules);
 
         var passwordAndPrivateKeyRules = new RulesDefinition();
         passwordAndPrivateKeyRules.AddRule("Password", Requirement.Required);
         passwordAndPrivateKeyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
         passwordAndPrivateKeyRules.AddRule("Passphrase", Requirement.Optional);
         passwordAndPrivateKeyRules.AddRule("GenerateNewKey", Requirement.Optional);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey, passwordAndPrivateKeyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey, passwordAndPrivateKeyRules);
 
         var privateKeyRules = new RulesDefinition();
         privateKeyRules.AddRule("Password", Requirement.Forbidden);
         privateKeyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
         privateKeyRules.AddRule("Passphrase", Requirement.Optional);
         privateKeyRules.AddRule("GenerateNewKey", Requirement.Optional);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKey, privateKeyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKey, privateKeyRules);
 
         var passwordViaProxyRules = new RulesDefinition();
         passwordViaProxyRules.AddRule("Password", Requirement.Required);
         passwordViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         passwordViaProxyRules.AddRule("Passphrase", Requirement.Forbidden);
         passwordViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordViaProxy, passwordViaProxyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordViaProxy, passwordViaProxyRules);
 
         var passwordInteractiveViaProxyRules = new RulesDefinition();
         passwordInteractiveViaProxyRules.AddRule("Password", Requirement.Optional);
         passwordInteractiveViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         passwordInteractiveViaProxyRules.AddRule("Passphrase", Requirement.Forbidden);
         passwordInteractiveViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy, passwordInteractiveViaProxyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy, passwordInteractiveViaProxyRules);
 
         var passwordAndPrivateKeyViaProxyRules = new RulesDefinition();
         passwordAndPrivateKeyViaProxyRules.AddRule("Password", Requirement.Required);
         passwordAndPrivateKeyViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
         passwordAndPrivateKeyViaProxyRules.AddRule("Passphrase", Requirement.Optional);
         passwordAndPrivateKeyViaProxyRules.AddRule("GenerateNewKey", Requirement.Optional);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy, passwordAndPrivateKeyViaProxyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy, passwordAndPrivateKeyViaProxyRules);
 
         var privateKeyViaProxyRules = new RulesDefinition();
         privateKeyViaProxyRules.AddRule("Password", Requirement.Forbidden);
         privateKeyViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
         privateKeyViaProxyRules.AddRule("Passphrase", Requirement.Optional);
         privateKeyViaProxyRules.AddRule("GenerateNewKey", Requirement.Optional);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy, privateKeyViaProxyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy, privateKeyViaProxyRules);
 
         var privateKeyInSshAgentRules = new RulesDefinition();
         privateKeyInSshAgentRules.AddRule("Password", Requirement.Forbidden);
         privateKeyInSshAgentRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         privateKeyInSshAgentRules.AddRule("Passphrase", Requirement.Forbidden);
         privateKeyInSshAgentRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent, privateKeyInSshAgentRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent, privateKeyInSshAgentRules);
 
         //TODO: what about ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
 
@@ -138,21 +143,21 @@ public class CredentialValidator : AbstractValidator
         sshCertificateRules.AddRule("ProvidedPrivateKey", Requirement.Required);
         sshCertificateRules.AddRule("Passphrase", Requirement.Optional);
         sshCertificateRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificate, sshCertificateRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificate, sshCertificateRules);
 
         var sshCertificateViaProxyRules = new RulesDefinition();
         sshCertificateViaProxyRules.AddRule("Password", Requirement.Forbidden);
         sshCertificateViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Required);
         sshCertificateViaProxyRules.AddRule("Passphrase", Requirement.Optional);
         sshCertificateViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy, sshCertificateViaProxyRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy, sshCertificateViaProxyRules);
 
         var kerberosRules = new RulesDefinition();
         kerberosRules.AddRule("Password", Requirement.Forbidden);
         kerberosRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
         kerberosRules.AddRule("Passphrase", Requirement.Forbidden);
         kerberosRules.AddRule("GenerateNewKey", Requirement.Forbidden);
-        _validationRules.Add(ClusterAuthenticationCredentialsAuthType.Kerberos, kerberosRules);
+        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.Kerberos, kerberosRules);
         #endregion
     }
 
@@ -164,28 +169,31 @@ public class CredentialValidator : AbstractValidator
         var message = _validationObject switch
         {
             CreateCredentialModel ext => ValidateCreateCredentialModel(ext),
+            GetCredentialsModel ext => ValidateGetCredentialsModel(ext),
+            ModifyCredentialModel ext => ValidateModifyCredentialModel(ext),
+            RemoveCredentialModel ext => ValidateRemoveCredentialModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
     }
 
-    private List<string> GetValidationFields()
+    private List<string> GetValidationCreateCredentialFields()
     {
-        return _validationRules.First().Value.GetFields();
+        return _validationCreateCredentialRules.First().Value.GetFields();
     }
 
     private Requirement GetRequirement(ClusterAuthenticationCredentialsAuthType authType, string nameOfField)
     {
-        return _validationRules[authType].GetRequirement(nameOfField);
+        return _validationCreateCredentialRules[authType].GetRequirement(nameOfField);
     }
 
     private bool ConditionsHold(ClusterAuthenticationCredentialsAuthType authType, string nameOfField, object obj)
     {
-        return _validationRules[authType].ConditionsHold(nameOfField, obj);
+        return _validationCreateCredentialRules[authType].ConditionsHold(nameOfField, obj);
     }
 
-    private void ValidateField(object model, ClusterAuthenticationCredentialsAuthType authType, string nameOfField, object value)
+    private void ValidateCreateCredentialField(object model, ClusterAuthenticationCredentialsAuthType authType, string nameOfField, object value)
     {
         if(GetRequirement(authType, nameOfField) == Requirement.Forbidden)
         {
@@ -212,8 +220,46 @@ public class CredentialValidator : AbstractValidator
 
         ValidateId(ext.ProjectId, "ProjectId");
 
-        foreach(string field in GetValidationFields())
-            ValidateField(ext, ext.AuthType, field, ext.GetType().GetProperty(field).GetValue(ext));
+        foreach(string field in GetValidationCreateCredentialFields())
+            ValidateCreateCredentialField(ext, ext.AuthType, field, ext.GetType().GetProperty(field).GetValue(ext));
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetCredentialsModel(GetCredentialsModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) 
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(ext.ProjectId, "ProjectId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateModifyCredentialModel(ModifyCredentialModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) 
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(ext.ProjectId, "ProjectId");
+
+        if (string.IsNullOrEmpty(ext.OldUsername)) 
+            _messageBuilder.AppendLine("OldUsername can not be null or empty.");
+        if (string.IsNullOrEmpty(ext.NewUsername)) 
+            _messageBuilder.AppendLine("NewUsername can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateRemoveCredentialModel(RemoveCredentialModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) 
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(ext.ProjectId, "ProjectId");
 
         return _messageBuilder.ToString();
     }
