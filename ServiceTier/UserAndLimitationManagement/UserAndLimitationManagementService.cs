@@ -25,8 +25,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
 using SshCaAPI;
 using HEAppE.Services.Expirio;
 
@@ -326,6 +324,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         if (projectId == 0)
             return false;
+        if (user is null)
+        {
+            //unauthorized user, no roles
+            return false;
+        }
         return user.AdaptorUserUserGroupRoles.Any(x =>
             x.AdaptorUserRole != null &&
             x.AdaptorUserRole.ContainedRoleTypes != null &&

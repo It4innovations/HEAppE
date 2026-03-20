@@ -39,6 +39,9 @@ public class JobReportingController : BaseController<JobReportingController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public JobReportingController(ILogger<JobReportingController> logger, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IMemoryCache memoryCache, IExpirioService expirioService) : base(logger,
         memoryCache)
@@ -67,8 +70,6 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListAdaptorUserGroups(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -102,7 +103,6 @@ public class JobReportingController : BaseController<JobReportingController>
             UserId = userId,
             SessionCode = sessionCode
         };
-        _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"UserResourceUsageReport\" Parameters: \"{model}\"");
         var validationResult = new JobReportingValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -137,8 +137,6 @@ public class JobReportingController : BaseController<JobReportingController>
             GroupId = groupId,
             SessionCode = sessionCode
         };
-        _logger.LogDebug(
-            $"Endpoint: \"JobReporting\" Method: \"UserGroupResourceUsageReport\" Parameters: \"{model}\"");
         var validationResult = new JobReportingValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -171,8 +169,6 @@ public class JobReportingController : BaseController<JobReportingController>
             EndTime = endTime ?? DateTime.UtcNow,
             SessionCode = sessionCode
         };
-        _logger.LogDebug(
-            $"Endpoint: \"JobReporting\" Method: \"AggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
         var validationResult = new JobReportingValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -200,7 +196,6 @@ public class JobReportingController : BaseController<JobReportingController>
             SessionCode = sessionCode,
             JobId = jobId
         };
-        _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ResourceUsageReportForJob\" Parameters: \"{model}\"");
         var validationResult = new JobReportingValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -222,8 +217,6 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult JobAgregationReport(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"JobReporting\" Method: \"GetJobsStateAgregationReport\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -250,8 +243,6 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

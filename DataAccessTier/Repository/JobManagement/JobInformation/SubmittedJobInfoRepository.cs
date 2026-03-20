@@ -9,66 +9,65 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation;
 
 internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>, ISubmittedJobInfoRepository
 {
-    #region Constructors
-
     internal SubmittedJobInfoRepository(MiddlewareContext context)
         : base(context)
     {
     }
 
-    #endregion
-
-    #region Methods
-
     public SubmittedJobInfo GetBySubmittedTaskId(long taskId)
     {
-        return _dbSet.Include(j => j.Tasks)
+        return _dbSet
+            .Include(j => j.Tasks)
             .FirstOrDefault(j => j.Tasks.Any(t => t.Id == taskId));
     }
 
     public IEnumerable<SubmittedJobInfo> GetNotFinishedForSubmitterId(long submitterId)
     {
-        return GetAll().Where(w =>
-                (w.Submitter.Id == submitterId && w.State < JobState.Finished) ||
-                w.State == JobState.WaitingForServiceAccount)
+        return _dbSet
+            .Where(w => (w.Submitter.Id == submitterId && w.State < JobState.Finished) ||
+                        w.State == JobState.WaitingForServiceAccount)
             .ToList();
     }
 
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
-        return GetAll().Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+        return _dbSet
+            .Include(j => j.Tasks)
+            .Include(j => j.Specification)
+            .Include(j => j.Project)
+            .Include(j => j.Submitter)
+            .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
     }
 
     public IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId)
     {
-        return GetAll().Where(w => w.Submitter.Id == submitterId)
+        return _dbSet
+            .Where(w => w.Submitter.Id == submitterId)
             .ToList();
     }
     
     public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId)
     {
-        return _dbSet.AsQueryable()
+        return _dbSet
             .Where(j => j.Submitter.Id == submitterId);
     }
 
-
-
     public IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount()
     {
-        return GetAll().Where(w => w.State == JobState.WaitingForServiceAccount)
+        return _dbSet
+            .Where(w => w.State == JobState.WaitingForServiceAccount)
             .OrderBy(w => w.Id)
             .ToList();
     }
 
-    public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId,
-        long nodeTypeId)
+    public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
         return _dbSet
-            .Include(x => x.Specification.SubProject) // Combined Include and ThenInclude
-            .Include(x => x.Specification.Submitter) // Combined Include and ThenInclude
+            .Include(x => x.Specification.SubProject)
+            .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
-            .ThenInclude(x => x.Specification.CommandTemplate) // Combined another Include and ThenInclude
+                .ThenInclude(x => x.Specification.CommandTemplate)
             .Where(x => x.Project.Id == projectId &&
                         x.StartTime >= startTime &&
                         (x.EndTime == null || x.EndTime <= endTime) &&
@@ -85,5 +84,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .FirstOrDefault(j => j.Id == id);
     }
 
-    #endregion
+    public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters()
+    {
+        return _dbSet
+            .IgnoreQueryFilters()
+            .Include(j => j.Tasks)
+            .Include(j => j.Specification)
+            .Include(j => j.Project)
+            .ToList();  
+    }
+
+    public IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters()
+    {
+        return _dbSet.IgnoreQueryFilters();
+    }
 }

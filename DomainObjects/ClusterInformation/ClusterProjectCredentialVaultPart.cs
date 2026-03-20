@@ -1,3 +1,4 @@
+#pragma warning disable CS8632
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 

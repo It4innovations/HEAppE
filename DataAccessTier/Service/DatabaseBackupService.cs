@@ -47,7 +47,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
         {
             string dateTimeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             string confsDirectory = "/opt/heappe/confs/";
-            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.LocalPath,
+            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath,
                 $"confs_and_vault_backup_{dateTimeStamp}");
 
 
@@ -57,16 +57,16 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 throw new DatabaseBackupException("FullBackupCantBeDone");
 
             var databaseName = _context.Database.GetDbConnection().Database;
-            var backupFileName = $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
-            var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+            var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
+            var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
             string sql = $"BACKUP DATABASE [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
             await _context.Database.ExecuteSqlRawAsync(sql);
 
             // Copy to NAS
-            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
             {
-                var nasFile = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
+                var nasFile = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
 
@@ -89,9 +89,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
                     Directory.CreateDirectory(Path.GetDirectoryName(localDestFile)!);
                     File.Copy(fileInfo.FullName, localDestFile, overwrite: true);
 
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
                     {
-                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.NASPath,
+                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath,
                             $"confs_backup_{dateTimeStamp}");
                         string nasDestFile = Path.Combine(nasFolder, relativePath);
 
@@ -120,9 +120,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
                     string confsVaultPath = Path.Combine(backupConfsDirectory, vaultBackupFileName);
                     await File.WriteAllBytesAsync(confsVaultPath, vaultSnapshot);
                     
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
                     {
-                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName);
+                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, vaultBackupFileName);
                         await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
                     }
                     _log.Debug("Vault snapshot included in backup successfully.");
@@ -155,16 +155,16 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 throw new DatabaseBackupException("BackupTransactionLogsCantBeDone");
 
             var databaseName = _context.Database.GetDbConnection().Database;
-            var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
-            var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.LocalPath, backupFileName);
+            var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
+            var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
             string sql = $"BACKUP LOG [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
             _context.Database.ExecuteSqlRaw(sql);
 
             // Copy to NAS
-            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))
             {
-                var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.NASPath, backupFileName);
+                var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
 
@@ -225,109 +225,135 @@ internal class DatabaseBackupService : IDatabaseBackupService
     /// </summary>
     /// <param name="backupFileName"></param>
     /// <param name="includeLogs"></param>
-    public void RestoreDatabase(string backupFileName, bool includeLogs)
+   public void RestoreDatabase(string backupFileName, bool includeLogs)
     {
-        var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+        var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
-        // check if backup exists locally or NAS
         if (!File.Exists(backupPath))
         {
-            // try to find file in NAS
-            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath)
-                && File.Exists(Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName)))
-            {
-                backupPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
-            }
-            else
-            {
-                throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
-            }
+            var nasPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath ?? "", backupFileName);
+            if (File.Exists(nasPath)) backupPath = nasPath;
+            else throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
         }
 
-        // need to use master database in order to restore
-        var builder = new SqlConnectionStringBuilder(_context.Database.GetConnectionString())
-        {
-            InitialCatalog = "master"
-        };
+        var builder = new SqlConnectionStringBuilder(_context.Database.GetConnectionString()) { InitialCatalog = "master" };
+        var databaseName = _context.Database.GetDbConnection().Database;
+
         using var connection = new SqlConnection(builder.ConnectionString);
         connection.Open();
 
-        var databaseName = _context.Database.GetDbConnection().Database;
         using var command = connection.CreateCommand();
         command.CommandTimeout = 0;
+
         try
         {
-            // set single-user (to not block restore from other users)
-            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
-            command.ExecuteNonQuery();
-
-            // full restore
-            command.CommandText = $@"
-                RESTORE DATABASE [{databaseName}]
-                FROM DISK = '{backupPath}'
-                WITH REPLACE, {(includeLogs ? "NORECOVERY" : "RECOVERY")};";
-
-            command.ExecuteNonQuery();
-
-            // restore transaction logs
-            if (!includeLogs)
-                return;
-
-            // find time of FULL backup from msdb to find newer transaction log backups
-            command.CommandText = @"
-                SELECT backup_finish_date 
-                FROM msdb.dbo.backupset 
-                WHERE database_name = @db AND type = 'D'
-                ORDER BY backup_finish_date DESC;";
-            command.Parameters.AddWithValue("@db", databaseName);
-            DateTime fullBackupTime = (DateTime)command.ExecuteScalar();
-            command.Parameters.Clear();
-
-            // find all transaction log backups after specified backup
-            command.CommandText = @"
-                SELECT mf.physical_device_name
-                FROM msdb.dbo.backupset b
-                JOIN msdb.dbo.backupmediafamily mf
-                    ON b.media_set_id = mf.media_set_id
-                WHERE b.database_name = @db
-                  AND b.type = 'L'
-                  AND b.backup_finish_date > @fullTime
-                ORDER BY b.backup_finish_date ASC;";
-            command.Parameters.AddWithValue("@db", databaseName);
-            command.Parameters.AddWithValue("@fullTime", fullBackupTime);
-
             var logFiles = new List<string>();
-            using (var reader = command.ExecuteReader())
+
+            if (includeLogs)
             {
-                while (reader.Read())
-                    logFiles.Add(reader.GetString(0));
+                command.CommandText = @"
+                    SELECT TOP 1 b.backup_finish_date 
+                    FROM msdb.dbo.backupset b
+                    JOIN msdb.dbo.backupmediafamily mf ON b.media_set_id = mf.media_set_id
+                    WHERE mf.physical_device_name LIKE @path
+                    ORDER BY b.backup_finish_date DESC";
+                command.Parameters.AddWithValue("@path", "%" + backupFileName);
+                var finishDate = command.ExecuteScalar();
+                command.Parameters.Clear();
+
+                if (finishDate != null)
+                {
+                    command.CommandText = @"
+                        SELECT mf.physical_device_name
+                        FROM msdb.dbo.backupset b
+                        JOIN msdb.dbo.backupmediafamily mf ON b.media_set_id = mf.media_set_id
+                        WHERE b.database_name = @db AND b.type = 'L' AND b.backup_finish_date > @fullTime
+                        ORDER BY b.backup_finish_date ASC;";
+                    command.Parameters.AddWithValue("@db", databaseName);
+                    command.Parameters.AddWithValue("@fullTime", (DateTime)finishDate);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read()) logFiles.Add(reader.GetString(0));
+                    }
+                    command.Parameters.Clear();
+                }
             }
+
+            command.CommandText = $@"
+                ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                RESTORE DATABASE [{databaseName}] FROM DISK = @bp WITH REPLACE, NORECOVERY;";
+            command.Parameters.AddWithValue("@bp", backupPath);
+            command.ExecuteNonQuery();
             command.Parameters.Clear();
 
-            // restore transaction logs in order
-            foreach (var logFile in logFiles)
+            bool recoveryPerformed = false;
+            if (includeLogs && logFiles.Count > 0)
             {
-                command.CommandText = $@"
-                    RESTORE LOG [{databaseName}]
-                    FROM DISK = '{logFile}'
-                    WITH NORECOVERY;";
+                foreach (var logFile in logFiles)
+                {
+                    command.CommandText = "DECLARE @exists INT; EXEC master.dbo.xp_fileexist @path, @exists OUTPUT; SELECT @exists;";
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@path", logFile);
+                    var fileExists = (int)command.ExecuteScalar();
+
+                    if (fileExists == 1)
+                    {
+                        try
+                        {
+                            bool isLast = (logFile == logFiles.Last());
+                            command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {(isLast ? "RECOVERY" : "NORECOVERY")};";
+                            command.Parameters.Clear();
+                            command.Parameters.AddWithValue("@lp", logFile);
+                            command.ExecuteNonQuery();
+                            
+                            if (isLast) recoveryPerformed = true;
+                        }
+                        catch (SqlException ex) when (ex.Number == 4305)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (!recoveryPerformed)
+            {
+                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+                command.Parameters.Clear();
                 command.ExecuteNonQuery();
             }
-
-            // finalize restore
-            command.CommandText = $@"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
-            command.ExecuteNonQuery();
-
         }
         catch (Exception ex)
         {
+            try
+            {
+                command.Parameters.Clear();
+                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+                command.ExecuteNonQuery();
+            }
+            catch { }
+
             throw new DatabaseRestoreException("RestoreDatabaseException", ex);
         }
         finally
         {
-            // set database back to MULTI_USER
-            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET MULTI_USER;";
-            command.ExecuteNonQuery();
+            try
+            {
+                command.Parameters.Clear();
+                command.CommandText = $@"
+                    IF EXISTS (SELECT 1 FROM sys.databases WHERE name = @db AND state = 0)
+                    BEGIN
+                        ALTER DATABASE [{databaseName}] SET MULTI_USER;
+                    END";
+                command.Parameters.AddWithValue("@db", databaseName);
+                command.ExecuteNonQuery();
+            }
+            catch { }
         }
     }
 

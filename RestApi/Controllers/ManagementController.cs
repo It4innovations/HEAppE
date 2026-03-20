@@ -28,17 +28,9 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
-using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
@@ -57,6 +49,9 @@ public class ManagementController : BaseController<ManagementController>
     ///     Constructor
     /// </summary>
     /// <param name="logger">Logger instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
+    /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
@@ -102,8 +97,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult InstanceInformation(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"InstanceInformation\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -146,8 +139,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult VersionInformation(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"VersionInformation\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -181,7 +172,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListCommandTemplate(string sessionCode, long id)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ListCommandTemplate\"");
         var model = new ListCommandTemplateModel
         {
             SessionCode = sessionCode,
@@ -210,7 +200,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListCommandTemplates(string sessionCode, long projectId)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ListCommandTemplates\"");
         var listCommandTemplatesModel = new ListCommandTemplatesModel
         {
             SessionCode = sessionCode,
@@ -237,7 +226,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = _managementService.CreateCommandTemplateModel(model.Name, model.Description,
@@ -274,7 +262,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateGenericCommandTemplate(CreateGenericCommandTemplateModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateGenericCommandTemplate\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = _managementService.CreateGenericCommandTemplate(model.Name, model.Description,
@@ -314,7 +301,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = await _managementService.CreateCommandTemplateFromGeneric(
@@ -340,7 +326,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = _managementService.ModifyCommandTemplateModel(model.Id, model.Name, model.Description,
@@ -366,7 +351,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyGenericCommandTemplate(ModifyGenericCommandTemplateModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyGenericCommandTemplate\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = _managementService.ModifyGenericCommandTemplate(model.Id, model.Name, model.Description,
@@ -391,7 +375,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplate = await _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId,
@@ -417,7 +400,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RemoveCommandTemplateModel\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         
@@ -445,9 +427,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetCommandTemplateParameterById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetCommandTemplateParameterById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var commandTemplateParameter = _managementService.GetCommandTemplateParameterById(id, sessionCode);
         return Ok(commandTemplateParameter);
     }
@@ -467,7 +446,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateCommandTemplateParameter(CreateCommandTemplateParameterModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateCommandTemplateParameter\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplateParameter = _managementService.CreateCommandTemplateParameter(model.Identifier, model.Query,
@@ -491,7 +469,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyCommandTemplateParameter(ModifyCommandTemplateParameterModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCommandTemplateParameter\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplateParameter = _managementService.ModifyCommandTemplateParameter(model.Id, model.Identifier,
@@ -516,7 +493,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveCommandTemplateParameter(RemoveCommandTemplateParameterModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RemoveCommandTemplateParameter\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -826,9 +802,6 @@ public class ManagementController : BaseController<ManagementController>
     public IActionResult GetProjectsByAccountingStrings([FromQuery] string[] accountingString, string sessionCode)
     {
         List<ProjectExt> projects = new();
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectsByAccountingStrings\" Parameters: AccountingString: \"{string.Join(",", accountingString)}\", SessionCode: \"{sessionCode}\"");
-
         foreach (var element in accountingString)
             try
             {
@@ -860,7 +833,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListProjects(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"Projects\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -882,9 +854,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var project = _managementService.GetProjectById(id, sessionCode);
         return Ok(project);
     }
@@ -904,8 +873,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateProject(CreateProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -934,8 +901,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyProject(ModifyProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -961,8 +926,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveProject(RemoveProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -991,9 +954,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusterById\" Parameters: ProjectId: \"{projectId}\", ClusterId: \"{clusterId}\", SessionCode: \"{sessionCode}\"");
-
         var clusterProject = _managementService.GetProjectAssignmentToClusterById(projectId, clusterId, sessionCode);
         return Ok(clusterProject);
     }
@@ -1013,8 +973,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateProjectAssignmentToCluster(CreateProjectAssignmentToClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1039,8 +997,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyProjectAssignmentToCluster(ModifyProjectAssignmentToClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1065,8 +1021,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveProjectAssignmentToCluster(RemoveProjectAssignmentToClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1084,9 +1038,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectAssignmentToClusters(long projectId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusters\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
-
         var clusterProject = _managementService.GetProjectAssignmentToClusters(projectId, sessionCode);
         return Ok(clusterProject);
     }
@@ -1110,9 +1061,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var cluster = _managementService.GetClusterById(id, sessionCode);
         return Ok(cluster);
     }
@@ -1132,8 +1080,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateCluster(CreateClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1160,8 +1106,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyCluster(ModifyClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1188,8 +1132,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveCluster(RemoveClusterModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveCluster\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1212,9 +1154,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetAllClusters(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetAllClusters\", SessionCode: \"{sessionCode}\"");
-
         var clusters = _managementService.GetClusters(sessionCode);
         return Ok(clusters);
     }
@@ -1239,7 +1178,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListClusterNodeTypes(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypes\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1261,9 +1199,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterNodeTypeById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterNodeTypeById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var clusterNodeType = _managementService.GetClusterNodeTypeById(id, sessionCode);
         return Ok(clusterNodeType);
     }
@@ -1283,8 +1218,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateClusterNodeType(CreateClusterNodeTypeModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateClusterNodeType\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1311,8 +1244,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyClusterNodeType(ModifyClusterNodeTypeModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyClusterNodeType\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1340,8 +1271,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveClusterNodeType(RemoveClusterNodeTypeModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveClusterNodeType\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1369,9 +1298,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterProxyConnectionById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterProxyConnectionById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var clusterProxyConnection = _managementService.GetClusterProxyConnectionById(id, sessionCode);
         return Ok(clusterProxyConnection);
     }
@@ -1391,8 +1317,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateClusterProxyConnection(CreateClusterProxyConnectionModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateClusterProxyConnection\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1417,8 +1341,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyClusterProxyConnection(ModifyClusterProxyConnectionModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyClusterProxyConnection\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1444,8 +1366,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveClusterProxyConnection(RemoveClusterProxyConnectionModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveClusterProxyConnection\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1468,9 +1388,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterProxyConnections(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterProxyConnections\" Parameters: SessionCode: \"{sessionCode}\"");
-
         var clusterProxyConnection = _managementService.GetClusterProxyConnections(sessionCode);
         return Ok(clusterProxyConnection);
     }
@@ -1495,7 +1412,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListFileTransferMethods(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"FileTransferMethods\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1517,9 +1433,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetFileTransferMethodById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetFileTransferMethodById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var fileTransferMethod = _managementService.GetFileTransferMethodById(id, sessionCode);
         return Ok(fileTransferMethod);
     }
@@ -1539,8 +1452,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateFileTransferMethod(CreateFileTransferMethodModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateFileTransferMethod\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1565,8 +1476,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyFileTransferMethod(ModifyFileTransferMethodModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyFileTransferMethod\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1591,8 +1500,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveFileTransferMethod(RemoveFileTransferMethodModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveFileTransferMethod\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1620,9 +1527,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterNodeTypeAggregationById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregationById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var clusterNodeTypeAggregation = _managementService.GetClusterNodeTypeAggregationById(id, sessionCode);
         return Ok(clusterNodeTypeAggregation);
     }
@@ -1641,9 +1545,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetClusterNodeTypeAggregations(string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregations\" Parameters: SessionCode: \"{sessionCode}\"");
-
         var clusterNodeTypeAggregations = _managementService.GetClusterNodeTypeAggregations(sessionCode);
         return Ok(clusterNodeTypeAggregations);
     }
@@ -1663,8 +1564,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateClusterNodeTypeAggregation(CreateClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1690,8 +1589,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyClusterNodeTypeAggregation(ModifyClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1717,8 +1614,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveClusterNodeTypeAggregation(RemoveClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveClusterNodeTypeAggregation\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1747,7 +1642,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListClusterNodeTypeAggregationAccountings(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypeAggregationAccountings\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1771,9 +1665,6 @@ public class ManagementController : BaseController<ManagementController>
     public IActionResult GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId,
         long accountingId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregationAccountingById\" Parameters: ClusterNodeTypeAggregationId: \"{clusterNodeTypeAggregationId}\" , AccountingId: \"{accountingId}\", SessionCode: \"{sessionCode}\"");
-
         var clusterNodeTypeAggregationAccounting =
             _managementService.GetClusterNodeTypeAggregationAccountingById(clusterNodeTypeAggregationId, accountingId,
                 sessionCode);
@@ -1796,8 +1687,6 @@ public class ManagementController : BaseController<ManagementController>
     public IActionResult CreateClusterNodeTypeAggregationAccounting(
         CreateClusterNodeTypeAggregationAccountingModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateClusterNodeTypeAggregationAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1824,8 +1713,6 @@ public class ManagementController : BaseController<ManagementController>
     public IActionResult RemoveClusterNodeTypeAggregationAccounting(
         RemoveClusterNodeTypeAggregationAccountingModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveClusterNodeTypeAggregationAccounting\" Parameters: ClusterNodeTypeAggregationId: \"{model.ClusterNodeTypeAggregationId}\" , AccountingId: \"{model.AccountingId}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1855,7 +1742,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListAccountings(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"Accountings\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1877,9 +1763,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetAccountingById(long id, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetAccountingById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
-
         var accounting = _managementService.GetAccountingById(id, sessionCode);
         return Ok(accounting);
     }
@@ -1899,8 +1782,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateAccounting(CreateAccountingModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1924,8 +1805,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyAccounting(ModifyAccountingModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1950,8 +1829,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveAccounting(RemoveAccountingModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveAccounting\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -1981,9 +1858,6 @@ public class ManagementController : BaseController<ManagementController>
     public IActionResult GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId,
         string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationById\" Parameters: ProjectId: \"{projectId}\", ClusterNodeTypeAggregationId: \"{clusterNodeTypeAggregationId}\", SessionCode: \"{sessionCode}\"");
-
         var projectClusterNodeTypeAggregation =
             _managementService.GetProjectClusterNodeTypeAggregationById(projectId, clusterNodeTypeAggregationId,
                 sessionCode);
@@ -2005,9 +1879,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectClusterNodeTypeAggregations(long? projectId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationsByProjectId\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
-
         if (projectId.HasValue)
         {
             var projectClusterNodeTypeAggregations =
@@ -2040,8 +1911,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateProjectClusterNodeTypeAggregation(CreateProjectClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateProjectClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2066,8 +1935,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifyProjectClusterNodeTypeAggregation(ModifyProjectClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifyProjectClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2092,8 +1959,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveProjectClusterNodeTypeAggregation(RemoveProjectClusterNodeTypeAggregationModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveProjectClusterNodeTypeAggregation\" Parameters: ProjectId: \"{model.ProjectId}\", ClusterNodeTypeAggregationId: \"{model.ClusterNodeTypeAggregationId}\", SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2124,8 +1989,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListSubProjects(long projectId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ListSubProjects\" Parameters: SessionCode: \"{sessionCode}\"");
         var model = new ListSubProjectsModel
         {
             Id = projectId,
@@ -2154,8 +2017,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListSubProject(long subProjectId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ListSubProject\" Parameters: SessionCode: \"{sessionCode}\"");
         var model = new ListSubProjectModel
         {
             Id = subProjectId,
@@ -2183,8 +2044,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CreateSubProject(CreateSubProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"CreateSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2209,8 +2068,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ModifySubProject(ModifySubProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"ModifySubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2235,8 +2092,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveSubProject(RemoveSubProjectModel model)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"RemoveSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2264,8 +2119,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSecureShellKeys(long projectId, string sessionCode)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"GetSecureShellKeys\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
         GetSecureShellKeysModel model = new()
         {
             ProjectId = projectId,
@@ -2292,7 +2145,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GenerateSecureShellKey(CreateSecureShellKeyModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"GenerateSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2316,7 +2168,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyClusterAuthenticationCredential\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2339,7 +2190,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2362,7 +2212,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RemoveSecureShellKey(RemoveSecureShellKeyModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2387,7 +2236,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> InitializeClusterScriptDirectory(InitializeClusterScriptDirectoryModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"InitializeClusterScriptDirectory\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2416,8 +2264,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> TestClusterAccessForAccount(string username, long projectId, string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
-
         var validationResult = new ManagementValidator(new TestClusterAccessForAccountModel
         {
             ProjectId = projectId,
@@ -2450,8 +2296,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ClusterAccountStatus(string username, long projectId, string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterAccountStatus\"");
-
         var validationResult = new ManagementValidator(new TestClusterAccessForAccountModel
         {
             ProjectId = projectId,
@@ -2481,8 +2325,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ComputeAccounting(ComputeAccountingModel model)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"ComputeAccounting\"");
-
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2501,7 +2343,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListAccountingStates(long projectId, string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"AccountingState\"");
         var model = new AccountingStateModel
         {
             ProjectId = projectId,
@@ -2524,7 +2365,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
         var model = new StatusModel
         {
             ProjectId = projectId,
@@ -2545,7 +2385,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
         var model = new StatusModel
         {
             ProjectId = projectId,
@@ -2572,8 +2411,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListDatabaseBackups([FromQuery] ListDatabaseBackupsModel model)
     {
-        _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListDatabaseBackups\" Parameters: From: \"{model.FromDateTime}\", To: \"{model.ToDateTime}\", Type: \"{model.Type}\", SessionCode: \"{model.SessionCode}\"");
-
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2597,8 +2434,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> BackupDatabase(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
-
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2622,8 +2457,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult BackupDatabaseTransactionLogs(string sessionCode)
     {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabaseTransactionLogs\"");
-
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -2648,8 +2481,6 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult BackupDatabase(RestoreDatabaseModel model)
     {
-        _logger.LogDebug($"Endpoint: \"Management\" Method: \"RestoreDatabase\" Parameters:  BackupFileName : \"{model.BackupFileName}\", IncludeLogs: \"{model.IncludeLogs}\", SessionCode: \"{model.SessionCode}\"");
-
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

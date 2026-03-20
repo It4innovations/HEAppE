@@ -15,6 +15,7 @@
     <ItemGroup>
       <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
       <ProjectReference Include="..\ExternalAuthentication\ExternalAuthentication.csproj" />
+      <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
     </ItemGroup>
 
 </Project>

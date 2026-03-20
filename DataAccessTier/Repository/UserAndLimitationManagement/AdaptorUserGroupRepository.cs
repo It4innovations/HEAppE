@@ -65,5 +65,11 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
             .ToList();
     }
 
+    public IQueryable<AdaptorUserGroup> GetQueryableWithoutFilters()
+    {
+        return _dbSet
+            .IgnoreQueryFilters();
+    }
+
     #endregion
 }

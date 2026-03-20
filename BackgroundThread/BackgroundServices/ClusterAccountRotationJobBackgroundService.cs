@@ -19,17 +19,18 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public ClusterAccountRotationJobBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory, 
+        BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)
     {
         _log = LogManager.GetLogger(GetType());
@@ -37,6 +38,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
         _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -82,7 +84,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.ClusterAccountRotationJobCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

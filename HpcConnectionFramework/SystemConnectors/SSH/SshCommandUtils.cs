@@ -122,6 +122,7 @@ internal static class SshCommandUtils
         return ex is System.Net.Sockets.SocketException || 
                ex is TimeoutException || 
                ex is Renci.SshNet.Common.SshConnectionException ||
-               ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase);
+               ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("Failed to open a channel", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -19,17 +19,18 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public CloseConnectionToFinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory, 
+        BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)
     {
         _log = LogManager.GetLogger(GetType());
@@ -37,6 +38,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
         _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -84,7 +86,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.CloseConnectionToFinishedJobsCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

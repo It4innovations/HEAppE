@@ -13,8 +13,6 @@
         <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <Reference Include="Renci.SshNet">
-            <HintPath>..\dll\Renci.SshNet.dll</HintPath>
-        </Reference>
+        <PackageReference Include="SSH.NET" Version="2025.0.0" />
     </ItemGroup>
 </Project>

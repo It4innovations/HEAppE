@@ -101,9 +101,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                     : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
             return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
         }
-        catch (PbsException)
+        catch (PbsException ex)
         {
-            throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
+            throw new PbsException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
                 command.Result, command.Error, sshCommandBase64)
             {
                 CommandError = command.Error
@@ -209,9 +209,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
-        catch (PbsException)
+        catch (PbsException ex)
         {
-            throw new PbsException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+            throw new PbsException("ClusterUsageException", ex, nodeType.Name, command.Result, command.Error, sshCommand)
             {
                 CommandError = command.Error
             };
@@ -248,9 +248,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 .Distinct()
                 .ToList();
         }
-        catch (PbsException)
+        catch (PbsException ex)
         {
-            throw new PbsException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error,
+            throw new PbsException("GetAllocatedNodesException", ex, taskInfo.ScheduledJobId, command.Result, command.Error,
                 sshCommand)
             {
                 CommandError = command.Error
@@ -423,9 +423,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
             return submittedTasksInfo;
         }
-        catch (PbsException)
+        catch (PbsException ex)
         {
-            throw new PbsException("GetActualTasksInfo", string.Join(", ", scheduledJobIds), command.Result,
+            throw new PbsException("GetActualTasksInfo", ex, string.Join(", ", scheduledJobIds), command.Result,
                 command.Error, sshCommand)
             {
                 CommandError = command.Error

@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.11
+
+### Performance
+- Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
+
+## V6.2.10
+
+### Fixed
+- Resolved issues where configuration updates were not consistently propagated across all services.
+
+### Changed
+- Refactored configuration management to utilize Dependency Injection for more reliable access to settings.
+- Consolidated configuration binding logic across `RestApi`, `DataStagingAPI`, and `BackgroundThread` to reduce redundancy.
+- Enhanced `SSH connection` robustness and improved pooling strategy for high-load scenarios.
+
+## V6.2.9
+
+### Added
+- Enabled and configured JWT token introspection for Bearer authentication to ensure correct token validation.
+- Introduced dynamic User-Agent for introspection clients and automated token endpoint discovery.
+- Added max ssh client connections per user configuration and improved connection pooling.
+- Enhanced logging with early and consistent user context, including Job ID and user details.
+- Introduced a global HTTP retry policy for all external services called by HEAppE Middleware.
+- Added ExpirioSettings configuration binding and enhanced Swagger API documentation.
+- Differentiated user and system actions in logs for better auditability.
+
+### Fixed
+- Mapped NotFound and BadRequest from external services to 401 Unauthorized status in exception-middleware.
+- Enhanced sbatch error handling and ID extraction in slurm-adapter.
+- Relocated and fixed initialization logic for missing credentials to improve system robustness.
+- Added `Failed to open a channel` to connection exceptions for SSH communication.
+- Improved JSON deserialization error handling for external API responses.
+- Corrected exception messages for missing credentials in cluster-info.
+
+### Changed
+- Decoupled SshCommandWrapper from SshCommand and improved resource management.
+- Refactored Bearer authentication conditions for better consistency and reliability.
+- Centralized Job ID logging context and standardized user property conversion.
+- Reduced log level for response bodies in auth-middleware and removed verbose logging in performance-critical paths.
+- Improved resource accounting calculation reliability.
+- Refined Lexis token handling and improved external exception processing.
+
+### Chore
+- Disabled various compiler warnings and updated core dependencies.
+- Standardized API request logging and improved error reporting.
+
+## V6.2.8
+
+### Changed
+- Significant performance enhancements were implemented for endpoints responsible for fetching large volumes of job-related data.
+- The reporting engine now leverages IQueryable methods, allowing for more efficient database communication and reduced memory overhead.
+- By utilizing AsNoTracking() and AsSplitQuery(), the system now bypasses unnecessary entity tracking and handles complex data relationships with fewer database roundtrips.
+- The reporting logic directly constructs optimized queries, ensuring faster response times even when processing extensive job histories or accounting records.
+
+## V6.2.7
+
+### Changed
+- Improved `HEAppE Scripts` remote repository update logic when synchronizing with the remote repository at job creation.
+
+## V6.2.6
+
+### Changed
+- Make CA name attribute in appsettings optional for SSH CA service.
+
+## V6.2.5
+
+### Added
+- Extended `DataStagingApi` with `ProvideCredentials` endpoint.
+
+## V6.2.4
+
+### Fixed
+- Corrected the `IsInitialized` flag handling for new cluster project credentials.
+- Extended string length limits for cluster attribute validation to prevent API errors.
+- Fixed various issues ensuring credentials remain consistent across project-cluster assignments and cluster info updates.
+
+### Performance
+- Disabled minimum request and response data rates to prevent premature connection timeouts in specific network environments.
+
+## V6.2.3
+
+### Added
+- **User-specific tunnel reuse**: Implemented logic to identify and reuse existing active tunnels for the same user and task. This prevents redundant SSH connection overhead and optimizes local port utilization.
+- **Resilient Database Restore:** Optimized the restoration workflow by pre-fetching backup metadata, implementing atomic state switching to prevent connection hijacking, and adding automatic recovery failsafes to eliminate the risk of databases remaining in a Restoring state.
+- Added logic for invalidation all caches with required admin role.
+
+### Changed
+- UserOrg Command Template authorization service now grants access if the template is enabled in at least one matching project resource entry (if enabled).
+
 ## V6.2.2
 
 ### Changed

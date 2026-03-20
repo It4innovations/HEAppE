@@ -44,7 +44,10 @@ public class SshClientAdapter
         if (_sshClient is KerberosSshClient krbSshCommand)
             return krbSshCommand.RunCommand(command);
         
-        return new SshCommandWrapper(_sshClient.RunCommand(command));
+        using var cmd = _sshClient.CreateCommand(command);
+        cmd.Execute();
+
+        return new SshCommandWrapper(cmd);
     }
 
     /// <summary>

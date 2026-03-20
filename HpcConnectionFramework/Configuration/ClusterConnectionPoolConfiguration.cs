@@ -17,5 +17,10 @@ public sealed class ClusterConnectionPoolConfiguration
     /// </summary>
     public int ConnectionPoolMaxUnusedInterval { get; set; } = 1800;
 
+    /// <summary>
+    ///     Connection pool maximum connections per user (slots per credential)
+    /// </summary>
+    public int MaxConnectionsPerUser { get; set; } = 10;
+
     #endregion
 }

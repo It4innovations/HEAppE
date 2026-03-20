@@ -1,29 +1,12 @@
-#pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using System.Threading;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
-using HEAppE.BusinessLogicTier.AuthMiddleware;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.Services.UserOrg;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Logging;
-using SshCaAPI;
 
-namespace HEAppE.RestApi.Logging;
+namespace HEAppE.DataStagingAPI.EndpointFilters;
 
-public class LogRequestModelFilter : IAsyncActionFilter
+public class LogRequestEndpointFilter : IEndpointFilter
 {
-    private readonly ILogger<LogRequestModelFilter> _logger;
+    private readonly ILogger<LogRequestEndpointFilter> _logger;
 
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,15 +14,9 @@ public class LogRequestModelFilter : IAsyncActionFilter
         "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo?> SessionCodePropertyCache = new();
-
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public LogRequestModelFilter(
-        ILogger<LogRequestModelFilter> logger,
-        IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService,
-        IHttpContextKeys httpContextKeys)
+    public LogRequestEndpointFilter(ILogger<LogRequestEndpointFilter> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -57,33 +34,76 @@ public class LogRequestModelFilter : IAsyncActionFilter
         };
     }
 
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        LogRequestDetailsAsync(context);
-        await next();
+        long? jobId = null;
+        foreach (var arg in context.Arguments)
+        {
+            if (arg == null) continue;
+            var type = arg.GetType();
+            var propNames = new[] { "JobId", "SubmittedJobInfoId", "CreatedJobInfoId", "jobId", "submittedJobInfoId", "createdJobInfoId" };
+            foreach (var name in propNames)
+            {
+                var prop = type.GetProperty(name, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (prop != null)
+                {
+                    var val = prop.GetValue(arg);
+                    if (val is long id && id > 0)
+                    {
+                        jobId = id;
+                        break;
+                    }
+                }
+            }
+            if (jobId.HasValue) break;
+        }
+
+        if (jobId.HasValue)
+        {
+            HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);
+        }
+
+        try
+        {
+            LogRequestDetails(context);
+            return await next(context);
+        }
+        finally
+        {
+            if (jobId.HasValue)
+            {
+                HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+            }
+        }
     }
 
-    private void LogRequestDetailsAsync(ActionExecutingContext context)
+    private void LogRequestDetails(EndpointFilterInvocationContext context)
     {
         try
         {
-            var safeArguments = context.ActionArguments
-                .Where(kvp => !IsUnsafeType(kvp.Value))
-                .ToDictionary(k => k.Key, v => v.Value);
+            var arguments = new Dictionary<string, object?>();
+            for (int i = 0; i < context.Arguments.Count; i++)
+            {
+                var arg = context.Arguments[i];
+                if (!IsUnsafeType(arg))
+                {
+                    arguments.Add($"arg{i}", arg);
+                }
+            }
 
-            var serializedArgs = JsonSerializer.Serialize(safeArguments, _jsonOptions);
+            var serializedArgs = JsonSerializer.Serialize(arguments, _jsonOptions);
 
             var safeHeaders = ExtractSafeHeaders(context.HttpContext.Request.Headers);
             var serializedHeaders = JsonSerializer.Serialize(safeHeaders, _jsonOptions);
 
             _logger.LogInformation(
-                "Action: {Action}, Headers: {Headers}, Arguments: {Arguments}",
-                context.ActionDescriptor.DisplayName, serializedHeaders, serializedArgs);
+                "Endpoint: {Endpoint}, Headers: {Headers}, Arguments: {Arguments}",
+                context.HttpContext.Request.Path, serializedHeaders, serializedArgs);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to log request information for action {Action}",
-                context.ActionDescriptor.DisplayName);
+            _logger.LogWarning(ex, "Failed to log request information for endpoint {Endpoint}",
+                context.HttpContext.Request.Path);
         }
     }
 
@@ -123,8 +143,11 @@ public class LogRequestModelFilter : IAsyncActionFilter
     {
         if (value == null) return false;
         if (value is CancellationToken) return true;
-        if (value is System.IO.Stream) return true;
+        if (value is Stream) return true;
         if (value is Delegate) return true;
+        if (value is HttpContext) return true;
+        if (value is HttpRequest) return true;
+        if (value is HttpResponse) return true;
         return false;
     }
 

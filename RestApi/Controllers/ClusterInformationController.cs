@@ -43,6 +43,8 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
+    /// <param name="userOrgService"></param>
+    /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
     public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                         IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger, cacheProvider)
@@ -75,8 +77,6 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     public async Task<IActionResult> ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null, bool? forceRefresh = null)
     {
-        _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\", Parameters: \"SessionCode: {sessionCode}, ClusterName: {clusterName}, NodeTypeName: {nodeTypeName}, " +
-                         $"ProjectName: {projectName}, AccountingString: {accountingString}, CommandTemplateName: {commandTemplateName}\"");
         ListAvailableClustersModel model = new()
         {
             SessionCode = sessionCode
@@ -120,7 +120,6 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RequestCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
     {
-        _logger.LogDebug("Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
@@ -151,8 +150,6 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
             ClusterNodeId = clusterNodeId,
             ProjectId = projectId
         };
-        _logger.LogDebug(
-            $"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

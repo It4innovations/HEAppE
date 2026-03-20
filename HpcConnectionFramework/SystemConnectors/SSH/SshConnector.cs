@@ -1,3 +1,4 @@
+#pragma warning disable CA2200
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
@@ -145,8 +146,6 @@ public class SshConnector : IPoolableAdapter
     {//TODO: do this implementation
         if (connection is SshClient sshClient)
         {
-            if (!sshClient.IsConnected) return false;
-
             try
             {
                 return sshClient.IsConnected; 

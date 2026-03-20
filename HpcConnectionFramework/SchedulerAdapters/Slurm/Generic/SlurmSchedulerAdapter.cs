@@ -75,10 +75,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
             return submittedTasksInfo;
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
             throw new SlurmException(
-                "GetActualTasksInfo",
+                "GetActualTasksInfo", ex,
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
                 command.Result,
                 command.Error)
@@ -134,7 +134,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
 
-        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); if [[ ""$RAW_OUT"" == *""error""* || ""$RAW_OUT"" == *""Invalid""* ]]; then echo ""$RAW_OUT"" >&2; exit 1; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
+        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); ST=$?; if [ $ST -ne 0 ] || [[ ""$RAW_OUT"" == *""error""* ]] || [[ ""$RAW_OUT"" == *""Invalid""* ]] || [[ ""$RAW_OUT"" == *""Failed""* ]]; then echo ""$RAW_OUT"" >&2; if [ $ST -ne 0 ]; then exit $ST; else exit 1; fi; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | head -n 1 | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
         SshCommandWrapper command = null;
         try
         {
@@ -147,7 +147,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         catch (Exception ex)
         {
             // Ensure detailed error reporting if the cluster communication fails
-            throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
+            throw new SlurmException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
                 command?.Error ?? ex.Message, command?.Result)
             {
                 CommandError = command?.Error ?? ex.Message
@@ -232,9 +232,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
-            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error)
+            throw new SlurmException("ClusterUsageException", ex, nodeType.Name, command.Result, command.Error)
             {
                 CommandError = command.Error
             };
@@ -271,9 +271,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 .Distinct()
                 .ToList();
         }
-        catch (SlurmException)
+        catch (SlurmException ex)
         {
-            throw new SlurmException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result,
+            throw new SlurmException("GetAllocatedNodesException", ex, taskInfo.ScheduledJobId, command.Result,
                 command.Error, sshCommand)
             {
                 CommandError = command.Error

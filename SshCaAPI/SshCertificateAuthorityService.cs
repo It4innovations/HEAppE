@@ -1,3 +1,4 @@
+#pragma warning disable CS8602, CS8629, CS8604, CS8618
 ﻿using HEAppE.Exceptions.External;
 using HEAppE.RestUtils;
 using log4net;
@@ -29,8 +30,18 @@ namespace SshCaAPI
         {
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-            string url = $"{baseUri}/{caName}/";
-            if (string.IsNullOrEmpty(baseUri) && string.IsNullOrEmpty(caName))
+            //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
+            string url = string.Empty;
+            if (string.IsNullOrEmpty(caName))
+            {
+                url = baseUri;
+            }
+            else
+            {
+                url = $"{baseUri.TrimEnd('/')}/{caName}";
+            }
+            
+            if (string.IsNullOrEmpty(baseUri))
             {
                 return;
             }

@@ -1,3 +1,4 @@
+#pragma warning disable CA2200
 ﻿using System;
 using System.IO;
 using System.Text;
@@ -104,6 +105,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
         });
         sftpClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
+        sftpClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
         return sftpClient;
     }
 
@@ -219,7 +221,14 @@ public class SftpFileSystemConnector : IPoolableAdapter
     {
         if (connection is SftpClient sshClient)
         {
-            return sshClient.IsConnected;
+            try
+            {
+                return sshClient.IsConnected; 
+            }
+            catch
+            {
+                return false;
+            }
         }
         return false;
     }
