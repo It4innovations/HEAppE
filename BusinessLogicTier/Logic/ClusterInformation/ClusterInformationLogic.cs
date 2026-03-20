@@ -164,6 +164,12 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
                 clusterId, projectId, false, null);
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        if (credentials.ToList().Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication && adaptorUserId.HasValue)
+        {
+            _log.Debug($"No credentials found for ClusterId: {clusterId}, ProjectId: {projectId}. Attempting to create and initialize credentials for adaptor user {adaptorUserId.Value}.");
+            var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId.Value);
+            credentials = newCredentials.ToList(); 
+        }
         foreach (var credential in credentials)
         {
             var status = await managementLogic.InitializeClusterScriptDirectory(
