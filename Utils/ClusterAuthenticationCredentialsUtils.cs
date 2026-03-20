@@ -13,6 +13,11 @@ public static class ClusterAuthenticationCredentialsUtils
     {
         if (cluster.ProxyConnection is null)
         {
+            //skip if type is >= 13 - other than classic 
+            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
+            {
+                return credential.AuthenticationType;
+            }
             if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
                 return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
 
@@ -47,6 +52,11 @@ public static class ClusterAuthenticationCredentialsUtils
         }
         else
         {
+            //skip if type is >= 13 - other than classic 
+            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
+            {
+                return credential.AuthenticationType;
+            }
             if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
                 return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
             
