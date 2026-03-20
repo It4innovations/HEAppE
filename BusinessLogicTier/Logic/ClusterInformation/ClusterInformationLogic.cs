@@ -168,8 +168,9 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         {
             _log.Debug($"No credentials found for ClusterId: {clusterId}, ProjectId: {projectId}. Attempting to create and initialize credentials for adaptor user {adaptorUserId.Value}.");
             var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId.Value);
-            credentials = newCredentials.ToList(); 
+            return newCredentials.ToList(); 
         }
+        
         foreach (var credential in credentials)
         {
             var status = await managementLogic.InitializeClusterScriptDirectory(
@@ -329,7 +330,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long projectId, 
         long adaptorUserId)
     {
-        _log.InfoFormat("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
+        _log.InfoFormat("Creating missing credentials for ClusterId: {0}, ProjectId: {1}, AdaptorUser: {2}", clusterId, projectId, adaptorUserId);
 
         //invoke management logic and run CreateSecureShellKey
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
