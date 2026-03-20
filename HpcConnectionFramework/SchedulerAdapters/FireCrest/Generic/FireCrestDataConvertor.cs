@@ -254,6 +254,14 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
                 { CommandError = "The response from the server was empty." };
         }
 
+        using (JsonDocument document = JsonDocument.Parse(responseMessage.ToLower()))
+        {
+            if (document.RootElement.TryGetProperty("jobid", out var jobid))
+            {
+                return new List<string> { jobid.ToString() };
+            }
+        }
+
         var match = Regex.Match(responseMessage, "\"job(?:I|i)d\"\\s*:\\s*(\\d+)");
         if (match.Success && match.Groups.Count > 1)
         {
