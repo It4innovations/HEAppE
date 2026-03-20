@@ -348,7 +348,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}");
+            _logger.Error($"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}", ex);
             throw;
         }
     }
