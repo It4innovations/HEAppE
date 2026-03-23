@@ -107,15 +107,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 try
                 {
                     tasks = GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
-                    if (tasks.Count() >= jobIdsWithJobArrayIndexes.Count)
+                    if (tasks.Count() >= jobIdsWithJobArrayIndexes.Count && 
+                        tasks.All(t => !string.IsNullOrEmpty(t.Name) && t.State > TaskState.Configuring))
                     {
-                        // Even if we have all tasks, check if they have Names (eventual consistency)
-                        if (tasks.All(t => !string.IsNullOrEmpty(t.Name)))
-                            return tasks;
-                        
-                        // If some names are missing, we can either wait or proceed with enforcement
-                        // Let's proceed with enforcement if we have all tasks
-                        break;
+                        return tasks;
                     }
                 }
                 catch (PbsException) when (retryCount > 0)
@@ -125,7 +120,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 
                 if (retryCount > 0)
                 {
-                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found in qstat. Retrying in 1s... ({retryCount} attempts left)");
+                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in 1s... ({retryCount} attempts left)");
                     System.Threading.Thread.Sleep(1000);
                 }
                 retryCount--;
@@ -133,9 +128,16 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             
             var resultTasks = (tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes)).ToList();
             
+            _log.Info($"SubmitJob cleanup: {resultTasks.Count} tasks found in qstat response.");
+            
             // Enforce Name mapping if qstat returned incomplete information (eventual consistency)
             foreach (var taskInfo in resultTasks)
             {
+                var oldState = taskInfo.State;
+                // If state is Configuring, we know it was successfully submitted because qsub returned ID
+                if (taskInfo.State == TaskState.Configuring)
+                    taskInfo.State = TaskState.Submitted;
+
                 if (string.IsNullOrEmpty(taskInfo.Name))
                 {
                     for (var i = 0; i < jobSpecification.Tasks.Count; i++)
@@ -147,9 +149,14 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                              taskInfo.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "["))))
                         {
                             taskInfo.Name = jobSpecification.Tasks[i].Id.ToString();
+                            _log.Info($"Enforced name mapping for task {taskInfo.ScheduledJobId}: {taskInfo.Name} (State: {oldState}->{taskInfo.State})");
                             break;
                         }
                     }
+                }
+                else
+                {
+                    _log.Info($"Task {taskInfo.ScheduledJobId} already has name: {taskInfo.Name} (State: {taskInfo.State})");
                 }
             }
             

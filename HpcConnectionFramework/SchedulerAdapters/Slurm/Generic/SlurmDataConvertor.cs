@@ -104,7 +104,7 @@ public class SlurmDataConvertor : SchedulerDataConvertor
             AllocatedCores = obj.UsedCores,
             State = obj.IsDeadLock ? TaskState.Failed : obj.TaskState,
             TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
-                    { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
+                    { AllocationNodeId = s }) // ID will be set by Entity Framework / Logic merging
                 .ToList(),
             ErrorMessage = default,
             Reason = obj.Reason,

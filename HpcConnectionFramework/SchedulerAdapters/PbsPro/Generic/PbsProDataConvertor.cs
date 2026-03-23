@@ -113,7 +113,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
             AllocatedCores = obj.UsedCores,
             State = obj.TaskState,
             TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
-                    { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
+                    { AllocationNodeId = s }) // ID will be set by Entity Framework / Logic merging
                 .ToList(),
             ErrorMessage = default,
             AllParameters = obj.IsJobArrayJob
@@ -135,9 +135,9 @@ public class PbsProDataConvertor : SchedulerDataConvertor
         var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
         PbsProJobInfo aggregateResultObj = null;
 
-        var jobResponseMessages = Regex.Split(response, @"\n\n", RegexOptions.Compiled)
-            .Where(w => !string.IsNullOrEmpty(w))
-            .Select(s => s.Replace("\n\t", string.Empty))
+        var jobResponseMessages = Regex.Split(response, @"\r?\n\s*\r?\n", RegexOptions.Compiled)
+            .Where(w => !string.IsNullOrEmpty(w.Trim()))
+            .Select(s => Regex.Replace(s, @"\r?\n[\s\t]+", string.Empty)) // Join lines that start with whitespace (continuation lines)
             .ToList();
         foreach (var jobResponseMessage in jobResponseMessages)
         {
