@@ -119,27 +119,15 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     {
         using (var process = await _client.ExecuteAsync(commandText))
         {
-            var result = new SshCommandWrapper { CommandText = commandText };
-            var stdout = new StringBuilder();
-            var stderr = new StringBuilder();
-
-            while (true)
+            var (stdout, stderr) = await process.ReadToEndAsStringAsync();
+            
+            return new SshCommandWrapper
             {
-                var (isError, line) = await process.ReadLineAsync();
-                if (line == null) break;
-
-                if (isError) stderr.AppendLine(line);
-                else stdout.AppendLine(line);
-            }
-
-            // Wait for process completion to get exit status
-            await process.WaitForExitAsync();
-            
-            result.Result = stdout.ToString().TrimEnd();
-            result.Error = stderr.ToString().TrimEnd();
-            result.ExitStatus = process.ExitCode;
-            
-            return result;
+                CommandText = commandText,
+                Result = stdout.TrimEnd(),
+                Error = stderr.TrimEnd(),
+                ExitStatus = process.ExitCode
+            };
         }
     }
 
