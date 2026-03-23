@@ -143,7 +143,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
         {
             //For each HPC scheduler job
             var parameters = Regex
-                .Matches(jobResponseMessage, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
+                .Matches(jobResponseMessage, @"(?m)^\s*(?<Key>[^\s].*?)( = |: )(?<Value>.*)", RegexOptions.Compiled)
                 .Where(w => w.Success)
                 .Select(s => new
                 {
