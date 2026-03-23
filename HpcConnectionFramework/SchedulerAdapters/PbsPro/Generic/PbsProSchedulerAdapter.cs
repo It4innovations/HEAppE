@@ -108,7 +108,15 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 {
                     tasks = GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
                     if (tasks.Count() >= jobIdsWithJobArrayIndexes.Count)
-                        return tasks;
+                    {
+                        // Even if we have all tasks, check if they have Names (eventual consistency)
+                        if (tasks.All(t => !string.IsNullOrEmpty(t.Name)))
+                            return tasks;
+                        
+                        // If some names are missing, we can either wait or proceed with enforcement
+                        // Let's proceed with enforcement if we have all tasks
+                        break;
+                    }
                 }
                 catch (PbsException) when (retryCount > 0)
                 {
@@ -133,10 +141,13 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                     for (var i = 0; i < jobSpecification.Tasks.Count; i++)
                     {
                         var originalJobId = jobIds[i];
+                        // Exact match or job array match (e.g. 1234[1] starts with 1234[)
                         if (taskInfo.ScheduledJobId == originalJobId || 
-                            taskInfo.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "[")))
+                            (!string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays) && 
+                             taskInfo.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "["))))
                         {
                             taskInfo.Name = jobSpecification.Tasks[i].Id.ToString();
+                            break;
                         }
                     }
                 }
