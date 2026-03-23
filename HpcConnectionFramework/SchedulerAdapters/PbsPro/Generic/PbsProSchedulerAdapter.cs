@@ -129,36 +129,15 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             var resultTasks = (tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes)).ToList();
             
             _log.Info($"SubmitJob cleanup: {resultTasks.Count} tasks found in qstat response.");
-            
-            // Enforce Name mapping if qstat returned incomplete information (eventual consistency)
-            foreach (var taskInfo in resultTasks)
-            {
-                var oldState = taskInfo.State;
-                // If state is Configuring, we know it was successfully submitted because qsub returned ID
-                if (taskInfo.State == TaskState.Configuring)
-                    taskInfo.State = TaskState.Submitted;
 
-                if (string.IsNullOrEmpty(taskInfo.Name))
-                {
-                    for (var i = 0; i < jobSpecification.Tasks.Count; i++)
-                    {
-                        var originalJobId = jobIds[i];
-                        // Exact match or job array match (e.g. 1234[1] starts with 1234[)
-                        if (taskInfo.ScheduledJobId == originalJobId || 
-                            (!string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays) && 
-                             taskInfo.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "["))))
-                        {
-                            taskInfo.Name = jobSpecification.Tasks[i].Id.ToString();
-                            _log.Info($"Enforced name mapping for task {taskInfo.ScheduledJobId}: {taskInfo.Name} (State: {oldState}->{taskInfo.State})");
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    _log.Info($"Task {taskInfo.ScheduledJobId} already has name: {taskInfo.Name} (State: {taskInfo.State})");
-                }
-            }
+            // Create placeholder DB tasks for enforcement (we only have jobSpecification here)
+            var dbTasks = jobSpecification.Tasks.Select((t, i) => new SubmittedTaskInfo 
+            { 
+                ScheduledJobId = jobIds[i], 
+                Specification = t 
+            }).ToList();
+
+            EnforceMetadataAndLog(resultTasks, dbTasks, "SubmitJob");
             
             return resultTasks;
         }
@@ -192,7 +171,11 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                     ? new List<string> { s.ScheduledJobId }
                     : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
 
-            return GetActualTasksInfo(connectorClient, cluster, jobIdsWithJobArrayIndexes);
+            var result = GetActualTasksInfo(connectorClient, cluster, jobIdsWithJobArrayIndexes).ToList();
+            
+            EnforceMetadataAndLog(result, submitedTasksInfo, "RefreshState");
+            
+            return result;
         }
         catch (SshCommandException ce)
         {
@@ -491,6 +474,48 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             {
                 CommandError = command.Error
             };
+        }
+    }
+
+    private void EnforceMetadataAndLog(List<SubmittedTaskInfo> clusterTasks, IEnumerable<SubmittedTaskInfo> dbTasks, string context)
+    {
+        var dbTasksList = dbTasks.ToList();
+        _log.Info($"[{context}] Validating {clusterTasks.Count} cluster tasks against {dbTasksList.Count} DB tasks.");
+        
+        foreach (var clusterTask in clusterTasks)
+        {
+            var oldState = clusterTask.State;
+            // Always ensure at least Submitted state if we found it in qstat
+            if (clusterTask.State == TaskState.Configuring)
+                clusterTask.State = TaskState.Submitted;
+
+            if (string.IsNullOrEmpty(clusterTask.Name))
+            {
+                foreach (var dbTask in dbTasksList)
+                {
+                    var originalJobId = dbTask.ScheduledJobId;
+                    if (clusterTask.ScheduledJobId == originalJobId || 
+                        (originalJobId != null && originalJobId.EndsWith("[]") && 
+                         clusterTask.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "["))))
+                    {
+                        if (dbTask.Specification != null)
+                        {
+                            clusterTask.Name = dbTask.Specification.Id.ToString();
+                            _log.Info($"[{context}] Enforced name mapping for task {clusterTask.ScheduledJobId}: {clusterTask.Name} (State: {oldState}->{clusterTask.State})");
+                            break;
+                        }
+                    }
+                }
+                
+                if (string.IsNullOrEmpty(clusterTask.Name))
+                {
+                    _log.Warn($"[{context}] Could not find mapping for cluster task {clusterTask.ScheduledJobId} (State: {clusterTask.State})");
+                }
+            }
+            else
+            {
+                _log.Info($"[{context}] Task {clusterTask.ScheduledJobId} has name: {clusterTask.Name} (State: {clusterTask.State})");
+            }
         }
     }
 

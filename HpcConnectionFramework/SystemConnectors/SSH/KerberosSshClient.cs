@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using HEAppE.Exceptions.Internal;
 using log4net;
@@ -118,8 +119,27 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     {
         using (var process = await _client.ExecuteAsync(commandText))
         {
-            (bool isError, string line) = await process.ReadLineAsync();
-            return new SshCommandWrapper(commandText, isError, line);
+            var result = new SshCommandWrapper { CommandText = commandText };
+            var stdout = new StringBuilder();
+            var stderr = new StringBuilder();
+
+            while (true)
+            {
+                var (isError, line) = await process.ReadLineAsync();
+                if (line == null) break;
+
+                if (isError) stderr.AppendLine(line);
+                else stdout.AppendLine(line);
+            }
+
+            // Wait for process completion to get exit status
+            await process.WaitForExitAsync();
+            
+            result.Result = stdout.ToString().TrimEnd();
+            result.Error = stderr.ToString().TrimEnd();
+            result.ExitStatus = process.ExitCode;
+            
+            return result;
         }
     }
 
