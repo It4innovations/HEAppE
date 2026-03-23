@@ -122,7 +122,27 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 }
                 retryCount--;
             }
-            return tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
+            
+            var resultTasks = (tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes)).ToList();
+            
+            // Enforce Name mapping if qstat returned incomplete information (eventual consistency)
+            foreach (var taskInfo in resultTasks)
+            {
+                if (string.IsNullOrEmpty(taskInfo.Name))
+                {
+                    for (var i = 0; i < jobSpecification.Tasks.Count; i++)
+                    {
+                        var originalJobId = jobIds[i];
+                        if (taskInfo.ScheduledJobId == originalJobId || 
+                            taskInfo.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "[")))
+                        {
+                            taskInfo.Name = jobSpecification.Tasks[i].Id.ToString();
+                        }
+                    }
+                }
+            }
+            
+            return resultTasks;
         }
         catch (PbsException ex)
         {
