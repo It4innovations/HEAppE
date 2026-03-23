@@ -99,14 +99,37 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 jobIdsWithJobArrayIndexes.AddRange(string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays)
                     ? new List<string> { jobIds[i] }
                     : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
-            return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
+
+            IEnumerable<SubmittedTaskInfo> tasks = null;
+            int retryCount = 3;
+            while (retryCount >= 0)
+            {
+                try
+                {
+                    tasks = GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
+                    if (tasks.Count() >= jobIdsWithJobArrayIndexes.Count)
+                        return tasks;
+                }
+                catch (PbsException) when (retryCount > 0)
+                {
+                    // eventual consistency: wait and retry
+                }
+                
+                if (retryCount > 0)
+                {
+                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found in qstat. Retrying in 1s... ({retryCount} attempts left)");
+                    System.Threading.Thread.Sleep(1000);
+                }
+                retryCount--;
+            }
+            return tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
         }
         catch (PbsException ex)
         {
             throw new PbsException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
-                command.Result, command.Error, sshCommandBase64)
+                command?.Result, command?.Error, sshCommandBase64)
             {
-                CommandError = command.Error
+                CommandError = command?.Error
             };
         }
     }

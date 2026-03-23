@@ -130,23 +130,43 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
-        // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
-
-        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); ST=$?; if [ $ST -ne 0 ] || [[ ""$RAW_OUT"" == *""error""* ]] || [[ ""$RAW_OUT"" == *""Invalid""* ]] || [[ ""$RAW_OUT"" == *""Failed""* ]]; then echo ""$RAW_OUT"" >&2; if [ $ST -ne 0 ]; then exit $ST; else exit 1; fi; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | head -n 1 | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
         SshCommandWrapper command = null;
         try
         {
-            // Execute the combined command in a single SSH session
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
-        
-            // Parse the detailed job information directly from the combined output
-            return _convertor.ReadParametersFromResponse(jobSpecification.Cluster, command.Result);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sbatchCmd);
+            var scheduledJobIds = _convertor.GetJobIds(command.Result).ToList();
+            
+            var schedulerJobIdClusterAllocationNamePairs = scheduledJobIds.Select(id => (id, jobSpecification.Tasks.First().ClusterNodeType.ClusterAllocationName)).ToList();
+
+            IEnumerable<SubmittedTaskInfo> tasks = null;
+            int retryCount = 3;
+            while (retryCount >= 0)
+            {
+                try
+                {
+                    tasks = GetActualTasksInfo(connectorClient, jobSpecification.Cluster, schedulerJobIdClusterAllocationNamePairs);
+                    if (tasks.Count() >= schedulerJobIdClusterAllocationNamePairs.Count)
+                        return tasks;
+                }
+                catch (SlurmException) when (retryCount > 0)
+                {
+                    // eventual consistency: wait and retry
+                }
+
+                if (retryCount > 0)
+                {
+                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{schedulerJobIdClusterAllocationNamePairs.Count} tasks found in scontrol. Retrying in 1s... ({retryCount} attempts left)");
+                    System.Threading.Thread.Sleep(1000);
+                }
+                retryCount--;
+            }
+
+            return tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, schedulerJobIdClusterAllocationNamePairs);
         }
         catch (Exception ex)
         {
-            // Ensure detailed error reporting if the cluster communication fails
             throw new SlurmException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
                 command?.Error ?? ex.Message, command?.Result)
             {

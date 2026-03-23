@@ -127,29 +127,32 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             SubmittedJobInfo jobInfo;
             jobInfo = CreateSubmittedJobInfo(specification);
-            /*using (var transactionScope = new TransactionScope(
+            using (var transactionScope = new TransactionScope(
                        TransactionScopeOption.Required,
                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
                        TransactionScopeAsyncFlowOption.Enabled))
-                       */
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
 
                 await _unitOfWork.SaveAsync();
+
+                var clusterProject =
+                    _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
+                        jobInfo.Specification.ClusterId, jobInfo.Project.Id)
+                    ?? throw new InvalidRequestException("NotExistingProject");
+
+                //Create job directory
+                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+                    .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
+                        adaptorUserId: loggedUser.Id, _expirioService)
+                    .CreateJobDirectory(jobInfo, clusterProject.ScratchStoragePath,
+                        BusinessLogicConfiguration.SharedAccountsPoolMode,
+                        _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        
+                transactionScope.Complete();
+                return jobInfo;
             }
-
-            var clusterProject =
-                _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
-                    jobInfo.Specification.ClusterId, jobInfo.Project.Id)
-                ?? throw new InvalidRequestException("NotExistingProject");
-
-            //Create job directory
-            SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService)
-                .CreateJobDirectory(jobInfo, clusterProject.ScratchStoragePath, BusinessLogicConfiguration.SharedAccountsPoolMode, 
-                                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-            return jobInfo;
         }
     }
 
@@ -875,15 +878,26 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         try
         {
-            dbJobInfo.Tasks.ForEach(s =>
-                CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Specification.Id.ToString())));
+            var submittedTasksList = submittedTasksInfo.ToList();
+            foreach (var dbTask in dbJobInfo.Tasks)
+            {
+                var taskIdStr = dbTask.Specification.Id.ToString();
+                var matchingClusterTask = submittedTasksList.FirstOrDefault(f => f.Name == taskIdStr);
+                
+                if (matchingClusterTask == null)
+                {
+                    var availableNames = string.Join(", ", submittedTasksList.Select(t => $"'{t.Name}'"));
+                    throw new Exception($"Task mapping failed. Could not find cluster task with Name matching DB TaskSpecification.Id '{taskIdStr}'. Available names from cluster: [{availableNames}]");
+                }
+                
+                CombineSubmittedTaskInfoFromCluster(dbTask, matchingClusterTask);
+            }
         }
         catch (Exception ex)
         {
-            _logger.Error("Error combining submitted job info from cluster: " + ex.Message);
-            throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", dbJobInfo.Id);
+            _logger.Error($"Error combining submitted job info from cluster for job {dbJobInfo.Id}: {ex.Message}");
+            throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", ex.Message);
         }
-        
 
         UpdateJobStateByTasks(dbJobInfo);
         return dbJobInfo;
