@@ -96,29 +96,26 @@ public class ExpirioService : IExpirioService
         if (string.IsNullOrWhiteSpace(content))
             throw new ExpirioException("Empty response from Expirio.");
 
-        if (content.TrimStart().StartsWith("<", StringComparison.OrdinalIgnoreCase) || content.Contains("<html", StringComparison.OrdinalIgnoreCase))
+        if (content.TrimStart().StartsWith("<", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.Error($"[Expirio Error] Unexpected HTML response received despite 200 OK status. Content: {content}");
-            throw new ExpirioException("Failed to parse token. Received HTML instead of JSON token payload.");
+            _logger.Error($"[Expirio Error] Unexpected HTML response: {content}");
+            throw new ExpirioException("Failed to parse token. Received HTML instead of JSON.");
         }
 
         try
         {
-            using var doc = JsonDocument.Parse(content);
-            if (doc.RootElement.ValueKind == JsonValueKind.String)
+            var options = new JsonSerializerOptions
             {
-                return doc.RootElement.GetString();
-            }
+                PropertyNameCaseInsensitive = true
+            };
 
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("Content", out var contentProp))
-            {
-                return contentProp.GetString();
-            }
-            
-            return content.Trim('"');
+            var responseObj = JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
+        
+            return responseObj?.Content;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.Error($"[Expirio] JSON Parsing failed: {ex.Message}");
             return content.Trim('"');
         }
     }
