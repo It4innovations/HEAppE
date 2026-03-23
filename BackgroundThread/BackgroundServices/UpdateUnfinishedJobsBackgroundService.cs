@@ -17,22 +17,24 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck);
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public UpdateUnfinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        BackGroundThreadConfiguration configuration)
     {
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
         _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.UpdateUnfinishedJobsBackgroundService");
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -62,7 +64,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.GetAllJobsInformationCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

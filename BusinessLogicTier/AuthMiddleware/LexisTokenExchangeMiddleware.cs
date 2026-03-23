@@ -31,7 +31,7 @@ public class LexisTokenExchangeMiddleware
         {
             var body = await reader.ReadToEndAsync();
             context.Request.Body.Position = 0;
-            _logger.LogDebug($"[Exchange Request] Path: {context.Request.Path}, Body: {body}");
+            _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
         }
 
         bool isBearer = context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
@@ -103,7 +103,7 @@ public class LexisTokenExchangeMiddleware
         var responseText = await new StreamReader(context.Response.Body).ReadToEndAsync();
         context.Response.Body.Seek(0, SeekOrigin.Begin);
 
-        _logger.LogDebug($"[Exchange Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+        _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
 
         await responseBody.CopyToAsync(originalBodyStream);
     }

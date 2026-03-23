@@ -1,10 +1,11 @@
-﻿using SshCaAPI.DTO.JsonTypes;
+﻿using Microsoft.Extensions.Logging;
+using SshCaAPI.DTO.JsonTypes;
 
 namespace SshCaAPI
 {
     public interface ISshCertificateAuthorityService
     {
         public Task<ConfigResponse> GetConfigAsync();
-        public Task<SignResponse?> SignAsync(string publicKey, string ott, string resource);
+        public Task<SignResponse?> SignAsync(string publicKey, string ott, string resource, ILogger? logger);
     }
 }

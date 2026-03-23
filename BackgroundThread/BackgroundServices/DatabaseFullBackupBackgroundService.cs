@@ -16,14 +16,15 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
     private readonly ILogger _logger;
     private readonly VaultConnector _vaultConnector;
+    private readonly DatabaseFullBackupConfiguration _configuration;
 
-    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory)
+    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory, DatabaseFullBackupConfiguration configuration)
     {
         _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseFullBackupBackgroundService");
         _vaultConnector = new VaultConnector(_logger);
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,22 +35,24 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         {
             try
             {
-                bool backupCanBeDone = DatabaseFullBackupConfiguration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
+                bool backupCanBeDone = _configuration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
                 
                 if (backupCanBeDone)
                 {
                     DateTime now = DateTime.Now;
-                    if (now.TimeOfDay >= _scheduledTime && now.TimeOfDay < _scheduledTime.Add(TimeSpan.FromMinutes(2)))
+                    TimeSpan scheduledTime = TimeSpan.Parse(_configuration.ScheduledRuntime, new CultureInfo("en-US"));
+
+                    if (now.TimeOfDay >= scheduledTime && now.TimeOfDay < scheduledTime.Add(TimeSpan.FromMinutes(2)))
                     {
                         await DoFullBackupAsync();
 
-                        ApplyRetentionPolicy(DatabaseFullBackupConfiguration.LocalPath);
-                        if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                        ApplyRetentionPolicy(_configuration.LocalPath);
+                        if (!string.IsNullOrEmpty(_configuration.NASPath))
                         {
-                            ApplyRetentionPolicy(DatabaseFullBackupConfiguration.NASPath);
+                            ApplyRetentionPolicy(_configuration.NASPath);
                         }
 
-                        DateTime tomorrow = DateTime.Today.AddDays(1).Add(_scheduledTime);
+                        DateTime tomorrow = DateTime.Today.AddDays(1).Add(scheduledTime);
                         await Task.Delay(tomorrow - DateTime.Now, stoppingToken);
                         continue;
                     }
@@ -97,13 +100,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         {
             string dateTimeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             string confsDirectory = "/opt/heappe/confs/";
-            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, $"confs_and_vault_backup_{dateTimeStamp}");
+            string backupConfsDirectory = Path.Combine(_configuration.LocalPath, $"confs_and_vault_backup_{dateTimeStamp}");
             
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
-            string backupFileName = $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
-            string backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+            string backupFileName = $"{_configuration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
+            string backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
@@ -111,9 +114,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
             _logger.LogInformation($"Database backup file was created to: {backupPath}");
 
-            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
-                string nasFile = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
+                string nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
             }
@@ -132,9 +135,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                     Directory.CreateDirectory(Path.GetDirectoryName(localDestFile)!);
                     File.Copy(fileInfo.FullName, localDestFile, overwrite: true);
 
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(_configuration.NASPath))
                     {
-                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.NASPath, $"confs_backup_{dateTimeStamp}");
+                        string nasFolder = Path.Combine(_configuration.NASPath, $"confs_backup_{dateTimeStamp}");
                         string nasDestFile = Path.Combine(nasFolder, relativePath);
 
                         Directory.CreateDirectory(Path.GetDirectoryName(nasDestFile)!);
@@ -149,14 +152,14 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                 if (vaultSnapshot != null && vaultSnapshot.Length > 0)
                 {
                     string vaultBackupFileName = $"vault_snapshot_{dateTimeStamp}.tar";
-                    await File.WriteAllBytesAsync(Path.Combine(DatabaseFullBackupConfiguration.LocalPath, vaultBackupFileName), vaultSnapshot);
+                    await File.WriteAllBytesAsync(Path.Combine(_configuration.LocalPath, vaultBackupFileName), vaultSnapshot);
                     
                     Directory.CreateDirectory(backupConfsDirectory);
                     await File.WriteAllBytesAsync(Path.Combine(backupConfsDirectory, vaultBackupFileName), vaultSnapshot);
                     
-                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    if (!string.IsNullOrEmpty(_configuration.NASPath))
                     {
-                        await File.WriteAllBytesAsync(Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName), vaultSnapshot);
+                        await File.WriteAllBytesAsync(Path.Combine(_configuration.NASPath, vaultBackupFileName), vaultSnapshot);
                     }
                 }
             }
@@ -175,7 +178,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
-            var files = Directory.GetFiles(folder, $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_*.bak")
+            var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
                              .Select(f => new FileInfo(f))
                              .OrderByDescending(f => f.CreationTime)
                              .ToList();
@@ -224,13 +227,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         return BackupRetentionCategory.Daily;
     }
 
-    private static int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
+    private int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
     {
         return category switch
         {
-            BackupRetentionCategory.Daily => DatabaseFullBackupConfiguration.RetentionPolicy.Daily,
-            BackupRetentionCategory.Weekly => DatabaseFullBackupConfiguration.RetentionPolicy.Weekly,
-            BackupRetentionCategory.Monthly => DatabaseFullBackupConfiguration.RetentionPolicy.Monthly,
+            BackupRetentionCategory.Daily => _configuration.RetentionPolicy.Daily,
+            BackupRetentionCategory.Weekly => _configuration.RetentionPolicy.Weekly,
+            BackupRetentionCategory.Monthly => _configuration.RetentionPolicy.Monthly,
             _ => 0
         };
     }

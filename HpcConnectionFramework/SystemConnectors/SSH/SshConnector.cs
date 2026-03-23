@@ -138,8 +138,6 @@ public class SshConnector : IPoolableAdapter
     {
         if (connection is SshClient sshClient)
         {
-            if (!sshClient.IsConnected) return false;
-
             try
             {
                 return sshClient.IsConnected; 
@@ -366,7 +364,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
@@ -404,7 +402,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));

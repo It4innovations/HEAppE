@@ -1,25 +1,27 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using HEAppE.BackgroundThread.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(DatabaseTransactionLogBackupConfiguration.BackupScheduleIntervalInMinutes);
     private readonly ILogger _logger;
+    private readonly DatabaseTransactionLogBackupConfiguration _configuration;
 
-    public DatabaseTransactionLogBackupService(ILoggerFactory loggerFactory)
+    public DatabaseTransactionLogBackupService(ILoggerFactory loggerFactory, DatabaseTransactionLogBackupConfiguration configuration)
     {
         _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseTransactionLogBackupService");
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,16 +30,16 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         {
             try
             {
-                bool backupCanBeDone = DatabaseTransactionLogBackupConfiguration.ScheduledBackupEnabled && await DatabaseLogsBackupCanBeDone();
+                bool backupCanBeDone = _configuration.ScheduledBackupEnabled && await DatabaseLogsBackupCanBeDone();
 
                 if (backupCanBeDone)
                 {
                     await DoTransactionLogsBackupAsync();
 
-                    ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.LocalPath);
-                    if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+                    ApplyRetentionPolicy(_configuration.LocalPath);
+                    if (!string.IsNullOrEmpty(_configuration.NASPath))
                     {
-                        ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.NASPath);
+                        ApplyRetentionPolicy(_configuration.NASPath);
                     }
                 }
             }
@@ -48,7 +50,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_configuration.BackupScheduleIntervalInMinutes), stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -85,8 +87,8 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
-            var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
-            var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.LocalPath, backupFileName);
+            var backupFileName = $"{_configuration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
+            var backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
@@ -94,9 +96,9 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
 
-            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+            if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
-                var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.NASPath, backupFileName);
+                var nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _logger.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
             }
@@ -111,7 +113,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
     {
         try
         {
-            var files = Directory.GetFiles(folder, $"{DatabaseTransactionLogBackupConfiguration.BackupFileNamePrefix}_LOGS_*.trn")
+            var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_LOGS_*.trn")
                              .Select(f => new FileInfo(f))
                              .OrderByDescending(f => f.CreationTime)
                              .ToList();
@@ -169,13 +171,13 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         return BackupRetentionCategory.Daily;
     }
 
-    private static int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
+    private int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
     {
         return category switch
         {
-            BackupRetentionCategory.Daily => DatabaseTransactionLogBackupConfiguration.RetentionPolicy.Daily,
-            BackupRetentionCategory.Weekly => DatabaseTransactionLogBackupConfiguration.RetentionPolicy.Weekly,
-            BackupRetentionCategory.Monthly => DatabaseTransactionLogBackupConfiguration.RetentionPolicy.Monthly,
+            BackupRetentionCategory.Daily => _configuration.RetentionPolicy.Daily,
+            BackupRetentionCategory.Weekly => _configuration.RetentionPolicy.Weekly,
+            BackupRetentionCategory.Monthly => _configuration.RetentionPolicy.Monthly,
             _ => 0
         };
     }
