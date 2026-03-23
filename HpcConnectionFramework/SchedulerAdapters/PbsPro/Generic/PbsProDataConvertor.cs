@@ -75,7 +75,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
     /// <exception cref="PbsException"></exception>
     public override IEnumerable<string> GetJobIds(string responseMessage)
     {
-        var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>.+)\n", RegexOptions.Compiled)
+        var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>[^\s\n]+)", RegexOptions.Compiled)
             .Where(w => w.Success)
             .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
             .ToList();
