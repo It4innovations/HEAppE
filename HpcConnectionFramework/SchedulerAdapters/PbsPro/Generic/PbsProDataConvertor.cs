@@ -137,7 +137,6 @@ public class PbsProDataConvertor : SchedulerDataConvertor
 
         var jobResponseMessages = Regex.Split(response, @"\r?\n\s*\r?\n", RegexOptions.Compiled)
             .Where(w => !string.IsNullOrEmpty(w.Trim()))
-            .Select(s => Regex.Replace(s, @"\r?\n[\s\t]+", string.Empty)) // Join lines that start with whitespace (continuation lines)
             .ToList();
         foreach (var jobResponseMessage in jobResponseMessages)
         {
