@@ -17,31 +17,34 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public ClusterProjectCredentialsCheckLogBackgroundService(
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        BackGroundThreadConfiguration configuration)
     {
         _log = LogManager.GetLogger(GetType());
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
 
-        if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
-        {
-            return;
-        }
-
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (!_configuration.ClusterProjectCredentialsCheckSettings.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(_configuration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
+                continue;
+            }
+
             using (IServiceScope scope = _scopeFactory.CreateScope())
             {
                 try
@@ -62,7 +65,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_configuration.ClusterProjectCredentialsCheckSettings.IntervalMinutes), stoppingToken);
             }
             catch (OperationCanceledException)
             {
