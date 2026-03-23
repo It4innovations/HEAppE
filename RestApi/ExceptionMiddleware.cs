@@ -256,12 +256,13 @@ public class ExceptionMiddleware
         var localizedException = exception switch
         {
             BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(
-                exceptionName, baseException.Args),
-            BaseException => _exceptionsLocalizer.GetString(exceptionName),
+                exceptionName, baseException.Args).Value,
+            BaseException => _exceptionsLocalizer.GetString(exceptionName).Value,
             _ => exception.Message
         };
 
         var message = localizedException == exceptionName ? exception.Message : localizedException;
+        
         builder.Append(message);
 
         if (exception.InnerException is not null)

@@ -23,4 +23,6 @@ public class ExternalException : BaseException
     public ExternalException(string message, Exception innerException) : base(message, innerException)
     {
     }
+
+    public string Details { get; set; }
 }

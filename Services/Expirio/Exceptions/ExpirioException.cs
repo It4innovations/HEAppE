@@ -26,6 +26,4 @@ public class ExpirioException : ExternalException
     public ExpirioException(string message, Exception innerException) : base(message, innerException)
     {
     }
-
-    public string Details { get; }
 }

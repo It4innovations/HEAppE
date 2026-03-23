@@ -49,7 +49,7 @@ public class ExpirioService : IExpirioService
 
         if (response.IsSuccessStatusCode)
         {
-            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}");
+            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
             return ParseTokenResponse(content);
         }
         else
@@ -131,7 +131,7 @@ public class ExpirioService : IExpirioService
         switch (response.StatusCode)
         {
             case HttpStatusCode.BadRequest:
-                throw new ExpirioBadRequestException($"Bad Expirio {context} request", details);
+                throw new ExpirioBadRequestException($"Bad Request on Expirio {context} request", details);
             case HttpStatusCode.Unauthorized:
                 throw new ExpirioUnauthorizedException($"Unauthorized Expirio {context} request", details);
             case HttpStatusCode.NotFound:
