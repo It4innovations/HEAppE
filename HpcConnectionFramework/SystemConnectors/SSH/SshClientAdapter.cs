@@ -56,7 +56,18 @@ public class SshClientAdapter
     public void Connect()
     {
         _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        if (_sshClient is not NoAuthenticationSshClient) _sshClient.Connect();
+        
+        switch (_sshClient)
+        {
+            case NoAuthenticationSshClient:
+                break;
+            case KerberosSshClient krbClient:
+                krbClient.Connect();
+                break;
+            default:
+                _sshClient.Connect();
+                break;
+        }
     }
 
     /// <summary>
@@ -64,7 +75,17 @@ public class SshClientAdapter
     /// </summary>
     public void Disconnect()
     {
-        if (_sshClient is not NoAuthenticationSshClient) _sshClient.Disconnect();
+        switch (_sshClient)
+        {
+            case NoAuthenticationSshClient:
+                break;
+            case KerberosSshClient krbClient:
+                krbClient.Disconnect();
+                break;
+            default:
+                _sshClient.Disconnect();
+                break;
+        }
     }
 
     #endregion

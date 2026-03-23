@@ -357,10 +357,10 @@ namespace HEAppE.ConnectionPool
                     
                     if (currentAttempt > maxRetries)
                     {
-                        log.Error($"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt} attempts.", ex);
+                        log.Error($"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt - 1} attempts.", ex);
                         throw;
                     }
-                    log.Warn($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
+                    log.Warn($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt - 1}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
                     Thread.Sleep(1000);
                 }
             }

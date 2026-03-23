@@ -11,6 +11,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
+using Renci.SshNet.Common;
 using Exception = System.Exception;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -272,7 +273,11 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
         }
-        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        catch (HEAppE.Exceptions.AbstractTypes.BaseException)
+        {
+            throw;
+        }
+        catch (SshException)
         {
             throw;
         }
@@ -393,7 +398,11 @@ public class RexSchedulerWrapper : IRexScheduler
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
         }
-        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        catch (HEAppE.Exceptions.AbstractTypes.BaseException)
+        {
+            throw;
+        }
+        catch (SshException)
         {
             throw;
         }
@@ -418,7 +427,11 @@ public class RexSchedulerWrapper : IRexScheduler
             _connectionPool.ReturnConnection(schedulerConnection);
             return (true, "Cluster access test successful");
         }
-        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        catch (HEAppE.Exceptions.AbstractTypes.BaseException)
+        {
+            throw;
+        }
+        catch (SshException)
         {
             throw;
         }
@@ -470,7 +483,11 @@ public class RexSchedulerWrapper : IRexScheduler
             checkLog.ClusterConnectionOk = true;
             await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
         }
-        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        catch (HEAppE.Exceptions.AbstractTypes.BaseException)
+        {
+            throw;
+        }
+        catch (SshException)
         {
             throw;
         }
