@@ -272,6 +272,10 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
         }
+        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
@@ -389,6 +393,10 @@ public class RexSchedulerWrapper : IRexScheduler
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
         }
+        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _log.Error(
@@ -409,6 +417,10 @@ public class RexSchedulerWrapper : IRexScheduler
             var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, sshCaToken, lexisToken);
             _connectionPool.ReturnConnection(schedulerConnection);
             return (true, "Cluster access test successful");
+        }
+        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -457,6 +469,10 @@ public class RexSchedulerWrapper : IRexScheduler
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, null, null);
             checkLog.ClusterConnectionOk = true;
             await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
+        }
+        catch (HEAppE.Exceptions.AbstractTypes.ExternalException)
+        {
+            throw;
         }
         catch (Exception e)
         {
