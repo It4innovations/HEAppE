@@ -46,8 +46,8 @@ public interface ISchedulerTaskAdapter
     string ExtendedAllocationCommand { set; }
 
     void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation);
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation);
 
     void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
 
