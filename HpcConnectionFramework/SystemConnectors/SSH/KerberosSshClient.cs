@@ -11,7 +11,7 @@ using TmdsClient = Tmds.Ssh.SshClient;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
 /// <summary>
-///     Ssh agent client
+///     Kerberos Ssh client
 /// </summary>
 public class KerberosSshClient : Renci.SshNet.SshClient
 {
@@ -21,19 +21,18 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     ///     Constructor
     /// </summary>
     /// <param name="masterNodeName">Master node name</param>
-    /// <param name="port"></param>
+    /// <param name="address"></param>
     /// <param name="userName">Username</param>
     /// <exception cref="ArgumentException"></exception>
     public KerberosSshClient(string masterNodeName, string address, string userName) : base(
         new ConnectionInfo(masterNodeName, userName,
             new NoneAuthenticationMethod(userName))) //cannot be null
     {
-        //TODO: masterNodeName?
         if (string.IsNullOrWhiteSpace(masterNodeName))
             throw new SshClientArgumentException("NullArgument", "masterNodeName");
 
         if (string.IsNullOrWhiteSpace(userName)) 
-        throw new SshClientArgumentException("NullArgument", "userName");
+            throw new SshClientArgumentException("NullArgument", "userName");
 
         _masterNodeName = masterNodeName;
         _address = address;
@@ -41,80 +40,56 @@ public class KerberosSshClient : Renci.SshNet.SshClient
 
         _log = LogManager.GetLogger(typeof(KerberosSshClient));
 
-        _client = InitializeClient(address, userName);
+        InitializeClient();
     }
 
     #endregion
 
     #region Instances
 
-    /// <summary>
-    ///     Master node name
-    /// </summary>
     private readonly string _masterNodeName;
-
-    /// <summary>
-    ///     Port
-    /// </summary>
     private readonly string _address;
-
-    /// <summary>
-    ///     Username
-    /// </summary>
     private readonly string _userName;
-
-    /// <summary>
-    ///     TmdsSshClient
-    /// </summary>
-    private readonly TmdsClient _client;
-
-    /// <summary>
-    ///     Log4Net logger
-    /// </summary>
+    private TmdsClient _client;
     protected ILog _log;
+    private bool _triedToConnect = false;
+    private bool _isConnected = false;
 
     #endregion
 
     #region Methods
 
-    /// <summary>
-    /// Initializes and returns a new Tmds.ssh.SshClient.
-    /// </summary>
-    /// <param name="address"></param>
-    /// <param name="userName"></param>
-    private TmdsClient InitializeClient(string address, string userName)
+    private void InitializeClient()
     {
         var sshConfigSettings = new SshConfigSettings();
-        // clears SshConfigOption.SendEnv and others.
         sshConfigSettings.ConfigFilePaths.Clear();
-        sshConfigSettings.Options.Add(SshConfigOption.User, new SshConfigOptionValue(userName));
+        sshConfigSettings.Options.Add(SshConfigOption.User, new SshConfigOptionValue(_userName));
         sshConfigSettings.Options.Add(SshConfigOption.GSSAPIAuthentication, new SshConfigOptionValue("yes"));
         sshConfigSettings.Options.Add(SshConfigOption.GSSAPIDelegateCredentials, new SshConfigOptionValue("yes"));
-        // StrictHostKeyChecking = "no" -> removes the need for known_hosts file key
-        //TODO: this setting should be set as HEappE static option
         sshConfigSettings.Options.Add(SshConfigOption.StrictHostKeyChecking, new SshConfigOptionValue("no"));
 
-        return new TmdsClient(address, sshConfigSettings);
+        _client = new TmdsClient(_address, sshConfigSettings);
+        _triedToConnect = false;
+        _isConnected = false;
     }
 
-    //TODO:
-    //property KeepAliveInterval
+    public override bool IsConnected => _isConnected && !_client.Disconnected.IsCancellationRequested;
 
-    //sshClient.ConnectionInfo.RetryAttempts
-    //sshClient.ConnectionInfo.Timeout
-    
-    /// <summary>
-    /// SshClient connects asynchronously.
-    /// </summary>
-    private Task ConnectAsync()
+    private async Task ConnectAsync()
     {
-        return _client.ConnectAsync();
+        if (IsConnected) return;
+
+        if (_triedToConnect)
+        {
+            _client.Dispose();
+            InitializeClient();
+        }
+
+        _triedToConnect = true;
+        await _client.ConnectAsync();
+        _isConnected = true;
     }
 
-    /// <summary>
-    /// Execute a command asynchronously.
-    /// </summary>
-    /// <param name="commandText"></param>
     private async Task<SshCommandWrapper> ExecuteAsync(string commandText)
     {
         using (var process = await _client.ExecuteAsync(commandText))
@@ -131,28 +106,19 @@ public class KerberosSshClient : Renci.SshNet.SshClient
         }
     }
 
-    /// <summary>
-    /// Start SshClient connection.
-    /// </summary>
     public new void Connect()
     {
         ConnectAsync().GetAwaiter().GetResult();
     }
 
-    /// <summary>
-    /// Run a remote command.
-    /// </summary>
-    /// <param name="commandText"></param>
     public new SshCommandWrapper RunCommand(string commandText)
     {
         return ExecuteAsync(commandText).GetAwaiter().GetResult();
     }
 
-    /// <summary>
-    /// End SshClient connection.
-    /// </summary>
     public new void Disconnect()
     {
+        _isConnected = false;
         _client.Dispose();
     }
 

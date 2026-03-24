@@ -15,11 +15,13 @@ namespace HEAppE.FileTransferFramework.Sftp;
 
 public class KerberosSftpClient : Renci.SshNet.SftpClient
 {
-    private readonly Tmds.Ssh.SshClient _sshClient;
+    private Tmds.Ssh.SshClient _sshClient;
     private TmdsSftpClient _sftpClient;
     private readonly string _userName;
     private readonly string _address;
     private readonly ILogger _logger;
+    private bool _triedToConnect = false;
+    private bool _isConnected = false;
 
     public KerberosSftpClient(ILogger logger, string masterNodeName, string address, string userName)
         : base(new ConnectionInfo(address, userName, new NoneAuthenticationMethod(userName)))
@@ -28,20 +30,39 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
         _userName = userName;
         _address = address;
         
+        InitializeInternalClients();
+    }
+
+    private void InitializeInternalClients()
+    {
         var sshConfigSettings = new SshConfigSettings();
         sshConfigSettings.ConfigFilePaths.Clear();
-        sshConfigSettings.Options.Add(SshConfigOption.User, new SshConfigOptionValue(userName));
+        sshConfigSettings.Options.Add(SshConfigOption.User, new SshConfigOptionValue(_userName));
         sshConfigSettings.Options.Add(SshConfigOption.GSSAPIAuthentication, new SshConfigOptionValue("yes"));
         sshConfigSettings.Options.Add(SshConfigOption.GSSAPIDelegateCredentials, new SshConfigOptionValue("yes"));
         sshConfigSettings.Options.Add(SshConfigOption.StrictHostKeyChecking, new SshConfigOptionValue("no"));
 
-        _sshClient = new Tmds.Ssh.SshClient(address, sshConfigSettings);
+        _sshClient = new Tmds.Ssh.SshClient(_address, sshConfigSettings);
         _sftpClient = new TmdsSftpClient(_sshClient);
+        _triedToConnect = false;
+        _isConnected = false;
     }
+
+    public override bool IsConnected => _isConnected && !_sshClient.Disconnected.IsCancellationRequested;
 
     public new async Task ConnectAsync(CancellationToken ct = default)
     {
+        if (IsConnected) return;
+
+        if (_triedToConnect)
+        {
+            _sshClient.Dispose();
+            InitializeInternalClients();
+        }
+
+        _triedToConnect = true;
         await _sshClient.ConnectAsync(ct);
+        _isConnected = true;
     }
 
     public new string WorkingDirectory {
@@ -110,13 +131,11 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
     
     public new async Task<SftpFileAttributes> GetAttributesAsync(string path, CancellationToken ct = default)
     {
-        // Renci doesn't like us creating SftpFileAttributes.
         return null;
     }
 
     public async Task SetAttributesAsync(string path, SftpFileAttributes attributes, CancellationToken ct = default)
     {
-        // Minimal implementation to allow build.
         await _sftpClient.SetAttributesAsync(path, cancellationToken: ct);
     }
 
@@ -129,5 +148,9 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
     }
 
     public void ConnectSync() => ConnectAsync().GetAwaiter().GetResult();
-    public void DisconnectSync() => _sshClient.Dispose();
+    public void DisconnectSync() 
+    {
+        _isConnected = false;
+        _sshClient.Dispose();
+    }
 }
