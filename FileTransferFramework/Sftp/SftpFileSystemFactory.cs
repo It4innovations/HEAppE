@@ -44,7 +44,7 @@ public class SftpFileSystemFactory : FileSystemFactory
         var hostname = configuration.ServerHostname;
         if (!_connectorSingletons.TryGetValue(hostname, out var systemConnector))
         {
-            systemConnector = new SftpFileSystemConnector(_logger, sshCertificateAuthorityService);
+            systemConnector = new SftpFileSystemConnector(_logger, sshCertificateAuthorityService, _expirio);
             _connectorSingletons.Add(hostname, systemConnector);
         }
 

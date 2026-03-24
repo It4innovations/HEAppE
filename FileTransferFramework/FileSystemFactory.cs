@@ -10,11 +10,27 @@ using HEAppE.FileTransferFramework.Sftp;
 using HEAppE.HpcConnectionFramework.Configuration;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.FileTransferFramework;
 
 public abstract class FileSystemFactory
 {
+    #region Instances
+
+    protected static readonly ILogger _logger;
+    protected static readonly IExpirioService _expirio;
+    private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
+    private static FileSystemFactory _windowsSharedFactorySingleton;
+    private static FileSystemFactory _sftpFactorySingleton;
+
+    private static readonly int ConnectionPoolMinSize = 0;
+    private static readonly int ConnectionPoolMaxSize = 10;
+    private static readonly int ConnectionPoolCleaningInterval = 60;
+    private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
+
+    #endregion
+
     #region Constructors
 
     static FileSystemFactory()
@@ -22,21 +38,8 @@ public abstract class FileSystemFactory
         using var serviceScope = ServiceActivator.GetScope();
         var loggerFactory = (ILoggerFactory)serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
         _logger = loggerFactory.CreateLogger("HEAppE.FileTransferFramework.FileSystemFactory");
+        _expirio = (IExpirioService)serviceScope.ServiceProvider.GetService(typeof(IExpirioService));
     }
-
-    #endregion
-
-    #region Instances
-
-    protected static readonly ILogger _logger;
-    private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
-    private static FileSystemFactory _windowsSharedFactorySingleton;
-    private static FileSystemFactory _sftpFactorySingleton;
-#warning TODO add to settings
-    private static readonly int ConnectionPoolMinSize = 0;
-    private static readonly int ConnectionPoolMaxSize = 10;
-    private static readonly int ConnectionPoolCleaningInterval = 60;
-    private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
 
     #endregion
 

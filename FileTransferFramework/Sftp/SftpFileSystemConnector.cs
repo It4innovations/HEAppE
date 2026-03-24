@@ -14,6 +14,10 @@ using Renci.SshNet.Common;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
+using HEAppE.Services.Expirio;
+using Services.Expirio.Models;
+using System.Threading.Tasks;
+using Services.Expirio.Configuration;
 
 namespace HEAppE.FileTransferFramework.Sftp;
 
@@ -23,15 +27,17 @@ public class SftpFileSystemConnector : IPoolableAdapter
 
     private readonly ILogger _logger;
     private ISshCertificateAuthorityService _sshCaService;
+    private IExpirioService _expirio;
 
     #endregion
 
     #region Constructors
 
-    public SftpFileSystemConnector(ILogger logger, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public SftpFileSystemConnector(ILogger logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
     {
         _logger = logger;
         _sshCaService = sshCertificateAuthorityService;
+        _expirio = expirio;
     }
 
     #endregion
@@ -94,7 +100,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos
-                => CreateConnectionObjectUsingKerberosAuthentication(masterNodeName, credentials.Username, port),
+                => CreateConnectionObjectUsingKerberosAuthentication(masterNodeName, credentials.Username, cluster.DomainName, lexisToken, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
                 CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
@@ -539,9 +545,26 @@ public class SftpFileSystemConnector : IPoolableAdapter
     }
 
     private KerberosSftpClient CreateConnectionObjectUsingKerberosAuthentication(string masterNodeName,
-        string username, int? port)
+        string username, string address, string lexisToken, int? port)
     {
-        return new KerberosSftpClient(_logger, masterNodeName, masterNodeName, username);
+        if (Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
+        {
+            byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
+            Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
+        }
+        return new KerberosSftpClient(_logger, masterNodeName, address, username);
+    }
+
+    /// <summary>
+    ///     Get the kerberos ticket for a user given the LEXIS token.
+    /// </summary>
+    /// <param name="lexisToken"></param>
+    /// <returns></returns>
+    private async Task<byte[]> GetKerberosTicket(string lexisToken)
+    {
+        KerberosExchangeRequest request = new() { ProviderName = ExpirioSettings.ProviderName };
+        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken);
+        return Convert.FromBase64String(ticket);
     }
 
     #endregion
