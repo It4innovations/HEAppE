@@ -415,12 +415,24 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+        string username = string.Empty;
+        if (string.IsNullOrEmpty(lexisUser.UserName))
+        {
+            username = lexisUser.UserName;
+        }
+        else if (!string.IsNullOrEmpty(lexisUser.KeycloakSid))
+        {
+            username = lexisUser.KeycloakSid;
+        }
+        else
+        {
+            username = lexisUser.Email;
+        }
         
         if (user is null)
         {
             try 
             {
-                string username = $"{LexisAuthenticationConfiguration.HEAppEUserPrefix}{lexisUser.KeycloakSid}_{lexisUser.UserName}";
                 user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             catch (Exception)
@@ -428,6 +440,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
                 if (user is null) throw;
             }
+        }
+        else
+        {
+            user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
         }
 
         var hasUserGroup = false;
@@ -533,6 +549,17 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             UserType = adaptorUserType
         };
         _unitOfWork.AdaptorUserRepository.Insert(user);
+        _unitOfWork.Save();
+        return user;
+    }
+
+    private AdaptorUser UpdateUser(AdaptorUser user, string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
+    {
+        user.Username = username;
+        user.Email = email;
+        user.ModifiedAt = changedTime;
+        user.UserType = adaptorUserType;
+        _unitOfWork.AdaptorUserRepository.Update(user);
         _unitOfWork.Save();
         return user;
     }
