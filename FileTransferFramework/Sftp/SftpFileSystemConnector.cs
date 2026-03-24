@@ -94,7 +94,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port, true),
+                => CreateConnectionObjectUsingKerberosAuthentication(masterNodeName, credentials.Username, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
                 CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
@@ -533,9 +533,15 @@ public class SftpFileSystemConnector : IPoolableAdapter
     }
 
     private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName,
-        string username, int? port, bool useGssApi = false)
+        string username, int? port)
     {
-        return new NoAuthenticationSftpClient(_logger, masterNodeName, username, port, useGssApi);
+        return new NoAuthenticationSftpClient(_logger, masterNodeName, username, port);
+    }
+
+    private KerberosSftpClient CreateConnectionObjectUsingKerberosAuthentication(string masterNodeName,
+        string username, int? port)
+    {
+        return new KerberosSftpClient(_logger, masterNodeName, masterNodeName, username);
     }
 
     #endregion
