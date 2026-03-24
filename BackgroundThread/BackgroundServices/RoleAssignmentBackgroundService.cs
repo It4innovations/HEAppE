@@ -16,12 +16,13 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 public class RoleAssignmentBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly BackGroundThreadConfiguration _configuration;
     private static readonly ILog _log = LogManager.GetLogger(typeof(RoleAssignmentBackgroundService));
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.RoleAssignmentSyncCheck);
 
-    public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory)
+    public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory, BackGroundThreadConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,7 +65,7 @@ public class RoleAssignmentBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.RoleAssignmentSyncCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {

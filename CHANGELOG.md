@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add memory allocation parameters to job specification (Memory, MemoryPerCPU, MemoryPerGPU) that are passed to underlying scheduler.
 
+## V6.2.11
+
+### Performance
+- Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
+
+## V6.2.10
+
+### Fixed
+- Resolved issues where configuration updates were not consistently propagated across all services.
+
+### Changed
+- Refactored configuration management to utilize Dependency Injection for more reliable access to settings.
+- Consolidated configuration binding logic across `RestApi`, `DataStagingAPI`, and `BackgroundThread` to reduce redundancy.
+- Enhanced `SSH connection` robustness and improved pooling strategy for high-load scenarios.
+
 ## V6.2.9
 
 ### Added
