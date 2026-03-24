@@ -31,8 +31,9 @@ internal class ListDirectory : ICommand<IEnumerable<SftpFile>>
 
     public IEnumerable<SftpFile> ProcessResult(SftpCommandResult result)
     {
-        var text = Regex.Replace(result.Output, @"\s{2,}", " ");
-        var lines = Regex.Split(text, "\r\n|\r|\n").Where(w => !string.IsNullOrEmpty(w) && !w.StartsWith("sftp>"))
+        var lines = Regex.Split(result.Output, "\r\n|\r|\n")
+            .Where(w => !string.IsNullOrEmpty(w.Trim()) && !w.StartsWith("sftp>"))
+            .Where(w => Regex.IsMatch(w, @"^[-drwxtSlL]")) // Ensure it starts with file permissions
             .ToList();
 
         var files = new List<SftpFile>();
