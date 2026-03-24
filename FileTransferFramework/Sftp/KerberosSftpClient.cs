@@ -119,6 +119,16 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
         await _sftpClient.DeleteDirectoryAsync(path, recursive: true, ct);
     }
 
+    public async Task RenameAsync(string oldPath, string newPath, CancellationToken ct = default)
+    {
+        await _sftpClient.RenameAsync(oldPath, newPath, cancellationToken: ct);
+    }
+
+    public new void RenameFile(string oldPath, string newPath)
+    {
+        RenameAsync(oldPath, newPath).GetAwaiter().GetResult();
+    }
+
     public new async Task CreateDirectoryAsync(string path, CancellationToken ct = default)
     {
         await _sftpClient.CreateDirectoryAsync(path, createParents: true, cancellationToken: ct);

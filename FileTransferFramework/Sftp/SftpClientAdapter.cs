@@ -26,6 +26,20 @@ public class SftpClientAdapter
 
     #endregion
 
+    #region Properties
+
+    internal string WorkingDirectory
+    {
+        get
+        {
+            if (_sftpClient is KerberosSftpClient kerberosSftpClient)
+                return kerberosSftpClient.WorkingDirectory;
+            return _sftpClient.WorkingDirectory;
+        }
+    }
+
+    #endregion
+
     #region Methods
 
     internal void Connect()
@@ -44,7 +58,7 @@ public class SftpClientAdapter
     {
         if (remotePath.StartsWith("~/"))
         {
-            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+            remotePath = remotePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             return noAuthenticationSftpClient.RunCommand(new Exists(remotePath));
@@ -57,7 +71,7 @@ public class SftpClientAdapter
     {
         if (remotePath.StartsWith("~/"))
         {
-            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+            remotePath = remotePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DownloadFile(remotePath, stream));
@@ -144,7 +158,7 @@ public class SftpClientAdapter
     {
         if (remotePath.StartsWith("~/"))
         {
-            remotePath= remotePath.Replace("~", _sftpClient.WorkingDirectory);
+            remotePath= remotePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
@@ -158,7 +172,7 @@ public class SftpClientAdapter
     {
         if (remotePath.StartsWith("~/"))
         {
-            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+            remotePath = remotePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
@@ -172,7 +186,7 @@ public class SftpClientAdapter
     {
         if (remotePath.StartsWith("~/"))
         {
-            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+            remotePath = remotePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteDirectory(remotePath));
@@ -196,7 +210,7 @@ public class SftpClientAdapter
     {
         if (targetPath.StartsWith("~/"))
         {
-            targetPath = targetPath.Replace("~", _sftpClient.WorkingDirectory);
+            targetPath = targetPath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "create directory");
@@ -210,7 +224,7 @@ public class SftpClientAdapter
     {
         if (targetFilePath.StartsWith("~/"))
         {
-            targetFilePath = targetFilePath.Replace("~", _sftpClient.WorkingDirectory);
+            targetFilePath = targetFilePath.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "upload file");
@@ -218,6 +232,26 @@ public class SftpClientAdapter
             kerberosSftpClient.UploadFileAsync(sourceStream, targetFilePath, canOverride).GetAwaiter().GetResult();
         else
             _sftpClient.UploadFile(sourceStream, targetFilePath, canOverride);
+    }
+
+    internal void RenameFile(string oldPath, string newPath)
+    {
+        if (oldPath.StartsWith("~/"))
+        {
+            oldPath = oldPath.Replace("~", WorkingDirectory);
+        }
+        if (newPath.StartsWith("~/"))
+        {
+            newPath = newPath.Replace("~", WorkingDirectory);
+        }
+
+        if (_sftpClient is NoAuthenticationSftpClient)
+            throw new SftpClientException("NoAuthenticationSftpClientMethod", "rename file");
+        
+        if (_sftpClient is KerberosSftpClient kerberosSftpClient)
+            kerberosSftpClient.RenameAsync(oldPath, newPath).GetAwaiter().GetResult();
+        else
+            _sftpClient.RenameFile(oldPath, newPath);
     }
     
     internal SftpFileAttributes GetFileAttributes(string path)
@@ -239,7 +273,7 @@ public class SftpClientAdapter
     {
         if (path.StartsWith("~/"))
         {
-            path = path.Replace("~", _sftpClient.WorkingDirectory);
+            path = path.Replace("~", WorkingDirectory);
         }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
         {

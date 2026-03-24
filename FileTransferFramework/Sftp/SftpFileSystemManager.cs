@@ -62,7 +62,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             using (var stream = new MemoryStream())
             {
                 if(basePath.StartsWith("~"))
-                    basePath = basePath.Replace("~", ((SftpClient)connection.Connection).WorkingDirectory);
+                    basePath = basePath.Replace("~", client.WorkingDirectory);
                 
                 var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, partPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
                 client.DownloadFile(file, stream);
@@ -313,7 +313,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             absoluteFilePath = absoluteFilePath.Replace('\\', '/');
             if (absoluteFilePath.StartsWith("~/"))
             {
-                absoluteFilePath = absoluteFilePath.Replace("~", sftpClient.WorkingDirectory);
+                absoluteFilePath = absoluteFilePath.Replace("~", client.WorkingDirectory);
             }
             try
             {
@@ -323,7 +323,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                         client.DeleteFile(absoluteFilePath);
                 } catch {
                 }
-                sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
+                client.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
             }
             catch (Exception )
             {
