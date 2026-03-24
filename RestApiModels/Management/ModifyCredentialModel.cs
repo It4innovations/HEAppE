@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -25,6 +26,13 @@ public class ModifyCredentialModel
     [DataMember(Name = "SessionCode", IsRequired = true)]
     [Description("Session code")]
     public string SessionCode { get; set; }
+
+    /// <summary>
+    /// Adaptor user id (optional, for project managers acting on behalf of other users)
+    /// </summary>
+    [DataMember(Name = "AdaptorUserId", IsRequired = false)]
+    [Description("Adaptor user id")]
+    public long? AdaptorUserId { get; set; }
 
     /// <summary>
     /// Old username

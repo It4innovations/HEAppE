@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -978,20 +979,24 @@ public class ManagementLogic : IManagementLogic
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        /* TODO: check existing credentials?
         var existingCredentials = await 
             _unitOfWork.ClusterAuthenticationCredentialsRepository
                 .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId);
         if (existingCredentials.Any())
         {
-            
-        }*/
+            //return existing credential with same type of throw exception
+            var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType);
+            if (existingWithSameType != null)
+                return CredentialResponse.GetCredential(existingWithSameType);
 
-        return await CreateCredential(username, password, project, adaptorUserId, authType, privateKey, passphrase);
+            throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
+        }
+
+        return await CreateCredential(username, password, project, adaptorUserId, authType, generateNewKey, privateKey, passphrase);
     }
 
     private async Task<CredentialResponse> CreateCredential(string username, string? password, Project project, long? adaptorUserId, 
-                                                        ClusterAuthenticationCredentialsAuthType authType, string? privateKey, string? passphrase)
+                                                        ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, string? privateKey, string? passphrase)
     {
         _logger.Info($"Creating credential for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
@@ -1000,20 +1005,34 @@ public class ManagementLogic : IManagementLogic
             throw new InputValidationException("ProjectNoAssignToCluster");
 
         SecureShellKey secureShellKey = null;
+        bool isGenerated = false;
         if(authType != ClusterAuthenticationCredentialsAuthType.Kerberos)
         {
             SSHGenerator sshGenerator = new();
-            var generatedPassphrase = StringUtils.GetRandomString();
-            secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+            if (generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey)))
+            {
+                secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+                isGenerated = true;
+            }
+            else
+            {
+                isGenerated = false;
+                secureShellKey = SSHGenerator.GetPublicKeyFromPrivateKey(new ClusterAuthenticationCredentials
+                {
+                    Username = username,
+                    PrivateKey = privateKey,
+                    PrivateKeyPassphrase = passphrase,
+                    CipherType = sshGenerator.CipherType
+                });
+                secureShellKey.PrivateKeyPEM = privateKey;
+                secureShellKey.Passphrase = passphrase;
+            }
         }
 
-        //TODO: DO WE STILL NEED TO RECEIVE privateKey??????
-
-        //* TODO: how to create and save in database? USE when isgenerated is true
         var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
-            clusterProjects.FirstOrDefault()?.Cluster);
+            clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
         var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
-            passphrase, clusterProjects.FirstOrDefault()?.Cluster);
+            passphrase, clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
 
         foreach (var clusterProject in clusterProjects)
         {
@@ -1207,14 +1226,14 @@ public class ManagementLogic : IManagementLogic
                 .ToList();
     }
 
-    public async Task RemoveCredential(string username, long projectId)
+    public async Task RemoveCredential(string username, long projectId, long? adaptorUserId = null)
     {
         var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
         
         var filteredCredentials = clusterAuthenticationCredentials.Where(
             w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId && a.AdaptorUserId == adaptorUserId)).ToList();
 
         if (!filteredCredentials.Any()) 
             throw new InvalidRequestException("HPCIdentityNotFound");
@@ -3421,7 +3440,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="cluster"></param>
     /// <returns></returns>
     private static ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(ClusterAuthenticationCredentialsAuthType authType, string username, 
-        string password, SecureShellKey sshKey, string passphrase, Cluster cluster)
+        string password, SecureShellKey sshKey, string passphrase, Cluster cluster, bool isGenerated)
     {
         ClusterAuthenticationCredentials credentials = null;
         switch(authType)
@@ -3431,7 +3450,7 @@ public class ManagementLogic : IManagementLogic
                 {
                     Username = username,
                     ClusterProjectCredentials = new List<ClusterProjectCredential>(),
-                    IsGenerated = false
+                    IsGenerated = isGenerated
                 };
                 break;
             case ClusterAuthenticationCredentialsAuthType.PrivateKey:
@@ -3445,7 +3464,7 @@ public class ManagementLogic : IManagementLogic
                     CipherType = CipherGeneratorConfiguration.Type,
                     PublicKeyFingerprint = sshKey.PublicKeyFingerprint,
                     ClusterProjectCredentials = new List<ClusterProjectCredential>(),
-                    IsGenerated = true
+                    IsGenerated = isGenerated
                 };
                 break;
             default:

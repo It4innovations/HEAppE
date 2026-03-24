@@ -219,6 +219,8 @@ public class CredentialValidator : AbstractValidator
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
+        if (ext.AdaptorUserId.HasValue)
+            ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
         foreach(string field in GetValidationCreateCredentialFields())
             ValidateCreateCredentialField(ext, ext.AuthType, field, ext.GetType().GetProperty(field).GetValue(ext));
@@ -233,6 +235,8 @@ public class CredentialValidator : AbstractValidator
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
+        if (ext.AdaptorUserId.HasValue)
+            ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
         return _messageBuilder.ToString();
     }
@@ -244,6 +248,8 @@ public class CredentialValidator : AbstractValidator
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
+        if (ext.AdaptorUserId.HasValue)
+            ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
         if (string.IsNullOrEmpty(ext.OldUsername)) 
             _messageBuilder.AppendLine("OldUsername can not be null or empty.");
@@ -260,6 +266,8 @@ public class CredentialValidator : AbstractValidator
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
+        if (ext.AdaptorUserId.HasValue)
+            ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
         return _messageBuilder.ToString();
     }

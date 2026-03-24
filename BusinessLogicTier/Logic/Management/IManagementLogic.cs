@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -66,7 +67,7 @@ public interface IManagementLogic
     Task<List<CredentialResponse>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, 
                                                     long? adaptorUserId, bool isAdministrator);
 
-    Task RemoveCredential(string username, long projectId);
+    Task RemoveCredential(string username, long projectId, long? adaptorUserId = null);
 
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);

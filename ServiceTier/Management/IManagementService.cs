@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -71,15 +72,15 @@ public interface IManagementService
     Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
     Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
-                                                      bool? generateNewKey, string? privateKey, string? password, string? passphrase);                                              
+                                                      bool? generateNewKey, string? privateKey, string? password, string? passphrase, long? adaptorUserId = null);                                              
     
-    Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode);
+    Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode, long? adaptorUserId = null);
 
     //Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
     //                                                   bool? generateNewKey, string? privateKey, string? password, string? passphrase);
-    Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId,string sessionCode);
+    Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, string sessionCode, long? adaptorUserId = null);
 
-    Task RemoveCredential(long projectId, string sessionCode, string username);
+    Task RemoveCredential(long projectId, string sessionCode, string username, long? adaptorUserId = null);
 
     public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);

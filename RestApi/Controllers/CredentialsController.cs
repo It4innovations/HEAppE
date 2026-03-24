@@ -66,7 +66,7 @@ public class CredentialsController : ControllerBase
             throw new InputValidationException(validationResult.Message);
 
         var result = await _managementService.CreateCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
-                                                                    model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
+                                                                    model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase, model.AdaptorUserId);
         return Ok(result);
     }
 
@@ -81,7 +81,7 @@ public class CredentialsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetCredentials(long projectId, string sessionCode)
+    public async Task<IActionResult> GetCredentials(long projectId, string sessionCode, long? adaptorUserId = null)
     {
         /* TODO: use logger?
         _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetCredentials\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");*/
@@ -89,12 +89,13 @@ public class CredentialsController : ControllerBase
         {
             ProjectId = projectId,
             SessionCode = sessionCode,
+            AdaptorUserId = adaptorUserId
         };
         var validationResult = new CredentialValidator(model).Validate();
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        var result = await _managementService.GetCredentials(model.ProjectId, model.SessionCode);
+        var result = await _managementService.GetCredentials(model.ProjectId, model.SessionCode, model.AdaptorUserId);
         return Ok(result);
     }
 
@@ -118,7 +119,7 @@ public class CredentialsController : ControllerBase
 
         //var result = await _managementService.ModifyCredential(model.ProjectId, model.SessionCode, model.Username, model.AuthType, 
         //                                                       model.GenerateNewKey, model.ProvidedPrivateKey, model.Password, model.Passphrase);
-        var result = await _managementService.ModifyCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
+        var result = await _managementService.ModifyCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode, model.AdaptorUserId);
         return Ok(result);
     }
 
@@ -141,7 +142,7 @@ public class CredentialsController : ControllerBase
         if (!validationResult.IsValid) 
             throw new InputValidationException(validationResult.Message);
 
-        await _managementService.RemoveCredential(model.ProjectId, model.SessionCode, model.Username);
+        await _managementService.RemoveCredential(model.ProjectId, model.SessionCode, model.Username, model.AdaptorUserId);
         return Ok("Credential removed");
     }
 
