@@ -68,20 +68,5 @@ public class PbsProJobAdapter : ISchedulerJobAdapter
         }
     }
 
-    public void SetMemory(long memory)
-    {
-        _jobCommandBuilder.Append($" -l mem={memory}mb");
-    }
-
-    public void SetMemoryPerCPU(long memoryPerCPU)
-    {
-        _jobCommandBuilder.Append($" -l mem={memoryPerCPU}mb");
-    }
-
-    public void SetMemoryPerGPU(long memoryPerGPU)
-    {
-        _jobCommandBuilder.Append($" -l gpu_mem={memoryPerGPU}mb");
-    }
-
     #endregion
 }

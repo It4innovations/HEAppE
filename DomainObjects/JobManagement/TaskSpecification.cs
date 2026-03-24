@@ -64,6 +64,9 @@ public class TaskSpecification : CommonTaskProperties
         result.AppendLine("Name=" + Name);
         result.AppendLine("MinCores=" + MinCores);
         result.AppendLine("MaxCores=" + MaxCores);
+        result.AppendLine("Memory=" + Memory);
+        result.AppendLine("MemoryPerCPU=" + MemoryPerCPU);
+        result.AppendLine("MemoryPerGPU=" + MemoryPerGPU);
         result.AppendLine("WalltimeLimit=" + WalltimeLimit);
         result.AppendLine("JobArrays=" + JobArrays);
         result.AppendLine("IsExclusive=" + IsExclusive);

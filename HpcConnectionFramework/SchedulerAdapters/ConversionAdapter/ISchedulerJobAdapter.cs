@@ -12,10 +12,4 @@ public interface ISchedulerJobAdapter
     void SetTasks(IEnumerable<object> tasksAllocationcmd);
 
     void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure);
-
-    void SetMemory(long memory);
-
-    void SetMemoryPerCPU(long memoryPerCPU);
-
-    void SetMemoryPerGPU(long memoryPerGPU);
 }

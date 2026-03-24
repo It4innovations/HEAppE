@@ -67,12 +67,6 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
-        if (jobSpecification.Memory.HasValue)
-            jobAdapter.SetMemory(jobSpecification.Memory.Value);
-        if (jobSpecification.MemoryPerCPU.HasValue)
-            jobAdapter.SetMemory(jobSpecification.MemoryPerCPU.Value);
-        if (jobSpecification.MemoryPerGPU.HasValue)
-            jobAdapter.SetMemory(jobSpecification.MemoryPerGPU.Value);
 
         // Setting global parameters for all tasks
         var globalJobParameters = (string)jobAdapter.AllocationCmd;
@@ -139,6 +133,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
+
+        taskAdapter.Memory = taskSpecification.Memory != null ? taskSpecification.Memory : jobSpecification.Memory;
+        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU != null ? taskSpecification.MemoryPerCPU : jobSpecification.MemoryPerCPU;
+        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU != null ? taskSpecification.MemoryPerGPU : jobSpecification.MemoryPerGPU;
 
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);

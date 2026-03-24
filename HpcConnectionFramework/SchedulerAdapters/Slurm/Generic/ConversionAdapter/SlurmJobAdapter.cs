@@ -73,20 +73,5 @@ internal class SlurmJobAdapter : ISchedulerJobAdapter
         }
     }
 
-    public void SetMemory(long memory)
-    {
-        _jobCommandBuilder.Append($" --mem={memory}");
-    }
-
-    public void SetMemoryPerCPU(long memoryPerCPU)
-    {
-        _jobCommandBuilder.Append($" --mem-per-cpu={memoryPerCPU}");
-    }
-
-    public void SetMemoryPerGPU(long memoryPerGPU)
-    {
-        _jobCommandBuilder.Append($" --mem-per-gpu={memoryPerGPU}");
-    }
-
     #endregion
 }

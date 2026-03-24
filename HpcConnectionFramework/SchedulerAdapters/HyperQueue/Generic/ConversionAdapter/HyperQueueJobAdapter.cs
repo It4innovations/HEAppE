@@ -61,20 +61,5 @@ internal class HyperQueueJobAdapter : ISchedulerJobAdapter
         throw new NotImplementedException();
     }
 
-    public void SetMemory(long memory)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void SetMemoryPerCPU(long memoryPerCPU)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void SetMemoryPerGPU(long memoryPerGPU)
-    {
-        throw new NotImplementedException();
-    }
-
     #endregion
 }
