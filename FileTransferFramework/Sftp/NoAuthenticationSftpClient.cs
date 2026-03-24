@@ -10,7 +10,7 @@ public class NoAuthenticationSftpClient : SftpClient
 {
     #region Constructors
 
-    public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName, int? port)
+    public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName, int? port, bool useGssApi = false)
         : base(new ConnectionInfo(masterNodeName, port ?? 22, userName,
             new PasswordAuthenticationMethod(userName, string.Empty)))
     {
@@ -18,6 +18,7 @@ public class NoAuthenticationSftpClient : SftpClient
         _userName = userName;
         _port = port ?? 22;
         _logger = logger;
+        _useGssApi = useGssApi;
 
         CheckInputParameters();
     }
@@ -30,6 +31,7 @@ public class NoAuthenticationSftpClient : SftpClient
     private readonly string _userName;
     private readonly int _port;
     private readonly ILogger _logger;
+    private readonly bool _useGssApi;
 
     #endregion
 
@@ -64,7 +66,8 @@ public class NoAuthenticationSftpClient : SftpClient
         {
             proc.StartInfo.FileName = "sftp";
             proc.StartInfo.WorkingDirectory = "/usr/bin/";
-            proc.StartInfo.Arguments = $"-P {_port} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
+            string gssApiOptions = _useGssApi ? "-o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes " : string.Empty;
+            proc.StartInfo.Arguments = $"-P {_port} -q {gssApiOptions}-o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
             proc.StartInfo.UseShellExecute = false;
             proc.StartInfo.RedirectStandardInput = true;
             proc.StartInfo.RedirectStandardOutput = true;
