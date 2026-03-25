@@ -23,7 +23,7 @@ public class ModifyCredentialModel
     /// <summary>
     /// Session code
     /// </summary>
-    [DataMember(Name = "SessionCode", IsRequired = true)]
+    [DataMember(Name = "SessionCode", IsRequired = false)]
     [Description("Session code")]
     public string SessionCode { get; set; }
 
