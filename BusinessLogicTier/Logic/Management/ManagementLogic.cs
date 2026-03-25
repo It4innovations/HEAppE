@@ -1126,6 +1126,7 @@ public class ManagementLogic : IManagementLogic
         return projectCredentials
             .Where(cpc => !cpc.IsDeleted && !cpc.ClusterAuthenticationCredentials.IsDeleted)
             .Select(cpc => CredentialResponse.GetCredential(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
+            .DistinctBy(x => new { x.Username, x.AdaptorUserId })
             .ToList();
     }
 
