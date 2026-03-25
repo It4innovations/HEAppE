@@ -230,7 +230,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     public static (AdaptorUser, IEnumerable<Project> projects) GetValidatedUserForSessionCode(
         string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
-        AdaptorUserRoleType allowedRole, IExpirioService expirioService)
+        AdaptorUserRoleType allowedRole, IExpirioService expirioService, bool overrideProjectValidityCheck = false)
     {
         var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
@@ -243,7 +243,8 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var now = DateTime.UtcNow;
         var groups = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
-                r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
+                r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole) &&
+                (overrideProjectValidityCheck || (r.AdaptorUserGroup.Project == null || r.AdaptorUserGroup.Project.EndDate >= now))
             ).ToList();
         //check that at least one project is available
         if (!groups.Any())
@@ -266,7 +267,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IHttpContextKeys httpContextKeys,
         List<AdaptorUserRoleType> allowedRoles,
-        IExpirioService expirioService)
+        IExpirioService expirioService, bool overrideProjectValidityCheck = false)
     {
         var authenticationLogic = LogicFactory.GetLogicFactory()
             .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
@@ -280,7 +281,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var projects = user.AdaptorUserUserGroupRoles
             .Where(role =>
                 role.AdaptorUserGroup.Project != null &&
-                role.AdaptorUserGroup.Project.EndDate > now &&
+                (overrideProjectValidityCheck || role.AdaptorUserGroup.Project.EndDate > now) &&
                 role.AdaptorUserRole.ContainedRoleTypes
                     .Any(roleType => allowedRoles.Contains(roleType))
             )

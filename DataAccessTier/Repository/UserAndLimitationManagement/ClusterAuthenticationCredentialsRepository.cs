@@ -147,7 +147,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
                 (
-                    isAdministrator || 
+                    (isAdministrator && adaptorUserId == null) || 
                     (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null)
                 ) && 
                 (!requireIsInitialized || cpc.IsInitialized)
@@ -186,7 +186,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
                 (
-                    isAdministrator || 
+                    (isAdministrator && adaptorUserId == null) || 
                     (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null)
                 ) && 
                 (!requireIsInitialized || cpc.IsInitialized)
