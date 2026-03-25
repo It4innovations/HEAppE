@@ -32,7 +32,7 @@ public sealed class KrbLibSim
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
     private static ILogger s_logger;
-    private static int _ticketValidityBufferSeconds = 30; // invalidates ticket, on HasTicket(), if less than this seconds remain.
+    private static int _ticketValidityBufferSeconds = 300; // invalidates ticket, on HasTicket(), if less than this seconds remain.
     #endregion
 
     /********************************/
@@ -141,7 +141,8 @@ public sealed class KrbLibSim
     }
 
     /// <summary>
-    /// Checks if the user has a valid ticket.
+    /// Checks if the user has a valid ticket. 
+    /// Removes from cache if a user has an expired ticket.
     /// </summary>
     public static bool HasTicket(string username)
     {
@@ -150,8 +151,16 @@ public sealed class KrbLibSim
             if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
             {
                 var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
-                // removes _ticketValidityBufferSeconds from current time and returns true if the ticket hasn't expired.
-                return cacheEntry.EndTime > DateTimeOffset.Now.AddSeconds(-_ticketValidityBufferSeconds);
+
+                // removes ticket if it has expired
+                if(DateTimeOffset.Compare(DateTimeOffset.Now, cacheEntry.EndTime) > 0)
+                {
+                    s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(username, ticketCache));
+                    return false;
+                }
+
+                // returns if the ticket hasn't expired or not (anticipates the expiration by buffer seconds)
+                return DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(-_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
             }
             else
                 return false;
@@ -159,6 +168,30 @@ public sealed class KrbLibSim
         else
             throw new Exception("Error: Not implemented!");
     }
+
+    /// <summary>
+    /// Removes expired tickets.
+    /// </summary>
+    public static void TryCleanCache()
+    {
+        if(MEMORY_CACHE_ID_USERNAME_ONLY)
+        {
+            foreach(string username in s_ticketCaches.Keys.ToList())
+            {
+                if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
+                {
+                    var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
+                    if(DateTimeOffset.Compare(DateTimeOffset.Now, cacheEntry.EndTime) > 0)
+                    {
+                        s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(username, ticketCache));
+                    }
+                }
+            }
+        }
+        else
+            throw new Exception("Error: Not implemented!");
+    }
+
     #endregion
 
 
