@@ -416,11 +416,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
         string username = string.Empty;
-        if (string.IsNullOrEmpty(lexisUser.UserName))
+        if (!string.IsNullOrEmpty(lexisUser.KeycloakSid))
         {
             username = lexisUser.UserName;
         }
-        else if (!string.IsNullOrEmpty(lexisUser.KeycloakSid))
+        else if (string.IsNullOrEmpty(lexisUser.UserName))
         {
             username = lexisUser.KeycloakSid;
         }
