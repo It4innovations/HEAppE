@@ -64,6 +64,10 @@ public class CredentialValidator : AbstractValidator
         }
     }
 
+    private const string PASSWORD = "Password";
+    private const string PROVIDED_PRIVATE_KEY = "ProvidedPrivateKey";
+    private const string PASSPHRASE = "Passphrase";
+    private const string GENERATE_NEW_KEY = "GenerateNewKey";
     static readonly Dictionary<ClusterAuthenticationCredentialsAuthType, RulesDefinition> _validationCreateCredentialRules;
 
     static CredentialValidator()
@@ -71,93 +75,92 @@ public class CredentialValidator : AbstractValidator
         #region Rules assignment
         _validationCreateCredentialRules = new();
 
-        //TODO: Change rule keys from string to enum
-
         var passwordRules = new RulesDefinition();
-        passwordRules.AddRule("Password", Requirement.Required);
-        passwordRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        passwordRules.AddRule("Passphrase", Requirement.Forbidden);
-        passwordRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        passwordRules.AddRule(PASSWORD, Requirement.Required);
+        passwordRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        passwordRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        passwordRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.Password, passwordRules);
 
         var passwordInteractiveRules = new RulesDefinition();
-        passwordInteractiveRules.AddRule("Password", Requirement.Optional);
-        passwordInteractiveRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        passwordInteractiveRules.AddRule("Passphrase", Requirement.Forbidden);
-        passwordInteractiveRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        passwordInteractiveRules.AddRule(PASSWORD, Requirement.Optional);
+        passwordInteractiveRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        passwordInteractiveRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        passwordInteractiveRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractive, passwordInteractiveRules);
 
         var passwordAndPrivateKeyRules = new RulesDefinition();
-        passwordAndPrivateKeyRules.AddRule("Password", Requirement.Required);
-        passwordAndPrivateKeyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
-        passwordAndPrivateKeyRules.AddRule("Passphrase", Requirement.Optional);
-        passwordAndPrivateKeyRules.AddRule("GenerateNewKey", Requirement.Optional);
+        passwordAndPrivateKeyRules.AddRule(PASSWORD, Requirement.Required);
+        passwordAndPrivateKeyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
+        passwordAndPrivateKeyRules.AddRule(PASSPHRASE, Requirement.Optional);
+        passwordAndPrivateKeyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey, passwordAndPrivateKeyRules);
 
         var privateKeyRules = new RulesDefinition();
-        privateKeyRules.AddRule("Password", Requirement.Forbidden);
-        privateKeyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
-        privateKeyRules.AddRule("Passphrase", Requirement.Optional);
-        privateKeyRules.AddRule("GenerateNewKey", Requirement.Optional);
+        privateKeyRules.AddRule(PASSWORD, Requirement.Forbidden);
+        privateKeyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
+        privateKeyRules.AddRule(PASSPHRASE, Requirement.Optional);
+        privateKeyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKey, privateKeyRules);
 
         var passwordViaProxyRules = new RulesDefinition();
-        passwordViaProxyRules.AddRule("Password", Requirement.Required);
-        passwordViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        passwordViaProxyRules.AddRule("Passphrase", Requirement.Forbidden);
-        passwordViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        passwordViaProxyRules.AddRule(PASSWORD, Requirement.Required);
+        passwordViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        passwordViaProxyRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        passwordViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordViaProxy, passwordViaProxyRules);
 
         var passwordInteractiveViaProxyRules = new RulesDefinition();
-        passwordInteractiveViaProxyRules.AddRule("Password", Requirement.Optional);
-        passwordInteractiveViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        passwordInteractiveViaProxyRules.AddRule("Passphrase", Requirement.Forbidden);
-        passwordInteractiveViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        passwordInteractiveViaProxyRules.AddRule(PASSWORD, Requirement.Optional);
+        passwordInteractiveViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        passwordInteractiveViaProxyRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        passwordInteractiveViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy, passwordInteractiveViaProxyRules);
 
         var passwordAndPrivateKeyViaProxyRules = new RulesDefinition();
-        passwordAndPrivateKeyViaProxyRules.AddRule("Password", Requirement.Required);
-        passwordAndPrivateKeyViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
-        passwordAndPrivateKeyViaProxyRules.AddRule("Passphrase", Requirement.Optional);
-        passwordAndPrivateKeyViaProxyRules.AddRule("GenerateNewKey", Requirement.Optional);
+        passwordAndPrivateKeyViaProxyRules.AddRule(PASSWORD, Requirement.Required);
+        passwordAndPrivateKeyViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
+        passwordAndPrivateKeyViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
+        passwordAndPrivateKeyViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy, passwordAndPrivateKeyViaProxyRules);
 
         var privateKeyViaProxyRules = new RulesDefinition();
-        privateKeyViaProxyRules.AddRule("Password", Requirement.Forbidden);
-        privateKeyViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.RequiredConditional, new(){new Conditional("GenerateNewKey", true)});
-        privateKeyViaProxyRules.AddRule("Passphrase", Requirement.Optional);
-        privateKeyViaProxyRules.AddRule("GenerateNewKey", Requirement.Optional);
+        privateKeyViaProxyRules.AddRule(PASSWORD, Requirement.Forbidden);
+        privateKeyViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
+        privateKeyViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
+        privateKeyViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy, privateKeyViaProxyRules);
 
         var privateKeyInSshAgentRules = new RulesDefinition();
-        privateKeyInSshAgentRules.AddRule("Password", Requirement.Forbidden);
-        privateKeyInSshAgentRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        privateKeyInSshAgentRules.AddRule("Passphrase", Requirement.Forbidden);
-        privateKeyInSshAgentRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        privateKeyInSshAgentRules.AddRule(PASSWORD, Requirement.Forbidden);
+        privateKeyInSshAgentRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        privateKeyInSshAgentRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        privateKeyInSshAgentRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent, privateKeyInSshAgentRules);
 
         //TODO: what about ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
 
         var sshCertificateRules = new RulesDefinition();
-        sshCertificateRules.AddRule("Password", Requirement.Forbidden);
-        sshCertificateRules.AddRule("ProvidedPrivateKey", Requirement.Required);
-        sshCertificateRules.AddRule("Passphrase", Requirement.Optional);
-        sshCertificateRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        sshCertificateRules.AddRule(PASSWORD, Requirement.Forbidden);
+        sshCertificateRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Required);
+        sshCertificateRules.AddRule(PASSPHRASE, Requirement.Optional);
+        sshCertificateRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificate, sshCertificateRules);
 
         var sshCertificateViaProxyRules = new RulesDefinition();
-        sshCertificateViaProxyRules.AddRule("Password", Requirement.Forbidden);
-        sshCertificateViaProxyRules.AddRule("ProvidedPrivateKey", Requirement.Required);
-        sshCertificateViaProxyRules.AddRule("Passphrase", Requirement.Optional);
-        sshCertificateViaProxyRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        sshCertificateViaProxyRules.AddRule(PASSWORD, Requirement.Forbidden);
+        sshCertificateViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Required);
+        sshCertificateViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
+        sshCertificateViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy, sshCertificateViaProxyRules);
 
         var kerberosRules = new RulesDefinition();
-        kerberosRules.AddRule("Password", Requirement.Forbidden);
-        kerberosRules.AddRule("ProvidedPrivateKey", Requirement.Forbidden);
-        kerberosRules.AddRule("Passphrase", Requirement.Forbidden);
-        kerberosRules.AddRule("GenerateNewKey", Requirement.Forbidden);
+        kerberosRules.AddRule(PASSWORD, Requirement.Forbidden);
+        kerberosRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
+        kerberosRules.AddRule(PASSPHRASE, Requirement.Forbidden);
+        kerberosRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.Kerberos, kerberosRules);
+
         #endregion
     }
 
