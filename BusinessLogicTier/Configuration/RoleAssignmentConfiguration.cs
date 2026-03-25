@@ -20,15 +20,24 @@ public class RoleAssignmentConfiguration
 
     public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger, bool doNotSave = false)
     {
-        var totalAssigned = new HashSet<string>();
-        var totalMissing = new HashSet<string>();
+        var rolesProcessed = new List<string>();
+        int totalAssigned = 0;
+        int totalMissing = 0;
         int totalAlreadyHad = 0;
 
         void Process(string[] usernames, AdaptorUserRoleType role)
         {
+            if (usernames == null || usernames.Length == 0) return;
+
             var res = AssignSpecificRole(usernames, role, group, unitOfWork);
-            foreach (var u in res.Assigned) totalAssigned.Add(u);
-            foreach (var u in res.Missing) totalMissing.Add(u);
+        
+            if (res.Assigned.Any())
+            {
+                totalAssigned += res.Assigned.Count;
+                rolesProcessed.Add(role.ToString());
+            }
+        
+            totalMissing += res.Missing.Count;
             totalAlreadyHad += res.ExistingCount;
         }
 
@@ -40,13 +49,18 @@ public class RoleAssignmentConfiguration
         Process(GroupReporters, AdaptorUserRoleType.GroupReporter);
         Process(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin);
 
-        if (totalAssigned.Any())
-            logger.Info($"Group '{group.Name}': SUCCESSfully assigned roles to: {string.Join(", ", totalAssigned)}");
+        if (totalAssigned > 0)
+        {
+            string rolesSummary = string.Join(", ", rolesProcessed.Distinct());
+            logger.Info($"Group '{group.Name}': Assigned {totalAssigned} new users to roles: {rolesSummary}");
+        }
 
-        if (totalMissing.Any())
-            logger.Warn($"Group '{group.Name}': MISSING users in DB: {string.Join(", ", totalMissing.Distinct())}");
+        if (totalMissing > 0)
+        {
+            logger.Warn($"Group '{group.Name}': {totalMissing} users defined in config were NOT FOUND in database.");
+        }
 
-        logger.Debug($"Group '{group.Name}' summary: {totalAssigned.Count} new, {totalAlreadyHad} existing, {totalMissing.Count} missing.");
+        logger.Debug($"Group '{group.Name}' summary: {totalAssigned} new | {totalAlreadyHad} existing | {totalMissing} missing.");
 
         if (!doNotSave) unitOfWork.Save();
     }
