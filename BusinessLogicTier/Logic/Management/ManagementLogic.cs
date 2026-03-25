@@ -987,7 +987,7 @@ public class ManagementLogic : IManagementLogic
             //return existing credential with same type of throw exception
             var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType);
             if (existingWithSameType != null)
-                return CredentialResponse.GetCredential(existingWithSameType, adaptorUserId);
+                return CredentialResponse.GetCredential(existingWithSameType, projectId);
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
@@ -1095,7 +1095,7 @@ public class ManagementLogic : IManagementLogic
         }
 
         //TODO: return list or just one
-        return CredentialResponse.GetCredential(serviceCredentials, adaptorUserId);
+        return CredentialResponse.GetCredential(serviceCredentials, project.Id);
     }
 
     /// <summary>
@@ -1124,7 +1124,7 @@ public class ManagementLogic : IManagementLogic
         
         return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator))
             .Where(x => !x.IsDeleted)
-            .Select(x => CredentialResponse.GetCredential(x, adaptorUserId))
+            .Select(x => CredentialResponse.GetCredential(x, projectId))
             .DistinctBy(x=>x.Username)
             .ToList();
     }
@@ -1221,7 +1221,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
 
         return credentials
-                .Select(x => CredentialResponse.GetCredential(x, adaptorUserId))
+                .Select(x => CredentialResponse.GetCredential(x, projectId))
                 .DistinctBy(x=>x.Username)
                 .ToList();
     }

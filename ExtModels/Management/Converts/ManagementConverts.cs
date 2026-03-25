@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -131,7 +132,8 @@ public static class ManagementConverts
             ScratchStoragePath = cp.ScratchStoragePath,
             ProjectStoragePath = cp.ProjectStoragePath,
             CreatedAt = cp.CreatedAt,
-            ModifiedAt = cp.ModifiedAt
+            ModifiedAt = cp.ModifiedAt,
+            AdaptorUserId = cp.ClusterProjectCredentials.FirstOrDefault(x => !x.IsDeleted)?.AdaptorUserId
         };
         return convert;
     }

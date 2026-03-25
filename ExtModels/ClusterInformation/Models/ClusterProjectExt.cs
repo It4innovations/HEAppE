@@ -56,6 +56,13 @@ public class ClusterProjectExt
     [Description("Modified at")]
     public DateTime? ModifiedAt { get; set; }
 
+    /// <summary>
+    /// Adaptor user id
+    /// </summary>
+    [DataMember(Name = "AdaptorUserId")]
+    [Description("Adaptor user id")]
+    public long? AdaptorUserId { get; set; }
+
     public override string ToString()
     {
         return $"""ClusterProjectExt: ClusterId={ClusterId}, ProjectId={ProjectId}, ScratchStoragePath={ScratchStoragePath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}" """;

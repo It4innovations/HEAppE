@@ -1,3 +1,4 @@
+using System.Linq;
 using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DomainObjects.Management;
@@ -16,6 +17,13 @@ public class CredentialResponse
     public static CredentialResponse GetCredential(ClusterAuthenticationCredentials clusterCredentials)
     {
         return GetCredential(clusterCredentials, null);
+    }
+
+    public static CredentialResponse GetCredential(ClusterAuthenticationCredentials clusterCredentials, long projectId)
+    {
+        var adaptorUserId = clusterCredentials.ClusterProjectCredentials
+            .FirstOrDefault(cpc => cpc.ClusterProject.ProjectId == projectId && !cpc.IsDeleted)?.AdaptorUserId;
+        return GetCredential(clusterCredentials, adaptorUserId);
     }
 
     public static CredentialResponse GetCredential(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)

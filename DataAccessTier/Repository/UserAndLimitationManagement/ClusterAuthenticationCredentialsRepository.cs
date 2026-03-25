@@ -140,7 +140,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         
         var isOneToOneMapping = project.IsOneToOneMapping;
 
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
+            .Include(cac => cac.ClusterProjectCredentials)
+            .ThenInclude(cpc => cpc.ClusterProject)
+            .Where(cac =>
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
                 (
@@ -175,7 +178,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var isOneToOneMapping = project.IsOneToOneMapping;
 
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => 
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
+            .Include(cac => cac.ClusterProjectCredentials)
+            .ThenInclude(cpc => cpc.ClusterProject)
+            .Where(cac => 
             cac.Username == username &&
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
