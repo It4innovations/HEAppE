@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 
@@ -27,4 +28,6 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     
     //GetByIdAsync
     Task<ClusterAuthenticationCredentials> GetByIdAsync(long id);
+
+    Task<IEnumerable<ClusterProjectCredential>> GetClusterProjectCredentials(long projectId, long? adaptorUserId, bool isAdministrator = false);
 }

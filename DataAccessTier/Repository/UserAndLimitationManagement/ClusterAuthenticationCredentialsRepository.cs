@@ -2,6 +2,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.External;
 using log4net;
 using Microsoft.Data.SqlClient;
@@ -27,6 +28,43 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         : base(context)
     {
         _vaultConnector = vaultConnector;
+    }
+
+    public async Task<IEnumerable<ClusterProjectCredential>> GetClusterProjectCredentials(long projectId, long? adaptorUserId, bool isAdministrator = false)
+    {
+        var project = _context.Projects.Find(projectId);
+        if (project is null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        var isOneToOneMapping = project.IsOneToOneMapping;
+
+        var query = _context.ClusterProjectCredentials
+            .Include(cpc => cpc.ClusterAuthenticationCredentials)
+            .Include(cpc => cpc.ClusterProject)
+            .Where(cpc => cpc.ClusterProject.ProjectId == projectId && !cpc.IsDeleted);
+
+        if (!(isAdministrator && adaptorUserId == null))
+        {
+            if (isOneToOneMapping)
+            {
+                query = query.Where(cpc => cpc.AdaptorUserId == adaptorUserId);
+            }
+            else
+            {
+                query = query.Where(cpc => cpc.AdaptorUserId == null);
+            }
+        }
+
+        var results = await query.ToListAsync();
+
+        // Load vault data for the associated credentials
+        var credentials = results.Select(cpc => cpc.ClusterAuthenticationCredentials).Where(c => c != null).Distinct().ToList();
+        if (credentials.Any())
+        {
+            await WithVaultData(credentials);
+        }
+
+        return results;
     }
 
     #endregion

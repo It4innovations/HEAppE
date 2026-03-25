@@ -1063,7 +1063,7 @@ public class ManagementLogic : IManagementLogic
         }
 
         _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
 
         var vaultConnector = new VaultConnector();
         bool vaultSuccess;
@@ -1078,7 +1078,7 @@ public class ManagementLogic : IManagementLogic
                 // Perform rollback for serviceCredentials insertion here if needed
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
-                _unitOfWork.Save();
+                await _unitOfWork.SaveAsync();
                 throw new SecureVaultException("ConnectionFailed");
             }
         }
@@ -1090,12 +1090,11 @@ public class ManagementLogic : IManagementLogic
             _logger.Warn("Failed to set non-service credentials in the vault. Rolling back database insert.");
             // Perform rollback for nonServiceCredentials insertion here
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
             throw new SecureVaultException("ConnectionFailed");
         }
 
-        //TODO: return list or just one
-        return CredentialResponse.GetCredential(serviceCredentials, project.Id);
+        return CredentialResponse.GetCredential(nonServiceCredentials, adaptorUserId);
     }
 
     /// <summary>
@@ -1122,10 +1121,11 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all credentials for project.");
         }
         
-        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator))
-            .Where(x => !x.IsDeleted)
-            .Select(x => CredentialResponse.GetCredential(x, projectId))
-            .DistinctBy(x=>x.Username)
+        var projectCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetClusterProjectCredentials(projectId, adaptorUserId, isAdministrator);
+        
+        return projectCredentials
+            .Where(cpc => !cpc.IsDeleted && !cpc.ClusterAuthenticationCredentials.IsDeleted)
+            .Select(cpc => CredentialResponse.GetCredential(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
             .ToList();
     }
 
@@ -1218,11 +1218,10 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
         }
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
 
         return credentials
-                .Select(x => CredentialResponse.GetCredential(x, projectId))
-                .DistinctBy(x=>x.Username)
+                .Select(x => CredentialResponse.GetCredential(x, adaptorUserId))
                 .ToList();
     }
 
