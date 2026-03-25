@@ -11,7 +11,14 @@ public class CredentialResponse
     public string? PublicKeyFingerprint { get; set; }
     public string? PublicKeyExt { get; set; }
 
+    public long? AdaptorUserId { get; set; }
+
     public static CredentialResponse GetCredential(ClusterAuthenticationCredentials clusterCredentials)
+    {
+        return GetCredential(clusterCredentials, null);
+    }
+
+    public static CredentialResponse GetCredential(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
     {
         return new CredentialResponse
         {
@@ -20,7 +27,8 @@ public class CredentialResponse
             AuthType = clusterCredentials.AuthenticationType,
             IsGenerated = clusterCredentials.IsGenerated,
             PublicKeyFingerprint = clusterCredentials.PublicKeyFingerprint,
-            PublicKeyExt = clusterCredentials.PublicKey
+            PublicKeyExt = clusterCredentials.PublicKey,
+            AdaptorUserId = adaptorUserId
         };
     }
 }

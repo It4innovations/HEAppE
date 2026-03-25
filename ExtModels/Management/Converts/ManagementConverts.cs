@@ -85,6 +85,7 @@ public static class ManagementConverts
             IsGenerated = credential.IsGenerated,
             PublicKeyFingerprint = credential.PublicKeyFingerprint,
             PublicKeyExt = credential.PublicKeyExt,
+            AdaptorUserId = credential.AdaptorUserId,
         };
         return convert;
     }

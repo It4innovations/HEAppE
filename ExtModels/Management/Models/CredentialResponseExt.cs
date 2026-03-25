@@ -56,5 +56,12 @@ public class CredentialResponseExt
     /// </summary>
     [DataMember(Name = "PublicKeyExt")]
     [Description("Public key ext")]
-    public string? PublicKeyExt { get; set; } 
+    public string? PublicKeyExt { get; set; }
+
+    /// <summary>
+    /// Adaptor user id
+    /// </summary>
+    [DataMember(Name = "AdaptorUserId")]
+    [Description("Adaptor user id")]
+    public long? AdaptorUserId { get; set; }
 }
