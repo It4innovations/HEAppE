@@ -464,41 +464,54 @@ public class ManagementService : IManagementService
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
-            AdaptorUser loggedUser = null;
+
+            // Determine user roles
+            var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            var loggedUser = UserAndLimitationManagementService.AuthenticateUser(sessionCode, authLogic, _httpContextKeys);
+            
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            bool isManager = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Manager, projectId, true);
+            bool isSubmitter = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Submitter, projectId, true);
+
             if (adaptorUserId.HasValue)
             {
-                // If adaptorUserId is provided, the caller must be a project manager
-                _logger.Info($"Selected project with Id: {projectId}. Using provided adaptorUserId {adaptorUserId} (caller needs role: Manager).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Manager, projectId, _expirioService, true);
+                if (!isAdministrator && !isManager)
+                {
+                    _logger.Error($"User with ID {loggedUser.Id} is not an administrator or manager, managing credentials for user {adaptorUserId} is not allowed.");
+                    throw new UnauthorizedAccessException("Only administrators and managers can manage credentials of other users.");
+                }
             }
             else
             {
-                // Try to get user as submitter first
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
-                if (loggedUser == null)
-                {
-                    // Not a submitter, try ManagementAdmin (for global admins)
-                    loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                        AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
-                }
-            }
-
-            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
-
-            if (!adaptorUserId.HasValue)
-            {
-                if (isAdministrator || project.IsOneToOneMapping)
+                if (isAdministrator)
                 {
                     adaptorUserId = loggedUser.Id;
                 }
+                else if (isManager)
+                {
+                    // Managers can create service accounts if they don't specify adaptorUserId, 
+                    // or they might want to create for themselves. 
+                    // HEAppE usually defaults to null for shared projects if not specified.
+                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+                }
+                else if (isSubmitter)
+                {
+                    if (project.IsOneToOneMapping)
+                    {
+                        adaptorUserId = loggedUser.Id;
+                    }
+                    else
+                    {
+                        // Submitters in shared projects can only create service account credentials if allowed by logic
+                        adaptorUserId = null;
+                    }
+                }
                 else
                 {
-                    adaptorUserId = null;
+                    throw new UnauthorizedAccessException("Unauthorized");
                 }
             }
-            
+
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
             return (await managementLogic.CreateCredential(username, password, authType, generateNewKey, privateKey, passphrase, 
                                                            projectId, adaptorUserId)).ConvertIntToExt();
@@ -512,42 +525,40 @@ public class ManagementService : IManagementService
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
-            AdaptorUser loggedUser = null;
+
+            // Determine user roles
+            var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            var loggedUser = UserAndLimitationManagementService.AuthenticateUser(sessionCode, authLogic, _httpContextKeys);
+            
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            bool isManager = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Manager, projectId, true);
+            bool isSubmitter = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Submitter, projectId, true);
+
             if (adaptorUserId.HasValue)
             {
-                // If adaptorUserId is provided, the caller must be a project manager
-                _logger.Info($"Selected project with Id: {projectId}. Using provided adaptorUserId {adaptorUserId} (caller needs role: Manager).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Manager, projectId, _expirioService, true);
-            }
-            else
-            {
-                // Try to get user as submitter first
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
-                if (loggedUser == null)
+                if (!isAdministrator && !isManager)
                 {
-                    // Not a submitter, try ManagementAdmin (for global admins)
-                    loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                        AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
+                    _logger.Error($"User with ID {loggedUser.Id} is not an administrator or manager, searching for credentials of user {adaptorUserId} is not allowed.");
+                    throw new UnauthorizedAccessException("Only administrators and managers can search for credentials of other users.");
                 }
             }
-
-            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
-
-            if (!adaptorUserId.HasValue)
+            else
             {
                 if (isAdministrator)
                 {
                     adaptorUserId = null; // show all
                 }
-                else if (project.IsOneToOneMapping)
+                else if (isManager)
                 {
-                    adaptorUserId = loggedUser.Id;
+                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+                }
+                else if (isSubmitter)
+                {
+                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
                 }
                 else
                 {
-                    adaptorUserId = null;
+                    throw new UnauthorizedAccessException("Unauthorized");
                 }
             }
             
@@ -565,38 +576,47 @@ public class ManagementService : IManagementService
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
-            AdaptorUser loggedUser = null;
+
+            // Determine user roles
+            var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            var loggedUser = UserAndLimitationManagementService.AuthenticateUser(sessionCode, authLogic, _httpContextKeys);
+            
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            bool isManager = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Manager, projectId, true);
+            bool isSubmitter = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Submitter, projectId, true);
+
             if (adaptorUserId.HasValue)
             {
-                // If adaptorUserId is provided, the caller must be a project manager
-                _logger.Info($"Selected project with Id: {projectId}. Using provided adaptorUserId {adaptorUserId} (caller needs role: Manager).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Manager, projectId, _expirioService, true);
+                if (!isAdministrator && !isManager)
+                {
+                    _logger.Error($"User with ID {loggedUser.Id} is not an administrator or manager, managing credentials for user {adaptorUserId} is not allowed.");
+                    throw new UnauthorizedAccessException("Only administrators and managers can manage credentials of other users.");
+                }
             }
             else
             {
-                // Try to get user as submitter first
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
-                if (loggedUser == null)
-                {
-                    // Not a submitter, try ManagementAdmin (for global admins)
-                    loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                        AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
-                }
-            }
-
-            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
-
-            if (!adaptorUserId.HasValue)
-            {
-                if (isAdministrator || project.IsOneToOneMapping)
+                if (isAdministrator)
                 {
                     adaptorUserId = loggedUser.Id;
                 }
+                else if (isManager)
+                {
+                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+                }
+                else if (isSubmitter)
+                {
+                    if (project.IsOneToOneMapping)
+                    {
+                        adaptorUserId = loggedUser.Id;
+                    }
+                    else
+                    {
+                        adaptorUserId = null;
+                    }
+                }
                 else
                 {
-                    adaptorUserId = null;
+                    throw new UnauthorizedAccessException("Unauthorized");
                 }
             }
             
@@ -613,34 +633,47 @@ public class ManagementService : IManagementService
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
-            AdaptorUser loggedUser = null;
+
+            // Determine user roles
+            var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+            var loggedUser = UserAndLimitationManagementService.AuthenticateUser(sessionCode, authLogic, _httpContextKeys);
+            
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            bool isManager = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Manager, projectId, true);
+            bool isSubmitter = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Submitter, projectId, true);
+
             if (adaptorUserId.HasValue)
             {
-                // If adaptorUserId is provided, the caller must be a project manager
-                _logger.Info($"Selected project with Id: {projectId}. Using provided adaptorUserId {adaptorUserId} (caller needs role: Manager).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Manager, projectId, _expirioService, true);
+                if (!isAdministrator && !isManager)
+                {
+                    _logger.Error($"User with ID {loggedUser.Id} is not an administrator or manager, managing credentials for user {adaptorUserId} is not allowed.");
+                    throw new UnauthorizedAccessException("Only administrators and managers can manage credentials of other users.");
+                }
             }
             else
             {
-                // Try to get user as submitter first
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Submitter, projectId, _expirioService, true);
-                if (loggedUser == null)
-                {
-                    // Not a submitter, try ManagementAdmin (for global admins)
-                    loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                        AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
-                }
-
-                bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
-                if (isAdministrator || project.IsOneToOneMapping)
+                if (isAdministrator)
                 {
                     adaptorUserId = loggedUser.Id;
                 }
+                else if (isManager)
+                {
+                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+                }
+                else if (isSubmitter)
+                {
+                    if (project.IsOneToOneMapping)
+                    {
+                        adaptorUserId = loggedUser.Id;
+                    }
+                    else
+                    {
+                        adaptorUserId = null;
+                    }
+                }
                 else
                 {
-                    adaptorUserId = null;
+                    throw new UnauthorizedAccessException("Unauthorized");
                 }
             }
             

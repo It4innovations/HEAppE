@@ -186,7 +186,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    private static AdaptorUser AuthenticateUser(string sessionCode, IUserAndLimitationManagementLogic authLogic, IHttpContextKeys httpContextKeys)
+    public static AdaptorUser AuthenticateUser(string sessionCode, IUserAndLimitationManagementLogic authLogic, IHttpContextKeys httpContextKeys)
     {
         if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && string.IsNullOrEmpty(sessionCode))
         {
