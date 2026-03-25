@@ -989,15 +989,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("FileTransferMethodId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("Memory")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MemoryPerCPU")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MemoryPerGPU")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)

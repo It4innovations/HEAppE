@@ -134,9 +134,9 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
-        taskAdapter.Memory = taskSpecification.Memory != null ? taskSpecification.Memory : jobSpecification.Memory;
-        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU != null ? taskSpecification.MemoryPerCPU : jobSpecification.MemoryPerCPU;
-        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU != null ? taskSpecification.MemoryPerGPU : jobSpecification.MemoryPerGPU;
+        taskAdapter.Memory = taskSpecification.Memory;
+        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU;
+        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU;
 
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);

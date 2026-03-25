@@ -107,27 +107,6 @@ public class JobSpecificationExt
     public bool IsExtraLong { get; set; }
 
     /// <summary>
-    /// Memory for job
-    /// </summary>
-    [DataMember(Name = "Memory")]
-    [Description("Allocated memory for job")]
-    public long? Memory { get; set; }
-
-    /// <summary>
-    /// Memory per CPU
-    /// </summary>
-    [DataMember(Name = "MemoryPerCPU")]
-    [Description("Allocated memory for job (CPU)")]
-    public long? MemoryPerCPU { get; set; }
-
-    /// <summary>
-    /// Memory per GPU
-    /// </summary>
-    [DataMember(Name = "MemoryPerGPU")]
-    [Description("Allocated memory for job (GPU)")]
-    public long? MemoryPerGPU { get; set; }
-
-    /// <summary>
     /// Array of environment variables
     /// </summary>
     [DataMember(Name = "EnvironmentVariables")]
@@ -144,6 +123,6 @@ public class JobSpecificationExt
     public override string ToString()
     {
         return
-            $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProjectIdentifier}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks}; memory={Memory}; memoryPerCPU={MemoryPerCPU}; memoryPerGPU={MemoryPerGPU})";
+            $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProjectIdentifier}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
     }
 }
