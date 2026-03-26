@@ -33,6 +33,8 @@ namespace HEAppE.RestApi.Logging
 
         public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
         {
+            ApplyRequestSizeLimit(context);
+
             var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
             var jobId = await ExtractJobId(context);
 
@@ -58,6 +60,41 @@ namespace HEAppE.RestApi.Logging
                 LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
                 log4net.LogicalThreadContext.Properties.Remove("isUserAction");
+            }
+        }
+
+        private static void ApplyRequestSizeLimit(HttpContext context)
+        {
+            var endpoint = context.GetEndpoint();
+            if (endpoint == null) return;
+
+            // Use reflection to avoid compile-time dependency on Metadata/Features interfaces
+            var metadata = endpoint.Metadata;
+            var sizeLimitMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IRequestSizeLimitMetadata") != null);
+            var allowLargeBodyMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IAllowLargeRequestBodyMetadata") != null);
+
+            if (sizeLimitMetadata == null && allowLargeBodyMetadata == null) return;
+
+            var feature = context.Features.FirstOrDefault(f => f.Key.Name == "IHttpRequestBodySizeFeature").Value;
+            if (feature == null) return;
+
+            var isReadOnlyProp = feature.GetType().GetProperty("IsReadOnly");
+            if (isReadOnlyProp != null && (bool)isReadOnlyProp.GetValue(feature)) return;
+
+            var maxRequestBodySizeProp = feature.GetType().GetProperty("MaxRequestBodySize");
+            if (maxRequestBodySizeProp == null) return;
+
+            if (allowLargeBodyMetadata != null)
+            {
+                maxRequestBodySizeProp.SetValue(feature, null);
+            }
+            else if (sizeLimitMetadata != null)
+            {
+                var limitProp = sizeLimitMetadata.GetType().GetProperty("MaxRequestBodySize");
+                if (limitProp != null)
+                {
+                    maxRequestBodySizeProp.SetValue(feature, limitProp.GetValue(sizeLimitMetadata));
+                }
             }
         }
 

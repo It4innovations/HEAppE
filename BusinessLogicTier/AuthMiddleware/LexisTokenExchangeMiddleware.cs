@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -26,6 +27,7 @@ public class LexisTokenExchangeMiddleware
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
     {
+        ApplyRequestSizeLimit(context);
         context.Request.EnableBuffering();
         using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
         {
@@ -106,5 +108,40 @@ public class LexisTokenExchangeMiddleware
         _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
 
         await responseBody.CopyToAsync(originalBodyStream);
+    }
+
+    private static void ApplyRequestSizeLimit(HttpContext context)
+    {
+        var endpoint = context.GetEndpoint();
+        if (endpoint == null) return;
+
+        // Use reflection to avoid compile-time dependency on Metadata/Features interfaces in this library
+        var metadata = endpoint.Metadata;
+        var sizeLimitMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IRequestSizeLimitMetadata") != null);
+        var allowLargeBodyMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IAllowLargeRequestBodyMetadata") != null);
+
+        if (sizeLimitMetadata == null && allowLargeBodyMetadata == null) return;
+
+        var feature = context.Features.FirstOrDefault(f => f.Key.Name == "IHttpRequestBodySizeFeature").Value;
+        if (feature == null) return;
+
+        var isReadOnlyProp = feature.GetType().GetProperty("IsReadOnly");
+        if (isReadOnlyProp != null && (bool)isReadOnlyProp.GetValue(feature)) return;
+
+        var maxRequestBodySizeProp = feature.GetType().GetProperty("MaxRequestBodySize");
+        if (maxRequestBodySizeProp == null) return;
+
+        if (allowLargeBodyMetadata != null)
+        {
+            maxRequestBodySizeProp.SetValue(feature, null);
+        }
+        else if (sizeLimitMetadata != null)
+        {
+            var limitProp = sizeLimitMetadata.GetType().GetProperty("MaxRequestBodySize");
+            if (limitProp != null)
+            {
+                maxRequestBodySizeProp.SetValue(feature, limitProp.GetValue(sizeLimitMetadata));
+            }
+        }
     }
 }
