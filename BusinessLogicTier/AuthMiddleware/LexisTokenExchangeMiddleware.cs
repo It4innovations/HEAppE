@@ -94,6 +94,15 @@ public class LexisTokenExchangeMiddleware
                 }
             }
         }
+        
+        bool isStreamingEndpoint = context.Request.Path.Value
+            ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
+
+        if (isStreamingEndpoint)
+        {
+            await _next(context);
+            return;
+        }
 
         var originalBodyStream = context.Response.Body;
         using var responseBody = new MemoryStream();
@@ -101,12 +110,11 @@ public class LexisTokenExchangeMiddleware
 
         await _next(context);
 
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-        var responseText = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-
+        responseBody.Seek(0, SeekOrigin.Begin);
+        var responseText = await new StreamReader(responseBody).ReadToEndAsync();
         _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
 
+        responseBody.Seek(0, SeekOrigin.Begin);
         await responseBody.CopyToAsync(originalBodyStream);
     }
 
