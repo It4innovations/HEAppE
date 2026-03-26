@@ -96,6 +96,8 @@ public static class JobManagementConverts
             Name = taskSpecificationExt.Name,
             MinCores = taskSpecificationExt.MinCores,
             MaxCores = taskSpecificationExt.MaxCores,
+            GpuCores = taskSpecificationExt.GpuCores,
+            GpuNodes = taskSpecificationExt.GpuNodes,
             WalltimeLimit = taskSpecificationExt.WalltimeLimit,
             PlacementPolicy = taskSpecificationExt.PlacementPolicy,
             RequiredNodes = taskSpecificationExt.RequiredNodes?

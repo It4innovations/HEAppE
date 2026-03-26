@@ -100,8 +100,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             taskSpecification.RequiredNodes.Select(s => s.NodeName).ToList(),
             taskSpecification.PlacementPolicy,
             taskSpecification.TaskParalizationSpecifications,
-            Convert.ToInt32(taskSpecification.MinCores),
-            Convert.ToInt32(taskSpecification.MaxCores),
+            taskSpecification.MinCores,
+            taskSpecification.MaxCores,
+            taskSpecification.GpuCores,
+            taskSpecification.GpuNodes,
             taskSpecification.ClusterNodeType.CoresPerNode,
             taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation);
 

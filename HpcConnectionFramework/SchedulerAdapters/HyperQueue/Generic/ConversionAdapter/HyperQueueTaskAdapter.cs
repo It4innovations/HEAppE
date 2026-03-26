@@ -140,18 +140,35 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
 
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy,
-        IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
+        IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        var nodeCount = maxCores / coresPerNode;
-        nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
-        
         if (placementPolicy.Contains("gpus") || aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"))
         {
-            _hqAutoAllocParametersBuilder.Append($" --gpus={maxCores}");
-            _taskBuilder.Append($" --resource gpus={maxCores}");
+            // only temporary solution until LEXIS systems implement new gpu core/node parameters
+            // then remove this and use logic in else statement
+            if (maxCores.HasValue)
+            {
+                _hqAutoAllocParametersBuilder.Append($" --gpus={maxCores}");
+                _taskBuilder.Append($" --resource gpus={maxCores}");
+            }
+            else
+            {
+                if (!gpuCores.HasValue || gpuCores <= 0)
+                    throw new ArgumentException("Argument 'gpuCores' have to be specified for HyperQueue ACN/GPU task.");
+
+                _hqAutoAllocParametersBuilder.Append($" --gpus={gpuCores}");
+                _taskBuilder.Append($" --resource gpus={gpuCores}");
+            }  
         }
         else
         {
+            if (!maxCores.HasValue || maxCores <= 0)
+                throw new ArgumentException("Argument 'maxCores' have to be specified for HyperQueue CPU task.");
+
+            var nodeCount = maxCores / coresPerNode;
+            nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+
             _taskBuilder.Append($" --nodes={nodeCount}");
         }
     }

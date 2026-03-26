@@ -36,6 +36,10 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
 
     public int? MaxCores { get; set; }
 
+    public int? GpuCores { get; set; }
+
+    public int? GpuNodes { get; set; }
+
     public TaskPriority? Priority { get; set; }
 
     [ForeignKey("Project")] public long? ProjectId { get; set; }
@@ -58,8 +62,14 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
         var result = new StringBuilder();
         result.AppendLine("Id=" + Id);
         result.AppendLine("Name=" + Name);
-        result.AppendLine("MinCores=" + MinCores);
-        result.AppendLine("MaxCores=" + MaxCores);
+        if(MinCores != null)
+            result.AppendLine("MinCores=" + MinCores);
+        if (MaxCores != null)
+            result.AppendLine("MaxCores=" + MaxCores);
+        if (GpuCores != null)
+            result.AppendLine("GpuCores=" + GpuCores);
+        if(GpuNodes != null)
+            result.AppendLine("GpuNodes=" + GpuNodes);
         result.AppendLine("Priority=" + Priority);
         result.AppendLine("Project=" + Project);
         result.AppendLine("WalltimeLimit=" + WalltimeLimit);

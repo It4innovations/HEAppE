@@ -22,19 +22,32 @@ public class TaskSpecificationExt
     public string Name { get; set; }
 
     /// <summary>
-    /// Minimum number of cores
+    /// Minimum number of CPU cores
     /// </summary>
     [DataMember(Name = "MinCores")]
-    [Description("Minimum number of cores")]
+    [Description("Minimum number of CPU cores")]
     public int? MinCores { get; set; }
 
     /// <summary>
-    /// Maximum number of cores
+    /// Maximum number of CPU cores
     /// </summary>
     [DataMember(Name = "MaxCores")]
-    [Required]
-    [Description("Maximum number of cores")]
-    public int MaxCores { get; set; }
+    [Description("Maximum number of CPU cores")]
+    public int? MaxCores { get; set; }
+
+    /// <summary>
+    /// Number of GPU cores
+    /// </summary>
+    [DataMember(Name = "GpuCores")]
+    [Description("Number of GPU cores")]
+    public int? GpuCores { get; set; }
+
+    /// <summary>
+    /// Number of GPU nodes
+    /// </summary>
+    [DataMember(Name = "GpuNodes")]
+    [Description("Number of GPU nodes")]
+    public int? GpuNodes { get; set; }
 
     /// <summary>
     /// Walltime limit

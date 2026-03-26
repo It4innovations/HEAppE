@@ -4,6 +4,7 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20260324074157_AddGpuCoresToTaskSpecification")]
+    partial class AddGpuCoresToTaskSpecification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1291,15 +1294,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int?>("MaxCores")
                         .HasColumnType("int");
-
-                    b.Property<long?>("Memory")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MemoryPerCPU")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MemoryPerGPU")
-                        .HasColumnType("bigint");
 
                     b.Property<int?>("MinCores")
                         .HasColumnType("int");
