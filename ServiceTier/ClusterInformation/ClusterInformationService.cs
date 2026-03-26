@@ -180,7 +180,7 @@ public class ClusterInformationService : IClusterInformationService
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key.");
+            _logger.LogInformation($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var result =
                 await clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);

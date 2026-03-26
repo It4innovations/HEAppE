@@ -44,7 +44,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         var dataTransferMethod =
             dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
         return dataTransferMethod.ConvertIntToExt();
@@ -58,7 +58,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
     }
 
@@ -71,7 +71,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }
@@ -85,7 +85,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }

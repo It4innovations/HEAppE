@@ -376,7 +376,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
             return GetOrRegisterLexisCredentials(result);

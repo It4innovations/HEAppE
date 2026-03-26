@@ -113,7 +113,7 @@ public class ExpirioService : IExpirioService
         }
         catch (JsonException ex)
         {
-            _logger.Error($"[Expirio] JSON Parsing failed: {ex.Message}");
+            logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
             return content.Trim('"');
         }
     }

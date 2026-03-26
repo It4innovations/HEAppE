@@ -62,7 +62,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = results.Select(cpc => cpc.ClusterAuthenticationCredentials).Where(c => c != null).Distinct().ToList();
         if (credentials.Any())
         {
-            await WithVaultData(credentials);
+            await WithVaultData(credentials, _logger);
         }
 
         return results;

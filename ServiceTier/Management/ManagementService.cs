@@ -460,7 +460,7 @@ public class ManagementService : IManagementService
     public async Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
                                                                    bool? generateNewKey, string? privateKey, string? password, string? passphrase, long? adaptorUserId = null)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -521,7 +521,7 @@ public class ManagementService : IManagementService
 
     public async Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode, long? adaptorUserId = null)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -572,7 +572,7 @@ public class ManagementService : IManagementService
      //                                                         bool? generateNewKey, string? privateKey, string? password, string? passphrase)
     public async Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, string sessionCode, long? adaptorUserId = null)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)
@@ -629,7 +629,7 @@ public class ManagementService : IManagementService
 
     public async Task RemoveCredential(long projectId, string sessionCode, string username, long? adaptorUserId = null)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)

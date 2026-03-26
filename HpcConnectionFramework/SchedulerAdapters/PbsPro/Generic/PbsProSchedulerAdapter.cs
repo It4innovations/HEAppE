@@ -120,7 +120,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 
                 if (retryCount > 0)
                 {
-                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in 1s... ({retryCount} attempts left)");
+                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in 1s... ({retryCount} attempts left)");
                     System.Threading.Thread.Sleep(1000);
                 }
                 retryCount--;
@@ -128,7 +128,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             
             var resultTasks = (tasks ?? GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes)).ToList();
             
-            _log.Info($"SubmitJob cleanup: {resultTasks.Count} tasks found in qstat response.");
+            _logger.LogInformation($"SubmitJob cleanup: {resultTasks.Count} tasks found in qstat response.");
 
             // Create placeholder DB tasks for enforcement (we only have jobSpecification here)
             var dbTasks = jobSpecification.Tasks.Select((t, i) => new SubmittedTaskInfo 
@@ -480,7 +480,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     private void EnforceMetadataAndLog(List<SubmittedTaskInfo> clusterTasks, IEnumerable<SubmittedTaskInfo> dbTasks, string context)
     {
         var dbTasksList = dbTasks.ToList();
-        _log.Info($"[{context}] Validating {clusterTasks.Count} cluster tasks against {dbTasksList.Count} DB tasks.");
+        _logger.LogInformation($"[{context}] Validating {clusterTasks.Count} cluster tasks against {dbTasksList.Count} DB tasks.");
         
         foreach (var clusterTask in clusterTasks)
         {
@@ -501,7 +501,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                         if (dbTask.Specification != null)
                         {
                             clusterTask.Name = dbTask.Specification.Id.ToString();
-                            _log.Info($"[{context}] Enforced name mapping for task {clusterTask.ScheduledJobId}: {clusterTask.Name} (State: {oldState}->{clusterTask.State})");
+                            _logger.LogInformation($"[{context}] Enforced name mapping for task {clusterTask.ScheduledJobId}: {clusterTask.Name} (State: {oldState}->{clusterTask.State})");
                             break;
                         }
                     }
@@ -509,12 +509,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 
                 if (string.IsNullOrEmpty(clusterTask.Name))
                 {
-                    _log.Warn($"[{context}] Could not find mapping for cluster task {clusterTask.ScheduledJobId} (State: {clusterTask.State})");
+                    _logger.LogWarning($"[{context}] Could not find mapping for cluster task {clusterTask.ScheduledJobId} (State: {clusterTask.State})");
                 }
             }
             else
             {
-                _log.Info($"[{context}] Task {clusterTask.ScheduledJobId} has name: {clusterTask.Name} (State: {clusterTask.State})");
+                _logger.LogInformation($"[{context}] Task {clusterTask.ScheduledJobId} has name: {clusterTask.Name} (State: {clusterTask.State})");
             }
         }
     }

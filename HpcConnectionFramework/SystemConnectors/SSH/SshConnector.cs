@@ -627,7 +627,7 @@ public class SshConnector : IPoolableAdapter
     private async Task<byte[]> GetKerberosTicket(string lexisToken)
     {
         KerberosExchangeRequest request = new() { ProviderName = ExpirioSettings.ProviderName };
-        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken);
+        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken, _logger);
         return Convert.FromBase64String(ticket);
     }
 

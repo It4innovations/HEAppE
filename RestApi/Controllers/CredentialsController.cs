@@ -36,7 +36,7 @@ public class CredentialsController : ControllerBase
     /// <param name="memoryCache">Memory cache provider</param>
     public CredentialsController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base()
     {
-        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion
