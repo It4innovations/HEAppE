@@ -299,12 +299,12 @@ public class Startup
 
         app.UseRequestLocalization();
         app.UseRouting();
-        app.UseMiddleware<LogUserContextMiddleware>();
         app.UseMiddleware<LexisAuthMiddleware>();
-            app.UseMiddleware<LexisTokenExchangeMiddleware>();
-            app.UseAuthentication();
+        app.UseMiddleware<LexisTokenExchangeMiddleware>();
+        app.UseAuthentication();
+        app.UseMiddleware<LogUserContextMiddleware>();
         app.UseMiddleware<ExceptionMiddleware>();
-            app.UseAuthorization();
+        app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
         {
