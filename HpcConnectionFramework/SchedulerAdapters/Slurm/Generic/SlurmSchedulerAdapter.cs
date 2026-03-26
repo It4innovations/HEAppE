@@ -55,6 +55,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}\"");
 
         foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
         {
@@ -71,11 +72,14 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
-            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}: {command.Result}");
+            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
             return submittedTasksInfo;
         }
         catch (SlurmException ex)
         {
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
             throw new SlurmException(
                 "GetActualTasksInfo", ex,
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),

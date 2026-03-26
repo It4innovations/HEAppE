@@ -235,7 +235,13 @@ public class DataTransferLogic : IDataTransferLogic
         if (!response.IsSuccessStatusCode) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
 
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await contentStream.CopyToAsync(responseStream, cancellationToken);
+        var buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+        {
+            await responseStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+            await responseStream.FlushAsync(cancellationToken);
+        }
     }
 
     public IEnumerable<long> GetTaskIdsWithOpenTunnels() => _activeTunnels.Keys;

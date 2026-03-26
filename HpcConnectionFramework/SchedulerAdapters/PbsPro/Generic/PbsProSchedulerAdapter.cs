@@ -457,6 +457,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", scheduledJobIds)}\"");
 
         cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}'");
         var sshCommand = cmdBuilder.ToString();
@@ -464,11 +465,14 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
-            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", scheduledJobIds)}: {command.Result}");
+            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
             return submittedTasksInfo;
         }
         catch (PbsException ex)
         {
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", scheduledJobIds)}. Result: {command?.Result}, Error: {command?.Error}");
             throw new PbsException("GetActualTasksInfo", ex, string.Join(", ", scheduledJobIds), command.Result,
                 command.Error, sshCommand)
             {
