@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Linq;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.Utils;
 
@@ -217,8 +218,14 @@ public class TaskSpecificationExt
 
     public override string ToString()
     {
+        var parParamsString = TaskParallelizationParameters != null ? "[" + string.Join(", ", TaskParallelizationParameters.Select(p => p.ToString())) + "]" : "null";
+        var envVarsString = EnvironmentVariables != null ? "[" + string.Join(", ", EnvironmentVariables.Select(ev => ev.ToString())) + "]" : "null";
+        var dependsOnString = DependsOn != null ? "[" + string.Join(", ", DependsOn.Select(d => d.Name)) + "]" : "null";
+        var templateParamsString = TemplateParameterValues != null ? "[" + string.Join(", ", TemplateParameterValues.Select(p => p.ToString())) + "]" : "null";
+        var requiredNodesString = RequiredNodes != null ? "[" + string.Join(", ", RequiredNodes) + "]" : "null";
+
         return
-            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParallelizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues}; memory={Memory}; memoryPerCPU={MemoryPerCPU}; memoryPerGPU={MemoryPerGPU})";
+            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={requiredNodesString}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParallelizationParameters={parParamsString}; environmentVariables={envVarsString}; dependsOn={dependsOnString}; templateParameterValues={templateParamsString}; memory={Memory}; memoryPerCPU={MemoryPerCPU}; memoryPerGPU={MemoryPerGPU})";
     }
 
     public override bool Equals(object obj)

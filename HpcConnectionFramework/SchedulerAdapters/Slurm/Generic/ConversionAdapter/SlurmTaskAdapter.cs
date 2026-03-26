@@ -284,10 +284,38 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             // TODO implement partial allocation?
             if (isPartialAllocation) { }
 
-            var nodeCount = (int)maxCores / coresPerNode;
-            nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+            // Calculate node count based on parallelization specifications
+            int totalNodes = 0;
+            int totalSpecCores = 0;
+            if (paralizationSpecs != null && paralizationSpecs.Any())
+            {
+                foreach (var spec in paralizationSpecs)
+                {
+                    int specNodes = spec.MaxCores / coresPerNode;
+                    specNodes += spec.MaxCores % coresPerNode > 0 ? 1 : 0;
+                    totalNodes += specNodes;
+                    totalSpecCores += spec.MaxCores;
+                }
+            }
+
+            // Handle remaining cores (if maxCores is greater than spec sum, fill the rest)
+            int effectiveMaxCores = maxCores ?? 0;
+            int remainingCores = effectiveMaxCores - totalSpecCores;
+            if (remainingCores > 0)
+            {
+                int remainingNodes = remainingCores / coresPerNode;
+                remainingNodes += remainingCores % coresPerNode > 0 ? 1 : 0;
+                totalNodes += remainingNodes;
+            }
+
+            if (totalNodes == 0 && effectiveMaxCores > 0)
+            {
+                totalNodes = effectiveMaxCores / coresPerNode;
+                totalNodes += effectiveMaxCores % coresPerNode > 0 ? 1 : 0;
+            }
+
             allocationCmdBuilder.Append(
-                $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+                $" --nodes={totalNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), totalNodes)}{reqNodeGroupsCmd}");
         }
 
         if (parSpec is not null)

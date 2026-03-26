@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobManagement.Models;
 
@@ -122,7 +123,10 @@ public class JobSpecificationExt
 
     public override string ToString()
     {
+        var tasksString = Tasks != null ? "[" + string.Join(", ", Tasks.Select(t => t.ToString())) + "]" : "null";
+        var envVarsString = EnvironmentVariables != null ? "[" + string.Join(", ", EnvironmentVariables.Select(ev => ev.ToString())) + "]" : "null";
+
         return
-            $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProjectIdentifier}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
+            $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProjectIdentifier}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={envVarsString}; tasks={tasksString})";
     }
 }
