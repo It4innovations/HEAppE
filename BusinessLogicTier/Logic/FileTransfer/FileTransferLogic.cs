@@ -132,17 +132,32 @@ public class FileTransferLogic : IFileTransferLogic
                     continue;
                 }
 
-                _logger.LogInformation(
-                    $"Removing file transfer key for user \"{userName}\" in cluster \"{clusterName}\"");
-                
-                long? adaptorUserId = (tempKey.Key.Project?.IsOneToOneMapping == true)
-                    ? tempKey.Key.ClusterUser?.ClusterProjectCredentials?.FirstOrDefault()?.AdaptorUser?.Id
-                    : null;
-                
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId, _expirioService, _logger);
-                scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
-                    tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                try
+                {
+                    if (clusterUser.ClusterProjectCredentials?.FirstOrDefault()?.AdaptorUser != null)
+                    {
+                        var au = clusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser;
+                        HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(au.Id, au.Username, au.Email);
+                    }
+
+                    _logger.LogInformation(
+                        $"Removing file transfer key for user \"{userName}\" in cluster \"{clusterName}\"");
+
+                    long? adaptorUserId = (tempKey.Key.Project?.IsOneToOneMapping == true)
+                        ? tempKey.Key.ClusterUser?.ClusterProjectCredentials?.FirstOrDefault()?.AdaptorUser?.Id
+                        : null;
+
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService,
+                            adaptorUserId: adaptorUserId, _expirioService, _logger);
+                    scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
+                        tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project,
+                        _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                }
+                finally
+                {
+                    HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                }
             }
 
             activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);

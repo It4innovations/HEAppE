@@ -941,8 +941,16 @@ internal class JobManagementLogic : IJobManagementLogic
             ? await unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id, logger: logger)
             : jobSpecification.ClusterUser;
-        logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
-        return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, null, null);
+        try
+        {
+            HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobSpecification.Id);
+            logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
+            return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, null, null);
+        }
+        finally
+        {
+            HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+        }
     }
 
     private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)

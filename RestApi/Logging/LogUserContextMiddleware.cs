@@ -36,6 +36,11 @@ namespace HEAppE.RestApi.Logging
             var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
             var jobId = await ExtractJobId(context);
 
+            if (userId <= 0 && string.IsNullOrEmpty(userName))
+            {
+                userName = await ExtractUserNameFromContent(context);
+            }
+
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
             if (jobId.HasValue)
             {
@@ -182,6 +187,36 @@ namespace HEAppE.RestApi.Logging
                 _logger.LogDebug(ex, "Failed to retrieve user information for session code");
                 return (-1, null, null);
             }
+        }
+
+        private async Task<string> ExtractUserNameFromContent(HttpContext context)
+        {
+            if (context.Request.ContentLength > 0 && (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                context.Request.EnableBuffering();
+                var position = context.Request.Body.Position;
+                context.Request.Body.Position = 0;
+
+                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
+                var body = await reader.ReadToEndAsync();
+                context.Request.Body.Position = position;
+
+                try
+                {
+                    var json = JsonDocument.Parse(body);
+                    // Look for Username in generic credentials structure
+                    if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
+                    {
+                        if (creds.TryGetProperty("Username", out var user) || creds.TryGetProperty("username", out user))
+                            return user.GetString();
+                    }
+                    // Direct Username property
+                    if (json.RootElement.TryGetProperty("Username", out var directUser) || json.RootElement.TryGetProperty("username", out directUser))
+                        return directUser.GetString();
+                }
+                catch { }
+            }
+            return null;
         }
     }
 }

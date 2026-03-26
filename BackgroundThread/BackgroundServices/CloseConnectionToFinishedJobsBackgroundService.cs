@@ -71,11 +71,27 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                     {
                         try
                         {
+                            HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(task.Specification.JobSpecification.Id);
+                            if (task.Specification.JobSpecification.Submitter != null)
+                            {
+                                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                                    task.Specification.JobSpecification.Submitter.Id, 
+                                    task.Specification.JobSpecification.Submitter.Username, 
+                                    task.Specification.JobSpecification.Submitter.Email);
+                            }
                             dataTransferLogic.CloseAllTunnelsForTask(task);
                         }
                         catch (Exception closeEx)
                         {
                             _logger.LogWarning($"Failed to close tunnels for task {task.Id}: ", closeEx);
+                        }
+                        finally
+                        {
+                            HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+                            if (task.Specification.JobSpecification.Submitter != null)
+                            {
+                                HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                            }
                         }
                     }
                 }

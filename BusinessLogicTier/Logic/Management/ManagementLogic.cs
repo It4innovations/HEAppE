@@ -2884,6 +2884,12 @@ public class ManagementLogic : IManagementLogic
     {
         try
         {
+            if (credential.AdaptorUser != null)
+            {
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                    credential.AdaptorUser.Id, credential.AdaptorUser.Username, credential.AdaptorUser.Email);
+            }
+
             var clusterProject = credential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
@@ -2910,6 +2916,10 @@ public class ManagementLogic : IManagementLogic
         {
             _logger.LogError(ex, $"Failed to check status for credential ID ID {credential.ClusterAuthenticationCredentialsId}, UserName {credential.ClusterAuthenticationCredentials.Username}");
             return null;
+        }
+        finally
+        {
+            HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
         }
     }
     

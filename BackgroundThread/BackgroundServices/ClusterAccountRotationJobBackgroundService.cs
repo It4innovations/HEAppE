@@ -65,6 +65,13 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                         {
                             try
                             {
+                                HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(job.Id);
+                                if (job.Submitter != null)
+                                {
+                                    HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                                        job.Submitter.Id, job.Submitter.Username, job.Submitter.Email);
+                                }
+
                                 _logger.LogInformation($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                                 LogicFactory.GetLogicFactory()
                                     .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
@@ -73,6 +80,14 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                             catch (Exception jobEx)
                             {
                                 _logger.LogError($"Failed to resubmit job {job.Id}: ", jobEx);
+                            }
+                            finally
+                            {
+                                HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+                                if (job.Submitter != null)
+                                {
+                                    HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                                }
                             }
                         }
                     }
