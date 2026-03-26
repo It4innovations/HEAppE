@@ -25,6 +25,7 @@ using Services.Expirio.Models;
 using System.Threading.Tasks;
 using Services.Expirio.Configuration;
 
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -35,9 +36,11 @@ public class SshConnector : IPoolableAdapter
 {
     private ISshCertificateAuthorityService _sshCaService;
     private IExpirioService _expirio;
-    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
+    private ILogger _logger;
+    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger)
     {
         _sshCaService = sshCertificateAuthorityService;
+        _logger = logger;
         _expirio = expirio;
     }
     #region Local Methods
@@ -92,10 +95,10 @@ public class SshConnector : IPoolableAdapter
                     credentials.PrivateKeyPassphrase, port),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
+                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
+                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
                 CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
@@ -372,7 +375,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
@@ -410,7 +413,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
@@ -592,9 +595,9 @@ public class SshConnector : IPoolableAdapter
     /// <param name="port"></param>
     /// <param name="username">Username</param>
     /// <returns></returns>
-    private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port, string username)
+    private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port, string username, ILogger logger)
     {
-        var client = new NoAuthenticationSshClient(masterNodeName, port, username);
+        var client = new NoAuthenticationSshClient(masterNodeName, port, username, logger);
         return client;
     }
 

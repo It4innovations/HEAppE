@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -47,33 +48,33 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
         Project project, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         long? adaptorUserId,
-        IExpirioService expirio)
+        IExpirioService expirio, ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio),
-                CreateSchedulerAdapter()
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio, logger),
+                CreateSchedulerAdapter(logger), logger
             );
         return _schedulerSingletons[uniqueIdentifier];
     }
 
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new HyperQueueSchedulerAdapter(CreateDataConvertor());
+        return _schedulerAdapterInstance ??= new HyperQueueSchedulerAdapter(CreateDataConvertor(logger), logger);
     }
 
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
-        return _convertorSingleton ??= new HyperQueueDataConvertor(new HyperQueueConversionAdapterFactory());
+        return _convertorSingleton ??= new HyperQueueDataConvertor(new HyperQueueConversionAdapterFactory(), logger);
     }
 
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger)
     {
         var masterNodeName = configuration.MasterNodeName;
         if (!_connectorSingletons.ContainsKey(masterNodeName))
-            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService, expirio);
+            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService, expirio, logger);
 
         return _connectorSingletons[masterNodeName];
     }

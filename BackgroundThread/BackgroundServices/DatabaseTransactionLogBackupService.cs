@@ -1,25 +1,26 @@
-﻿using System;
+﻿using HEAppE.BackgroundThread.Configuration;
+using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DataAccessTier.Configuration.Shared;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using HEAppE.DataAccessTier;
-using HEAppE.DataAccessTier.Configuration;
-using HEAppE.DataAccessTier.Configuration.Shared;
-using log4net;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Hosting;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
+    private readonly ILogger _logger;
     private readonly DatabaseTransactionLogBackupConfiguration _configuration;
-    private readonly ILog _log;
 
-    public DatabaseTransactionLogBackupService(DatabaseTransactionLogBackupConfiguration configuration)
+    public DatabaseTransactionLogBackupService(ILoggerFactory loggerFactory, DatabaseTransactionLogBackupConfiguration configuration)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseTransactionLogBackupService");
         _configuration = configuration;
     }
 
@@ -44,7 +45,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             }
             catch (Exception ex)
             {
-                _log.Error("An error occured during execution of the DatabaseTransactionLogBackup background service: ", ex);
+                _logger.LogError(ex, "An error occured during execution of the DatabaseTransactionLogBackup background service: ");
             }
 
             try
@@ -74,7 +75,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during check if database transaction logs backup can be performed: ", ex);
+            _logger.LogError(ex, "An error occured during check if database transaction logs backup can be performed.");
             return false;
         }
     }
@@ -93,18 +94,18 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
             await cmd.ExecuteNonQueryAsync();
 
-            _log.Info($"Transaction logs backup file was created to: {backupPath}");
+            _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
                 var nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _log.Info($"Transaction logs backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during execution of the transaction logs backup: ", ex);
+            _logger.LogError(ex, "An error occured during execution of the transaction logs backup.");
         }
     }
 
@@ -137,14 +138,14 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        _log.Warn($"Failed to delete transaction logs backup '{item.File.FullName}'", ex);
+                        _logger.LogWarning(ex, $"Failed to delete transaction logs backup '{item.File.FullName}'");
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured while removing older transaction logs backups: ", ex);
+            _logger.LogError(ex, "An error occured while removing older transaction logs backups.");
         }
     }
 

@@ -17,10 +17,10 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
-using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.DataAccessTier;
 
@@ -28,8 +28,10 @@ internal class MiddlewareContext : DbContext
 {
     #region Constructors
 
-    public MiddlewareContext()
+    public MiddlewareContext(ILogger logger)
     {
+        _logger = logger;
+
         if (!_isMigrated)
             lock (_lockObject)
             {
@@ -42,7 +44,7 @@ internal class MiddlewareContext : DbContext
                             // Connection to Database works and Database not exist
                             if (!Database.CanConnect())
                             {
-                                _log.Info("Starting migration and seeding into the new database.");
+                                _logger.LogInformation("Starting migration and seeding into the new database.");
                                 Database.Migrate();
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
@@ -51,19 +53,19 @@ internal class MiddlewareContext : DbContext
                             {
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-                                _log.Info(
+                                _logger.LogInformation(
                                     $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
                                 
                                 if (lastAppliedMigration is null)
                                 {
-                                    _log.Info("Starting migration into the new database.");
+                                    _logger.LogInformation("Starting migration into the new database.");
                                     Database.Migrate();
                                     lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 }
                                 else if (DatabaseMigrationSettings.AutoMigrateDatabase &&
                                          lastAppliedMigration != lastDefinedMigration)
                                 {
-                                    _log.Info("Applying newer migrations to the database.");
+                                    _logger.LogInformation("Applying newer migrations to the database.");
                                     Database.Migrate();
                                     _isMigrated = true;
                                 }
@@ -75,7 +77,7 @@ internal class MiddlewareContext : DbContext
                                 if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
                                     throw new DbContextException("MigrationCountMismatch");
 
-                                _log.Info(
+                                _logger.LogInformation(
                                     "Application and database migrations are the same. Starting seeding data into the database.");
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
@@ -95,7 +97,7 @@ internal class MiddlewareContext : DbContext
 
     private static readonly object _lockObject = new();
     private static volatile bool _isMigrated;
-    private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+    private readonly ILogger _logger;
 
     #endregion
 
@@ -278,7 +280,7 @@ internal class MiddlewareContext : DbContext
     //Does not contain modification of existing data or adding new records
     private void EnsureDatabaseSeeded()
     {
-        _log.Info("Seed data into tha database started.");
+        _logger.LogInformation("Seed data into tha database started.");
 
         InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
         InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
@@ -369,25 +371,25 @@ internal class MiddlewareContext : DbContext
                         clusterAuthenticationCredential, clusters.First());
         });
         SaveChanges();
-        _log.Info("Seed data into the database completed.");
+        _logger.LogInformation("Seed data into the database completed.");
     }
 
     private void ValidateSeed()
     {
-        _log.Info("Seed validation has started.");
+        _logger.LogInformation("Seed validation has started.");
         ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates,
             MiddlewareContextSettings.ClusterProjects);
         ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings
             .ClusterAuthenticationCredentials);
         ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
-        _log.Info("Seed validation completed.");
+        _logger.LogInformation("Seed validation completed.");
     }
 
     private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
-        var _vaultConnector = new VaultConnector();
+        var _vaultConnector = new VaultConnector(_logger);
         foreach (var item in credentials)
         {
             var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
@@ -453,7 +455,7 @@ internal class MiddlewareContext : DbContext
         if (items == null || items.Count() == 0) return;
 
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
-        _log.Info($"Inserting or updating seed data into {tableName} is initiated.");
+        _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
         Database.OpenConnection();
         try
@@ -476,12 +478,12 @@ internal class MiddlewareContext : DbContext
         catch (Exception e)
         {
             Database.CloseConnection();
-            _log.Error($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
+            _logger.LogError($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
         }
         finally
         {
             Database.CloseConnection();
-            _log.Info($"Inserting or updating seed into {tableName} is completed.");
+            _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
     }
 
@@ -510,11 +512,11 @@ internal class MiddlewareContext : DbContext
 
                 if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
-                    var vaultConnector = new VaultConnector();
+                    var vaultConnector = new VaultConnector(_logger);
                     var vaultData = await vaultConnector
                         .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id);
 
-                    _log.Info(vaultData.Id > 0
+                    _logger.LogInformation(vaultData.Id > 0
                         ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
                         : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
                     var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();

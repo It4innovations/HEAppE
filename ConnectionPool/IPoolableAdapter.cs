@@ -5,7 +5,6 @@ namespace HEAppE.ConnectionPool;
 
 public interface IPoolableAdapter
 {
-    
     object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials,
         Cluster cluster, string sshCaToken, string lexisToken, int? port);
 

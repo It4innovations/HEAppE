@@ -40,14 +40,14 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="userOrgService"></param>
-    /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
+    /// <param name="httpContextKeys"></param>
     public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService, _logger);
     }
 
     #endregion
@@ -90,11 +90,11 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult SubmitJob(SubmitJobModel model)
     {
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
-    }
+            return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+        }
 
     /// <summary>
     ///     Cancel job
@@ -111,11 +111,11 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CancelJob(CancelJobModel model)
     {
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
-    }
+            return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
+        }
 
     /// <summary>
     ///     Delete job
@@ -132,13 +132,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult DeleteJob(DeleteJobModel model)
     {
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
-        if (isDeleted) return Ok("Job was deleted");
-        return BadRequest("Job was not deleted");
-    }
+            var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
+            if (isDeleted) return Ok("Job was deleted");
+            return BadRequest("Job was not deleted");
+        }
 
     /// <summary>
     ///     Get all jobs for user
@@ -184,16 +184,16 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
     {
-        var model = new CurrentInfoForJobModel
-        {
-            SessionCode = sessionCode,
-            SubmittedJobInfoId = submittedJobInfoId
-        };
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var model = new CurrentInfoForJobModel
+            {
+                SessionCode = sessionCode,
+                SubmittedJobInfoId = submittedJobInfoId
+            };
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
-    }
+            return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        }
 
     /// <summary>
     ///     Copy job data to temp folder
@@ -210,12 +210,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataToTemp(CopyJobDataToTempModel model)
     {
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
-        return Ok("Data were copied to Temp");
-    }
+            _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
+            return Ok("Data were copied to Temp");
+        }
 
     /// <summary>
     ///     Copy job data from temp folder
@@ -232,12 +232,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataFromTemp(CopyJobDataFromTempModel model)
     {
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
-        return Ok("Data were copied from Temp");
-    }
+            _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
+            return Ok("Data were copied from Temp");
+        }
 
     /// <summary>
     ///     Get Allocated Nodes IPs

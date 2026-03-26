@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using HEAppE.Utils;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HEAppE.RestApi;

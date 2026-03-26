@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -17,12 +18,12 @@ public class SftpFileSystemFactory : FileSystemFactory
 
     #region Override Methods
 
-    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out var fileManager))
         {
             fileManager =
-                new SftpFileSystemManager(_logger, configuration, this, GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService));
+                new SftpFileSystemManager(logger, configuration, this, GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService, logger));
             _managerSingletons.Add(configuration.ServerHostname, fileManager);
         }
 
@@ -39,12 +40,12 @@ public class SftpFileSystemFactory : FileSystemFactory
         };
     }
 
-    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         var hostname = configuration.ServerHostname;
         if (!_connectorSingletons.TryGetValue(hostname, out var systemConnector))
         {
-            systemConnector = new SftpFileSystemConnector(_logger, sshCertificateAuthorityService, _expirio);
+            systemConnector = new SftpFileSystemConnector(logger, sshCertificateAuthorityService, _expirio);
             _connectorSingletons.Add(hostname, systemConnector);
         }
 

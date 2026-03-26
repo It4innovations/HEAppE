@@ -48,7 +48,7 @@ public class DataTransferController : BaseController<DataTransferController>
     public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                     IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,memoryCache)
     {
-        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, _logger);
     }
 
     #endregion

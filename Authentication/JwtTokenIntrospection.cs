@@ -16,7 +16,7 @@ namespace HEAppE.Authentication;
 public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<JwtTokenIntrospectionService> _logger;
+    private readonly ILogger<JwtTokenIntrospectionService>? _logger;
     private string? _introspectionEndpoint;
 
     public JwtTokenIntrospectionService(

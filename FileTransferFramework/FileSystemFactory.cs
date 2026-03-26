@@ -16,21 +16,6 @@ namespace HEAppE.FileTransferFramework;
 
 public abstract class FileSystemFactory
 {
-    #region Instances
-
-    protected static readonly ILogger _logger;
-    protected static readonly IExpirioService _expirio;
-    private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
-    private static FileSystemFactory _windowsSharedFactorySingleton;
-    private static FileSystemFactory _sftpFactorySingleton;
-
-    private static readonly int ConnectionPoolMinSize = 0;
-    private static readonly int ConnectionPoolMaxSize = 10;
-    private static readonly int ConnectionPoolCleaningInterval = 60;
-    private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
-
-    #endregion
-
     #region Constructors
 
     static FileSystemFactory()
@@ -43,14 +28,30 @@ public abstract class FileSystemFactory
 
     #endregion
 
+    #region Instances
+
+    protected static readonly ILogger _logger;
+    protected static readonly IExpirioService _expirio;
+    private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
+    private static FileSystemFactory _windowsSharedFactorySingleton;
+    private static FileSystemFactory _sftpFactorySingleton;
+    
+    
+    private static readonly int ConnectionPoolMinSize = 0;
+    private static readonly int ConnectionPoolMaxSize = 10;
+    private static readonly int ConnectionPoolCleaningInterval = 60;
+    private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
+
+    #endregion
+
     #region Abstract Methods
 
-    public abstract IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
+    public abstract IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger);
 
     internal abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification syncFile,
         ClusterAuthenticationCredentials credentials);
 
-    protected abstract IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
+    protected abstract IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger);
 
     #endregion
 
@@ -68,7 +69,7 @@ public abstract class FileSystemFactory
         };
     }
 
-    protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         if (!_schedulerConnPoolSingletons.TryGetValue(configuration, out var connection))
         {
@@ -78,10 +79,11 @@ public abstract class FileSystemFactory
                 ConnectionPoolMaxSize,
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
-                CreateFileSystemConnector(configuration, sshCertificateAuthorityService),
+                CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
                 HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                 HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
-                configuration.Cluster.Port);
+                configuration.Cluster.Port,
+                logger);
 
             _schedulerConnPoolSingletons.Add(configuration, connection);
         }

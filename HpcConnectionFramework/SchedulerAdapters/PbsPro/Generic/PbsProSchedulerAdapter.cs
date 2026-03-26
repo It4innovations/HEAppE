@@ -13,7 +13,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
@@ -29,12 +29,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     ///     Constructor
     /// </summary>
     /// <param name="convertor">Convertor</param>
-    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(PbsProSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion
@@ -54,7 +54,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel
@@ -86,13 +86,13 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
 
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var sshCommandBase64 =
             $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64, _logger);
             var jobIds = _convertor.GetJobIds(command.Result).ToList();
 
             for (var i = 0; i < jobSpecification.Tasks.Count; i++)
@@ -194,7 +194,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                         .Select(s => s.Groups.GetValueOrDefault("JobId").Value));
                 }
 
-            _log.Warn(
+            _logger.LogWarning(
                 $"Scheduled Job ids: \"{missingJobIds}\" are not in PBS Professional scheduler database. Mentioned jobs were canceled!");
             var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
             if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
@@ -224,10 +224,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             submitedTasksInfo.ToList().ForEach(f =>
                 cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
             var sshCommand = cmdBuilder.ToString();
-            _log.Info(
+            _logger.LogInformation(
                 $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
         }
         catch (SshCommandException ce)
         {
@@ -246,11 +246,11 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     {
         SshCommandWrapper command = null;
         var sshCommand = $"{_commands.InterpreterCommand} 'qstat -Q -f {nodeType.Queue}'";
-        _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
         catch (PbsException ex)
@@ -282,10 +282,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         });
 
         var sshCommand = cmdBuilder.ToString();
-        _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             return command.Result
                 .Split('\n')
                 .Where(w => !string.IsNullOrEmpty(w))
@@ -463,7 +463,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
             return submittedTasksInfo;
         }
@@ -559,7 +559,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)

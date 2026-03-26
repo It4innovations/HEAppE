@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 - Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
+- Reworked logger
 
 ## V6.2.10
 

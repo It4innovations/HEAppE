@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Timer = System.Timers.Timer;
 
@@ -41,13 +41,13 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        private readonly IPoolableAdapter adapter;
-        private readonly ILog log;
+        private readonly IPoolableAdapter _adapter;
+        private readonly ILogger _logger;
         private readonly string _masterNodeName;
         private readonly int? _port;
         private readonly int _maxConnectionsPerUser;
-        private readonly int minSize;
-        private readonly TimeSpan maxUnusedDuration;
+        private readonly int _minSize;
+        private readonly TimeSpan _maxUnusedDuration;
         private int _currentTotalPhysicalConnectionsCount;
         
         private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
@@ -58,25 +58,25 @@ namespace HEAppE.ConnectionPool
             
         private readonly Timer poolCleanTimer;
 
-        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port)
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger)
         {
-            log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+            _logger = logger;
             _masterNodeName = masterNodeName;
             _port = port;
-            this.minSize = minSize;
+            _minSize = minSize;
             _maxConnectionsPerUser = maxSize; 
-            this.adapter = adapter;
+            _adapter = adapter;
             _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
             _connectionRetryAttempts = retryAttempts;
             _connectionTimeoutMs = timeoutMs;
 
             if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
-                this.maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
+                _maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
                 poolCleanTimer.AutoReset = false;
-                log.Debug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
+                _logger.LogDebug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
             }
         }
 
@@ -89,9 +89,9 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            log.Debug($"[User:{credentials.Id}] Requesting connection.");
+            _logger.LogDebug($"[User:{credentials.Id}] Requesting connection.");
             var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
-                log.Debug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+                _logger.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
                 return new SharedUserContext(_maxConnectionsPerUser);
             });
 
@@ -105,7 +105,7 @@ namespace HEAppE.ConnectionPool
                 var s = userContext.Slots[i];
                 lock (s.SyncRoot)
                 {
-                    if (s.ConnectionInfo != null && adapter.IsConnected(s.ConnectionInfo.Connection))
+                    if (s.ConnectionInfo != null && _adapter.IsConnected(s.ConnectionInfo.Connection))
                     {
                         if (s.ReferenceCount < minRefCount)
                         {
@@ -126,18 +126,18 @@ namespace HEAppE.ConnectionPool
                     lock (bestSlot.SyncRoot)
                     {
                         // Double check it wasn't disconnected
-                        if (bestSlot.ConnectionInfo != null && adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
+                        if (bestSlot.ConnectionInfo != null && _adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
                         {
                             bestSlot.ReferenceCount++;
                             bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                            log.Debug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
+                            _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
                             return bestSlot.ConnectionInfo;
                         }
                     }
                 }
             }
 
-            log.Debug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
+            _logger.LogDebug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
             
             await EnsureVaultDataLoadedAsync(credentials);
             await userContext.UserSemaphore.WaitAsync();
@@ -148,7 +148,7 @@ namespace HEAppE.ConnectionPool
                 // Find an empty slot since we secured a permit to create one
                 for (int i = 0; i < userContext.Slots.Length; i++)
                 {
-                    if (userContext.Slots[i].ConnectionInfo == null || !adapter.IsConnected(userContext.Slots[i].ConnectionInfo.Connection))
+                    if (userContext.Slots[i].ConnectionInfo == null || !_adapter.IsConnected(userContext.Slots[i].ConnectionInfo.Connection))
                     {
                         slot = userContext.Slots[i];
                         break;
@@ -160,23 +160,22 @@ namespace HEAppE.ConnectionPool
 
                 lock (slot.SyncRoot)
                 {
-                    if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
+                    if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
                     {
-                        // Some other thread just initialized it or we couldn't find an empty one
-                        log.Debug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
+                        _logger.LogDebug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
                         userContext.UserSemaphore.Release();
                         slot.ReferenceCount++;
                         return slot.ConnectionInfo;
                     }
 
-                    log.Debug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
+                    _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
                     var newConnection = InitializeConnection(credentials, cluster, sshCaToken, lexisToken);
                     slot.ConnectionInfo = newConnection;
                     
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
-                    if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > minSize)
+                    if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
                     {
-                        log.Debug("Starting cleanup timer.");
+                        _logger.LogDebug("Starting cleanup timer.");
                         poolCleanTimer.Start();
                     }
 
@@ -186,7 +185,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                log.Error($"[User:{credentials.Id}] Connection setup failed", ex);
+                _logger.LogError($"[User:{credentials.Id}] Connection setup failed", ex);
                 userContext.UserSemaphore.Release();
                 throw;
             }
@@ -212,21 +211,21 @@ namespace HEAppE.ConnectionPool
                                 slot.ReferenceCount = 0;
                                 slot.LastReleasedTime = DateTime.UtcNow;
                             }
-                            log.Debug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
+                            _logger.LogDebug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
                             return;
                         }
                     }
                 }
             }
-            log.Warn($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
+            _logger.LogWarning($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
         }
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             // clear logging thread properties
-            LogicalThreadContext.Properties.Clear();
+            //LogicalThreadContext.Properties.Clear(); // TODO: what was this for... ?
 
-            log.Debug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
+            _logger.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
             int closedCount = 0;
             try
             {
@@ -240,9 +239,9 @@ namespace HEAppE.ConnectionPool
                         {
                             if (slot.ConnectionInfo == null) continue;
                             
-                            bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > maxUnusedDuration;
-                            log.Debug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + maxUnusedDuration) - DateTime.UtcNow}");
-                            if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > minSize)
+                            bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
+                            _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
+                            if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
                             {
                                 connToRemove = slot.ConnectionInfo;
                                 slot.ConnectionInfo = null;
@@ -251,24 +250,24 @@ namespace HEAppE.ConnectionPool
 
                         if (connToRemove != null)
                         {
-                            log.Debug($"[User:{userEntry.Key}] Closing idle expired connection.");
+                            _logger.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
                             RemovePhysicalConnection(connToRemove, userContext);
                             closedCount++;
                         }
                     }
                 }
             }
-            catch (Exception ex) { log.Error("Pool cleanup error", ex); }
+            catch (Exception ex) { _logger.LogError(ex, "Pool cleanup error"); }
             finally
             {
-                if (closedCount > 0) log.Debug($"Cleanup finished. Closed {closedCount} connections.");
-                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > minSize)
+                if (closedCount > 0) _logger.LogDebug($"Cleanup finished. Closed {closedCount} connections.");
+                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
                 {
                     poolCleanTimer.Start();
                 }
                 else
                 {
-                    log.Debug("Cleanup timer stopped (pool at or below minSize).");
+                    _logger.LogDebug("Cleanup timer stopped (pool at or below minSize).");
                 }
             }
         }
@@ -277,11 +276,11 @@ namespace HEAppE.ConnectionPool
         {
             if (cred.IsVaultDataLoaded) return;
             
-            log.Debug($"[User:{cred.Id}] Loading vault data...");
+            _logger.LogDebug($"[User:{cred.Id}] Loading vault data...");
             var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
             {
-                log.Debug($"[User:{id}] Fetching vault data from service (Shared Task).");
-                var connector = new VaultConnector();
+                _logger.LogDebug($"[User:{id}] Fetching vault data from service (Shared Task).");
+                var connector = new VaultConnector(_logger);
                 return await connector.GetClusterAuthenticationCredentials(id);
             });
             
@@ -292,7 +291,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                log.Error($"[User:{cred.Id}] Failed to load vault data", ex);
+                _logger.LogError($"[User:{cred.Id}] Failed to load vault data", ex);
                 _vaultCache.TryRemove(cred.Id, out _);
                 throw;
             }
@@ -302,27 +301,26 @@ namespace HEAppE.ConnectionPool
         {
             try 
             { 
-                adapter.Disconnect(connection.Connection); 
+                _adapter.Disconnect(connection.Connection); 
             }
             catch (Exception ex)
             {
-                log.Warn($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
+                _logger.LogWarning($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
             }
             finally
             {
                 Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
                 context.UserSemaphore.Release();
-                log.Debug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
+                _logger.LogDebug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
             }
         }
         
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
+            var connectionObject = _adapter.CreateConnectionObject(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
             
             var username = connection.AuthCredentials.Username;
-            
             if (connectionObject is SshClient sshClient)
             {
                 username = sshClient.ConnectionInfo.Username;
@@ -332,7 +330,8 @@ namespace HEAppE.ConnectionPool
             {
                 username = scpClient.ConnectionInfo.Username;
                 scpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
-            }else if (connectionObject is SftpClient sftpClient)
+            }
+            else if (connectionObject is SftpClient sftpClient)
             {
                 username = sftpClient.ConnectionInfo.Username;
                 sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
@@ -341,14 +340,14 @@ namespace HEAppE.ConnectionPool
             int maxRetries = _connectionRetryAttempts;
             int currentAttempt = 0;
 
-            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection. Max retries: {maxRetries}, Timeout: {_connectionTimeoutMs}ms");
+            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection. Max retries: {maxRetries}, Timeout: {_connectionTimeoutMs}ms");
 
             while (true)
             {
                 try
                 {
-                    adapter.Connect(connection.Connection);
-                    log.Info($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
+                    _adapter.Connect(connection.Connection);
+                    _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
                     break;
                 }
                 catch (Exception ex)
@@ -357,10 +356,10 @@ namespace HEAppE.ConnectionPool
                     
                     if (currentAttempt > maxRetries)
                     {
-                        log.Error($"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt - 1} attempts.", ex);
+                        _logger.LogError(ex, $"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt - 1} attempts.");
                         throw;
                     }
-                    log.Warn($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt - 1}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
+                    _logger.LogWarning($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt - 1}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
                     Thread.Sleep(1000);
                 }
             }

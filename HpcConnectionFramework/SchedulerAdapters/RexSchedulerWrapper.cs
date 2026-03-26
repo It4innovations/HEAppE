@@ -10,7 +10,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet.Common;
 using Exception = System.Exception;
 
@@ -28,9 +28,9 @@ public class RexSchedulerWrapper : IRexScheduler
     /// </summary>
     /// <param name="connectionPool">Connection pool</param>
     /// <param name="adapter">Scheduler adapter</param>
-    public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter)
+    public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(RexSchedulerWrapper));
+        _logger = logger;
         _connectionPool = connectionPool;
         _adapter = adapter;
     }
@@ -52,7 +52,7 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     #endregion
 
@@ -247,11 +247,11 @@ public class RexSchedulerWrapper : IRexScheduler
                 jobInfo.Specification.ClusterUser.Username, false);
             if (!isUpdated)
             {
-                _log.Warn($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                _logger.LogWarning($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
             else
             {
-                _log.Info($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
             _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
@@ -283,7 +283,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+            _logger.LogError($"Error deleting job directory for job {jobInfo.Id}", ex);
             return false;
         }
         finally
@@ -408,7 +408,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _log.Error(
+            _logger.LogError(
                 $"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}, {ex.Message}",
                 ex);
             return false;
@@ -437,7 +437,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _log.Error(
+            _logger.LogError(
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
             return (false, $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
         }

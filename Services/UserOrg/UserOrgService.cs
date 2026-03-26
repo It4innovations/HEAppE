@@ -8,22 +8,22 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 //using HEAppE.HpcConnectionFramework.Configuration;
+using Microsoft.Extensions.Logging;
 using log4net;
 
 namespace HEAppE.Services.UserOrg;
 
 public interface IUserOrgService
 {
-    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId);
-    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId);
-    void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName);
+    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId, ILogger logger);
+    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId, ILogger logger);
+    void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName, ILogger logger);
     bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName);
 }
 
 public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgService
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     private const string ClientName = "userOrgApi";
 
     private string BuildUrl(params string[] segments)
@@ -35,37 +35,37 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         return string.Join("/", cleanedSegments);
     }
 
-    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId)
+    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId, ILogger logger)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint
         );
-        _log.Debug($"[UserOrg Request] GetUserInfo: {relativeUri}");
-        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken, instanceId);
-        return await SendAsync<UserInfoExtendedModel>(request);
+        logger.LogDebug($"[UserOrg Request] GetUserInfo: {relativeUri}");
+        var request = CreateRequest(logger, HttpMethod.Get, relativeUri, accessToken, instanceId);
+        return await SendAsync<UserInfoExtendedModel>(request, logger);
     }
 
-    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId)
+    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId, ILogger logger)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.CommandTemplatePermissions, 
             heappeInstanceIdentifier
         );
-        _log.Debug($"[UserOrg Request] GetPermissions: {relativeUri} for Instance: {heappeInstanceIdentifier}");
-        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken, instanceId);
-        return await SendAsync<CommandTemplatePermissionsModel>(request);
+        logger.LogDebug($"[UserOrg Request] GetPermissions: {relativeUri} for Instance: {heappeInstanceIdentifier}");
+        var request = CreateRequest(logger, HttpMethod.Get, relativeUri, accessToken, instanceId);
+        return await SendAsync<CommandTemplatePermissionsModel>(request, logger);
     }
 
-    public void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName)
+    public void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName, ILogger logger)
     {
         if (!IsTemplateEnabledInLexis(permissions, clusterName, queueName, accountingString, commandTemplateName))
         {
-            _log.Warn($"[UserOrg Validation] Permission denied for Cluster:{clusterName}, Queue:{queueName}, Project:{accountingString}, Template:{commandTemplateName}");
+            logger.LogWarning($"[UserOrg Validation] Permission denied for Cluster:{clusterName}, Queue:{queueName}, Project:{accountingString}, Template:{commandTemplateName}");
             throw new UnauthorizedAccessException($"No LEXIS permissions for Cluster:{clusterName}, Queue:{queueName}, Project:{accountingString}, Template:{commandTemplateName}");
         }
-        _log.Debug($"[UserOrg Validation] Permission granted for Template:{commandTemplateName}");
+        logger.LogDebug($"[UserOrg Validation] Permission granted for Template:{commandTemplateName}");
     }
 
     public bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName)
@@ -78,7 +78,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
             string.Equals(ct.Name, templateName, StringComparison.OrdinalIgnoreCase) && ct.Enabled));
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string accessToken, string instanceId, object body = null)
+    private HttpRequestMessage CreateRequest(ILogger logger, HttpMethod method, string relativeUri, string accessToken, string instanceId, object body = null)
     {
         var request = new HttpRequestMessage(method, relativeUri);
         request.Headers.Add("X-Api-Token", accessToken);
@@ -92,36 +92,36 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         if (body != null) 
         {
             request.Content = JsonContent.Create(body);
-            _log.Debug($"[UserOrg Request Body] {JsonSerializer.Serialize(body)}");
+            logger.LogDebug($"[UserOrg Request Body] {JsonSerializer.Serialize(body)}");
         }
         return request;
     }
 
-    private async Task<T> SendAsync<T>(HttpRequestMessage request)
+    private async Task<T> SendAsync<T>(HttpRequestMessage request, ILogger logger)
     {
         using var httpClient = _httpClientFactory.CreateClient(ClientName);
-        _log.Info($"[UserOrg API] Sending {request.Method} request to {request.RequestUri}");
+        logger.LogInformation($"[UserOrg API] Sending {request.Method} request to {request.RequestUri}");
         
         using var response = await httpClient.SendAsync(request);
         var content = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
         {
-            _log.Debug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
+            logger.LogDebug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
             try
             {
                 return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
             catch (JsonException ex)
             {
-                _log.Error($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
+                logger.LogError($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
                 throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
             }
         }
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            _log.Error($"[UserOrg API Error] Details: {details}");
+            logger.LogError($"[UserOrg API Error] UserOrg API Error: {details}");
 
             switch (response.StatusCode)
             {

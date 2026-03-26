@@ -11,6 +11,7 @@ using HEAppE.Services.Expirio;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 
@@ -18,7 +19,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
-    private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IExpirioService _expirioService;
@@ -27,10 +28,11 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     public ClusterProjectCredentialsCheckLogBackgroundService(
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory,
         BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.ClusterProjectCredentialsCheckLogBackgroundService");
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
         _configuration = configuration;
@@ -53,17 +55,17 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
             {
                 try
                 {
-                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory()
-                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys, _expirioService);
+                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger);
                     
                     await managementLogic.CheckClusterProjectCredentialsStatus();
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
+                    _logger.LogError(ex, "An error occured during execution of the ClusterProjectCredentialsCheckLog background service. ");
                 }
             }
 

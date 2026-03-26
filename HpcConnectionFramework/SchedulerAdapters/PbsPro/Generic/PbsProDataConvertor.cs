@@ -8,6 +8,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 
@@ -22,7 +23,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger) : base(conversionAdapterFactory, logger)
     {
     }
 

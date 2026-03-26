@@ -14,8 +14,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
-using Org.BouncyCastle.Tls;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
@@ -31,12 +30,12 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     ///     Constructor
     /// </summary>
     /// <param name="convertor"></param>
-    public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(SlurmSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion
@@ -71,7 +70,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
             return submittedTasksInfo;
         }
@@ -105,7 +104,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel
@@ -128,14 +127,14 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         ClusterAuthenticationCredentials credentials)
     {
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sbatchCmd);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sbatchCmd, _logger);
             var scheduledJobIds = _convertor.GetJobIds(command.Result).ToList();
             
             var schedulerJobIdClusterAllocationNamePairs = scheduledJobIds.Select(id => (id, jobSpecification.Tasks.First().ClusterNodeType.ClusterAllocationName)).ToList();
@@ -157,7 +156,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
                 if (retryCount > 0)
                 {
-                    _log.Info($"Eventual consistency: only {tasks?.Count() ?? 0}/{schedulerJobIdClusterAllocationNamePairs.Count} tasks found in scontrol. Retrying in 1s... ({retryCount} attempts left)");
+                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{schedulerJobIdClusterAllocationNamePairs.Count} tasks found in scontrol. Retrying in 1s... ({retryCount} attempts left)");
                     System.Threading.Thread.Sleep(1000);
                 }
                 retryCount--;
@@ -196,7 +195,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
         catch (SshCommandException)
         {
-            _log.Warn(
+            _logger.LogWarning(
                 $"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
             return Enumerable.Empty<SubmittedTaskInfo>();
         }
@@ -224,10 +223,11 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
 
         var sshCommand = cmdBuilder.ToString();
-        _log.Info(
-            $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
+        _logger.LogInformation(
+            $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"",
+            _logger);
 
-        SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+        SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
     }
 
     /// <summary>
@@ -245,11 +245,11 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         var sshCommand =
             $"{_commands.InterpreterCommand} 'sinfo -t alloc {allocationCluster}--partition={nodeType.Queue} -h -o \"%.6D\"'";
-        _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
         catch (SlurmException ex)
@@ -281,10 +281,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         });
 
         var sshCommand = cmdBuilder.ToString();
-        _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             return command.Result
                 .Split('\n')
                 .Where(w => !string.IsNullOrEmpty(w))
@@ -496,7 +496,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)
@@ -552,7 +552,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         //perform dry run
         SshCommandWrapper command =
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand);
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand, _logger);
         
         var regex = new Regex(
             @"Job (\d+) to start at ([0-9T:-]+) using (\d+) processors on nodes (\S+) in partition (\S+)");

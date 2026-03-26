@@ -47,7 +47,7 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
         IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion

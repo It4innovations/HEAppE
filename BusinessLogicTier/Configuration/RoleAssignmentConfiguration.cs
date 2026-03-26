@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using log4net;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Configuration;
@@ -18,7 +18,7 @@ public class RoleAssignmentConfiguration
     public static string[] Reporters { get; set; }
     public static string[] ManagementAdmins { get; set; }
 
-    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger, bool doNotSave = false)
+    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILogger logger, bool doNotSave = false)
     {
         var rolesProcessed = new List<string>();
         int totalAssigned = 0;
@@ -52,15 +52,15 @@ public class RoleAssignmentConfiguration
         if (totalAssigned > 0)
         {
             string rolesSummary = string.Join(", ", rolesProcessed.Distinct());
-            logger.Info($"Group '{group.Name}': Assigned {totalAssigned} new users to roles: {rolesSummary}");
+            logger.LogInformation($"Group '{group.Name}': Assigned {totalAssigned} new users to roles: {rolesSummary}");
         }
 
         if (totalMissing > 0)
         {
-            logger.Warn($"Group '{group.Name}': {totalMissing} users defined in config were NOT FOUND in database.");
+            logger.LogWarning($"Group '{group.Name}': {totalMissing} users defined in config were NOT FOUND in database.");
         }
 
-        logger.Debug($"Group '{group.Name}' summary: {totalAssigned} new | {totalAlreadyHad} existing | {totalMissing} missing.");
+        logger.LogDebug($"Group '{group.Name}' summary: {totalAssigned} new | {totalAlreadyHad} existing | {totalMissing} missing.");
 
         if (!doNotSave) unitOfWork.Save();
     }

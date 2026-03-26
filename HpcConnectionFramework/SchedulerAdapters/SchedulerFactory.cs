@@ -2,6 +2,7 @@
 using System.Collections.Concurrent; // NOVÉ: Pro ConcurrentDictionary
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -58,7 +59,7 @@ public abstract class SchedulerFactory
         Project project, 
         ISshCertificateAuthorityService sshCertificateAuthorityService,
         long? adaptorUserId,
-        IExpirioService expirio)
+        IExpirioService expirio, ILogger logger)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
@@ -98,10 +99,11 @@ public abstract class SchedulerFactory
                     connectionPoolMaxSize,
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio),
+                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio, logger),
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
-                    clusterConf.Port);
+                    clusterConf.Port,
+                    logger);
             });
     }
 
@@ -128,22 +130,22 @@ public abstract class SchedulerFactory
         Project project, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         long? adaptorUserId,
-        IExpirioService expirio);
+        IExpirioService expirio, ILogger logger);
 
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected abstract ISchedulerAdapter CreateSchedulerAdapter();
+    protected abstract ISchedulerAdapter CreateSchedulerAdapter(ILogger logger);
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected abstract ISchedulerDataConvertor CreateDataConvertor();
+    protected abstract ISchedulerDataConvertor CreateDataConvertor(ILogger logger);
 
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio);
+    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger);
 
     #endregion
 }

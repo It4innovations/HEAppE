@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -8,8 +11,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 
@@ -18,7 +19,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 /// </summary>
 public class HyperQueueDataConvertor : SchedulerDataConvertor
 {
-    public HyperQueueDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public HyperQueueDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger) : base(conversionAdapterFactory, logger)
     {
     }
 

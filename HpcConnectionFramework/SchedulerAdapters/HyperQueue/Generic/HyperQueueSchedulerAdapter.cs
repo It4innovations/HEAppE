@@ -13,7 +13,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
@@ -25,12 +25,12 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 {
     #region Constructors
 
-    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(HyperQueueSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion
@@ -50,7 +50,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel
@@ -68,13 +68,13 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
             new List<(string ScheduledJobId, string ClusterAllocationName)>();
         SshCommandWrapper command = null;
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "hq submit");
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var sshCommandBase64 =
             $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             //^Job submitted successfully, job ID: (\d+)$
             // implement parser regex
             var jobIdPattern = @"^Job submitted successfully, job ID: (\d+)$";
@@ -107,7 +107,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
             return _convertor.ReadParametersFromResponse(cluster, command.Result).First();
         }
         catch (FormatException e)
@@ -147,7 +147,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
         }
         catch (FormatException e)
         {
@@ -249,7 +249,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
-                SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)

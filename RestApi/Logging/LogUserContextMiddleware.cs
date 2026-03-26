@@ -97,7 +97,7 @@ namespace HEAppE.RestApi.Logging
                 var body = await reader.ReadToEndAsync();
                 context.Request.Body.Position = 0;
 
-                try
+                try 
                 {
                     var json = JsonDocument.Parse(body);
                     if (json.RootElement.TryGetProperty("SessionCode", out var prop))
@@ -169,9 +169,9 @@ namespace HEAppE.RestApi.Logging
         {
             try
             {
-                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
-                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys, expirioService);
+                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys, expirioService, _logger);
 
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 
