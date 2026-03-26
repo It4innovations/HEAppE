@@ -196,6 +196,21 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
+    public long? Memory
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem={value}" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-cpu={value}" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-gpu={value}" : string.Empty);
+    }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>

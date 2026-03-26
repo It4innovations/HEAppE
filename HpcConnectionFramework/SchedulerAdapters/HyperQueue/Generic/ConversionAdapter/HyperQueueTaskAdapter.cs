@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
@@ -130,6 +131,12 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
     }
 
     public string ExtendedAllocationCommand { get; set; }
+
+    public long? Memory { set => throw new NotImplementedException(); }
+
+    public long? MemoryPerCPU { set => throw new NotImplementedException(); }
+
+    public long? MemoryPerGPU { set => throw new NotImplementedException(); }
 
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy,

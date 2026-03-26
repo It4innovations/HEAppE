@@ -265,6 +265,21 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
+    public long? Memory
+    {
+        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => _taskBuilder.Append(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
+    }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>

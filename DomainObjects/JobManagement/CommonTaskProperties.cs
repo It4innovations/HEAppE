@@ -25,6 +25,9 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
         if (commonTaskProperties.EnvironmentVariables != null)
             foreach (var envVariable in commonTaskProperties.EnvironmentVariables)
                 EnvironmentVariables.Add(new EnvironmentVariable(envVariable));
+        Memory = commonTaskProperties.Memory;
+        MemoryPerCPU = commonTaskProperties.MemoryPerCPU;
+        MemoryPerGPU = commonTaskProperties.MemoryPerGPU;
     }
 
     [Required] [StringLength(50)] public string Name { get; set; }
@@ -44,6 +47,11 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
     // Objects in all related collections have to implement the ICloneable interface to support the combination with client job specification.
     public virtual List<EnvironmentVariable> EnvironmentVariables { get; set; } = new();
 
+    public long? Memory { get; set; }
+
+    public long? MemoryPerCPU { get; set; }
+
+    public long? MemoryPerGPU { get; set; }
 
     public override string ToString()
     {
@@ -59,6 +67,9 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
         if (EnvironmentVariables != null)
             foreach (var variable in EnvironmentVariables)
                 result.AppendLine("EnvironmentVariable" + i++ + ": " + variable);
+        result.AppendLine("Memory=" + Memory);
+        result.AppendLine("MemoryPerCPU=" + MemoryPerCPU);
+        result.AppendLine("MemoryPerGPU=" + MemoryPerGPU);
         return result.ToString();
     }
 }

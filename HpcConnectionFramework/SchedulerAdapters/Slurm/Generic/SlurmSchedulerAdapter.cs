@@ -462,7 +462,6 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
         result += " --error=" + error;
-        result += isGpuPartition? $" --gpus={nodes}" : "";
         result += " --test-only " + script_name;
         return result;
     }

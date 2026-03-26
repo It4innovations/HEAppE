@@ -45,6 +45,12 @@ public interface ISchedulerTaskAdapter
 
     string ExtendedAllocationCommand { set; }
 
+    public long? Memory { set; }
+
+    public long? MemoryPerCPU { set; }
+
+    public long? MemoryPerGPU { set; }
+
     void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
         int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation);

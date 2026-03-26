@@ -168,6 +168,27 @@ public class TaskSpecificationExt
     public EnvironmentVariableExt[] EnvironmentVariables { get; set; }
 
     /// <summary>
+    /// Memory for task
+    /// </summary>
+    [DataMember(Name = "Memory")]
+    [Description("Allocated memory for task")]
+    public long? Memory { get; set; }
+
+    /// <summary>
+    /// Memory per CPU
+    /// </summary>
+    [DataMember(Name = "MemoryPerCPU")]
+    [Description("Allocated memory for task (CPU)")]
+    public long? MemoryPerCPU { get; set; }
+
+    /// <summary>
+    /// Memory per GPU
+    /// </summary>
+    [DataMember(Name = "MemoryPerGPU")]
+    [Description("Allocated memory for task (GPU)")]
+    public long? MemoryPerGPU { get; set; }
+
+    /// <summary>
     /// Depends on
     /// </summary>
     [DataMember(Name = "DependsOn")]
@@ -184,7 +205,7 @@ public class TaskSpecificationExt
     public override string ToString()
     {
         return
-            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParallelizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues})";
+            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParallelizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues}; memory={Memory}; memoryPerCPU={MemoryPerCPU}; memoryPerGPU={MemoryPerGPU})";
     }
 
     public override bool Equals(object obj)

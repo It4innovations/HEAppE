@@ -67,6 +67,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+
         // Setting global parameters for all tasks
         var globalJobParameters = (string)jobAdapter.AllocationCmd;
         var tasks = new List<object>();
@@ -132,6 +133,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
+
+        taskAdapter.Memory = taskSpecification.Memory;
+        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU;
+        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU;
 
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);

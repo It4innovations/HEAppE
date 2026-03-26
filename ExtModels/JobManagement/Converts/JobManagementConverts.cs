@@ -57,7 +57,7 @@ public static class JobManagementConverts
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             FileTransferMethodId = jobSpecification.FileTransferMethodId,
-            ClusterId = jobSpecification.ClusterId ?? 0
+            ClusterId = jobSpecification.ClusterId ?? 0,
         };
 
         //Same Reference for DependOn tasks
@@ -131,6 +131,9 @@ public static class JobManagementConverts
             EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
+            Memory = taskSpecificationExt.Memory,
+            MemoryPerCPU = taskSpecificationExt.MemoryPerCPU,
+            MemoryPerGPU = taskSpecificationExt.MemoryPerGPU,
             CpuHyperThreading = taskSpecificationExt.CpuHyperThreading,
             JobSpecification = jobSpecification,
             TaskParalizationSpecifications = taskSpecificationExt.TaskParallelizationParameters?
