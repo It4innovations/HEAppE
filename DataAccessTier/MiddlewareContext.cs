@@ -81,8 +81,18 @@ internal class MiddlewareContext : DbContext
 
                                 if (appliedCount != definedCount)
                                 {
+                                    var applied = Database.GetAppliedMigrations();
+                                    var defined = Database.GetMigrations();
+                                    var extraInDb = applied.Except(defined).ToList();
+                                    var missingInDb = defined.Except(applied).ToList();
+
                                     _logger.LogWarning($"Migration count mismatch: {appliedCount} applied in DB, {definedCount} defined in project. " +
-                                                       $"Last versions match: {lastApplied}");
+                                                       $"Last version in DB: {lastApplied}, Last version in code: {lastDefined}");
+                                    
+                                    if (extraInDb.Any())
+                                        _logger.LogWarning($"Extra migrations in DB (missing in code): {string.Join(", ", extraInDb)}");
+                                    if (missingInDb.Any())
+                                        _logger.LogWarning($"Missing migrations in DB (not yet applied): {string.Join(", ", missingInDb)}");
                                 }
 
                                 _logger.LogInformation(
