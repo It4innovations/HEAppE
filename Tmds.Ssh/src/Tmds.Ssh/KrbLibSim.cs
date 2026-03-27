@@ -20,25 +20,27 @@ using System.Linq;
 
 namespace Tmds.Ssh;
 
-//TODO: remove public keyword
 public sealed class KrbLibSim
 {
     #region private fields
     private const string CONFIG_FILE_PATH = "//etc/krb5.conf";
     private const string TICKET_CACHE_PREFIX = "tkt_";
     private const LogLevel MIN_LOG_LEVEL = LogLevel.Error;
+    private const bool MEMORY_CACHE_ID_USERNAME_ONLY = true; // true: the memory cache id is the username; false: username and realm.
     private static readonly Krb5Config s_krb5Conf;
     private static readonly string s_ticketCachePath;
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
     private static ILogger s_logger;
-    private static int _ticketValidityBufferSeconds = 30; // invalidates ticket, on HasTicket(), if less than this seconds remain.
+    private static int s_ticketValidityBufferSeconds = 300; // invalidates ticket, on HasTicket(), if less than this seconds remain.
+    private static readonly Task s_backgroundWorker;
+    private static TimeSpan s_cleanCacheInterval;
     #endregion
 
     /********************************/
     public const bool USE_MEMORY_CACHE = true; // true: the ticket cache is in memory; false: ticket cache is in file.
     public const bool ENABLED = true; // enable or disable this library.
-    private const bool MEMORY_CACHE_ID_USERNAME_ONLY = true; // true: the memory cache id is the username; false: username and realm.
+    public const int CLEAN_CACHE_INTERVAL_MINUTES = 60; // cache cleaning interval, in minutes; 0: no background cleaning task.
     /********************************/
 
     #region constructor
@@ -55,10 +57,16 @@ public sealed class KrbLibSim
         // expects the DefaultCCacheName property to be set in krb5.conf file
         s_ticketCachePath = s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1];
 
-        //TODO: how to clear old caches? No need?
-        //TODO: also, how to update caches? No need?
         if(USE_MEMORY_CACHE)
+        {
             s_ticketCaches = new ConcurrentDictionary<string, Krb5TicketCache>();
+            // start the cleaning background task
+            if(CLEAN_CACHE_INTERVAL_MINUTES > 0)
+            {
+                s_backgroundWorker = Task.Run(() => CleanCacheLoop());
+                s_cleanCacheInterval = new TimeSpan(0, CLEAN_CACHE_INTERVAL_MINUTES, 0);
+            }
+        }
     }
     #endregion
 
@@ -117,6 +125,18 @@ public sealed class KrbLibSim
             return username + "@" + defaultRealm;
     }
 
+    /// <summary>
+    /// Cleans the user cache from time to time, used in background a task.
+    /// </summary>
+    private static async Task CleanCacheLoop()
+    {
+        while(true)
+        {
+            TryCleanCache();
+            await Task.Delay(s_cleanCacheInterval).ConfigureAwait(false);
+        }
+    }
+
     #endregion
 
 
@@ -141,7 +161,7 @@ public sealed class KrbLibSim
     }
 
     /// <summary>
-    /// Checks if the user has a valid ticket.
+    /// Checks if the user has a valid ticket. 
     /// </summary>
     public static bool HasTicket(string username)
     {
@@ -150,8 +170,8 @@ public sealed class KrbLibSim
             if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
             {
                 var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
-                // removes _ticketValidityBufferSeconds from current time and returns true if the ticket hasn't expired.
-                return cacheEntry.EndTime > DateTimeOffset.Now.AddSeconds(-_ticketValidityBufferSeconds);
+                // returns true if the ticket is valid, false if not (anticipates the expiration by buffer seconds)
+                return DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(-s_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
             }
             else
                 return false;
@@ -159,6 +179,25 @@ public sealed class KrbLibSim
         else
             throw new Exception("Error: Not implemented!");
     }
+
+    /// <summary>
+    /// Removes expired tickets.
+    /// </summary>
+    public static void TryCleanCache()
+    {
+        foreach(string user in s_ticketCaches.Keys.ToList())
+        {
+            if(s_ticketCaches.TryGetValue(user, out Krb5TicketCache ticketCache))
+            {
+                var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
+                if(DateTimeOffset.Compare(DateTimeOffset.Now, cacheEntry.EndTime) > 0)
+                {
+                    s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(user, ticketCache));
+                }
+            }
+        }
+    }
+
     #endregion
 
 
