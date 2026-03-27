@@ -69,16 +69,24 @@ internal class MiddlewareContext : DbContext
                                     Database.Migrate();
                                     _isMigrated = true;
                                 }
-                                else if (lastAppliedMigration != lastDefinedMigration)
+                                var lastApplied = Database.GetAppliedMigrations().LastOrDefault();
+                                var lastDefined = Database.GetMigrations().LastOrDefault();
+                                var appliedCount = Database.GetAppliedMigrations().Count();
+                                var definedCount = Database.GetMigrations().Count();
+
+                                if (lastApplied != lastDefined)
                                 {
                                     throw new DbContextException("MigrationMismatch");
                                 }
 
-                                if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
-                                    throw new DbContextException("MigrationCountMismatch");
+                                if (appliedCount != definedCount)
+                                {
+                                    _logger.LogWarning($"Migration count mismatch: {appliedCount} applied in DB, {definedCount} defined in project. " +
+                                                       $"Last versions match: {lastApplied}");
+                                }
 
                                 _logger.LogInformation(
-                                    "Application and database migrations are the same. Starting seeding data into the database.");
+                                    "Application and database migrations are compatible. Starting seeding data into the database.");
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
