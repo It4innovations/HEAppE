@@ -66,6 +66,21 @@ internal class MiddlewareContext : DbContext
                                     {
                                         _logger.LogInformation("Applying migrations to the database.");
                                         Database.Migrate();
+
+                                        // Verify migrations after update
+                                        appliedMigrations = Database.GetAppliedMigrations().ToList();
+                                        lastApplied = appliedMigrations.LastOrDefault();
+                                        appliedCount = appliedMigrations.Count;
+
+                                        if (appliedCount != definedCount || lastApplied != lastDefined)
+                                        {
+                                            var extraInDb = appliedMigrations.Except(definedMigrations).ToList();
+                                            var missingInDb = definedMigrations.Except(appliedMigrations).ToList();
+                                            _logger.LogWarning($"Migration count still mismatching after migrate: {appliedCount} applied vs {definedCount} defined. Last in DB: {lastApplied}, Last in code: {lastDefined}");
+                                            if (extraInDb.Any()) _logger.LogWarning($"Extra in DB: {string.Join(", ", extraInDb)}");
+                                            if (missingInDb.Any()) _logger.LogWarning($"Missing in DB: {string.Join(", ", missingInDb)}");
+                                        }
+
                                         _isMigrated = true;
                                     }
                                     else if (lastApplied != lastDefined || appliedCount < definedCount)
