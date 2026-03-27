@@ -51,52 +51,30 @@ internal class MiddlewareContext : DbContext
                             }
                             else
                             {
-                                var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-                                _logger.LogInformation(
-                                    $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
-                                
-                                if (lastAppliedMigration is null)
-                                {
-                                    _logger.LogInformation("Starting migration into the new database.");
-                                    Database.Migrate();
-                                    lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                }
-                                else if (DatabaseMigrationSettings.AutoMigrateDatabase &&
-                                         lastAppliedMigration != lastDefinedMigration)
-                                {
-                                    _logger.LogInformation("Applying newer migrations to the database.");
-                                    Database.Migrate();
-                                    _isMigrated = true;
-                                }
-                                var lastApplied = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefined = Database.GetMigrations().LastOrDefault();
-                                var appliedCount = Database.GetAppliedMigrations().Count();
-                                var definedCount = Database.GetMigrations().Count();
+                                var appliedMigrations = Database.GetAppliedMigrations().ToList();
+                                var definedMigrations = Database.GetMigrations().ToList();
+                                var lastApplied = appliedMigrations.LastOrDefault();
+                                var lastDefined = definedMigrations.LastOrDefault();
+                                var appliedCount = appliedMigrations.Count;
+                                var definedCount = definedMigrations.Count;
 
-                                if (lastApplied != lastDefined)
+                                _logger.LogInformation($"Database status - Applied: {appliedCount} (last: {lastApplied}), Defined: {definedCount} (last: {lastDefined})");
+
+                                if (appliedCount == 0 || lastApplied != lastDefined || appliedCount != definedCount)
                                 {
-                                    throw new DbContextException("MigrationMismatch");
+                                    if (DatabaseMigrationSettings.AutoMigrateDatabase)
+                                    {
+                                        _logger.LogInformation("Applying migrations to the database.");
+                                        Database.Migrate();
+                                        _isMigrated = true;
+                                    }
+                                    else if (lastApplied != lastDefined || appliedCount < definedCount)
+                                    {
+                                        throw new DbContextException("MigrationMismatch");
+                                    }
                                 }
 
-                                if (appliedCount != definedCount)
-                                {
-                                    var applied = Database.GetAppliedMigrations();
-                                    var defined = Database.GetMigrations();
-                                    var extraInDb = applied.Except(defined).ToList();
-                                    var missingInDb = defined.Except(applied).ToList();
-
-                                    _logger.LogWarning($"Migration count mismatch: {appliedCount} applied in DB, {definedCount} defined in project. " +
-                                                       $"Last version in DB: {lastApplied}, Last version in code: {lastDefined}");
-                                    
-                                    if (extraInDb.Any())
-                                        _logger.LogWarning($"Extra migrations in DB (missing in code): {string.Join(", ", extraInDb)}");
-                                    if (missingInDb.Any())
-                                        _logger.LogWarning($"Missing migrations in DB (not yet applied): {string.Join(", ", missingInDb)}");
-                                }
-
-                                _logger.LogInformation(
-                                    "Application and database migrations are compatible. Starting seeding data into the database.");
+                                _logger.LogInformation("Application and database migrations are compatible. Seeding data...");
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
