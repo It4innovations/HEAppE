@@ -275,7 +275,16 @@ public static class JobManagementConverts
             IsOneToOneMapping = project.IsOneToOneMapping,
             KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
             CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
-            ClusterProjectStoragePaths = project.ClusterProjects?
+            ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)
+        };
+        return convert;
+    }
+
+    private static List<ClusterProjectStoragePathExt> GetClusterProjectStoragePathsSafe(Project project)
+    {
+        try
+        {
+            return project.ClusterProjects?
                 .Where(x => !x.IsDeleted)
                 .GroupBy(x => x.ClusterId)
                 .Select(g => g.First())
@@ -287,9 +296,12 @@ public static class JobManagementConverts
                     ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
                 })
                 .OrderBy(x => x.ClusterId)
-                .ToList()
-        };
-        return convert;
+                .ToList() ?? new List<ClusterProjectStoragePathExt>();
+        }
+        catch (Exception)
+        {
+            return new List<ClusterProjectStoragePathExt>();
+        }
     }
 
     public static UsageTypeExt ConvertIntToExt(this UsageType usageType)

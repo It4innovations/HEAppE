@@ -9,6 +9,8 @@ public interface IProjectRepository : IRepository<Project>
     Project GetByAccountingString(string accountingString);
     
     Project GetByIdWithClusterProjects(long projectId);
+    Project GetByAccountingStringWithClusterProjects(string accountingString);
+    IEnumerable<Project> GetAllWithClusterProjects();
     
     
 }
