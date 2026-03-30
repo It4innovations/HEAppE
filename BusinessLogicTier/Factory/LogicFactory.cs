@@ -79,5 +79,8 @@ public abstract class LogicFactory
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
 
+    public abstract ICredentialProvisioningLogic CreateCredentialProvisioningLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
+
     #endregion
 }

@@ -270,7 +270,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode)
     {
         _logger.LogInformation(
@@ -280,12 +280,12 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
+            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath, preferredAuthType);
             return clusterProject.ConvertIntToExt();
         }
     }
 
-    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode)
     {
         _logger.LogInformation(
@@ -295,7 +295,7 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.ManagementAdmin, projectId, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
+            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath, preferredAuthType);
             return clusterProject.ConvertIntToExt();
         }
     }

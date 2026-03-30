@@ -514,7 +514,7 @@ public class ManagementLogic : IManagementLogic
    /// <returns></returns>
    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
    /// <exception cref="InputValidationException"></exception>
-    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath)
+    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -535,6 +535,7 @@ public class ManagementLogic : IManagementLogic
             existingAssignment.ModifiedAt = now;
             existingAssignment.ScratchStoragePath = CleanPath(scratchStoragePath);
             existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath);
+            existingAssignment.PreferredAuthType = preferredAuthType;
             
             project.ModifiedAt = now;
 
@@ -576,6 +577,7 @@ public class ManagementLogic : IManagementLogic
             ProjectId = projectId,
             ScratchStoragePath = CleanPath(scratchStoragePath),
             ProjectStoragePath = CleanPath(projectStoragePath),
+            PreferredAuthType = preferredAuthType,
             CreatedAt = createdAt,
             ModifiedAt = createdAt,
             IsDeleted = false
@@ -621,7 +623,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="projectStoragePath"></param>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
-    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath)
+    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType)
     {
         var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
             ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
@@ -634,6 +636,7 @@ public class ManagementLogic : IManagementLogic
         var modified = DateTime.UtcNow;
         clusterProject.ScratchStoragePath = CleanPath(scratchStoragePath);
         clusterProject.ProjectStoragePath = CleanPath(projectStoragePath);
+        clusterProject.PreferredAuthType = preferredAuthType;
         clusterProject.ModifiedAt = modified;
         clusterProject.Project.ModifiedAt = modified;
 
@@ -792,7 +795,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public async Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials,
-        long projectId, long? adaptorUserId)
+        long projectId, long? adaptorUserId, ClusterAuthenticationCredentialsAuthType? preferredAuthType = null)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
@@ -819,7 +822,7 @@ public class ManagementLogic : IManagementLogic
                 }
             }
 
-            secureShellKeys.Add(await CreateSecureShellKey(username, password, project, adaptorUserId));
+            secureShellKeys.Add(await CreateSecureShellKey(username, password, project, adaptorUserId, preferredAuthType));
         }
 
         return secureShellKeys;
@@ -2491,21 +2494,34 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
-    private async Task<SecureShellKey> CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
+    private async Task<SecureShellKey> CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId, ClusterAuthenticationCredentialsAuthType? preferredAuthType = null)
     {
         _logger.LogInformation($"Creating SSH key for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) throw new InputValidationException("ProjectNoAssignToCluster");
 
+        if (project.IsOneToOneMapping && adaptorUserId.HasValue && (string.IsNullOrEmpty(username) || username.StartsWith("account_")))
+        {
+            var user = _unitOfWork.AdaptorUserRepository.GetById(adaptorUserId.Value);
+            if (user != null && !string.IsNullOrEmpty(user.Username))
+            {
+                username = user.Username;
+                _logger.LogInformation($"Resolved 1:1 mapping username to {username} for adaptor user {adaptorUserId.Value}.");
+            }
+        }
+
         SSHGenerator sshGenerator = new(_logger);
         var passphrase = StringUtils.GetRandomString();
         var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
 
-        var serviceCredentials = CreateClusterAuthenticationCredentials(username, password, secureShellKey, passphrase,
-            clusterProjects.FirstOrDefault()?.Cluster);
-        var nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, secureShellKey,
-            passphrase, clusterProjects.FirstOrDefault()?.Cluster);
+        var firstCluster = clusterProjects.FirstOrDefault()?.Cluster;
+        var authType = preferredAuthType ?? (firstCluster != null ? ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(new ClusterAuthenticationCredentials { Username = username, Password = password, PrivateKey = secureShellKey.PrivateKeyPEM }, firstCluster) : ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey);
+
+        var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
+            firstCluster, true);
+        var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
+            passphrase, firstCluster, true);
 
         foreach (var clusterProject in clusterProjects)
         {

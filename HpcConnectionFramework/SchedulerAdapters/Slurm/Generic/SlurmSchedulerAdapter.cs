@@ -77,16 +77,16 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
             return submittedTasksInfo;
         }
-        catch (SlurmException ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
             throw new SlurmException(
                 "GetActualTasksInfo", ex,
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
-                command.Result,
-                command.Error)
+                command?.Result ?? string.Empty,
+                command?.Error ?? ex.Message)
             {
-                CommandError = command.Error
+                CommandError = command?.Error ?? ex.Message
             };
         }
     }
@@ -197,7 +197,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 submitedTasksInfoList.Select(s =>
                     (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
         }
-        catch (SshCommandException)
+        catch (SlurmException ex) when (ex.CommandError != null && ex.CommandError.Contains("Invalid job id specified"))
         {
             _logger.LogWarning(
                 $"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");

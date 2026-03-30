@@ -65,4 +65,9 @@ public class PocoLogicFactory : LogicFactory
     {
         return new ManagementLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
+
+    public override ICredentialProvisioningLogic CreateCredentialProvisioningLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
+    {
+        return new CredentialProvisioningLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
+    }
 }

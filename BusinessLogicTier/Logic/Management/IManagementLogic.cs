@@ -51,7 +51,7 @@ public interface IManagementLogic
     Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
         string newPassword, long projectId, long? adaptorUserId, bool isAdministrator);
     Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
-        long? adaptorUserId);
+        long? adaptorUserId, ClusterAuthenticationCredentialsAuthType? preferredAuthType = null);
     
     Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId, bool isAdministrator);
     
@@ -72,9 +72,9 @@ public interface IManagementLogic
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string  projectStoragePath);
+        string  projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string projectStoragePath);
+        string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
 
     Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,

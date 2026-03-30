@@ -5,6 +5,8 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
 
+using HEAppE.DomainObjects.ClusterInformation;
+
 /// <summary>
 /// Cluster project ext
 /// </summary>
@@ -62,6 +64,13 @@ public class ClusterProjectExt
     [DataMember(Name = "AdaptorUserId")]
     [Description("Adaptor user id")]
     public long? AdaptorUserId { get; set; }
+
+    /// <summary>
+    /// Preferred authentication type
+    /// </summary>
+    [DataMember(Name = "PreferredAuthType")]
+    [Description("Preferred authentication type")]
+    public ClusterAuthenticationCredentialsAuthTypeExt PreferredAuthType { get; set; }
 
     public override string ToString()
     {

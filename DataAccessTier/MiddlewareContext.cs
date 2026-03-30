@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HEAppE.DataAccessTier;
 
-internal class MiddlewareContext : DbContext
+public class MiddlewareContext : DbContext
 {
     #region Constructors
 

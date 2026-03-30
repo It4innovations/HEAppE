@@ -50,7 +50,6 @@ internal static class SshCommandUtils
             catch (Exception ex) when (IsTransient(ex) && attempt < MaxRetries)
             {
                 // Exponential backoff strategy: 1s, 2s, 4s, 8s... capped at 10 seconds.
-                // We don't use the full ConnectionTimeout (30s) here to keep the system responsive.
                 int delay = (int)Math.Pow(2, attempt - 1) * CommandRetryBaseDelayMs;
                 delay = Math.Min(delay, 10000); 
                 
@@ -58,6 +57,12 @@ internal static class SshCommandUtils
                           $"Retrying in {delay}ms. Error: {ex.Message}");
                 
                 Thread.Sleep(delay);
+            }
+            catch (Exception ex)
+            {
+                // Permanent failure or retries exhausted
+                logger.LogError($"SSH command failed after {attempt} attempts. Error: {ex.Message}, Command: {command}");
+                throw;
             }
         }
     }
@@ -91,8 +96,8 @@ internal static class SshCommandUtils
                 throw new InputValidationException("GitCloneCommandError");
             }
 
-            // General command failure - throw exception to prevent automatic retry of logic errors
-            logger.LogError($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+            // General command failure - throw exception. IsTransient will determine if we retry.
+            logger.LogWarning($"SSH command execution failed with non-zero exit code. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
             throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
         }
 

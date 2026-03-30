@@ -469,6 +469,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<int>("PreferredAuthType")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");

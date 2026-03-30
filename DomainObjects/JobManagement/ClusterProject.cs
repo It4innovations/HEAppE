@@ -26,6 +26,9 @@ public class ClusterProject : IdentifiableDbEntity //, ISoftDeletableEntity
 
     public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new();
 
+    [Required]
+    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.Password;
+
     public override string ToString()
     {
         return

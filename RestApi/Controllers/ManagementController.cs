@@ -977,7 +977,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.ScratchStoragePath, model.ProjectStoragePath, model.SessionCode);
+            model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProject);
     }
@@ -1001,7 +1001,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.ScratchStoragePath, model.ProjectStoragePath, model.SessionCode);
+            model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProject);
     }

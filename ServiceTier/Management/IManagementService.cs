@@ -53,10 +53,10 @@ public interface IManagementService
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
     ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
-    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode);
 
-    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode);
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
