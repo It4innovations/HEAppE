@@ -97,12 +97,34 @@ public static class ClusterInformationConverts
         var projectExts = new List<ProjectExt>();
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null).Select(x => x.Project)
+            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
+                .Where(x => !x.IsDeleted && x.Project != null)
+                .GroupBy(x => x.ProjectId)
+                .Select(g => g.First())
+                .OrderBy(o=>o.ClusterId)
                 .ToList();
 
-            projectExts = dbProjects?
-                    .Select(x => x.ConvertIntToExt())
-                    .ToList() ?? new List<ProjectExt>();
+            if (dbClusterProjects != null)
+            {
+                foreach (var cp in dbClusterProjects)
+                {
+                    var projectExt = cp.Project.ConvertIntToExt();
+                    projectExt.ClusterProjectStoragePaths = cp.Project.ClusterProjects?
+                        .Where(x => !x.IsDeleted)
+                        .GroupBy(x => x.ClusterId)
+                        .Select(g => g.First())
+                        .Select(x => new ClusterProjectStoragePathExt
+                        {
+                            ClusterId = x.ClusterId,
+                            ClusterName = x.Cluster?.Name,
+                            ScratchStoragePath = x.ScratchStoragePath,
+                            ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
+                        })
+                        .OrderBy(x => x.ClusterId)
+                        .ToList();
+                    projectExts.Add(projectExt);
+                }
+            }
 
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
@@ -141,26 +163,34 @@ public static class ClusterInformationConverts
 
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?
+            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
                 .Where(x => !x.IsDeleted && x.Project != null && allowedProjectIds.Contains(x.ProjectId))
-                .Select(x => x.Project)
+                .GroupBy(x => x.ProjectId)
+                .Select(g => g.First())
+                .OrderBy(o => o.ClusterId)
                 .ToList();
 
-            if (dbProjects != null)
+            if (dbClusterProjects != null)
             {
-                if (onlyActive)
+                foreach (var cp in dbClusterProjects)
                 {
-                    var now = DateTime.UtcNow;
-                    projectExts = dbProjects
-                        .Where(x => x.EndDate >= now)
-                        .Select(x => x.ConvertIntToExt())
+                    if (onlyActive && cp.Project.EndDate < DateTime.UtcNow) continue;
+
+                    var projectExt = cp.Project.ConvertIntToExt();
+                    projectExt.ClusterProjectStoragePaths = cp.Project.ClusterProjects?
+                        .Where(x => !x.IsDeleted)
+                        .GroupBy(x => x.ClusterId)
+                        .Select(g => g.First())
+                        .Select(x => new ClusterProjectStoragePathExt
+                        {
+                            ClusterId = x.ClusterId,
+                            ClusterName = x.Cluster?.Name,
+                            ScratchStoragePath = x.ScratchStoragePath,
+                            ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
+                        })
+                        .OrderBy(x => x.ClusterId)
                         .ToList();
-                }
-                else
-                {
-                    projectExts = dbProjects
-                        .Select(x => x.ConvertIntToExt())
-                        .ToList();
+                    projectExts.Add(projectExt);
                 }
             }
 
