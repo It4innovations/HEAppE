@@ -274,9 +274,34 @@ public static class JobManagementConverts
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
             KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
-            CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray()
+            CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
+            ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)
         };
         return convert;
+    }
+
+    private static List<ClusterProjectStoragePathExt> GetClusterProjectStoragePathsSafe(Project project)
+    {
+        try
+        {
+            return project.ClusterProjects?
+                .Where(x => !x.IsDeleted)
+                .GroupBy(x => x.ClusterId)
+                .Select(g => g.First())
+                .Select(x => new ClusterProjectStoragePathExt
+                {
+                    ClusterId = x.ClusterId,
+                    ClusterName = x.Cluster?.Name,
+                    ScratchStoragePath = x.ScratchStoragePath,
+                    ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
+                })
+                .OrderBy(x => x.ClusterId)
+                .ToList() ?? new List<ClusterProjectStoragePathExt>();
+        }
+        catch (Exception)
+        {
+            return new List<ClusterProjectStoragePathExt>();
+        }
     }
 
     public static UsageTypeExt ConvertIntToExt(this UsageType usageType)

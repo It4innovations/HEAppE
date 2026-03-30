@@ -289,6 +289,8 @@ public class Startup
         {
             var hostPrefix = string.IsNullOrEmpty(SwaggerConfiguration.HostPostfix) ? string.Empty : "/" + SwaggerConfiguration.HostPostfix;
             swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", "Detailed Job Reporting API");
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/py4heappe/swagger.json", "py4heappe API");
             swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             swaggerUI.EnableTryItOutByDefault();
         });

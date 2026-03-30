@@ -37,6 +37,9 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
     public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects()
     {
         return _dbSet.Include(p => p.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.Project)
             .ThenInclude(i => i.CommandTemplates)
             .ThenInclude(i => i.TemplateParameters)
             .Include(i => i.AdaptorUserUserGroupRoles)

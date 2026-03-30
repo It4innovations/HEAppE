@@ -81,30 +81,34 @@ namespace SshCaAPI
         /// <exception cref="SshCAServiceTypeException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
         public async Task<SignResponse?> SignAsync(string publicKey, string ott, string resource)
         {
+            _logger.Info("[SignService] Method: SignAsync");
+
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
-            var request = new RestRequest($"signJSON", Method.Post)
+            var request = new RestRequest("signJSON", Method.Post)
                 .AddStringBody(requestBody, DataFormat.Json);
 
+            _logger.Debug($"[SignService Request] POST {_basicRestClient.BuildUri(request)} | Body: {requestBody}");
+
             var response = await _basicRestClient.ExecuteAsync(request);
+
             if (response.StatusCode != HttpStatusCode.OK)
+            {
+                _logger.Error($"[SignService Error] Unexpected status={response.StatusCode}, Content={response.Content}");
                 throw new SshCAServiceTypeException($"SshCertificateAuthorityService-Sign: Unexpected status={response.StatusCode}, Content={response.Content}");
-            
-            //get ssh_cert attribute from json
+            }
+
+            _logger.Debug($"[SignService Response] Success ({response.StatusCode}). Content: {response.Content}");
+
             var json = JsonConvert.DeserializeObject<SignResponse>(response.Content ?? "{}");
 
-            if ((bool)json?.SshCert?.EndsWith("\n"))
+            if (json?.SshCert != null && json.SshCert.EndsWith("\n"))
             {
-                //remove last \n
-                json.SshCert = json.SshCert.Substring(0, json.SshCert.Length - 1);
-                return json;
-            }
-            else
-            {
-                return json;
+                json.SshCert = json.SshCert.TrimEnd('\n');
             }
 
+            return json;
         }
     }
     
