@@ -17,9 +17,9 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 public class LexisTokenExchangeMiddleware
 {
     private readonly RequestDelegate _next;
-    private static readonly ILog Log = LogManager.GetLogger(typeof(LexisTokenExchangeMiddleware));
+    private readonly ILogger _logger;
 
-    public LexisTokenExchangeMiddleware(RequestDelegate next)
+    public LexisTokenExchangeMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
     {
         _next = next;
         _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.LexisTokenExchangeMiddleware");
