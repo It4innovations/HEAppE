@@ -108,21 +108,7 @@ public static class ClusterInformationConverts
             {
                 foreach (var cp in dbClusterProjects)
                 {
-                    var projectExt = cp.Project.ConvertIntToExt();
-                    projectExt.ClusterProjectStoragePaths = cp.Project.ClusterProjects?
-                        .Where(x => !x.IsDeleted)
-                        .GroupBy(x => x.ClusterId)
-                        .Select(g => g.First())
-                        .Select(x => new ClusterProjectStoragePathExt
-                        {
-                            ClusterId = x.ClusterId,
-                            ClusterName = x.Cluster?.Name,
-                            ScratchStoragePath = x.ScratchStoragePath,
-                            ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
-                        })
-                        .OrderBy(x => x.ClusterId)
-                        .ToList();
-                    projectExts.Add(projectExt);
+                    projectExts.Add(cp.Project.ConvertIntToExt());
                 }
             }
 
@@ -176,21 +162,7 @@ public static class ClusterInformationConverts
                 {
                     if (onlyActive && cp.Project.EndDate < DateTime.UtcNow) continue;
 
-                    var projectExt = cp.Project.ConvertIntToExt();
-                    projectExt.ClusterProjectStoragePaths = cp.Project.ClusterProjects?
-                        .Where(x => !x.IsDeleted)
-                        .GroupBy(x => x.ClusterId)
-                        .Select(g => g.First())
-                        .Select(x => new ClusterProjectStoragePathExt
-                        {
-                            ClusterId = x.ClusterId,
-                            ClusterName = x.Cluster?.Name,
-                            ScratchStoragePath = x.ScratchStoragePath,
-                            ProjectStoragePath = (string.IsNullOrEmpty(x.ProjectStoragePath) ? x.ScratchStoragePath : x.ProjectStoragePath)
-                        })
-                        .OrderBy(x => x.ClusterId)
-                        .ToList();
-                    projectExts.Add(projectExt);
+                    projectExts.Add(cp.Project.ConvertIntToExt());
                 }
             }
 
