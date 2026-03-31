@@ -68,9 +68,6 @@ else
         throw new Exception("Configuration files not found!");
 }
 
-builder.Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
-builder.Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
-builder.Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
 builder.Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
 builder.Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
 builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());

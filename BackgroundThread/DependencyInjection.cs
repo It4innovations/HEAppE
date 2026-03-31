@@ -16,9 +16,20 @@ namespace HEAppE.BackgroundThread
         /// <returns></returns>
         public static IServiceCollection AddBackgroundServices(this IServiceCollection services, IConfiguration configuration)
         {
-            configuration.GetSection("BackGroundThreadSettings").Bind(typeof(BackGroundThreadConfiguration));
-            configuration.GetSection("DatabaseFullBackupSettings").Bind(typeof(DatabaseFullBackupConfiguration));
-            configuration.GetSection("DatabaseTransactionLogBackupSettings").Bind(typeof(DatabaseTransactionLogBackupConfiguration));
+            var backGroundThreadConfiguration = new BackGroundThreadConfiguration();
+            configuration.GetSection("BackGroundThreadSettings").Bind(backGroundThreadConfiguration);
+            BackGroundThreadConfiguration.Current = backGroundThreadConfiguration;
+            services.AddSingleton(backGroundThreadConfiguration);
+
+            var databaseFullBackupConfiguration = new DatabaseFullBackupConfiguration();
+            configuration.GetSection("DatabaseFullBackupSettings").Bind(databaseFullBackupConfiguration);
+            DatabaseFullBackupConfiguration.Current = databaseFullBackupConfiguration;
+            services.AddSingleton(databaseFullBackupConfiguration);
+
+            var databaseTransactionLogBackupConfiguration = new DatabaseTransactionLogBackupConfiguration();
+            configuration.GetSection("DatabaseTransactionLogBackupSettings").Bind(databaseTransactionLogBackupConfiguration);
+            DatabaseTransactionLogBackupConfiguration.Current = databaseTransactionLogBackupConfiguration;
+            services.AddSingleton(databaseTransactionLogBackupConfiguration);
 
             services.AddHostedService<RoleAssignmentBackgroundService>();
             services.AddHostedService<CloseConnectionToFinishedJobsBackgroundService>();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
@@ -91,6 +92,13 @@ public class ProjectExt
     [DataMember(Name = "CommandTemplates")]
     [Description("Array of command templates")]
     public CommandTemplateExt[] CommandTemplates { get; set; }
+
+    /// <summary>
+    /// Cluster project storage paths
+    /// </summary>
+    [DataMember(Name = "ClusterProjectStoragePaths")]
+    [Description("Cluster project storage paths")]
+    public List<ClusterProjectStoragePathExt> ClusterProjectStoragePaths { get; set; }
     
 
     #region Public methods
@@ -98,7 +106,7 @@ public class ProjectExt
     public override string ToString()
     {
         return
-            $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, StartDate={StartDate}, EndDate={EndDate}, commandTemplates={CommandTemplates}";
+            $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, StartDate={StartDate}, EndDate={EndDate}, commandTemplates={CommandTemplates}, clusterProjectStoragePaths={ClusterProjectStoragePaths}";
     }
 
     #endregion

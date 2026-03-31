@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.3.0
+
+### Added
+- Enhanced `ListAvailableClusters` response with cluster-specific storage paths (`ScratchStoragePath` and `ProjectStoragePath`) for each project.
+- Storage paths are now returned in a structured collection `ClusterProjectStoragePaths` within the `ProjectExt` model, including Cluster ID and Name.
+
+## V6.2.11
+
+### Performance
+- Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
+
+## V6.2.10
+
+### Fixed
+- Resolved issues where configuration updates were not consistently propagated across all services.
+
+### Changed
+- Refactored configuration management to utilize Dependency Injection for more reliable access to settings.
+- Consolidated configuration binding logic across `RestApi`, `DataStagingAPI`, and `BackgroundThread` to reduce redundancy.
+- Enhanced `SSH connection` robustness and improved pooling strategy for high-load scenarios.
+
 ## V6.2.9
 
 ### Added

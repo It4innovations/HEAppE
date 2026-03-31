@@ -21,16 +21,19 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly BackGroundThreadConfiguration _configuration;
 
     public UpdateUnfinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        BackGroundThreadConfiguration configuration)
     {
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
         _log = LogManager.GetLogger(GetType());
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,7 +63,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(_configuration.GetAllJobsInformationCheck), stoppingToken);
             }
             catch (OperationCanceledException)
             {
