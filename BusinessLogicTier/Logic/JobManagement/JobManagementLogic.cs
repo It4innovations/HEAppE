@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
-using HEAppE.BusinessLogicTier.AuthMiddleware;
+﻿using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -24,10 +16,20 @@ using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using log4net;
 using SshCaAPI;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime;
+using System.Text;
+using System.Threading.Tasks;
+using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
@@ -42,9 +44,10 @@ internal class JobManagementLogic : IJobManagementLogic
     protected IUnitOfWork _unitOfWork;
     protected ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
     private readonly IUserOrgService _userOrgService;
 
-    internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
         _unitOfWork = unitOfWork;
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
@@ -52,6 +55,7 @@ internal class JobManagementLogic : IJobManagementLogic
         _extraLongTaskDecomposedDependency = new Dictionary<TaskSpecification, TaskSpecification>();
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
         _userOrgService = userOrgService;
     }
 
@@ -146,7 +150,20 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
-    public virtual SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
+    private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType)
+    {
+        if (schedulerType == SchedulerType.FireCrest)
+        {
+            var FIPToken = _httpContextKeys.Context.FIPToken;
+            if (!String.IsNullOrEmpty(FIPToken))
+            {
+                return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken);
+            }
+        }
+        return null;
+    }
+
+    public virtual async Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
@@ -155,6 +172,8 @@ internal class JobManagementLogic : IJobManagementLogic
         
         if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
         {
+            await Task.Delay(1);
+
             if (!BusinessLogicConfiguration.SharedAccountsPoolMode)
                 //Check if user is already running job - if yes set state to WaitingForUser - else run the job
                 lock (_lockSubmitJobObj)
@@ -173,9 +192,11 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
 
             jobInfo.SubmitTime = DateTime.UtcNow;
-            
-            var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+            var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+            var schedulerOptions = await GetSchedulerOptions(schedulerType);
+            var submittedTasks = SchedulerFactory.GetInstance(schedulerType)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project,
+                    _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
                 .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken);
 
 
@@ -640,7 +661,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var cluster = clusterLogic.GetClusterById(specification.ClusterId);
         specification.Cluster = cluster;
 
-        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService)
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 

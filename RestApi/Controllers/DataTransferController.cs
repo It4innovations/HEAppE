@@ -6,6 +6,7 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.DataTransfer;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.DataTransfer;
 using Microsoft.AspNetCore.Authorization;
@@ -44,10 +45,10 @@ public class DataTransferController : BaseController<DataTransferController>
     /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
-        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
     #endregion

@@ -10,7 +10,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 public interface IJobManagementLogic
 {
     Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong);
-    SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
+    Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);

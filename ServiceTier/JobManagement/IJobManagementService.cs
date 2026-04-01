@@ -7,7 +7,7 @@ namespace HEAppE.ServiceTier.JobManagement;
 public interface IJobManagementService
 {
     Task<SubmittedJobInfoExt> CreateJob(JobSpecificationExt specification, string sessionCode);
-    SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode);
+    Task<SubmittedJobInfoExt> SubmitJob(long createdJobInfoId, string sessionCode);
     Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode);
     Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode);
     bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);

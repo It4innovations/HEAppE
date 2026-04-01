@@ -10,6 +10,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using SshCaAPI;
 
@@ -63,11 +64,11 @@ public abstract class LogicFactory
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService);
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
 
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,

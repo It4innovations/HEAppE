@@ -1,17 +1,18 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using HEAppE.BackgroundThread.Configuration;
+﻿using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -50,9 +51,10 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+                    IExpirioService expirioService = scope.ServiceProvider.GetRequiredService<IExpirioService>();
 
                     LogicFactory.GetLogicFactory()
-                        .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
+                        .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService)
                         .RemoveJobsTemporaryFileTransferKeys();
                 }
                 catch (Exception ex)

@@ -14,6 +14,7 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.BusinessLogicTier.Factory;
 
@@ -29,19 +30,19 @@ public class PocoLogicFactory : LogicFactory
         return new ClusterInformationLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
     }
 
-    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
-        return new DataTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        return new DataTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
-    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
-        return new FileTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        return new FileTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
-    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
-        return new JobManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        return new JobManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
     public override IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork)

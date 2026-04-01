@@ -46,7 +46,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <param name="configuration">Cluster</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))

@@ -23,4 +23,12 @@ public interface IExpirioService
     /// <param name="cancellationToken"></param>
     /// <returns>Kerberos ticket string</returns>
     Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exchanges firecrest credentials.
+    /// </summary>
+    /// <param name="token">Token to exchange</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>firecrest credentials</returns>
+    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, CancellationToken cancellationToken = default);
 }

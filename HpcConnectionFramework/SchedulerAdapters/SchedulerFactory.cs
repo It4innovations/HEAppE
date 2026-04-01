@@ -119,7 +119,7 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
+    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,  long? adaptorUserId, Dictionary<string, dynamic> options = null);
 
     /// <summary>
     ///     Create scheduler adapter

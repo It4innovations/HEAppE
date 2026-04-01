@@ -8,6 +8,7 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -46,11 +47,11 @@ public class FileTransferController : BaseController<FileTransferController>
     /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
         _userOrgService = userOrgService;
-        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
     #endregion
@@ -217,7 +218,8 @@ public class FileTransferController : BaseController<FileTransferController>
         [FromQuery(Name = "TaskId")] long? taskId,
         [FromForm] IFormFileCollection files,
         [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-        [FromServices] IHttpContextKeys httpContextKeys
+        [FromServices] IHttpContextKeys httpContextKeys,
+        [FromServices] IExpirioService expirioService
     )
     {
         var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
@@ -245,7 +247,8 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+            tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService)
+                .UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
         }
         Task.WaitAll(tasks);
 

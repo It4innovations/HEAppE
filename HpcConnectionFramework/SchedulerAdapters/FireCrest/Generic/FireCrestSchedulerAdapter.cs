@@ -1,15 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
@@ -19,6 +8,19 @@ using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -31,10 +33,12 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
     protected ILog _logger;
     protected HttpClient _httpClient;
     protected string _firecrestUrl;
-    protected string _baseDirectoryPath;
-    protected string _tokenEndpoint;
-    protected string _clientId;
-    protected string _clientSecret;
+    
+    public string ClientId { private get; set; }
+    public string ClientSecret { private get; set; }
+    public string TokenEndpoint { private get; set; }
+    public string BaseDirectoryPath { private get; set; }
+
     protected static readonly SshTunnelUtils _sshTunnelUtil = new();
 
     #endregion
@@ -48,15 +52,47 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
         _commands = new LinuxCommands();
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
         _firecrestUrl = FireCrestSettings.FireCrestUrl;
-        _baseDirectoryPath = FireCrestSettings.BaseDirectoryPath;
-        _tokenEndpoint = FireCrestSettings.TokenEndpoint;
-        _clientId = FireCrestSettings.ClientId;
-        _clientSecret = FireCrestSettings.ClientSecret;
+        ClientId = FireCrestSettings.ClientId;
+        ClientSecret = FireCrestSettings.ClientSecret;
+        TokenEndpoint = FireCrestSettings.TokenEndpoint;
+        BaseDirectoryPath = FireCrestSettings.BaseDirectoryPath;
     }
 
     #endregion
 
     #region Private Methods
+
+    /*
+
+    public async Task<Dictionary<string, string>> ExchangeFirecrestCredentialsAsync(string token, CancellationToken cancellationToken = default)
+    {
+        _logger.Info("[Expirio] Method: FirecrestCredentials");
+        var result = new Dictionary<string, string>();
+        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+        var secrets = new[] { "f7t_client_id", "f7t_client_secret", "f7t_token_url", "f7t_url" };
+        foreach (string secret in secrets)
+        {
+            var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"{ExpirioSettings.BaseUrl}/secret/text/${secret}");
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+                result.Add(secret, content);
+            }
+            else
+            {
+                HandleErrorResponse(response, content, "data");
+                return null;
+            }
+        }
+        return result;
+    }
+   */
+
 
     private string GetAuthTokenAsync()
     {
@@ -65,11 +101,11 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
             var tokenRequestContent = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("client_id", _clientId),
-                new KeyValuePair<string, string>("client_secret", _clientSecret)
+                new KeyValuePair<string, string>("client_id", ClientId),
+                new KeyValuePair<string, string>("client_secret", ClientSecret)
             });
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, _tokenEndpoint);
+            using var request = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint);
             request.Content = tokenRequestContent;
 
             var tokenResponse = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -238,7 +274,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
                     finalScript = finalScript.Replace("\r\n", "\n");
 
                     string taskDirectoryPath =
-                        $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}".Replace("\\", "/");
+                        $"{BaseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}".Replace("\\", "/");
 
                     var jobPayload = new
                     {
@@ -480,7 +516,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
             string clusterName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
 
-            string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
+            string jobDirectoryPath = $"{BaseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
             var endpoint = $"{_firecrestUrl}/filesystem/{clusterName}/ops/mkdir";
             var jobRequestBody = new { path = jobDirectoryPath, p = true };
 
@@ -511,7 +547,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
             string systemName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
 
-            string remotePathToDelete = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
+            string remotePathToDelete = $"{BaseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
             var endpoint =
                 $"{_firecrestUrl}/filesystem/{systemName}/ops/rm?path={Uri.EscapeDataString(remotePathToDelete)}";
 

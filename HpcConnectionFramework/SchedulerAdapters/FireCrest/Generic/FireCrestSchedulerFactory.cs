@@ -7,6 +7,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using SshCaAPI;
 using System;
 using System.Collections.Generic;
+using System.Xml.Schema;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -48,16 +49,28 @@ internal class FireCrestSchedulerFactory : SchedulerFactory
     /// <param name="project">Project information</param>
     /// <param name="adaptorUserId">Optional adapter user ID for one-to-one mapping</param>
     /// <returns>Scheduler instance</returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
         {
+            var schedulerAdapter = CreateSchedulerAdapter() as FireCrestSchedulerAdapter;
+            if (options != null)
+            {
+                if (options.TryGetValue("f7t_client_id", out dynamic value))
+                    schedulerAdapter.ClientId = value;
+                if (options.TryGetValue("f7t_client_secret", out value))
+                    schedulerAdapter.ClientSecret = value;
+                if (options.TryGetValue("f7t_token_url", out value))
+                    schedulerAdapter.TokenEndpoint = value;
+                if (options.TryGetValue("f7t_url", out value))
+                    schedulerAdapter.BaseDirectoryPath = value;
+            }
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
-                CreateSchedulerAdapter()
+                schedulerAdapter
             );
         }
         

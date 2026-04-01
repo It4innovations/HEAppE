@@ -19,6 +19,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using RestSharp;
@@ -33,20 +34,22 @@ public class DataTransferLogic : IDataTransferLogic
     private readonly IJobManagementLogic _managementLogic;
     private readonly IUserOrgService _userOrgService;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IExpirioService _expirioService;
     private readonly IHttpContextKeys _httpContextKeys;
 
     private static readonly ConcurrentDictionary<long, List<ActiveTunnelState>> _activeTunnels = new();
     private static readonly ConcurrentDictionary<long, object> _taskLocks = new();
 
     public DataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
         _logger = LogManager.GetLogger(typeof(DataTransferLogic));
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
         _userOrgService = userOrgService;
-        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
     }
 
     private class ActiveTunnelState

@@ -5,6 +5,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobManagement;
 using HEAppE.Utils;
@@ -28,6 +29,7 @@ public class JobManagementController : BaseController<JobManagementController>
     private readonly IJobManagementService _service;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
 
     #endregion
 
@@ -41,12 +43,13 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="userOrgService"></param>
     /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+        _expirioService = expirioService;
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
     }
 
     #endregion

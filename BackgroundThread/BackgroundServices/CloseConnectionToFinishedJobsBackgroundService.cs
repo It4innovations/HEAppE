@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,12 +52,13 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+                    IExpirioService expirioService = scope.ServiceProvider.GetRequiredService<IExpirioService>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()
-                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
                     
