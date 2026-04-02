@@ -196,7 +196,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var schedulerOptions = await GetSchedulerOptions(schedulerType);
             var submittedTasks = SchedulerFactory.GetInstance(schedulerType)
                 .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project,
-                    _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+                    _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
                 .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken);
 
 

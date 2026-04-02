@@ -99,7 +99,8 @@ public class ExpirioService : IExpirioService
         var secrets = new[] { "f7t_client_id", "f7t_client_secret", "f7t_token_url", "f7t_url" };
         foreach (string secret in secrets)
         {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"{ExpirioSettings.BaseUrl}/secret/text/${secret}");
+            var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{secret}";
+            var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
