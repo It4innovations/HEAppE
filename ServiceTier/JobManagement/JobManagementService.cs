@@ -81,7 +81,7 @@ public class JobManagementService : IJobManagementService
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobInfo = jobLogic.SubmitJob(createdJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
