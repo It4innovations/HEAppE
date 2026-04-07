@@ -303,7 +303,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public List<Project> ListProjects()
     {
-        return _unitOfWork.ProjectRepository.GetAll().ToList();
+        return _unitOfWork.ProjectRepository.GetAllWithClusterProjects().ToList();
     }
 
     /// <summary>
@@ -314,7 +314,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Project GetProjectByAccountingString(string accountingString)
     {
-        return _unitOfWork.ProjectRepository.GetByAccountingString(accountingString) ??
+        return _unitOfWork.ProjectRepository.GetByAccountingStringWithClusterProjects(accountingString) ??
                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
     }
 
@@ -325,7 +325,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public Project GetProjectById(long id)
     {
-        return _unitOfWork.ProjectRepository.GetById(id)
+        return _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(id)
                ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
     }
 

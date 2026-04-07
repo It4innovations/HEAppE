@@ -30,6 +30,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .ThenInclude(ug => ug.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
         
             .FirstOrDefault(w => w.Username == username);
     }
@@ -42,6 +44,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .ThenInclude(ug => ug.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
             .SingleOrDefault(u => u.Password == apiKey);
     }
 
@@ -54,6 +58,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .ThenInclude(ug => ug.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
             .SingleOrDefault(u => u.Id == id);
     }
     

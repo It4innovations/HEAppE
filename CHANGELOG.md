@@ -8,13 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.3.0
 
 ### Added
-- Add memory allocation parameters to job specification (Memory, MemoryPerCPU, MemoryPerGPU) that are passed to underlying scheduler.
+- Enhanced `ListAvailableClusters` response with cluster-specific storage paths (`ScratchStoragePath` and `ProjectStoragePath`) for each project.
+- Storage paths are now returned in a structured collection `ClusterProjectStoragePaths` within the `ProjectExt` model, including Cluster ID and Name.
 
 ## V6.2.11
 
 ### Performance
 - Optimized `SubmittedJobInfo` retrieval in the repository by implementing `AsNoTracking` for read-only queries, reducing database tracking overhead and improving API response times.
-- Reworked logger
 
 ## V6.2.10
 

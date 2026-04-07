@@ -97,12 +97,20 @@ public static class ClusterInformationConverts
         var projectExts = new List<ProjectExt>();
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null).Select(x => x.Project)
+            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
+                .Where(x => !x.IsDeleted && x.Project != null)
+                .GroupBy(x => x.ProjectId)
+                .Select(g => g.First())
+                .OrderBy(o=>o.ClusterId)
                 .ToList();
 
-            projectExts = dbProjects?
-                    .Select(x => x.ConvertIntToExt())
-                    .ToList() ?? new List<ProjectExt>();
+            if (dbClusterProjects != null)
+            {
+                foreach (var cp in dbClusterProjects)
+                {
+                    projectExts.Add(cp.Project.ConvertIntToExt());
+                }
+            }
 
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
@@ -141,26 +149,20 @@ public static class ClusterInformationConverts
 
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?
+            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
                 .Where(x => !x.IsDeleted && x.Project != null && allowedProjectIds.Contains(x.ProjectId))
-                .Select(x => x.Project)
+                .GroupBy(x => x.ProjectId)
+                .Select(g => g.First())
+                .OrderBy(o => o.ClusterId)
                 .ToList();
 
-            if (dbProjects != null)
+            if (dbClusterProjects != null)
             {
-                if (onlyActive)
+                foreach (var cp in dbClusterProjects)
                 {
-                    var now = DateTime.UtcNow;
-                    projectExts = dbProjects
-                        .Where(x => x.EndDate >= now)
-                        .Select(x => x.ConvertIntToExt())
-                        .ToList();
-                }
-                else
-                {
-                    projectExts = dbProjects
-                        .Select(x => x.ConvertIntToExt())
-                        .ToList();
+                    if (onlyActive && cp.Project.EndDate < DateTime.UtcNow) continue;
+
+                    projectExts.Add(cp.Project.ConvertIntToExt());
                 }
             }
 

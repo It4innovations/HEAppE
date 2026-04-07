@@ -25,6 +25,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
             .Include(x => x.ProjectContacts)
             .ThenInclude(x => x.Contact)
+            .Include(x => x.ClusterProjects)
+            .ThenInclude(x => x.Cluster)
             .ToList();
     }
 
@@ -33,13 +35,30 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _context.Projects.FirstOrDefault(p => p.AccountingString == accountingString);
     }
 
+    public Project GetByAccountingStringWithClusterProjects(string accountingString)
+    {
+        return _context.Projects
+            .Include(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+            .FirstOrDefault(p => p.AccountingString == accountingString);
+    }
+
     public Project GetByIdWithClusterProjects(long projectId)
     {
         return _context.Projects
             .Include(p => p.ClusterProjects)
-            //ClusterProjectCredentials
+            .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefault(p => p.Id == projectId);
+    }
+
+    public IEnumerable<Project> GetAllWithClusterProjects()
+    {
+        return _context.Projects
+            .Include(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+            .ToList();
     }
 
     #endregion
