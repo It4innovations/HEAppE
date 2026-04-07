@@ -376,7 +376,11 @@ public class MiddlewareContext : DbContext
 
         //Update Authentication type
 
-        var clusterAuthCredWithVaultData = await WithVaultDataAsync(ClusterAuthenticationCredentials);
+        var clusterAuthCredWithVaultData = await WithVaultDataAsync(await ClusterAuthenticationCredentials
+            .Include(x => x.ClusterProjectCredentials)
+                .ThenInclude(x => x.ClusterProject)
+                    .ThenInclude(x => x.Cluster)
+            .ToListAsync());
 
         foreach (var clusterAuthenticationCredential in clusterAuthCredWithVaultData)
         {
@@ -403,18 +407,19 @@ public class MiddlewareContext : DbContext
         _logger.LogInformation("Seed validation completed.");
     }
 
-    private async Task<IEnumerable<ClusterAuthenticationCredentials>> WithVaultDataAsync(
+    private async Task<List<ClusterAuthenticationCredentials>> WithVaultDataAsync(
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
-        if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
+        if (credentials == null) return new List<ClusterAuthenticationCredentials>();
+        var materialized = credentials.ToList();
         var _vaultConnector = new VaultConnector(_logger);
-        foreach (var item in credentials)
+        foreach (var item in materialized)
         {
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
         }
 
-        return credentials;
+        return materialized;
     }
 
     /// <summary>
