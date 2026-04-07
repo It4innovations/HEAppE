@@ -35,7 +35,7 @@ internal static class SshCommandUtils
     /// </summary>
     internal static async Task<SshCommandWrapper> RunSshCommandAsync(object client, string command, ILogger logger)
     {
-        var adapter = new SshClientAdapter((Renci.SshNet.SshClient)client);
+        var adapter = client as SshClientAdapter ?? new SshClientAdapter((Renci.SshNet.SshClient)client);
         int attempt = 0;
 
         while (true)

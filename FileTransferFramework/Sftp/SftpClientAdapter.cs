@@ -24,6 +24,11 @@ public class SftpClientAdapter
     {
         _sftpClient = sftpClient;
     }
+    
+    public static SftpClientAdapter FromObject(object client)
+    {
+        return client as SftpClientAdapter ?? new SftpClientAdapter((SftpClient)client);
+    }
 
     #endregion
 

@@ -203,12 +203,14 @@ public class SftpFileSystemConnector : IPoolableAdapter
 
     public async Task ConnectAsync(object connectorClient)
     {
-        await new SftpClientAdapter((SftpClient)connectorClient).ConnectAsync();
+        var adapter = connectorClient as SftpClientAdapter ?? new SftpClientAdapter((SftpClient)connectorClient);
+        await adapter.ConnectAsync();
     }
 
     public async Task DisconnectAsync(object connectorClient)
     {
-        await new SftpClientAdapter((SftpClient)connectorClient).DisconnectAsync();
+        var adapter = connectorClient as SftpClientAdapter ?? new SftpClientAdapter((SftpClient)connectorClient);
+        await adapter.DisconnectAsync();
     }
     
     /// <summary>

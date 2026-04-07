@@ -57,7 +57,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         _logger.LogInformation($"Downloading file {relativeFilePath} from cluster");
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             using (var stream = new MemoryStream())
             {
                 if(basePath.StartsWith("~"))
@@ -81,7 +81,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var connection = await _connectionPool.GetConnectionForUserAsync(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             using var stream = new MemoryStream();
             var path = absoluteFilePath.Replace("~/", string.Empty).Replace("/~/", string.Empty);
             await client.DownloadFileAsync(path, stream);
@@ -102,7 +102,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         try
         {
             var remotePath = jobClusterDirectoryPath;
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             await DeleteRemoteDirectoryAsync(jobInfo.Specification.Cluster.TimeZone, remotePath, client);
         }
         finally
@@ -118,7 +118,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             if (Uri.IsWellFormedUriString(target, UriKind.Absolute))
             {
                 await CopyAllToSftpAsync(source, target, overwrite, lastModificationLimit, client, excludedFiles);
@@ -145,7 +145,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             return await ListChangedFilesInDirectoryAsync(hostTimeZone, taskClusterDirectoryPath, taskClusterDirectoryPath,
                 lastModificationLimit, credentials, client);
         }
@@ -355,7 +355,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             
             var fileAttributes = await client.GetFileAttributesAsync(absoluteFilePath);
             if (ownerCanExecute.HasValue)

@@ -40,7 +40,7 @@ public class SftpFullNameSynchronizer : IFileSynchronizer
         var connection = await ConnectionPool.GetConnectionForUserAsync(_credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            var client = SftpClientAdapter.FromObject(connection.Connection);
             var sourcePath = FileSystemUtils.ConcatenatePaths(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath);
 
             if (await client.ExistsAsync(sourcePath))
