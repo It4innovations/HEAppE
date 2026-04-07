@@ -436,19 +436,39 @@ public class MiddlewareContext : DbContext
     }
 
     /// <summary>
-    ///     Validate ClusterAuthenticationCredentials to used clusters same proxy connection
+    ///     Validate ClusterAuthenticationCredentials to used clusters same proxy connection.
+    ///     Uses only config ID maps to avoid triggering lazy loading on EF-proxied entities.
     /// </summary>
     /// <param name="clusterAuthenticationCredentials"></param>
     /// <exception cref="ApplicationException"></exception>
     private void ValidateClusterAuthenticationCredentialsClusterReference(
         List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials)
     {
-        foreach (var clusterAuthenticationCredential in clusterAuthenticationCredentials)
+        // Build lookup maps purely from config data to avoid EF lazy-loading proxy access
+        var clusterProjectById = MiddlewareContextSettings.ClusterProjects
+            .ToDictionary(cp => cp.Id);
+        var clusterById = MiddlewareContextSettings.Clusters
+            .ToDictionary(c => c.Id);
+
+        foreach (var cred in clusterAuthenticationCredentials)
         {
-            var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
-                .Select(x => x.ClusterProject.Cluster).ToList();
-            if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
-                throw new DbContextException("CredentialsProxyMismatch", clusterAuthenticationCredential.Id);
+            // Find all ClusterProjectCredentials for this credential by ID (no nav prop access)
+            var credClusterIds = MiddlewareContextSettings.ClusterProjectCredentials
+                .Where(cpc => cpc.ClusterAuthenticationCredentialsId == cred.Id)
+                .Select(cpc => cpc.ClusterProjectId)
+                .Distinct()
+                .Select(cpId => clusterProjectById.TryGetValue(cpId, out var cp) ? (long?)cp.ClusterId : null)
+                .Where(cId => cId.HasValue)
+                .Select(cId => cId!.Value)
+                .ToList();
+
+            var proxyIds = credClusterIds
+                .Select(cId => clusterById.TryGetValue(cId, out var cl) ? cl.ProxyConnectionId : null)
+                .Distinct()
+                .ToList();
+
+            if (proxyIds.Count > 1)
+                throw new DbContextException("CredentialsProxyMismatch", cred.Id);
         }
     }
 
