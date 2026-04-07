@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.0
+
+### Added
+- Added endpoints for DetailedJobReporting and py4heappe to Swagger UI.
+- Introduced preferred auth type for project-cluster assignment.
+- Eagerly load cluster projects and clusters with project entities.
+
+### Changed
+- Centralized cluster storage path conversion in `ProjectExt` to reduce code duplication.
+- Streamlined database migration logic and added detailed post-migration verification and mismatch logging.
+- Updated user validation service call and improved role validation logic.
+
+### Fixed
+- Used correct repository (SubmittedJobInfo) and project ID for jobs when retrieving and submitting jobs.
+- Refined unique indexes to allow duplicate accounting strings for deleted projects.
+- Separated rate limit logs.
+
 ## V6.3.0
 
 ### Added
