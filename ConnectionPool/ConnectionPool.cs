@@ -228,56 +228,56 @@ namespace HEAppE.ConnectionPool
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            // clear logging thread properties
-            //LogicalThreadContext.Properties.Clear(); // TODO: what was this for... ?
-
-            _logger.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
-            int closedCount = 0;
-            try
+            _ = Task.Run(async () =>
             {
-                foreach (var userEntry in _userContexts)
+                _logger.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
+                int closedCount = 0;
+                try
                 {
-                    var userContext = userEntry.Value;
-                    foreach (var slot in userContext.Slots)
+                    foreach (var userEntry in _userContexts)
                     {
-                        ConnectionInfo connToRemove = null;
-                        slot.SlotSemaphore.Wait();
-                        try
+                        var userContext = userEntry.Value;
+                        foreach (var slot in userContext.Slots)
                         {
-                            if (slot.ConnectionInfo == null) continue;
-
-                            bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
-                            _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
-                            if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
+                            ConnectionInfo connToRemove = null;
+                            await slot.SlotSemaphore.WaitAsync();
+                            try
                             {
-                                connToRemove = slot.ConnectionInfo;
-                                slot.ConnectionInfo = null;
-                            }
-                        }
-                        finally { slot.SlotSemaphore.Release(); }
+                                if (slot.ConnectionInfo == null) continue;
 
-                        if (connToRemove != null)
-                        {
-                            _logger.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
-                            _ = RemovePhysicalConnectionAsync(connToRemove, userContext);
-                            closedCount++;
+                                bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
+                                _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
+                                if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
+                                {
+                                    connToRemove = slot.ConnectionInfo;
+                                    slot.ConnectionInfo = null;
+                                }
+                            }
+                            finally { slot.SlotSemaphore.Release(); }
+
+                            if (connToRemove != null)
+                            {
+                                _logger.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
+                                await RemovePhysicalConnectionAsync(connToRemove, userContext);
+                                closedCount++;
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception ex) { _logger.LogError(ex, "Pool cleanup error"); }
-            finally
-            {
-                if (closedCount > 0) _logger.LogDebug($"Cleanup finished. Closed {closedCount} connections.");
-                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
+                catch (Exception ex) { _logger.LogError(ex, "Pool cleanup error"); }
+                finally
                 {
-                    poolCleanTimer.Start();
+                    if (closedCount > 0) _logger.LogDebug($"Cleanup finished. Closed {closedCount} connections.");
+                    if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
+                    {
+                        poolCleanTimer.Start();
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Cleanup timer stopped (pool at or below minSize).");
+                    }
                 }
-                else
-                {
-                    _logger.LogDebug("Cleanup timer stopped (pool at or below minSize).");
-                }
-            }
+            });
         }
 
         private async Task EnsureVaultDataLoadedAsync(ClusterAuthenticationCredentials cred)
