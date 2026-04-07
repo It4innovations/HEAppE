@@ -115,7 +115,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode)
+    public async Task<bool> DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -127,9 +127,9 @@ public class JobManagementService : IJobManagementService
             if (archiveLogs)
             {
                 _logger.Info($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
-                jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
+                await jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
             }
-            return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
+            return await jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
         }
     }
 
@@ -196,7 +196,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public void CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path)
+    public async Task CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -206,11 +206,11 @@ public class JobManagementService : IJobManagementService
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
 
-            jobLogic.CopyJobDataToTemp(createdJobInfoId, loggedUser, sessionCode, path);
+            await jobLogic.CopyJobDataToTemp(createdJobInfoId, loggedUser, sessionCode, path);
         }
     }
 
-    public void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode)
+    public async Task CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -220,11 +220,11 @@ public class JobManagementService : IJobManagementService
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
 
-            jobLogic.CopyJobDataFromTemp(createdJobInfoId, loggedUser, tempSessionCode);
+            await jobLogic.CopyJobDataFromTemp(createdJobInfoId, loggedUser, tempSessionCode);
         }
     }
 
-    public IEnumerable<string> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
+    public async Task<IEnumerable<string>> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -233,7 +233,7 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, task.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
-            var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
+            var nodesIPs = await jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
 
             return nodesIPs.ToArray();
         }

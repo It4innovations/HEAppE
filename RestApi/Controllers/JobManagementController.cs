@@ -132,13 +132,14 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DeleteJob(DeleteJobModel model)
+    public async Task<IActionResult> DeleteJob(DeleteJobModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
-        if (isDeleted) return Ok("Job was deleted");
+        var isDeleted = await _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
+        if (isDeleted)
+            return Ok("Job was deleted");
         return BadRequest("Job was not deleted");
     }
 

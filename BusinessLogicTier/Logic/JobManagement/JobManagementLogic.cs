@@ -1,4 +1,14 @@
-﻿using HEAppE.BusinessLogicTier.AuthMiddleware;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime;
+using System.Text;
+using System.Threading.Tasks;
+using System.Transactions;
+using log4net;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -19,17 +29,8 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using log4net;
 using SshCaAPI;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
@@ -57,6 +58,19 @@ internal class JobManagementLogic : IJobManagementLogic
         _httpContextKeys = httpContextKeys;
         _expirioService = expirioService;
         _userOrgService = userOrgService;
+    }
+
+    private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType)
+    {
+        if (schedulerType == SchedulerType.FireCrest)
+        {
+            var FIPToken = _httpContextKeys.Context.FIPToken;
+            if (!String.IsNullOrEmpty(FIPToken))
+            {
+                return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken);
+            }
+        }
+        return null;
     }
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,
@@ -142,26 +156,18 @@ internal class JobManagementLogic : IJobManagementLogic
                     jobInfo.Specification.ClusterId, jobInfo.Project.Id)
                 ?? throw new InvalidRequestException("NotExistingProject");
 
+            var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+            var schedulerOptions = await GetSchedulerOptions(schedulerType);
+
             //Create job directory
-            SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+            SchedulerFactory.GetInstance(schedulerType)
+                .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
                 .CreateJobDirectory(jobInfo, clusterProject.ScratchStoragePath, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken);
             return jobInfo;
         }
     }
 
-    private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType)
-    {
-        if (schedulerType == SchedulerType.FireCrest)
-        {
-            var FIPToken = _httpContextKeys.Context.FIPToken;
-            if (!String.IsNullOrEmpty(FIPToken))
-            {
-                return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken);
-            }
-        }
-        return null;
-    }
+    
 
     public virtual async Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
     {
@@ -218,8 +224,10 @@ internal class JobManagementLogic : IJobManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
 
-        var actualUnfinishedSchedulerTasksInfo = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+        var schedulerType = cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        var actualUnfinishedSchedulerTasksInfo = SchedulerFactory.GetInstance(schedulerType)
+            .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
             .GetActualTasksInfo(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), serviceAccount, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
@@ -247,8 +255,10 @@ internal class JobManagementLogic : IJobManagementLogic
             var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
                 .ToList();
 
-            var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
+            var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+            var schedulerOptions = await GetSchedulerOptions(schedulerType);
+            var scheduler = SchedulerFactory.GetInstance(schedulerType)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions);
             scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.",
                 jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken);
 
@@ -281,7 +291,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
-    public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -292,8 +302,10 @@ internal class JobManagementLogic : IJobManagementLogic
         if (jobInfo.State is JobState.Configuring
             or >= JobState.Finished and not JobState.WaitingForServiceAccount and not JobState.Deleted)
         {
-            var isDeleted = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+            var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+            var schedulerOptions = await GetSchedulerOptions(schedulerType);
+            var isDeleted = SchedulerFactory.GetInstance(schedulerType)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
                 .DeleteJobDirectory(jobInfo, clusterProject.ScratchStoragePath, _httpContextKeys.Context.SshCaToken);
             if (isDeleted)
             {
@@ -309,7 +321,7 @@ internal class JobManagementLogic : IJobManagementLogic
         throw new InvalidRequestException("CannotDeleteJob", submittedJobInfoId, jobInfo.State);
     }
     
-    public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info(
             $"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
@@ -341,9 +353,11 @@ internal class JobManagementLogic : IJobManagementLogic
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardOutputFile),
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile),
             });
-        
-        var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
-            CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id).
+
+        var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        var isArchived = SchedulerFactory.GetInstance(schedulerType).
+            CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions).
             MoveJobFiles(jobInfo, sourceDestinations, _httpContextKeys.Context.SshCaToken);
         return isArchived;
     }
@@ -450,6 +464,9 @@ internal class JobManagementLogic : IJobManagementLogic
                     $"Triggered automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
             }
 
+            SchedulerType schedulerType = cluster.SchedulerType;
+            Dictionary<string, dynamic> schedulerOptions = await GetSchedulerOptions(schedulerType);
+
             foreach (var userJobGroup in userJobsGroup)
             {
                 var jobsExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w)).ToList();
@@ -471,8 +488,8 @@ internal class JobManagementLogic : IJobManagementLogic
                             }
 
                             SchedulerFactory
-                                .GetInstance(cluster.SchedulerType)
-                                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id)
+                                .GetInstance(schedulerType)
+                                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id, options: schedulerOptions)
                                 .CancelJob(tasks, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken);
                             tasks.ForEach(x => _logger.Warn($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
 
@@ -490,16 +507,18 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
             }
 
+            schedulerType = cluster.SchedulerType;
+            schedulerOptions = await GetSchedulerOptions(schedulerType);
             IRexScheduler scheduler = !project.IsOneToOneMapping
                 ? scheduler = SchedulerFactory
-                    .GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, null) : null;
+                    .GetInstance(schedulerType)
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, null, options: schedulerOptions) : null;
 
             Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null
                 ? scheduler
                 : SchedulerFactory
-                .GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId);
+                .GetInstance(schedulerType)
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId, options: schedulerOptions);
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
                 actualUnfinishedSchedulerTasksInfo =
@@ -579,7 +598,7 @@ internal class JobManagementLogic : IJobManagementLogic
         _unitOfWork.Save();
     }
 
-    public void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
+    public async Task CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
         _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
@@ -589,13 +608,14 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobInfo.Project.Id)
             ?? throw new InvalidRequestException("NotExistingProject");
 
-        SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+        var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        SchedulerFactory.GetInstance(schedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
             .CopyJobDataToTemp(jobInfo, clusterProject.ScratchStoragePath, hash, path, _httpContextKeys.Context.SshCaToken);
     }
 
-
-    public void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash)
+    public async Task CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash)
     {
         _logger.Info(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
@@ -605,19 +625,23 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobInfo.Project.Id)
             ?? throw new InvalidRequestException("NotExistingProject");
 
-        SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+        var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        SchedulerFactory.GetInstance(schedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
             .CopyJobDataFromTemp(jobInfo, clusterProject.ScratchStoragePath, hash, _httpContextKeys.Context.SshCaToken);
     }
 
-    public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
+    public async Task<IEnumerable<string>> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
         var taskInfo = GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
         if (taskInfo.State != TaskState.Running)
             throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+        var schedulerType = cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        var stringIPs = SchedulerFactory.GetInstance(schedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
             .GetAllocatedNodes(taskInfo, _httpContextKeys.Context.SshCaToken);
         return stringIPs;
     }
@@ -644,9 +668,11 @@ internal class JobManagementLogic : IJobManagementLogic
             ClusterUser = await LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
                 .GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id)
         };
-        
-        return SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+
+        var schedulerType = cluster.SchedulerType;
+        var schedulerOptions = await GetSchedulerOptions(schedulerType);
+        return SchedulerFactory.GetInstance(schedulerType)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, options: schedulerOptions)
             .DryRunJob(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken);
     }
 
