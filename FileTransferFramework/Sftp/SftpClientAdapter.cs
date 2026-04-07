@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.Sftp.Commands;
 using HEAppE.Utils;
@@ -42,19 +43,21 @@ public class SftpClientAdapter
 
     #region Methods
 
-    internal void Connect()
+    #region Methods
+
+    internal async Task ConnectAsync()
     {
-        if (_sftpClient is KerberosSftpClient kerberosSftpClient) kerberosSftpClient.ConnectSync();
-        else if (_sftpClient is not NoAuthenticationSftpClient) _sftpClient.Connect();
+        if (_sftpClient is KerberosSftpClient kerberosSftpClient) await kerberosSftpClient.ConnectAsync();
+        else if (_sftpClient is not NoAuthenticationSftpClient) await Task.Run(() => _sftpClient.Connect());
     }
 
-    internal void Disconnect()
+    internal async Task DisconnectAsync()
     {
-        if (_sftpClient is KerberosSftpClient kerberosSftpClient) kerberosSftpClient.DisconnectSync();
-        else if (_sftpClient is not NoAuthenticationSftpClient) _sftpClient.Disconnect();
+        if (_sftpClient is KerberosSftpClient kerberosSftpClient) kerberosSftpClient.DisconnectSync(); // Dispose-based
+        else if (_sftpClient is not NoAuthenticationSftpClient) await Task.Run(() => _sftpClient.Disconnect());
     }
 
-    internal bool Exists(string remotePath)
+    internal async Task<bool> ExistsAsync(string remotePath)
     {
         if (remotePath.StartsWith("~/"))
         {
@@ -63,11 +66,11 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             return noAuthenticationSftpClient.RunCommand(new Exists(remotePath));
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            return kerberosSftpClient.ExistsAsync(remotePath).GetAwaiter().GetResult();
-        return _sftpClient.Exists(remotePath);
+            return await kerberosSftpClient.ExistsAsync(remotePath);
+        return await Task.Run(() => _sftpClient.Exists(remotePath));
     }
 
-    internal void DownloadFile(string remotePath, MemoryStream stream)
+    internal async Task DownloadFileAsync(string remotePath, MemoryStream stream)
     {
         if (remotePath.StartsWith("~/"))
         {
@@ -76,12 +79,12 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DownloadFile(remotePath, stream));
         else if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.DownloadFileAsync(remotePath, stream).GetAwaiter().GetResult();
+            await kerberosSftpClient.DownloadFileAsync(remotePath, stream);
         else
-            _sftpClient.DownloadFile(remotePath, stream);
+            await Task.Run(() => _sftpClient.DownloadFile(remotePath, stream));
     }
 
-    internal IEnumerable<SftpFile> ListDirectory(string hostTimeZone, string remotePath)
+    internal async Task<IEnumerable<SftpFile>> ListDirectoryAsync(string hostTimeZone, string remotePath)
     {
         var items = new List<SftpFile>();
         switch (_sftpClient)
@@ -95,7 +98,7 @@ public class SftpClientAdapter
                 break;
 
             case KerberosSftpClient kerberosSftpClient:
-                items.AddRange(kerberosSftpClient.ListDirectoryAsync(hostTimeZone, remotePath).GetAwaiter().GetResult());
+                items.AddRange(await kerberosSftpClient.ListDirectoryAsync(hostTimeZone, remotePath));
                 break;
 
             case SftpClient sftpClient:
@@ -108,7 +111,7 @@ public class SftpClientAdapter
                         remotePath = remotePath.Replace("~", sftpClient.WorkingDirectory);
                         replacedTilde = true;
                     }
-                    var resultItems = sftpClient.ListDirectory(remotePath);
+                    var resultItems = await Task.Run(() => sftpClient.ListDirectory(remotePath));
                     foreach (var item in resultItems)
                     {
                         items.Add(new SftpFile
@@ -137,7 +140,7 @@ public class SftpClientAdapter
                 break;
             default:
             {
-                var resultItems = _sftpClient.ListDirectory(remotePath);
+                var resultItems = await Task.Run(() => _sftpClient.ListDirectory(remotePath));
                 foreach (var item in resultItems)
                     items.Add(new SftpFile
                     {
@@ -154,7 +157,7 @@ public class SftpClientAdapter
         return items;
     }
 
-    internal void Delete(string remotePath)
+    internal async Task DeleteAsync(string remotePath)
     {
         if (remotePath.StartsWith("~/"))
         {
@@ -163,12 +166,12 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
         else if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.DeleteFileAsync(remotePath).GetAwaiter().GetResult();
+            await kerberosSftpClient.DeleteFileAsync(remotePath);
         else
-            _sftpClient.Delete(remotePath);
+            await Task.Run(() => _sftpClient.Delete(remotePath));
     }
 
-    internal void DeleteFile(string remotePath)
+    internal async Task DeleteFileAsync(string remotePath)
     {
         if (remotePath.StartsWith("~/"))
         {
@@ -177,12 +180,12 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
         else if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.DeleteFileAsync(remotePath).GetAwaiter().GetResult();
+            await kerberosSftpClient.DeleteFileAsync(remotePath);
         else
-            _sftpClient.DeleteFile(remotePath);
+            await Task.Run(() => _sftpClient.DeleteFile(remotePath));
     }
 
-    internal void DeleteDirectory(string remotePath)
+    internal async Task DeleteDirectoryAsync(string remotePath)
     {
         if (remotePath.StartsWith("~/"))
         {
@@ -191,22 +194,22 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteDirectory(remotePath));
         else if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.DeleteDirectoryAsync(remotePath).GetAwaiter().GetResult();
+            await kerberosSftpClient.DeleteDirectoryAsync(remotePath);
         else
-            _sftpClient.DeleteDirectory(remotePath);
+            await Task.Run(() => _sftpClient.DeleteDirectory(remotePath));
     }
 
-    internal void DownloadFile(string fullName, FileStream targetStream)
+    internal async Task DownloadFileAsync(string fullName, FileStream targetStream)
     {
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "download file");
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.DownloadFileAsync(fullName, targetStream).GetAwaiter().GetResult();
+            await kerberosSftpClient.DownloadFileAsync(fullName, targetStream);
         else
-            _sftpClient.DownloadFile(fullName, targetStream);
+            await Task.Run(() => _sftpClient.DownloadFile(fullName, targetStream));
     }
 
-    internal void CreateDirectory(string targetPath)
+    internal async Task CreateDirectoryAsync(string targetPath)
     {
         if (targetPath.StartsWith("~/"))
         {
@@ -215,12 +218,12 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "create directory");
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.CreateDirectoryAsync(targetPath).GetAwaiter().GetResult();
+            await kerberosSftpClient.CreateDirectoryAsync(targetPath);
         else
-            _sftpClient.CreateDirectory(targetPath);
+            await Task.Run(() => _sftpClient.CreateDirectory(targetPath));
     }
 
-    internal void UploadFile(Stream sourceStream, string targetFilePath, bool canOverride)
+    internal async Task UploadFileAsync(Stream sourceStream, string targetFilePath, bool canOverride)
     {
         if (targetFilePath.StartsWith("~/"))
         {
@@ -229,12 +232,12 @@ public class SftpClientAdapter
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "upload file");
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.UploadFileAsync(sourceStream, targetFilePath, canOverride).GetAwaiter().GetResult();
+            await kerberosSftpClient.UploadFileAsync(sourceStream, targetFilePath, canOverride);
         else
-            _sftpClient.UploadFile(sourceStream, targetFilePath, canOverride);
+            await Task.Run(() => _sftpClient.UploadFile(sourceStream, targetFilePath, canOverride));
     }
 
-    internal void RenameFile(string oldPath, string newPath)
+    internal async Task RenameFileAsync(string oldPath, string newPath)
     {
         if (oldPath.StartsWith("~/"))
         {
@@ -249,27 +252,27 @@ public class SftpClientAdapter
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "rename file");
         
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.RenameAsync(oldPath, newPath).GetAwaiter().GetResult();
+            await kerberosSftpClient.RenameAsync(oldPath, newPath);
         else
-            _sftpClient.RenameFile(oldPath, newPath);
+            await Task.Run(() => _sftpClient.RenameFile(oldPath, newPath));
     }
     
-    internal SftpFileAttributes GetFileAttributes(string path)
+    internal async Task<SftpFileAttributes> GetFileAttributesAsync(string path)
     {
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            return kerberosSftpClient.GetAttributesAsync(path).GetAwaiter().GetResult();
-        return _sftpClient.GetAttributes(path);
+            return await kerberosSftpClient.GetAttributesAsync(path);
+        return await Task.Run(() => _sftpClient.GetAttributes(path));
     }
 
-    internal void SetFileAttributes(string path, SftpFileAttributes fileAttributes)
+    internal async Task SetFileAttributesAsync(string path, SftpFileAttributes fileAttributes)
     {
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
-            kerberosSftpClient.SetAttributesAsync(path, fileAttributes).GetAwaiter().GetResult();
+            await kerberosSftpClient.SetAttributesAsync(path, fileAttributes);
         else
-            _sftpClient.SetAttributes(path, fileAttributes);
+            await Task.Run(() => _sftpClient.SetAttributes(path, fileAttributes));
     }
 
-    internal Stream OpenRead(string path)
+    internal async Task<Stream> OpenReadAsync(string path)
     {
         if (path.StartsWith("~/"))
         {
@@ -284,11 +287,13 @@ public class SftpClientAdapter
 
         if (_sftpClient is KerberosSftpClient kerberosSftpClient)
         {
-            return kerberosSftpClient.OpenReadAsync(path).GetAwaiter().GetResult();
+            return await kerberosSftpClient.OpenReadAsync(path);
         }
 
-        return _sftpClient.OpenRead(path);
+        return await Task.Run(() => _sftpClient.OpenRead(path));
     }
+
+    #endregion
 
     #endregion
 }

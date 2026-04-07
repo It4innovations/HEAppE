@@ -53,7 +53,7 @@ public class SshConnector : IPoolableAdapter
     /// <param name="cluster">Cluster</param>
     /// <param name="port">Port</param>
     /// <returns></returns>
-    public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
+    public async Task<object> CreateConnectionObjectAsync(string masterNodeName, ClusterAuthenticationCredentials credentials,
         Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
         ClusterProxyConnection proxy = cluster.ProxyConnection;
@@ -101,14 +101,14 @@ public class SshConnector : IPoolableAdapter
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
-                CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
+                await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
-                CreateConnectionObjectUsingSshCertificateViaProxy(proxy.Host, proxy.Type,
+                await CreateConnectionObjectUsingSshCertificateViaProxyAsync(proxy.Host, proxy.Type,
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
-                CreateConnectionObjectUsingKerberos(masterNodeName, credentials.Username, cluster.DomainName, lexisToken),
+                await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, cluster.DomainName, lexisToken),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
@@ -122,22 +122,25 @@ public class SshConnector : IPoolableAdapter
     private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =
         HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
 
-    /// <summary>
-    ///     Connect client to server
-    /// </summary>
-    /// <param name="connectorClient"></param>
-    public void Connect(object connectorClient)
+
+
+    public async Task ConnectAsync(object connectorClient)
     {
-        new SshClientAdapter((SshClient)connectorClient).Connect();
+        await new SshClientAdapter((SshClient)connectorClient).ConnectAsync();
     }
 
     /// <summary>
     ///     Disconnect client from server
     /// </summary>
     /// <param name="connectorClient"></param>
+    public async Task DisconnectAsync(object connectorClient)
+    {
+        await new SshClientAdapter((SshClient)connectorClient).DisconnectAsync();
+    }
+    
     public void Disconnect(object connectorClient)
     {
-        new SshClientAdapter((SshClient)connectorClient).Disconnect();
+        new SshClientAdapter((SshClient)connectorClient).DisconnectAsync().GetAwaiter().GetResult();
     }
     
     /// <summary>
@@ -366,7 +369,7 @@ public class SshConnector : IPoolableAdapter
         return privateKeyMemoryStream;
     }
     
-    private SshClient CreateConnectionObjectUsingSshCertificate(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    private async Task<SshClient> CreateConnectionObjectUsingSshCertificateAsync(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
     {
         try
         {
@@ -375,9 +378,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
-                .GetAwaiter()
-                .GetResult();
+            var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
@@ -403,7 +404,7 @@ public class SshConnector : IPoolableAdapter
         
     }
     
-    private SshClient CreateConnectionObjectUsingSshCertificateViaProxy(string proxyHost,
+    private async Task<SshClient> CreateConnectionObjectUsingSshCertificateViaProxyAsync(string proxyHost,
         ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
         ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
         try
@@ -413,9 +414,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger)
-                .GetAwaiter()
-                .GetResult();
+            var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
@@ -609,11 +608,11 @@ public class SshConnector : IPoolableAdapter
     /// <param name="address"></param>
     /// <param name="lexisToken"></param>
     /// <returns></returns>
-    private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, string username, string address, string lexisToken)
+    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string address, string lexisToken)
     {
         if(Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {
-            byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
+            byte[] krbtkt = await GetKerberosTicket(lexisToken);
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
         return new KerberosSshClient(masterNodeName, address, username);

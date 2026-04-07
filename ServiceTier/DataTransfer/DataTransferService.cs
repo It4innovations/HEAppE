@@ -35,7 +35,7 @@ public class DataTransferService : IDataTransferService
         _httpContextKeys = httpContextKeys;
         _logger = logger;
     }
-    public DataTransferMethodExt RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
+    public async Task<DataTransferMethodExt> RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
         string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
@@ -46,11 +46,11 @@ public class DataTransferService : IDataTransferService
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
         var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         var dataTransferMethod =
-            dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
+            await dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
         return dataTransferMethod.ConvertIntToExt();
     }
 
-    public void CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
+    public async Task CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
@@ -59,7 +59,7 @@ public class DataTransferService : IDataTransferService
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             _logger, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id, _expirioService);
         var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-        dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
+        await dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
     }
 
     public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,

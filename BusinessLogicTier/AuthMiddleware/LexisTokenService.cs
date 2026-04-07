@@ -13,8 +13,6 @@ namespace HEAppE.Services.AuthMiddleware;
 public interface ILexisTokenService
 {
     Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken);
-    string ExchangeLexisTokenForFip(string lexisToken) =>
-        ExchangeLexisTokenForFipAsync(lexisToken).GetAwaiter().GetResult();
 }
 
 public class LexisTokenService : ILexisTokenService

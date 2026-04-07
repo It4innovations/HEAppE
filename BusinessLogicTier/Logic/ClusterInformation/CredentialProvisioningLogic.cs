@@ -153,7 +153,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             string path = Path.Combine(initProject.AccountingString,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
                 
-            var isInitialized = scheduler.InitializeClusterScriptDirectory(
+            var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(
                 path,
                 true,
                 localBasepath,

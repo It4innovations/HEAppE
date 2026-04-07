@@ -289,17 +289,22 @@ public class MiddlewareContext : DbContext
 
     #region Seeding methods
 
+    private void EnsureDatabaseSeeded()
+    {
+        EnsureDatabaseSeededAsync().GetAwaiter().GetResult();
+    }
+
     //Should not be called from more instances on one database -> concurrency issues
     //Does not contain modification of existing data or adding new records
-    private void EnsureDatabaseSeeded()
+    private async Task EnsureDatabaseSeededAsync()
     {
         _logger.LogInformation("Seed data into tha database started.");
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserRoles);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUsers);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProxyConnections);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
         {
             ConnectionProtocol = c.ConnectionProtocol,
             Description = c.Description,
@@ -315,7 +320,7 @@ public class MiddlewareContext : DbContext
             ProxyConnectionId = c.ProxyConnectionId
         }));
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc =>
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc =>
             new ClusterAuthenticationCredentials
             {
                 Id = cc.Id,
@@ -328,42 +333,42 @@ public class MiddlewareContext : DbContext
                 AuthenticationType = cc.AuthenticationType
             }));
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.FileTransferMethods);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Accountings);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregations);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Accountings);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregations);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
 
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypes);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.SubProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AccountingStates);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Projects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.SubProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AccountingStates);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Contacts);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ProjectContacts, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserGroups);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.CommandTemplates);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.CommandTemplateParameters);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackInstances);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackDomains);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackProjectDomains);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
 
         ValidateSeed();
 
-        SaveChanges();
+        await SaveChangesAsync();
 
         var entries = ChangeTracker.Entries();
         //Prevents duplicit entries in memory when items updated
@@ -371,9 +376,9 @@ public class MiddlewareContext : DbContext
 
         //Update Authentication type
 
-        var clusterAuthCredWithVaultData = WithVaultData(ClusterAuthenticationCredentials);
+        var clusterAuthCredWithVaultData = await WithVaultDataAsync(ClusterAuthenticationCredentials);
 
-        clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
+        foreach (var clusterAuthenticationCredential in clusterAuthCredWithVaultData)
         {
             var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                 .Select(x => x.ClusterProject.Cluster)
@@ -382,8 +387,8 @@ public class MiddlewareContext : DbContext
                 clusterAuthenticationCredential.AuthenticationType =
                     ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
                         clusterAuthenticationCredential, clusters.First());
-        });
-        SaveChanges();
+        }
+        await SaveChangesAsync();
         _logger.LogInformation("Seed data into the database completed.");
     }
 
@@ -398,14 +403,14 @@ public class MiddlewareContext : DbContext
         _logger.LogInformation("Seed validation completed.");
     }
 
-    private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(
+    private async Task<IEnumerable<ClusterAuthenticationCredentials>> WithVaultDataAsync(
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
         var _vaultConnector = new VaultConnector(_logger);
         foreach (var item in credentials)
         {
-            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
+            var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
         }
 
@@ -463,39 +468,39 @@ public class MiddlewareContext : DbContext
     }
 
     //sqlserver specific because of identity
-    private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
+    private async Task InsertOrUpdateSeedDataAsync<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
     {
         if (items == null || items.Count() == 0) return;
 
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
         _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
-        Database.OpenConnection();
+        await Database.OpenConnectionAsync();
         try
         {
-            foreach (var item in items) AddOrUpdateItem(item);
+            foreach (var item in items) await AddOrUpdateItem(item);
 
             if (useSetIdentity)
             {
 #pragma warning disable EF1002
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
-                SaveChanges();
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
+                await Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
+                await SaveChangesAsync();
+                await Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
 #pragma warning restore EF1002
             }
             else
             {
-                SaveChanges();
+                await SaveChangesAsync();
             }
         }
         catch (Exception e)
         {
-            Database.CloseConnection();
+            await Database.CloseConnectionAsync();
             _logger.LogError($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
         }
         finally
         {
-            Database.CloseConnection();
+            await Database.CloseConnectionAsync();
             _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
     }

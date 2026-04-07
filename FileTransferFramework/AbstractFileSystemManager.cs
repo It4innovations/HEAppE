@@ -40,63 +40,62 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     #endregion
 
     #region Abstract Methods
-    
 
-    public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken);
+    public abstract Task<byte[]> DownloadFileFromClusterAsync(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken);
 
-    public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
+    public abstract Task<byte[]> DownloadFileFromClusterByAbsolutePathAsync(JobSpecification jobSpecification,
         string absoluteFilePath, string sshCaToken, string lexisToken);
 
-    public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken);
+    public abstract Task DeleteSessionFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken);
 
-    protected abstract void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
+    protected abstract Task CopyAllAsync(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials,
         Cluster cluster, string sshCaToken, string lexisToken);
 
-    protected abstract ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
+    protected abstract Task<ICollection<FileInformation>> ListChangedFilesForTaskAsync(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? jobSubmitTime,
         ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken, string lexisToken);
 
     protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
         ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 
-    public abstract bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken);
+    public abstract Task<bool> UploadFileToClusterByAbsolutePathAsync(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken);
     
-    public abstract bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
+    public abstract Task<bool> ModifyAbsolutePathFileAttributesAsync(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null);
     #endregion
 
     #region IRexFileSystemManager Members
 
-    public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory, string sshCaToken, string lexisToken)
+    public virtual async Task CopyInputFilesToClusterAsync(SubmittedJobInfo jobInfo, string localJobDirectory, string sshCaToken, string lexisToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
-        CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null,
+        await CopyAllAsync(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null,
             jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<JobFileContent>> CopyStdOutputFilesFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardOutputFile, sshCaToken, lexisToken);
+        return PerformSynchronizationForTypeAsync(jobInfo, SynchronizableFiles.StandardOutputFile, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<JobFileContent>> CopyStdErrorFilesFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardErrorFile, sshCaToken, lexisToken);
+        return PerformSynchronizationForTypeAsync(jobInfo, SynchronizableFiles.StandardErrorFile, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<JobFileContent>> CopyProgressFilesFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.ProgressFile, sshCaToken, lexisToken);
+        return PerformSynchronizationForTypeAsync(jobInfo, SynchronizableFiles.ProgressFile, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<JobFileContent>> CopyLogFilesFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.LogFile, sshCaToken, lexisToken);
+        return PerformSynchronizationForTypeAsync(jobInfo, SynchronizableFiles.LogFile, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo,
+    public virtual async Task<ICollection<JobFileContent>> DownloadPartOfJobFileFromClusterAsync(SubmittedTaskInfo taskInfo,
         SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken, string lexisToken)
     {
         var taskClusterDirectoryPath = string.Empty;
@@ -115,7 +114,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         synchronizer.Offset = offset;
         synchronizer.SyncFileInfo.DestinationDirectory = null;
         var jobSpecification = taskInfo.Specification.JobSpecification;
-        var result = synchronizer.SynchronizeFiles(jobSpecification.Cluster, sshCaToken, lexisToken);
+        var result = await synchronizer.SynchronizeFilesAsync(jobSpecification.Cluster, sshCaToken, lexisToken);
 
         if (result != null)
             foreach (var content in result)
@@ -127,7 +126,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         return result;
     }
 
-    public virtual void CopyCreatedFilesFromCluster(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
+    public virtual async Task CopyCreatedFilesFromClusterAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
     {
         foreach (var taskInfo in jobInfo.Tasks)
         {
@@ -141,14 +140,14 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
                 taskInfo.Specification.StandardOutputFile,
                 taskInfo.Specification.StandardErrorFile
             };
-            CopyAll(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath,
+            await CopyAllAsync(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath,
                 taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles,
                 jobInfo.Specification.ClusterUser,
                 jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         }
     }
 
-    public virtual ICollection<FileInformation> ListFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string instancePath, string subPath, string sshCaToken, string lexisToken)
+    public virtual async Task<ICollection<FileInformation>> ListFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string instancePath, string subPath, string sshCaToken, string lexisToken)
     {
         var result = new List<FileInformation>();
 
@@ -160,7 +159,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
             
             _logger.LogInformation("Listing files in {0} for task {1}", taskClusterDirectoryPath, taskInfo.Specification.Id);
 
-            var changedFiles = ListChangedFilesForTask(
+            var changedFiles = await ListChangedFilesForTaskAsync(
                 jobInfo.Specification.Cluster.TimeZone, 
                 taskClusterDirectoryPath,
                 jobSubmitTime, 
@@ -185,14 +184,14 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         return result;
     }
 
-    public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<FileInformation>> ListChangedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, sshCaToken, lexisToken);
+        return ListFilesForJobAsync(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, sshCaToken, lexisToken);
     }
 
-    public virtual ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
+    public virtual Task<ICollection<FileInformation>> ListArchivedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, sshCaToken, lexisToken);
+        return ListFilesForJobAsync(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, sshCaToken, lexisToken);
     }
 
 
@@ -200,7 +199,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
     #region Local Methods
 
-    protected virtual ICollection<JobFileContent> PerformSynchronizationForType(SubmittedJobInfo jobInfo,
+    protected virtual async Task<ICollection<JobFileContent>> PerformSynchronizationForTypeAsync(SubmittedJobInfo jobInfo,
         SynchronizableFiles fileType, string sshCaToken, string lexisToken)
     {
         var result = new List<JobFileContent>();
@@ -219,7 +218,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
                 _fileSynchronizers[fileType][sourceFilePath] =
                     CreateFileSynchronizer(fileInfo, jobInfo.Specification.ClusterUser, sshCaToken, lexisToken);
             var jobSpecification = jobInfo.Specification;
-            var subresult = _fileSynchronizers[fileType][sourceFilePath].SynchronizeFiles(jobSpecification.Cluster, sshCaToken, lexisToken);
+            var subresult = await _fileSynchronizers[fileType][sourceFilePath].SynchronizeFilesAsync(jobSpecification.Cluster, sshCaToken, lexisToken);
             if (subresult != null)
                 foreach (var content in subresult)
                 {
@@ -290,20 +289,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         }
     }
 
-    protected virtual ICollection<JobFileContent> SynchronizeAllFilesOfType(SynchronizableFiles fileType)
+    protected virtual Task<ICollection<JobFileContent>> SynchronizeAllFilesOfTypeAsync(SynchronizableFiles fileType)
     {
         throw new NotImplementedException();
-        //TODO: check if needed
-        /*List<JobFileContent> results = new List<JobFileContent>();
-        foreach (IFileSynchronizer synchronizer in _fileSynchronizers[fileType].Values)
-        {
-            ICollection<JobFileContent> result = synchronizer.SynchronizeFiles();
-            if (result != null)
-            {
-                results.AddRange(result);
-            }
-        }
-        return results;*/
     }
 
     #endregion

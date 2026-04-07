@@ -75,7 +75,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
 
     public override bool IsConnected => _isConnected && !_client.Disconnected.IsCancellationRequested;
 
-    private async Task ConnectAsync()
+    public async Task ConnectAsync()
     {
         if (IsConnected) return;
 
@@ -90,7 +90,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
         _isConnected = true;
     }
 
-    private async Task<SshCommandWrapper> ExecuteAsync(string commandText)
+    public async Task<SshCommandWrapper> ExecuteAsync(string commandText)
     {
         using (var process = await _client.ExecuteAsync(commandText))
         {
@@ -106,17 +106,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
         }
     }
 
-    public new void Connect()
-    {
-        ConnectAsync().GetAwaiter().GetResult();
-    }
-
-    public new SshCommandWrapper RunCommand(string commandText)
-    {
-        return ExecuteAsync(commandText).GetAwaiter().GetResult();
-    }
-
-    public new void Disconnect()
+    public void Disconnect()
     {
         _isConnected = false;
         _client.Dispose();

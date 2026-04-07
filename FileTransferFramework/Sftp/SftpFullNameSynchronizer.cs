@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -31,15 +32,20 @@ public class SftpFullNameSynchronizer : IFileSynchronizer
 
     public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster, string sshCaToken, string lexisToken)
     {
-        var connection = ConnectionPool.GetConnectionForUser(_credentials, cluster, sshCaToken, lexisToken);
+        return SynchronizeFilesAsync(cluster, sshCaToken, lexisToken).GetAwaiter().GetResult();
+    }
+
+    public async Task<ICollection<JobFileContent>> SynchronizeFilesAsync(Cluster cluster, string sshCaToken, string lexisToken)
+    {
+        var connection = await ConnectionPool.GetConnectionForUserAsync(_credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
             var sourcePath = FileSystemUtils.ConcatenatePaths(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath);
 
-            if (client.Exists(sourcePath))
+            if (await client.ExistsAsync(sourcePath))
             {
-                using var sourceStream = client.OpenRead(sourcePath);
+                using var sourceStream = await client.OpenReadAsync(sourcePath);
                 var synchronizedContent = FileSystemUtils.ReadStreamContentFromSpecifiedOffset(sourceStream, Offset);
                 if (!string.IsNullOrEmpty(SyncFileInfo.DestinationDirectory))
                 {
@@ -65,7 +71,7 @@ public class SftpFullNameSynchronizer : IFileSynchronizer
         }
         finally
         {
-            ConnectionPool.ReturnConnection(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
 
         return default;

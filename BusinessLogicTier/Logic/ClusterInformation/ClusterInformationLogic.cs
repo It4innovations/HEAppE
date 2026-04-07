@@ -46,7 +46,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
     }
 
-    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser,
+    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser,
         long projectId)
     {
         var nodeType = GetClusterNodeTypeById(clusterNodeId)
@@ -90,7 +90,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id, _expirioService, _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        return await scheduler.GetCurrentClusterNodeUsageAsync(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
     public async Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
@@ -122,9 +122,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 throw new RequestedObjectDoesNotExistException("ServiceAccountCredentialsNotDefinedInCommandTemplate");
 
             var commandTemplateParameters = new List<string> { scriptPath };
-            commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
+            var scriptParams = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
-                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken).ToList());
+                .GetParametersFromGenericUserScriptAsync(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)).ToList();
+            commandTemplateParameters.AddRange(scriptParams);
             return commandTemplateParameters;
         }
 

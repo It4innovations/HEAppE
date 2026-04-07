@@ -79,7 +79,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                                     task.Specification.JobSpecification.Submitter.Username, 
                                     task.Specification.JobSpecification.Submitter.Email);
                             }
-                            dataTransferLogic.CloseAllTunnelsForTask(task);
+                            await dataTransferLogic.CloseAllTunnelsForTask(task);
                         }
                         catch (Exception closeEx)
                         {

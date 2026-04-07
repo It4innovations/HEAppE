@@ -10,10 +10,10 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer;
 
 public interface IDataTransferLogic
 {
-    DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
+    Task<DataTransferMethod> GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
         AdaptorUser loggedUser);
 
-    void EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser);
+    Task EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser);
 
     Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId,
         string nodeIPAddress, int nodePort, AdaptorUser loggedUser);
@@ -26,5 +26,5 @@ public interface IDataTransferLogic
         Stream responseStream, CancellationToken cancellationToken);
 
     IEnumerable<long> GetTaskIdsWithOpenTunnels();
-    void CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo);
+    Task CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo);
 }

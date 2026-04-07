@@ -8,15 +8,16 @@ public interface IFileTransferService
 {
     Task<FileTransferMethodExt> TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode);
     Task<FileTransferMethodExt> RequestFileTransfer(long submittedJobInfoId, string sessionCode);
-    void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode);
+    Task CloseFileTransferAsync(long submittedJobInfoId, string publicKey, string sessionCode);
 
-    JobFileContentExt[] DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffsetExt[] taskFileOffsets,
+    Task<JobFileContentExt[]> DownloadPartsOfJobFilesFromClusterAsync(long submittedJobInfoId, TaskFileOffsetExt[] taskFileOffsets,
         string sessionCode);
 
-    FileInformationExt[] ListChangedFilesForJob(long submittedJobInfoId, string sessionCode);
-    byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, string sessionCode);
+    Task<FileInformationExt[]> ListChangedFilesForJobAsync(long submittedJobInfoId, string sessionCode);
+    Task<byte[]> DownloadFileFromClusterAsync(long submittedJobInfoId, string relativeFilePath, string sessionCode);
 
-    Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
-    Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
-    Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode);
+    Task<dynamic> UploadFileToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
+    Task<dynamic> UploadJobScriptToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
+    Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode);
+    Task<FileTransferMethodExt> ProvideCredentialsAsync(long modelProjectId, long modelClusterId);
 }

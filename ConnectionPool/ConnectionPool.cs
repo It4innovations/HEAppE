@@ -18,7 +18,7 @@ namespace HEAppE.ConnectionPool
             public ConnectionInfo ConnectionInfo { get; set; }
             public int ReferenceCount = 0;
             public DateTime LastReleasedTime = DateTime.UtcNow;
-            public readonly object SyncRoot = new object();
+            public readonly SemaphoreSlim SlotSemaphore = new SemaphoreSlim(1, 1);
         }
 
         private class SharedUserContext
@@ -80,11 +80,9 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
+        public async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            return Task.Run(async () => await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken))
-                       .GetAwaiter()
-                       .GetResult();
+            return await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken);
         }
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
@@ -103,7 +101,8 @@ namespace HEAppE.ConnectionPool
             for (int i = 0; i < userContext.Slots.Length; i++)
             {
                 var s = userContext.Slots[i];
-                lock (s.SyncRoot)
+                await s.SlotSemaphore.WaitAsync();
+                try
                 {
                     if (s.ConnectionInfo != null && _adapter.IsConnected(s.ConnectionInfo.Connection))
                     {
@@ -115,6 +114,7 @@ namespace HEAppE.ConnectionPool
                         }
                     }
                 }
+                finally { s.SlotSemaphore.Release(); }
             }
 
             if (bestSlot != null)
@@ -123,17 +123,19 @@ namespace HEAppE.ConnectionPool
                 // OR we have hit the maximum physical connections (UserSemaphore is 0), so we must reuse it anyway.
                 if (minRefCount < 8 || userContext.UserSemaphore.CurrentCount == 0)
                 {
-                    lock (bestSlot.SyncRoot)
+                await bestSlot.SlotSemaphore.WaitAsync();
+                try
+                {
+                    // Double check it wasn't disconnected
+                    if (bestSlot.ConnectionInfo != null && _adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
                     {
-                        // Double check it wasn't disconnected
-                        if (bestSlot.ConnectionInfo != null && _adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
-                        {
-                            bestSlot.ReferenceCount++;
-                            bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                            _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
-                            return bestSlot.ConnectionInfo;
-                        }
+                        bestSlot.ReferenceCount++;
+                        bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                        _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
+                        return bestSlot.ConnectionInfo;
                     }
+                }
+                finally { bestSlot.SlotSemaphore.Release(); }
                 }
             }
 
@@ -158,7 +160,8 @@ namespace HEAppE.ConnectionPool
                 // Fallback (should theoretically not happen since permits == empty slots)
                 if (slot == null) slot = userContext.GetNextSlot();
 
-                lock (slot.SyncRoot)
+                await slot.SlotSemaphore.WaitAsync();
+                try
                 {
                     if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
                     {
@@ -169,9 +172,9 @@ namespace HEAppE.ConnectionPool
                     }
 
                     _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
-                    var newConnection = InitializeConnection(credentials, cluster, sshCaToken, lexisToken);
+                    var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken);
                     slot.ConnectionInfo = newConnection;
-                    
+
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
                     if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
                     {
@@ -182,6 +185,7 @@ namespace HEAppE.ConnectionPool
                     slot.ReferenceCount++;
                     return slot.ConnectionInfo;
                 }
+                finally { slot.SlotSemaphore.Release(); }
             }
             catch (Exception ex)
             {
@@ -191,7 +195,7 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        public void ReturnConnection(ConnectionInfo connection)
+        public async Task ReturnConnectionAsync(ConnectionInfo connection)
         {
             if (connection == null) return;
 
@@ -200,7 +204,8 @@ namespace HEAppE.ConnectionPool
                 for (int i = 0; i < userContext.Slots.Length; i++)
                 {
                     var slot = userContext.Slots[i];
-                    lock (slot.SyncRoot)
+                    await slot.SlotSemaphore.WaitAsync();
+                    try
                     {
                         if (slot.ConnectionInfo == connection)
                         {
@@ -215,6 +220,7 @@ namespace HEAppE.ConnectionPool
                             return;
                         }
                     }
+                    finally { slot.SlotSemaphore.Release(); }
                 }
             }
             _logger.LogWarning($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
@@ -235,10 +241,11 @@ namespace HEAppE.ConnectionPool
                     foreach (var slot in userContext.Slots)
                     {
                         ConnectionInfo connToRemove = null;
-                        lock (slot.SyncRoot)
+                        slot.SlotSemaphore.Wait();
+                        try
                         {
                             if (slot.ConnectionInfo == null) continue;
-                            
+
                             bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
                             _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
                             if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
@@ -247,11 +254,12 @@ namespace HEAppE.ConnectionPool
                                 slot.ConnectionInfo = null;
                             }
                         }
+                        finally { slot.SlotSemaphore.Release(); }
 
                         if (connToRemove != null)
                         {
                             _logger.LogDebug($"[User:{userEntry.Key}] Closing idle expired connection.");
-                            RemovePhysicalConnection(connToRemove, userContext);
+                            _ = RemovePhysicalConnectionAsync(connToRemove, userContext);
                             closedCount++;
                         }
                     }
@@ -297,11 +305,11 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        private void RemovePhysicalConnection(ConnectionInfo connection, SharedUserContext context)
+        private async Task RemovePhysicalConnectionAsync(ConnectionInfo connection, SharedUserContext context)
         {
             try 
             { 
-                _adapter.Disconnect(connection.Connection); 
+                await _adapter.DisconnectAsync(connection.Connection); 
             }
             catch (Exception ex)
             {
@@ -315,9 +323,9 @@ namespace HEAppE.ConnectionPool
             }
         }
         
-        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken)
+        private async Task<ConnectionInfo> InitializeConnectionAsync(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            var connectionObject = _adapter.CreateConnectionObject(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
+            var connectionObject = await _adapter.CreateConnectionObjectAsync(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
             
             var username = connection.AuthCredentials.Username;
@@ -346,7 +354,7 @@ namespace HEAppE.ConnectionPool
             {
                 try
                 {
-                    _adapter.Connect(connection.Connection);
+                    await _adapter.ConnectAsync(connection.Connection);
                     _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
                     break;
                 }
@@ -360,7 +368,7 @@ namespace HEAppE.ConnectionPool
                         throw;
                     }
                     _logger.LogWarning($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt - 1}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
-                    Thread.Sleep(1000);
+                    await Task.Delay(1000);
                 }
             }
 

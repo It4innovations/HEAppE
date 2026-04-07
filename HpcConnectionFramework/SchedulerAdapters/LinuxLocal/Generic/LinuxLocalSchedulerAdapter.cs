@@ -49,7 +49,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="scheduledJobIds">Scheduled Job ID collection</param>
     /// <param name="account">Username name</param>
     /// <returns></returns>
-    private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<string> scheduledJobIds, string account)
     {
         var submittedTaskInfos = new List<SubmittedTaskInfo>();
@@ -60,7 +60,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
                 .Replace('\\', '/');
             var cliCommand =
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cliCommand, _logger);
+            var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, cliCommand, _logger);
 
             _logger.LogInformation($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
             submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
@@ -127,7 +127,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="jobSpecification">Job specification</param>
     /// <param name="credentials">Credentials</param>
     /// <returns></returns>
-    public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
+    public virtual async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         var shellCommandSb = new StringBuilder();
@@ -139,7 +139,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
         var sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
-        command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+        command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
             $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}",
             _logger);
 
@@ -158,11 +158,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         shellCommand = shellCommandSb.ToString();
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
-        command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+        command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
             $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}",
             _logger);
 
-        return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
+        return await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
     }
 
     /// <summary>
@@ -172,13 +172,13 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="cluster">Cluster</param>
     /// <param name="submitedTasksInfo">Submitted tasks ids</param>
     /// <returns></returns>
-    public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    public virtual async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
             .Distinct();
 
-        return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds,  key);
+        return await GetActualTasksInfoAsync(connectorClient, cluster, localClusterJobIds,  key);
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
     /// <param name="message">Message</param>
-    public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
+    public virtual async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         string message)
     {
         StringBuilder commandSb = new();
@@ -200,7 +200,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         _logger.LogInformation(
             $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
-        SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), command, _logger);
+        await SshCommandUtils.RunSshCommandAsync(connectorClient, command, _logger);
     }
 
     /// <summary>
@@ -209,14 +209,14 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="nodeType">ClusterNode type</param>
     /// <returns></returns>
-    public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+    public virtual async Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType)
     {
         var usage = new ClusterNodeUsage
         {
             NodeType = nodeType
         };
 
-        var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+        var command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
             $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
             _logger);
         _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
@@ -232,7 +232,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="taskInfo">Task information</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
+    public virtual async Task<IEnumerable<string>> GetAllocatedNodesAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
         List<string> allocatedNodes = new();
         StringBuilder allocationNodeSb = new();
@@ -245,6 +245,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         allocatedNodes.Add(allocationNodeSb.ToString());
         _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\"");
+        await Task.Yield();
         return allocatedNodes.Distinct();
     }
 
@@ -254,9 +255,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="userScriptPath">Generic script path</param>
     /// <returns></returns>
-    public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+    public virtual async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath)
     {
-        return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
+        return await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
     }
 
     /// <summary>
@@ -265,10 +266,10 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKey">Public key</param>
     /// <param name="jobInfo">Job info</param>
-    public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo)
     {
-        _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
     }
 
     /// <summary>
@@ -277,9 +278,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
     ///  <param name="projectAccountingString">Project accounting string</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
+        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
     }
 
     /// <summary>
@@ -289,10 +290,10 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="jobInfo">Job info</param>
     /// <param name="localBasePath"></param>
     /// <param name="sharedAccountsPoolMode"></param>
-    public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public virtual async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
-        _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
+        await _commands.CreateJobDirectoryAsync(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
     }
 
     /// <summary>
@@ -300,9 +301,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job info</param>
-    public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        return _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
+        return await _commands.DeleteJobDirectoryAsync(connectorClient, jobInfo, localBasePath);
     }
 
     /// <summary>
@@ -311,10 +312,10 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job info</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path)
     {
-        _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
+        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
     }
 
     /// <summary>
@@ -323,9 +324,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job info</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
+    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
     {
-        _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
+        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
     }
 
     #region SSH tunnel methods
@@ -337,7 +338,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="taskInfo">Task info</param>
     /// <param name="nodeHost">Cluster node address</param>
     /// <param name="nodePort">Cluster node port</param>
-    public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
+    public async Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
     {
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
     }
@@ -348,7 +349,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="taskInfo">Task info</param>
-    public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
+    public async Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
     }
@@ -372,18 +373,18 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
-        return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
+        return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory,
             overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
 
     #endregion
     
-    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
-        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
@@ -403,7 +404,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {                
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
+                command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)
@@ -438,15 +439,14 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
-    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    public Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
     {
         // For local Linux scheduler, we can just return a success message
         //return "Dry run simulation successful for Linux Local Scheduler.";
-        return new DryRunJobInfo
+        return Task.FromResult(new DryRunJobInfo
         {
             Message = "Dry run simulation successful for Linux Local Scheduler."
-        };
-        
+        });
     }
 
     #endregion

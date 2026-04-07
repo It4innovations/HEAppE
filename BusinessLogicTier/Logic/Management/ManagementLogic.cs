@@ -96,9 +96,9 @@ public class ManagementLogic : IManagementLogic
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
-        var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+        var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -252,9 +252,9 @@ public class ManagementLogic : IManagementLogic
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
-        var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+        var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -1318,7 +1318,7 @@ public class ManagementLogic : IManagementLogic
                 
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
-                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory, localBasepath,
+                var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(path, overwriteExistingProjectRootDirectory, localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
                 if (clusterAuthCredentials.IsGenerated)
@@ -1387,7 +1387,7 @@ public class ManagementLogic : IManagementLogic
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);
                 
-                var status = scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials,
+                var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
                     _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
                 
                 if (!status.Item1)

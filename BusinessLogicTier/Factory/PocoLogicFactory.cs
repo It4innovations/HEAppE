@@ -4,7 +4,6 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
-using HEAppE.BusinessLogicTier.logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.BusinessLogicTier.Logic.JobReporting;

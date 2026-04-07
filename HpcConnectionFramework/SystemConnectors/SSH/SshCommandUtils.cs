@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -28,16 +29,13 @@ internal static class SshCommandUtils
     {
     }
 
+
     /// <summary>
-    /// Runs an SSH command with automatic retries on transient network failures or timeouts.
+    /// Runs an SSH command asynchronously with automatic retries.
     /// </summary>
-    /// <param name="client">The SSH client adapter instance.</param>
-    /// <param name="command">The shell command to execute.</param>
-    /// <returns>A wrapper containing the command results (ExitStatus, Result, Error).</returns>
-    /// <exception cref="InputValidationException">Thrown for known permanent errors like 'File not found'.</exception>
-    /// <exception cref="SshCommandException">Thrown when the command fails or retries are exhausted.</exception>
-    internal static SshCommandWrapper RunSshCommand(SshClientAdapter client, string command, ILogger logger)
+    internal static async Task<SshCommandWrapper> RunSshCommandAsync(object client, string command, ILogger logger)
     {
+        var adapter = new SshClientAdapter((Renci.SshNet.SshClient)client);
         int attempt = 0;
 
         while (true)
@@ -45,71 +43,80 @@ internal static class SshCommandUtils
             attempt++;
             try
             {
-                return ExecuteInternal(client, command, attempt, logger);
+                return await ExecuteInternalAsync(adapter, command, attempt, logger);
             }
             catch (Exception ex) when (IsTransient(ex) && attempt < MaxRetries)
             {
-                // Exponential backoff strategy: 1s, 2s, 4s, 8s... capped at 10 seconds.
                 int delay = (int)Math.Pow(2, attempt - 1) * CommandRetryBaseDelayMs;
                 delay = Math.Min(delay, 10000); 
                 
-                logger.LogWarning($"SSH transient error on attempt {attempt}/{MaxRetries}. " +
-                          $"Retrying in {delay}ms. Error: {ex.Message}");
+                logger.LogWarning("SSH transient error on attempt {Attempt}/{MaxRetries}. Retrying in {Delay}ms. Error: {Error}", attempt, MaxRetries, delay, ex.Message);
                 
-                Thread.Sleep(delay);
+                await Task.Delay(delay);
             }
             catch (Exception ex)
             {
-                // Permanent failure or retries exhausted
-                logger.LogError($"SSH command failed after {attempt} attempts. Error: {ex.Message}, Command: {command}");
+                logger.LogError("SSH command failed after {Attempt} attempts. Error: {Error}, Command: {Command}", attempt, ex.Message, command);
                 throw;
             }
         }
     }
 
+
     /// <summary>
-    /// Internal execution logic including logging and exit status validation.
+    /// Internal async execution logic.
     /// </summary>
-    private static SshCommandWrapper ExecuteInternal(SshClientAdapter client, string command, int attempt, ILogger logger)
+    private static async Task<SshCommandWrapper> ExecuteInternalAsync(SshClientAdapter client, string command, int attempt, ILogger logger)
     {
-        logger.LogInformation($"Executing SSH command (Attempt {attempt}). Command: {command}, Client: {client}");
+        logger.LogInformation("Executing SSH command async (Attempt {Attempt}). Command: {Command}, Client: {Client}", attempt, command, client);
         
         var startTime = DateTime.UtcNow;
-        // This call performs the actual synchronous network I/O
-        var sshCommand = client.RunCommand(command); 
+        var sshCommand = await client.RunCommandAsync(command); 
         var duration = DateTime.UtcNow - startTime;
 
-        logger.LogInformation($"SSH command executed. Command: {command}, Duration: {duration.TotalMilliseconds}ms, Exit Code: {sshCommand.ExitStatus}");
+        logger.LogInformation("SSH command executed async. Command: {Command}, Duration: {Duration}ms, Exit Code: {ExitCode}", command, duration.TotalMilliseconds, sshCommand.ExitStatus);
+        
+        return ProcessResult(sshCommand, logger);
+    }
 
+    private static SshCommandWrapper ProcessResult(SshCommandWrapper sshCommand, ILogger logger)
+    {
         // Handle specific error cases that should NOT be retried (permanent failures)
         if (sshCommand.ExitStatus != 0)
         {
             if (sshCommand.Error.Contains("No such file or directory"))
             {
-                logger.LogWarning($"SSH command error (No such file or directory). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+                logger.LogWarning("SSH command error (No such file or directory). Error: {Error}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.ExitStatus);
                 throw new InputValidationException("NoFileOrDirectory");
             }
 
             if (sshCommand.Error.Contains("GIT CLONE ERROR"))
             {
-                logger.LogWarning($"SSH command error (git clone). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+                logger.LogWarning("SSH command error (git clone). Error: {Error}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.ExitStatus);
                 throw new InputValidationException("GitCloneCommandError");
             }
 
             // General command failure - throw exception. IsTransient will determine if we retry.
-            logger.LogWarning($"SSH command execution failed with non-zero exit code. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+            logger.LogWarning("SSH command execution failed with non-zero exit code. Error: {Error}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.ExitStatus);
             throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
         }
 
         // Log warnings if stderr has content even with ExitCode 0
         if (!string.IsNullOrEmpty(sshCommand.Error))
         {
-            logger.LogWarning($"SSH command finished with warnings. Error: {sshCommand.Error}, Command: {sshCommand.CommandText}");
+            logger.LogWarning("SSH command finished with warnings. Error: {Error}, Command: {Command}", sshCommand.Error, sshCommand.CommandText);
         }
 
         if (!string.IsNullOrEmpty(sshCommand.Result))
         {
-            logger.LogDebug($"SSH command output: {sshCommand.Result}");
+            // Truncate extremely large outputs for standard logging to prevent memory pressure and system delays
+            // Admin can still access full results via detailed diagnostic logs if needed or directly from the command result object.
+            const int maxLogOutputLength = 2000;
+            string logOutput = sshCommand.Result.Length > maxLogOutputLength 
+                ? sshCommand.Result.Substring(0, maxLogOutputLength) + "... [TRUNCATED]" 
+                : sshCommand.Result;
+            
+            logger.LogDebug("SSH command output (first {Length} chars): {Output}", logOutput.Length, logOutput);
         }
 
         return sshCommand;
