@@ -11,44 +11,44 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest;
 internal static class Mapper
 {
     /// <summary>
-    ///     Mapping task state from FireCrest state
+    ///     Mapping task state from FirecRest state
     /// </summary>
     /// <param name="taskState">Task state</param>
     /// <returns></returns>
-    internal static TaskState Map(this FireCrestTaskState taskState)
+    internal static TaskState Map(this FirecRestTaskState taskState)
     {
         return taskState switch
         {
-            FireCrestTaskState.Requeued
-                or FireCrestTaskState.Pending
-                or FireCrestTaskState.RequeueHold
-                or FireCrestTaskState.RequeueFed
-                or FireCrestTaskState.Configuring
-                or FireCrestTaskState.ResvDelHold => TaskState.Queued,
+            FirecRestTaskState.Requeued
+                or FirecRestTaskState.Pending
+                or FirecRestTaskState.RequeueHold
+                or FirecRestTaskState.RequeueFed
+                or FirecRestTaskState.Configuring
+                or FirecRestTaskState.ResvDelHold => TaskState.Queued,
 
 
-            FireCrestTaskState.StageOut
-                or FireCrestTaskState.Signaling => TaskState.Configuring,
+            FirecRestTaskState.StageOut
+                or FirecRestTaskState.Signaling => TaskState.Configuring,
 
-            FireCrestTaskState.Completed
-                or FireCrestTaskState.SpecialExit => TaskState.Finished,
+            FirecRestTaskState.Completed
+                or FirecRestTaskState.SpecialExit => TaskState.Finished,
 
-            FireCrestTaskState.Stopped
-                or FireCrestTaskState.Canceled
-                or FireCrestTaskState.Suspended
-                or FireCrestTaskState.Resizing => TaskState.Canceled,
+            FirecRestTaskState.Stopped
+                or FirecRestTaskState.Canceled
+                or FirecRestTaskState.Suspended
+                or FirecRestTaskState.Resizing => TaskState.Canceled,
 
-            FireCrestTaskState.Running
-                or FireCrestTaskState.Completing => TaskState.Running,
+            FirecRestTaskState.Running
+                or FirecRestTaskState.Completing => TaskState.Running,
 
-            FireCrestTaskState.Failed
-                or FireCrestTaskState.BootFailed
-                or FireCrestTaskState.NodeFail
-                or FireCrestTaskState.Deadline
-                or FireCrestTaskState.Timeout
-                or FireCrestTaskState.OutOfMemory
-                or FireCrestTaskState.Preempted
-                or FireCrestTaskState.Revoked => TaskState.Failed,
+            FirecRestTaskState.Failed
+                or FirecRestTaskState.BootFailed
+                or FirecRestTaskState.NodeFail
+                or FirecRestTaskState.Deadline
+                or FirecRestTaskState.Timeout
+                or FirecRestTaskState.OutOfMemory
+                or FirecRestTaskState.Preempted
+                or FirecRestTaskState.Revoked => TaskState.Failed,
 
             _ => TaskState.Failed
         };

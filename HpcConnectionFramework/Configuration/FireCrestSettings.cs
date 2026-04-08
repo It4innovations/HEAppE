@@ -1,8 +1,8 @@
 namespace HEAppE.HpcConnectionFramework.Configuration;
 
-public class FireCrestSettings
+public class FirecRestSettings
 {
-    public static string FireCrestUrl { get; set; }
+    public static string FirecRestUrl { get; set; }
     
     public static string TokenEndpoint { get; set; }
     

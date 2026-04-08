@@ -39,7 +39,7 @@ public abstract class SchedulerFactory
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
                 SchedulerType.HyperQueue => new HyperQueueSchedulerFactory(),
-                SchedulerType.FireCrest => new FireCrestSchedulerFactory(),
+                SchedulerType.FirecRest => new FirecRestSchedulerFactory(),
                 _ => throw new SchedulerException("NotValidType", type)
             };
             _schedulerFactoryPoolSingletons.Add(type, factoryInstance);

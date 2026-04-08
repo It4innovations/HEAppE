@@ -9,9 +9,9 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Enums;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.DTO;
 
 /// <summary>
-///     FireCrest job info
+///     FirecRest job info
 /// </summary>
-public class FireCrestJobInfo : ISchedulerJobInfo
+public class FirecRestJobInfo : ISchedulerJobInfo
 {
     #region Constructors
 
@@ -19,7 +19,7 @@ public class FireCrestJobInfo : ISchedulerJobInfo
     ///     Constructor
     /// </summary>
     /// <param name="schedulerResponseParameters"></param>
-    public FireCrestJobInfo(string schedulerResponseParameters, Dictionary<string, string> parsedParameters)
+    public FirecRestJobInfo(string schedulerResponseParameters, Dictionary<string, string> parsedParameters)
     {
         SchedulerResponseParameters = schedulerResponseParameters;
         ParsedParameters = parsedParameters;
@@ -212,7 +212,7 @@ public class FireCrestJobInfo : ISchedulerJobInfo
     ///     Combine two jobs with job arrays parameter
     /// </summary>
     /// <param name="jobInfo">Job info</param>
-    public void CombineJobs(FireCrestJobInfo jobInfo)
+    public void CombineJobs(FirecRestJobInfo jobInfo)
     {
         StartTime = StartTime.HasValue && jobInfo.StartTime.HasValue && StartTime > jobInfo.StartTime
             ? jobInfo.StartTime
@@ -246,14 +246,14 @@ public class FireCrestJobInfo : ISchedulerJobInfo
     /// </summary>
     /// <param name="state">Task state</param>
     /// <returns></returns>
-    private static FireCrestTaskState MappingTaskState(string state)
+    private static FirecRestTaskState MappingTaskState(string state)
     {
         state = state.Replace("_", string.Empty)
             .Trim()
             .ToLower();
-        return Enum.TryParse(state, true, out FireCrestTaskState taskState)
+        return Enum.TryParse(state, true, out FirecRestTaskState taskState)
             ? taskState
-            : FireCrestTaskState.Failed;
+            : FirecRestTaskState.Failed;
     }
 
     #endregion

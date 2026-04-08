@@ -77,7 +77,7 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            SchedulerType.FireCrest => SchedulerTypeExt.FireCrest,
+            SchedulerType.FirecRest => SchedulerTypeExt.FirecRest,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Scheduler type",
@@ -93,7 +93,7 @@ public static class ClusterInformationConverts
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            ClusterConnectionProtocol.FirecrestApi => ClusterConnectionProtocolExt.FirecrestApi,
+            ClusterConnectionProtocol.FirecRestApi => ClusterConnectionProtocolExt.FirecRestApi,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Connection protocol",

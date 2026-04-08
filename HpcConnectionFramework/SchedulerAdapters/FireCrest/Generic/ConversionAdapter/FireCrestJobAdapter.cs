@@ -5,9 +5,9 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 
 /// <summary>
-///     FireCrest job adapter
+///     FirecRest job adapter
 /// </summary>
-internal class FireCrestJobAdapter : ISchedulerJobAdapter
+internal class FirecRestJobAdapter : ISchedulerJobAdapter
 {
     #region Instances
 
@@ -23,7 +23,7 @@ internal class FireCrestJobAdapter : ISchedulerJobAdapter
     /// <summary>
     ///     Constructor
     /// </summary>
-    public FireCrestJobAdapter()
+    public FirecRestJobAdapter()
     {
         _jobCommandBuilder = new StringBuilder();
     }

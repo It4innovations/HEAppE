@@ -12,9 +12,9 @@ using System.Xml.Schema;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
 /// <summary>
-///     FireCrest scheduler factory for creating and managing FireCrest-related components
+///     FirecRest scheduler factory for creating and managing FirecRest-related components
 /// </summary>
-internal class FireCrestSchedulerFactory : SchedulerFactory
+internal class FirecRestSchedulerFactory : SchedulerFactory
 {
     #region Instances
 
@@ -29,12 +29,17 @@ internal class FireCrestSchedulerFactory : SchedulerFactory
     private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
-    ///     Data convertor singleton for translating between HEAppE and FireCrest formats
+    ///     Scheduler instances mapped by cluster and project details
+    /// </summary>
+    private readonly Dictionary<(string, long projectId, DateTime?, long?), FirecRestSchedulerAdapter> _schedulerAdapters = new();
+
+    /// <summary>
+    ///     Data convertor singleton for translating between HEAppE and FirecRest formats
     /// </summary>
     private ISchedulerDataConvertor _convertorSingleton;
 
     /// <summary>
-    ///     Scheduler adapter instance for interacting with FireCrest API
+    ///     Scheduler adapter instance for interacting with FirecRest API
     /// </summary>
     private ISchedulerAdapter _schedulerAdapterInstance;
 
@@ -52,47 +57,51 @@ internal class FireCrestSchedulerFactory : SchedulerFactory
     public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
-        
+
+        FirecRestSchedulerAdapter schedulerAdapter = null;
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
         {
-            var schedulerAdapter = CreateSchedulerAdapter() as FireCrestSchedulerAdapter;
-            if (options != null)
-            {
-                if (options.TryGetValue("f7t_client_id", out dynamic value))
-                    schedulerAdapter.ClientId = value;
-                if (options.TryGetValue("f7t_client_secret", out value))
-                    schedulerAdapter.ClientSecret = value;
-                if (options.TryGetValue("f7t_token_url", out value))
-                    schedulerAdapter.TokenEndpoint = value;
-                if (options.TryGetValue("f7t_url", out value))
-                    schedulerAdapter.BaseDirectoryPath = value;
-            }
+            schedulerAdapter = CreateSchedulerAdapter() as FirecRestSchedulerAdapter;
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
                 schedulerAdapter
             );
+            _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
         }
-        
+
+        schedulerAdapter ??= _schedulerAdapters[uniqueIdentifier];
+        if (options != null)
+        {
+            if (options.TryGetValue("f7t_client_id", out dynamic value))
+                schedulerAdapter.ClientId = value;
+            if (options.TryGetValue("f7t_client_secret", out value))
+                schedulerAdapter.ClientSecret = value;
+            if (options.TryGetValue("f7t_token_url", out value))
+                schedulerAdapter.TokenEndpoint = value;
+            if (options.TryGetValue("f7t_url", out value))
+                schedulerAdapter.FirecRestUrl = value;
+        }
+
         return _schedulerSingletons[uniqueIdentifier];
     }
 
     /// <summary>
-    ///     Create or get existing FireCrest scheduler adapter instance
+    ///     Create or get existing FirecRest scheduler adapter instance
     /// </summary>
-    /// <returns>FireCrest scheduler adapter</returns>
+    /// <returns>FirecRest scheduler adapter</returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter()
     {
-        return _schedulerAdapterInstance ??= new FireCrestSchedulerAdapter(CreateDataConvertor());
+        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor());
     }
 
     /// <summary>
-    ///     Create or get existing FireCrest data convertor
+    ///     Create or get existing FirecRest data convertor
     /// </summary>
-    /// <returns>FireCrest data convertor</returns>
+    /// <returns>FirecRest data convertor</returns>
     protected override ISchedulerDataConvertor CreateDataConvertor()
     {
-        return _convertorSingleton ??= new FireCrestDataConvertor(new FireCrestConversionAdapterFactory());
+        return _convertorSingleton ??= new FirecRestDataConvertor(new FirecRestConversionAdapterFactory());
     }
 
     /// <summary>

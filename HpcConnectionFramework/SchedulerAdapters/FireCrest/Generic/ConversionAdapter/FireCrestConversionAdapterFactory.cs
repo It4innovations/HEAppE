@@ -3,9 +3,9 @@
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 
 /// <summary>
-///     FireCrest conversion adapter factory
+///     FirecRest conversion adapter factory
 /// </summary>
-public class FireCrestConversionAdapterFactory : ConversionAdapterFactory
+public class FirecRestConversionAdapterFactory : ConversionAdapterFactory
 {
     /// <summary>
     ///     Create job adapter
@@ -13,7 +13,7 @@ public class FireCrestConversionAdapterFactory : ConversionAdapterFactory
     /// <returns></returns>
     public override ISchedulerJobAdapter CreateJobAdapter()
     {
-        return new FireCrestJobAdapter();
+        return new FirecRestJobAdapter();
     }
 
     /// <summary>
@@ -23,6 +23,6 @@ public class FireCrestConversionAdapterFactory : ConversionAdapterFactory
     /// <returns></returns>
     public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
     {
-        return new FireCrestTaskAdapter((string)taskSource);
+        return new FirecRestTaskAdapter((string)taskSource);
     }
 }

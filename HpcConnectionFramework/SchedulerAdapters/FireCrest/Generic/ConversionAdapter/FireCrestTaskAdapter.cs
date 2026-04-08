@@ -9,9 +9,9 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 
 /// <summary>
-///     FireCrest task adapter
+///     FirecRest task adapter
 /// </summary>
-public class FireCrestTaskAdapter : ISchedulerTaskAdapter
+public class FirecRestTaskAdapter : ISchedulerTaskAdapter
 {
     #region Constructors
 
@@ -19,7 +19,7 @@ public class FireCrestTaskAdapter : ISchedulerTaskAdapter
     ///     Constructor
     /// </summary>
     /// <param name="taskSource"></param>
-    public FireCrestTaskAdapter(string taskSource)
+    public FirecRestTaskAdapter(string taskSource)
     {
         _taskBuilder = new StringBuilder(taskSource);
     }

@@ -68,7 +68,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var cluster = jobSpecification.Cluster;
 
-        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        if (cluster.SchedulerType == SchedulerType.FirecRest)
         {
             var tasks = _adapter.SubmitJob(null, jobSpecification, credentials);
             return tasks;
@@ -107,7 +107,7 @@ public class RexSchedulerWrapper : IRexScheduler
         var groupedTasksByUser = submitedTasksInfo
             .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
 
-        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        if (cluster.SchedulerType == SchedulerType.FirecRest)
         {
             foreach (var groupedTasksByUsername in groupedTasksByUser)
             {
@@ -149,7 +149,7 @@ public class RexSchedulerWrapper : IRexScheduler
         ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
         var cluster = submitedTasksInfo.FirstOrDefault().Specification.JobSpecification.Cluster;
-        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        if (cluster.SchedulerType == SchedulerType.FirecRest)
         {
             _adapter.CancelJob(null, submitedTasksInfo, message);
         }
@@ -274,7 +274,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var cluster = jobInfo.Specification.Cluster;
 
-        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        if (cluster.SchedulerType == SchedulerType.FirecRest)
         {
             _adapter.CreateJobDirectory(null, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
@@ -315,7 +315,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var cluster = jobInfo.Specification.Cluster;
 
-        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        if (cluster.SchedulerType == SchedulerType.FirecRest)
         {
             try
             {

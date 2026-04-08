@@ -98,7 +98,7 @@ public class Startup
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());
         Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
-        Configuration.Bind("FireCrestSettings", new FireCrestSettings());
+        Configuration.Bind("FirecRestSettings", new FirecRestSettings());
         
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();

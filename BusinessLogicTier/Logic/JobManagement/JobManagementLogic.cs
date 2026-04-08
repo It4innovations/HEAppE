@@ -62,7 +62,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType)
     {
-        if (schedulerType == SchedulerType.FireCrest)
+        if (schedulerType == SchedulerType.FirecRest)
         {
             var FIPToken = _httpContextKeys.Context.FIPToken;
             if (!String.IsNullOrEmpty(FIPToken))

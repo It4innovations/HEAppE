@@ -13,5 +13,5 @@ public enum ClusterConnectionProtocolExt
     MicrosoftHpcApi = 1,
     Ssh = 2,
     SshInteractive = 4,
-    FirecrestApi = 8
+    FirecRestApi = 8
 }

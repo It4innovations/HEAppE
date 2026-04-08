@@ -1,9 +1,9 @@
 ﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Enums;
 
 /// <summary>
-///     FireCrest states
+///     FirecRest states
 /// </summary>
-internal enum FireCrestTaskState
+internal enum FirecRestTaskState
 {
     /// <summary>
     ///     Job terminated due to launch failure, typically due to a hardware failure

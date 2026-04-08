@@ -17,7 +17,7 @@ using log4net;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
-#region Data Transfer Objects (DTOs) for FireCrest JSON
+#region Data Transfer Objects (DTOs) for FirecRest JSON
 
 internal class StringToLongConverter: JsonConverter<long?>
 {
@@ -42,7 +42,7 @@ internal class StringToLongConverter: JsonConverter<long?>
     }
 }
 
-internal class FireCrestJob
+internal class FirecRestJob
 {
     [JsonConverter(typeof(StringToLongConverter))]
     public long? JobId { get; set; }
@@ -81,13 +81,13 @@ internal class FireCrestJob
 
 #endregion
 
-public class FireCrestDataConvertor : SchedulerDataConvertor
+public class FirecRestDataConvertor : SchedulerDataConvertor
 {
     private readonly ILog _logger;
 
-    public FireCrestDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public FirecRestDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
     {
-        _logger = LogManager.GetLogger(typeof(FireCrestDataConvertor));
+        _logger = LogManager.GetLogger(typeof(FirecRestDataConvertor));
     }
 
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
@@ -95,7 +95,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     {
         var task = (TaskSpecification)schedulerAllocationCmd;
         var scriptBuilder = new StringBuilder();
-        string baseDirectoryPath = FireCrestSettings.BaseDirectoryPath;
+        string baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
         string account = jobSpecification.ClusterUser?.Username ?? "default";
         string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{task.Id}".Replace("\\", "/");
 
@@ -250,7 +250,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     {
         if (string.IsNullOrWhiteSpace(responseMessage))
         {
-            throw new FireCrestException("UnableToParseResponse: Response from server was null or empty.")
+            throw new FirecRestException("UnableToParseResponse: Response from server was null or empty.")
                 { CommandError = "The response from the server was empty." };
         }
 
@@ -268,7 +268,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
             return new List<string> { match.Groups[1].Value };
         }
 
-        throw new FireCrestException("UnableToParseResponse: Could not find 'jobid' in the JSON response.")
+        throw new FirecRestException("UnableToParseResponse: Could not find 'jobid' in the JSON response.")
             { CommandError = $"The response was: {responseMessage}" };
     }
 
@@ -317,7 +317,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         try
         {
             var jobElementJSON = jobElement.GetRawText();
-            var firecrestJob = JsonSerializer.Deserialize<FireCrestJob>(jobElementJSON, FireCrestJob.DeserializationOptions);
+            var firecrestJob = JsonSerializer.Deserialize<FirecRestJob>(jobElementJSON, FirecRestJob.DeserializationOptions);
             if (firecrestJob == null)
                 return null;
 
