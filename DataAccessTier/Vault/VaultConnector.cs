@@ -20,7 +20,8 @@ public class VaultConnector : IVaultConnector
 
     // Static HttpClient prevents Socket Exhaustion issues
     private static readonly HttpClient _httpClient = new HttpClient {
-        BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress) 
+        BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress),
+        Timeout = TimeSpan.FromSeconds(VaultConnectorSettings.ConnectionTimeoutInSeconds)
     };
 
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;

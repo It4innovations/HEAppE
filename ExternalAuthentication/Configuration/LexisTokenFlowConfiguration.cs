@@ -14,4 +14,5 @@ public class LexisTokenFlowConfiguration
     // FIP / HEAppE target
     public string ClientId { get; set; } = "heappe";
     public string ClientSecret { get; set; } = string.Empty;
+    public double ConnectionTimeoutInSeconds { get; set; } = 15;
 }

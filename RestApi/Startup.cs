@@ -148,7 +148,7 @@ public class Startup
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
             {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-                conf.Timeout = TimeSpan.FromSeconds(10);
+                conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         });
 
@@ -179,7 +179,10 @@ public class Startup
             });
         });
         
-        services.AddHttpClient("LexisTokenExchangeClient");
+        services.AddHttpClient("LexisTokenExchangeClient", conf => 
+        {
+            conf.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.ConnectionTimeoutInSeconds);
+        });
         services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
@@ -268,6 +271,8 @@ public class Startup
         else
             loggerFactory.AddLog4Net("Logging/log4net.config");
 
+        ConfigureLog4NetLevel();
+
         AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
 
         ServiceActivator.Configure(app.ApplicationServices);
@@ -317,5 +322,28 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+    }
+
+    private void ConfigureLog4NetLevel()
+    {
+        var logLevel = Configuration["Logging:LogLevel:Default"];
+        if (string.IsNullOrEmpty(logLevel)) return;
+
+        var repository = LogManager.GetRepository(Assembly.GetEntryAssembly()) as log4net.Repository.Hierarchy.Hierarchy;
+        if (repository == null) return;
+
+        // Map .NET LogLevel strings to log4net levels if necessary, 
+        // though log4net.Core.LevelMap handles standard names (DEBUG, INFO, WARN, ERROR, FATAL)
+        string mappedLevel = logLevel.ToUpper() switch
+        {
+            "INFORMATION" => "INFO",
+            "WARNING" => "WARN",
+            "CRITICAL" => "FATAL",
+            _ => logLevel.ToUpper()
+        };
+
+        log4net.Core.Level level = repository.LevelMap[mappedLevel] ?? log4net.Core.Level.Info;
+        repository.Root.Level = level;
+        repository.RaiseConfigurationChanged(EventArgs.Empty);
     }
 }

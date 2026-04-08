@@ -12,6 +12,11 @@ public class VaultConnectorSettings
     /// Cluster authentication credentials path
     /// </summary>
     public static string ClusterAuthenticationCredentialsPath { get; set; } = "v1/HEAppE/data/ClusterAuthenticationCredentials";
+
+    /// <summary>
+    /// Vault connection timeout in seconds
+    /// </summary>
+    public static double ConnectionTimeoutInSeconds { get; set; } = 15;
     
     #endregion
 }
