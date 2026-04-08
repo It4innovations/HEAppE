@@ -42,18 +42,26 @@ public class ExpirioService : IExpirioService
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
-        using var response = await client.SendAsync(httpRequest, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        try 
+        {
+            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (response.IsSuccessStatusCode)
-        {
-            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
-            return ParseTokenResponse(content, logger);
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
+                return ParseTokenResponse(content, logger);
+            }
+            else
+            {
+                HandleErrorResponse(response, content, "Kerberos ticket", logger);
+                return null; 
+            }
         }
-        else
+        catch (TaskCanceledException)
         {
-            HandleErrorResponse(response, content, "Kerberos ticket", logger);
-            return null; 
+            logger.LogError($"[Expirio Timeout] Request to {url} timed out.");
+            throw;
         }
     }
 

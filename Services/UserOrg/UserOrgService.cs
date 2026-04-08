@@ -102,42 +102,55 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         using var httpClient = _httpClientFactory.CreateClient(ClientName);
         logger.LogInformation($"[UserOrg API] Sending {request.Method} request to {request.RequestUri}");
         
-        using var response = await httpClient.SendAsync(request);
-        var content = await response.Content.ReadAsStringAsync();
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            logger.LogDebug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
-            try
+            using var response = await httpClient.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                logger.LogDebug($"[UserOrg Response] Success ({response.StatusCode}). Body: {content}");
+                try
+                {
+                    return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (JsonException ex)
+                {
+                    logger.LogError($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
+                    throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
+                }
             }
-            catch (JsonException ex)
+            else
             {
-                logger.LogError($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
-                throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
+                string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+                logger.LogError($"[UserOrg API Error] UserOrg API Error: {details}");
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.BadRequest:
+                        throw new AuthenticationTypeException("BadRequest", details);
+                    case HttpStatusCode.Unauthorized:
+                        throw new AuthenticationTypeException("InvalidToken", details);
+                    case HttpStatusCode.NotFound:
+                        throw new AuthenticationTypeException("NotFound", details);
+                    case HttpStatusCode.InternalServerError:
+                        throw new AuthenticationTypeException("ServerError", details);
+                    case HttpStatusCode.BadGateway:
+                        throw new AuthenticationTypeException("UpstreamError", details);
+                    default:
+                        throw new AuthenticationTypeException("ExternalApiError", details);
+                }
             }
         }
-        else
+        catch (TaskCanceledException ex) when (!ex.CancellationToken.IsCancellationRequested)
         {
-            string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            logger.LogError($"[UserOrg API Error] UserOrg API Error: {details}");
-
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.BadRequest:
-                    throw new AuthenticationTypeException("BadRequest", details);
-                case HttpStatusCode.Unauthorized:
-                    throw new AuthenticationTypeException("InvalidToken", details);
-                case HttpStatusCode.NotFound:
-                    throw new AuthenticationTypeException("NotFound", details);
-                case HttpStatusCode.InternalServerError:
-                    throw new AuthenticationTypeException("ServerError", details);
-                case HttpStatusCode.BadGateway:
-                    throw new AuthenticationTypeException("UpstreamError", details);
-                default:
-                    throw new AuthenticationTypeException("ExternalApiError", details);
-            }
+            logger.LogError($"[UserOrg API Timeout] Request to {request.RequestUri} timed out after the configured timeout.");
+            throw new AuthenticationTypeException("ExternalApiTimeout", "The request to UserOrg API timed out.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"[UserOrg API Exception] Unexpected error during request to {request.RequestUri}");
+            throw;
         }
     }
 }

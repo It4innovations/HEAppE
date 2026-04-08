@@ -148,7 +148,7 @@ public class Startup
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
             {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-                conf.Timeout = TimeSpan.FromSeconds(60);
+                conf.Timeout = TimeSpan.FromSeconds(10);
             }
         });
 

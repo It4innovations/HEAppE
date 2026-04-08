@@ -110,6 +110,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
+            cmd.CommandTimeout = 0; // Infinite timeout for backup
             await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation($"Database backup file was created to: {backupPath}");

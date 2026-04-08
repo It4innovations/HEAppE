@@ -92,6 +92,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
+            cmd.CommandTimeout = 0; // Infinite timeout for backup
             await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");

@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
 
@@ -19,9 +18,6 @@ public class VaultConnector : IVaultConnector
         _logger = logger;
     }
 
-    // Static members ensure the cache and client are shared across all instances of VaultConnector
-    private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
-    
     // Static HttpClient prevents Socket Exhaustion issues
     private static readonly HttpClient _httpClient = new HttpClient {
         BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress) 
@@ -36,13 +32,8 @@ public class VaultConnector : IVaultConnector
     /// </summary>
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
-        // GetOrCreateAsync handles locking, so only one HTTP request is made per ID
-        return await _cache.GetOrCreateAsync(id, entry =>
-        {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(5);
-            _logger.LogDebug($"Cache miss for ID: {id}, fetching from Vault.");
-            return GetClusterAuthenticationCredentialsInternal(id);
-        });
+        _logger.LogDebug($"Fetching credentials for ID: {id} from Vault.");
+        return await GetClusterAuthenticationCredentialsInternal(id);
     }
 
     /// <summary>
@@ -82,7 +73,6 @@ public class VaultConnector : IVaultConnector
         if (result.IsSuccessStatusCode)
         {
             _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
-            _cache.Remove(data.Id); // Invalidate shared cache
             return true;
         }
 
@@ -103,7 +93,6 @@ public class VaultConnector : IVaultConnector
         if (result.IsSuccessStatusCode)
         {
             _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
-            _cache.Remove(id); // Invalidate shared cache
         }
         else
         {

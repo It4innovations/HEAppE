@@ -61,6 +61,11 @@ namespace SshCaAPI
             var request = new RestRequest($"config", Method.Get);
             var response = await _basicRestClient.ExecuteAsync(request);
 
+            if (response.ResponseStatus == ResponseStatus.TimedOut)
+            {
+                throw new SshCAServiceTypeException("SshCertificateAuthorityService-GetConfig: Request timed out.");
+            }
+
             return ParseHelper.ParseJsonOrThrow<ConfigResponse, SshCAServiceTypeException>(response, HttpStatusCode.OK);
         }
 
@@ -85,6 +90,12 @@ namespace SshCaAPI
             logger?.LogDebug($"[SignService Request] POST {_basicRestClient.BuildUri(request)} | Body: {requestBody}");
 
             var response = await _basicRestClient.ExecuteAsync(request);
+
+            if (response.ResponseStatus == ResponseStatus.TimedOut)
+            {
+                logger?.LogError($"[SignService Timeout] Request to {_basicRestClient.BuildUri(request)} timed out.");
+                throw new SshCAServiceTypeException("SshCertificateAuthorityService-Sign: Request timed out.");
+            }
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
