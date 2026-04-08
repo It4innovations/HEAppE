@@ -325,49 +325,62 @@ namespace HEAppE.ConnectionPool
         
         private async Task<ConnectionInfo> InitializeConnectionAsync(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            var connectionObject = await _adapter.CreateConnectionObjectAsync(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
-            var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
-            
-            var username = connection.AuthCredentials.Username;
-            if (connectionObject is SshClient sshClient)
-            {
-                username = sshClient.ConnectionInfo.Username;
-                sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
-            }
-            else if (connectionObject is ScpClient scpClient)
-            {
-                username = scpClient.ConnectionInfo.Username;
-                scpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
-            }
-            else if (connectionObject is SftpClient sftpClient)
-            {
-                username = sftpClient.ConnectionInfo.Username;
-                sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
-            }
-
             int maxRetries = _connectionRetryAttempts;
             int currentAttempt = 0;
-
-            _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection. Max retries: {maxRetries}, Timeout: {_connectionTimeoutMs}ms");
+            ConnectionInfo connection = new ConnectionInfo { LastUsed = DateTime.UtcNow, AuthCredentials = cred };
+            
+            // Note: username might change after CreateConnectionObjectAsync (e.g. for SSH CA)
+            string username = cred.Username;
 
             while (true)
             {
                 try
                 {
+                    // Always create a fresh connection object for each attempt to avoid stale socket states after transient failures
+                    var connectionObject = await _adapter.CreateConnectionObjectAsync(_masterNodeName, cred, cluster, sshCaToken, lexisToken, cluster.Port ?? _port);
+                    connection.Connection = connectionObject;
+
+                    if (connectionObject is SshClient sshClient)
+                    {
+                        username = sshClient.ConnectionInfo.Username;
+                        sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+                    }
+                    else if (connectionObject is ScpClient scpClient)
+                    {
+                        username = scpClient.ConnectionInfo.Username;
+                        scpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+                    }
+                    else if (connectionObject is SftpClient sftpClient)
+                    {
+                        username = sftpClient.ConnectionInfo.Username;
+                        sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(_connectionTimeoutMs);
+                    }
+
+                    if (currentAttempt == 0)
+                    {
+                        _logger.LogInformation($"[User:({cred.Id},{username})] Initializing connection. Max retries: {maxRetries}, Timeout: {_connectionTimeoutMs}ms");
+                    }
+
                     await _adapter.ConnectAsync(connection.Connection);
-                    _logger.LogInformation($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
+                    _logger.LogInformation($"[User:({cred.Id},{username})] Connection initialized successfully on attempt {currentAttempt + 1}.");
                     break;
                 }
                 catch (Exception ex)
                 {
+                    // Clean up the failed connection object before retrying
+                    if (connection.Connection is IDisposable disposable)
+                    {
+                        try { disposable.Dispose(); } catch { /* ignore */ }
+                    }
+                    connection.Connection = null;
+
                     currentAttempt++;
-                    
                     if (currentAttempt > maxRetries)
                     {
-                        _logger.LogError(ex, $"[User:({connection.AuthCredentials.Id},{username})] Connection failed after {currentAttempt - 1} attempts.");
+                        _logger.LogError(ex, $"[User:({cred.Id},{username})] Connection failed after {currentAttempt} attempts.");
                         throw;
                     }
-                    _logger.LogWarning($"[User:({connection.AuthCredentials.Id},{username})] Connection attempt {currentAttempt - 1}/{maxRetries} failed. Retrying in 1s... Error: {ex.Message}");
+                    _logger.LogWarning($"[User:({cred.Id},{username})] Connection attempt {currentAttempt}/{maxRetries + 1} failed. Retrying in 1s... Error: {ex.Message}");
                     await Task.Delay(1000);
                 }
             }

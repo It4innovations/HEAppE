@@ -59,8 +59,6 @@ public class SshClientAdapter
     /// </summary>
     public async Task ConnectAsync()
     {
-        _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        
         switch (_sshClient)
         {
             case NoAuthenticationSshClient:
@@ -72,6 +70,9 @@ public class SshClientAdapter
                 await Task.Run(() => _sshClient.Connect());
                 break;
         }
+
+        // Set keep-alive interval after successful connection
+        _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
     }
 
     /// <summary>
