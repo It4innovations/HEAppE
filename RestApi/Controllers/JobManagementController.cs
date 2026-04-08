@@ -90,12 +90,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult SubmitJob(SubmitJobModel model)
+    public async Task<IActionResult> SubmitJob(SubmitJobModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+        return Ok(await _service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -211,12 +211,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CopyJobDataToTemp(CopyJobDataToTempModel model)
+    public async Task<IActionResult> CopyJobDataToTemp(CopyJobDataToTempModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
+        await _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
         return Ok("Data were copied to Temp");
     }
 
@@ -233,12 +233,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CopyJobDataFromTemp(CopyJobDataFromTempModel model)
+    public async Task<IActionResult> CopyJobDataFromTemp(CopyJobDataFromTempModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
+        await _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
         return Ok("Data were copied from Temp");
     }
 
@@ -256,7 +256,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult AllocatedNodesIPs(string sessionCode, long submittedTaskInfoId)
+    public async Task<IActionResult> AllocatedNodesIPs(string sessionCode, long submittedTaskInfoId)
     {
         var model = new AllocatedNodesIPsModel
         {
@@ -266,7 +266,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
+        return Ok(await _service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
     }
     
     /// <summary>
