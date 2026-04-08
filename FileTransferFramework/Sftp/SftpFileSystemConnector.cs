@@ -155,6 +155,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -190,6 +191,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -262,7 +264,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 new PasswordAuthenticationMethod(username, password))
         };
 
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -292,7 +296,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
             proxyUsername,
             proxyPassword,
             new PasswordAuthenticationMethod(username, password));
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -310,7 +316,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -354,7 +362,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -386,6 +396,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -439,6 +450,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -479,6 +491,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -522,6 +535,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)));
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)

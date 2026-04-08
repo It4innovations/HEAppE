@@ -192,7 +192,9 @@ public class SshConnector : IPoolableAdapter
                 new PasswordAuthenticationMethod(username, password))
         };
 
-        return new SshClient(connectionInfo);
+        var client = new SshClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -222,7 +224,9 @@ public class SshConnector : IPoolableAdapter
             proxyUsername,
             proxyPassword,
             new PasswordAuthenticationMethod(username, password));
-        return new SshClient(connectionInfo);
+        var client = new SshClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -240,7 +244,9 @@ public class SshConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SshClient(connectionInfo);
+        var client = new SshClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -284,7 +290,9 @@ public class SshConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SshClient(connectionInfo);
+        var client = new SshClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -316,6 +324,7 @@ public class SshConnector : IPoolableAdapter
             };
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -395,6 +404,7 @@ public class SshConnector : IPoolableAdapter
             };
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -441,6 +451,7 @@ public class SshConnector : IPoolableAdapter
             };
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -495,6 +506,7 @@ public class SshConnector : IPoolableAdapter
             };
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -535,6 +547,7 @@ public class SshConnector : IPoolableAdapter
             };
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -579,6 +592,7 @@ public class SshConnector : IPoolableAdapter
                 new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)));
 
             var client = new SshClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
