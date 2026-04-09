@@ -254,11 +254,22 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 _logger.LogInformation("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}",
                     clusterId, projectId, onlyServiceAccounts);
                 
-                return await _credentialProvisioningLogic.InitializeClusterCredentials(
+                var credentials = await _credentialProvisioningLogic.InitializeClusterCredentials(
                     clusterId: clusterId, 
                     projectId: projectId, 
                     adaptorUserId: adaptorUserId, 
                     onlyServiceAccounts: onlyServiceAccounts);
+
+                if (credentials.Any())
+                {
+                    return credentials;
+                }
+
+                // If initialization failed because they don't exist, try creating them
+                return await _credentialProvisioningLogic.CreateAndInitializeMissingCredentials(
+                    clusterId: clusterId,
+                    projectId: projectId,
+                    adaptorUserId: adaptorUserId);
             }
             throw;
         }
@@ -273,7 +284,19 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         
         if (credentials.Count == 0)
         {
-            throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
+            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
+            {
+                _logger.LogInformation("No credentials found for ClusterId: {0}, ProjectId: {1}, AdaptorUser: {2}. Attempting auto-creation.", clusterId, projectId, adaptorUserId);
+                credentials = (await _credentialProvisioningLogic.CreateAndInitializeMissingCredentials(
+                    clusterId: clusterId,
+                    projectId: projectId,
+                    adaptorUserId: adaptorUserId)).ToList();
+            }
+
+            if (credentials.Count == 0)
+            {
+                throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
+            }
         }
 
         ClusterAuthenticationCredentials serviceCredentials = (await GetAndInitializeCredentials(

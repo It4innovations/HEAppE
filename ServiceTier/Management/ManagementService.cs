@@ -457,7 +457,7 @@ public class ManagementService : IManagementService
         }
     }
     
-    public async Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+    public async Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string? username, ClusterAuthenticationCredentialsAuthType? authType, 
                                                                    bool? generateNewKey, string? privateKey, string? password, string? passphrase, long? adaptorUserId = null)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))

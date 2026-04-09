@@ -147,4 +147,16 @@ public class ExpirioService : IExpirioService
                 throw new ExpirioException($"Error while getting Expirio {context}.", details);
         }
     }
+
+    public async Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        // Placeholder implementation
+        return true;
+    }
+
+    public async Task<string?> GetUsernameAsync(string token, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        // Placeholder implementation for future Expirio endpoint
+        return null;
+    }
 }

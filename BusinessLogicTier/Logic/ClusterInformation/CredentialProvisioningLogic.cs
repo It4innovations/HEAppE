@@ -7,7 +7,6 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
-using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -47,47 +46,18 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
     {
         _logger.LogInformation("Creating missing credentials for ClusterId: {0}, ProjectId: {1}, AdaptorUser: {2}", clusterId, projectId, adaptorUserId);
 
-        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
-        var clusterProject = project?.ClusterProjects?.FirstOrDefault(cp => cp.ClusterId == clusterId);
-        var cluster = _unitOfWork.ClusterRepository.GetById(clusterId) ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
-        
-        var preferredAuthType = clusterProject?.PreferredAuthType ?? ClusterAuthenticationCredentialsAuthType.SshCertificate;
-
-        // Resolve username
-        string username = $"account_{projectId}_{adaptorUserId}";
-        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetById(adaptorUserId);
-        if (adaptorUser != null)
-        {
-            username = adaptorUser.Username;
-        }
-
-        // Try to resolve "real" username via SSH CA if requested
-        if (preferredAuthType == ClusterAuthenticationCredentialsAuthType.SshCertificate || preferredAuthType == ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
-        {
-            username = await ResolveUsernameViaSshCa(cluster, _httpContextKeys.Context.SshCaToken, username);
-        }
-
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         
-        switch (preferredAuthType)
-        {
-            case ClusterAuthenticationCredentialsAuthType.SshCertificate:
-            case ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy:
-            case ClusterAuthenticationCredentialsAuthType.PrivateKey:
-            case ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey:
-                await managementLogic.CreateSecureShellKey(
-                    credentials: new List<(string, string)> { (username, string.Empty) },
-                    projectId: projectId,
-                    adaptorUserId: adaptorUserId);
-                break;
-            default:
-                _logger.LogWarning("Automated provisioning for AuthType {0} is not fully implemented or requires manual setup. Falling back to SSH key generation.", preferredAuthType);
-                await managementLogic.CreateSecureShellKey(
-                    credentials: new List<(string, string)> { (username, string.Empty) },
-                    projectId: projectId,
-                    adaptorUserId: adaptorUserId);
-                break;
-        }
+        // Use the new unified CreateCredential with nulls to trigger auto-resolution
+        await managementLogic.CreateCredential(
+            username: null, 
+            password: null, 
+            authType: null, 
+            generateNewKey: null, 
+            privateKey: null, 
+            passphrase: null, 
+            projectId: projectId, 
+            adaptorUserId: adaptorUserId);
         
         return await InitializeClusterCredentials(
             clusterId: clusterId, 
@@ -177,30 +147,5 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         }
 
         return initializedCredentials;
-    }
-
-    private async Task<string> ResolveUsernameViaSshCa(Cluster cluster, string sshCaToken, string fallbackUsername)
-    {
-        if (string.IsNullOrEmpty(sshCaToken)) return fallbackUsername;
-
-        try
-        {
-            _logger.LogDebug("Attempting to resolve real POSIX username via SSH CA for cluster {0}", cluster.Name);
-            var sshGenerator = new SSHGenerator(_logger);
-            var tempKey = sshGenerator.GetEncryptedSecureShellKey(fallbackUsername, string.Empty);
-            
-            var response = await _sshCertificateAuthorityService.SignAsync(tempKey.PublicKeyInAuthorizedKeysFormat, sshCaToken, cluster.MasterNodeName, _logger);
-            if (response != null && !string.IsNullOrEmpty(response.PosixUsername))
-            {
-                _logger.LogInformation("Resolved real POSIX username '{0}' via SSH CA for cluster {1}", response.PosixUsername, cluster.Name);
-                return response.PosixUsername;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to resolve username via SSH CA. Falling back to '{0}'.", fallbackUsername);
-        }
-
-        return fallbackUsername;
     }
 }

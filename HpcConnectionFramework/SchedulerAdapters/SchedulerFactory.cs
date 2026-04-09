@@ -80,6 +80,7 @@ public abstract class SchedulerFactory
 
                 var connectionPoolMinSize = 0;
                 var connectionPoolMaxSize = _connectionPoolSettings.MaxConnectionsPerUser;
+                var connectionPoolMaxSessions = _connectionPoolSettings.MaxSessionsPerConnection;
                 
                 if (adaptorUserId != null)
                 {
@@ -97,6 +98,7 @@ public abstract class SchedulerFactory
                     clusterConf.TimeZone,
                     connectionPoolMinSize,
                     connectionPoolMaxSize,
+                    connectionPoolMaxSessions,
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
                     CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio, logger),

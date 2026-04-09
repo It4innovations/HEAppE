@@ -24,4 +24,8 @@ public interface IExpirioService
     /// <param name="cancellationToken"></param>
     /// <returns>Kerberos ticket string</returns>
     Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default);
+
+    Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default);
+
+    Task<string?> GetUsernameAsync(string token, ILogger logger, CancellationToken cancellationToken = default);
 }

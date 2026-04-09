@@ -225,8 +225,11 @@ public class CredentialValidator : AbstractValidator
         if (ext.AdaptorUserId.HasValue)
             ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
-        foreach(string field in GetValidationCreateCredentialFields())
-            ValidateCreateCredentialField(ext, ext.AuthType, field, ext.GetType().GetProperty(field).GetValue(ext));
+        if (ext.AuthType.HasValue)
+        {
+            foreach (string field in GetValidationCreateCredentialFields())
+                ValidateCreateCredentialField(ext, ext.AuthType.Value, field, ext.GetType().GetProperty(field).GetValue(ext));
+        }
 
         return _messageBuilder.ToString();
     }

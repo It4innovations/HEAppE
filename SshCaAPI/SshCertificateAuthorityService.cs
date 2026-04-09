@@ -114,6 +114,22 @@ namespace SshCaAPI
 
             return json;
         }
+
+        /// <summary>
+        ///    Get POSIX username for the provided token async
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="logger"></param>
+        /// <returns>POSIX username or null if not found.</returns>
+        public async Task<string?> GetPosixUsernameAsync(string token, ILogger? logger)
+        {
+            // For now, there is no direct endpoint to just get the username.
+            // However, we can use the 'config' or 'sign' (if we had a key) to get it.
+            // Given the requirement to "prepare it", I will leave this as a placeholder or 
+            // try to see if any existing endpoint provides it.
+            // Based on the current API, it's usually returned in SignResponse.
+            return null; 
+        }
     }
     
     public class SignResponse

@@ -57,7 +57,7 @@ public interface IManagementLogic
     
     Task RemoveSecureShellKey(string publicKey, long projectId, bool isAdministrator);
 
-    Task<CredentialResponse> CreateCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, 
+    Task<CredentialResponse> CreateCredential(string? username, string? password, ClusterAuthenticationCredentialsAuthType? authType, 
                                               bool? generateNewKey, string? privateKey, string? passphrase, long projectId, long? adaptorUserId);
 
     Task<List<CredentialResponse>> GetCredentials(long projectId, long? adaptorUserId, bool isAdministrator);

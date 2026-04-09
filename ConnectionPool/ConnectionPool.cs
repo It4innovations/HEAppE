@@ -46,6 +46,7 @@ namespace HEAppE.ConnectionPool
         private readonly string _masterNodeName;
         private readonly int? _port;
         private readonly int _maxConnectionsPerUser;
+        private readonly int _maxSessionsPerConnection;
         private readonly int _minSize;
         private readonly TimeSpan _maxUnusedDuration;
         private int _currentTotalPhysicalConnectionsCount;
@@ -58,13 +59,14 @@ namespace HEAppE.ConnectionPool
             
         private readonly Timer poolCleanTimer;
 
-        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger)
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int maxSessionsPerConnection, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger)
         {
             _logger = logger;
             _masterNodeName = masterNodeName;
             _port = port;
             _minSize = minSize;
             _maxConnectionsPerUser = maxSize; 
+            _maxSessionsPerConnection = maxSessionsPerConnection;
             _adapter = adapter;
             _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
             _connectionRetryAttempts = retryAttempts;
@@ -119,11 +121,11 @@ namespace HEAppE.ConnectionPool
 
             if (bestSlot != null)
             {
-                // If we found a slot, and it has less than 8 concurrent uses (to avoid MaxSessions=10 limit)
+                // If we found a slot, and it has less than _maxSessionsPerConnection concurrent uses (to avoid MaxSessions limit)
                 // OR we have hit the maximum physical connections (UserSemaphore is 0), so we must reuse it anyway.
-                if (minRefCount < 8 || userContext.UserSemaphore.CurrentCount == 0)
+                if (minRefCount < _maxSessionsPerConnection || userContext.UserSemaphore.CurrentCount == 0)
                 {
-                await bestSlot.SlotSemaphore.WaitAsync();
+                    await bestSlot.SlotSemaphore.WaitAsync();
                 try
                 {
                     // Double check it wasn't disconnected
@@ -232,6 +234,7 @@ namespace HEAppE.ConnectionPool
             {
                 _logger.LogDebug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
                 int closedCount = 0;
+                
                 try
                 {
                     foreach (var userEntry in _userContexts)

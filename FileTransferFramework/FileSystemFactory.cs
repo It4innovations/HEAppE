@@ -35,12 +35,6 @@ public abstract class FileSystemFactory
     private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
     private static FileSystemFactory _windowsSharedFactorySingleton;
     private static FileSystemFactory _sftpFactorySingleton;
-    
-    
-    private static readonly int ConnectionPoolMinSize = 0;
-    private static readonly int ConnectionPoolMaxSize = 10;
-    private static readonly int ConnectionPoolCleaningInterval = 60;
-    private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
 
     #endregion
 
@@ -73,12 +67,15 @@ public abstract class FileSystemFactory
     {
         if (!_schedulerConnPoolSingletons.TryGetValue(configuration, out var connection))
         {
+            var poolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
+            
             connection = new ConnectionPool.ConnectionPool(configuration.Cluster.MasterNodeName,
                 configuration.Cluster.TimeZone,
-                ConnectionPoolMinSize,
-                ConnectionPoolMaxSize,
-                ConnectionPoolCleaningInterval,
-                ConnectionPoolMaxUnusedInterval,
+                0, // MinSize
+                poolSettings.MaxConnectionsPerUser,
+                poolSettings.MaxSessionsPerConnection,
+                poolSettings.ConnectionPoolCleaningInterval,
+                poolSettings.ConnectionPoolMaxUnusedInterval,
                 CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
                 HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                 HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,

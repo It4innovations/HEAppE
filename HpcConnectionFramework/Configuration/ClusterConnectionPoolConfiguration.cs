@@ -22,5 +22,10 @@ public sealed class ClusterConnectionPoolConfiguration
     /// </summary>
     public int MaxConnectionsPerUser { get; set; } = 10;
 
+    /// <summary>
+    ///     Connection pool maximum sessions per one physical connection (multiplexing limit)
+    /// </summary>
+    public int MaxSessionsPerConnection { get; set; } = 8;
+
     #endregion
 }

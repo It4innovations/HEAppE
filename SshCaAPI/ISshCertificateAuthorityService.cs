@@ -7,5 +7,6 @@ namespace SshCaAPI
     {
         public Task<ConfigResponse> GetConfigAsync();
         public Task<SignResponse?> SignAsync(string publicKey, string ott, string resource, ILogger? logger);
+        public Task<string?> GetPosixUsernameAsync(string token, ILogger? logger);
     }
 }

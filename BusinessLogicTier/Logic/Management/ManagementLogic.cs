@@ -25,6 +25,7 @@ using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -975,12 +976,64 @@ public class ManagementLogic : IManagementLogic
     ///     Creates credential for the specified user and saves it to the database.
     /// </summary>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public async Task<CredentialResponse> CreateCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, 
+    public async Task<CredentialResponse> CreateCredential(string? username, string? password, ClusterAuthenticationCredentialsAuthType? authType, 
                                                            bool? generateNewKey, string? privateKey, string? passphrase, long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        // Resolve AuthType if not provided
+        if (authType == null)
+        {
+            var preferredAuthType = _unitOfWork.ClusterProjectRepository.GetAll()
+                .Where(x => x.ProjectId == projectId && !x.IsDeleted)
+                .Select(x => (ClusterAuthenticationCredentialsAuthType?)x.PreferredAuthType)
+                .FirstOrDefault();
+
+            authType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey; // Default fallback
+            _logger.LogInformation($"AuthType not provided, using preferred type from project: {authType}");
+        }
+
+        // Resolve Username if not provided
+        if (string.IsNullOrEmpty(username))
+        {
+            _logger.LogInformation("Username not provided, attempting automatic resolution.");
+            
+            // 1. SSH CA resolution
+            username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+            
+            // 2. Expirio resolution (placeholder)
+            if (string.IsNullOrEmpty(username))
+            {
+                username = await _expirioService.GetUsernameAsync(_httpContextKeys.Context.FIPToken, _logger);
+            }
+
+            // 3. Token preferred_username resolution
+            if (string.IsNullOrEmpty(username))
+            {
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    try 
+                    {
+                        var decoded = JwtTokenDecoder.Decode(token);
+                        username = decoded.PreferedUsername;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(username))
+            {
+                 throw new InputValidationException("UsernameResolutionFailed");
+            }
+            
+            _logger.LogInformation($"Resolved username: {username}");
+        }
 
         var existingCredentials = await 
             _unitOfWork.ClusterAuthenticationCredentialsRepository
@@ -988,14 +1041,14 @@ public class ManagementLogic : IManagementLogic
         if (existingCredentials.Any())
         {
             //return existing credential with same type of throw exception
-            var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType);
+            var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType.Value);
             if (existingWithSameType != null)
                 return CredentialResponse.GetCredential(existingWithSameType, projectId);
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
 
-        return await CreateCredential(username, password, project, adaptorUserId, authType, generateNewKey, privateKey, passphrase);
+        return await CreateCredential(username, password, project, adaptorUserId, authType.Value, generateNewKey, privateKey, passphrase);
     }
 
     private async Task<CredentialResponse> CreateCredential(string username, string? password, Project project, long? adaptorUserId, 

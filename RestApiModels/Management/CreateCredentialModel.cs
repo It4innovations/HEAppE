@@ -39,16 +39,16 @@ public class CreateCredentialModel
     /// <summary>
     /// Username
     /// </summary>
-    [DataMember(Name = "Username", IsRequired = true)]
+    [DataMember(Name = "Username", IsRequired = false)]
     [Description("Username")]
-    public string Username { get; set; }
+    public string? Username { get; set; }
 
     /// <summary>
     /// AuthType
     /// </summary>
-    [DataMember(Name = "AuthType", IsRequired = true)]
+    [DataMember(Name = "AuthType", IsRequired = false)]
     [Description("AuthType")]
-    public ClusterAuthenticationCredentialsAuthType AuthType { get; set; } 
+    public ClusterAuthenticationCredentialsAuthType? AuthType { get; set; } 
 
     // --- SSH Key Specific Properties ---
 
