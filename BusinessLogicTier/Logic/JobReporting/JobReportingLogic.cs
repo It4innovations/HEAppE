@@ -179,21 +179,45 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null)[group.Project.Id].ToList();
 
+        var subProjectsReports = group.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
+            SubProject = sp,
+            Clusters = BuildClusterAggregatedReports(group.Project, jobs.Where(j => j.Specification?.SubProjectId == sp.Id))
+        }).ToList() ?? new List<SubProjectAggregatedReport>();
+
+        // Check if there are jobs without subproject and non-zero usage
+        var jobsWithoutSubProject = jobs.Where(j => j.Specification?.SubProjectId == null).ToList();
+        var unassignedClusters = BuildClusterAggregatedReports(group.Project, jobsWithoutSubProject);
+        if (unassignedClusters.Any(c => c.TotalUsage > 0))
+        {
+            subProjectsReports.Add(new SubProjectAggregatedReport {
+                SubProject = new SubProject { Identifier = null },
+                Clusters = unassignedClusters
+            });
+        }
+
         return new ProjectAggregatedReport
         {
             Project = group.Project,
-            SubProjects = group.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
-                SubProject = sp,
-                Clusters = BuildClusterAggregatedReports(group.Project, jobs.Where(j => j.Specification?.SubProjectId == sp.Id))
-            }).ToList() ?? new List<SubProjectAggregatedReport>(),
+            SubProjects = subProjectsReports,
             Clusters = BuildClusterAggregatedReports(group.Project, jobs)
         };
     }
 
     public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
     {
-        return (groupIds?.ToList() ?? new List<long>())
-            .Select(id => UserGroupResourceAggregatedUsageReport(id, startTime, endTime))
+        var groupIdsList = groupIds?.ToList() ?? new List<long>();
+        if (!groupIdsList.Any()) return Enumerable.Empty<ProjectAggregatedReport>();
+
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+            .AsNoTracking()
+            .Where(g => groupIdsList.Contains(g.Id))
+            .ToList();
+
+        // Group by project ID to avoid duplicates in the response
+        return groups
+            .Where(g => g.ProjectId.HasValue)
+            .DistinctBy(g => g.ProjectId.Value)
+            .Select(g => UserGroupResourceAggregatedUsageReport(g.Id, startTime, endTime))
             .Where(r => r != null).ToList();
     }
 
@@ -250,9 +274,10 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         return project.ClusterProjects?.Select(cp => cp.Cluster).Where(c => c != null).Distinct().Select(cluster => new ClusterAggregatedReport {
             Cluster = cluster,
             ClusterNodeTypesAggregations = cluster.NodeTypes?
-                .GroupBy(nt => nt.ClusterNodeTypeAggregation)
+                .Where(nt => nt.ClusterNodeTypeAggregation != null)
+                .GroupBy(nt => nt.ClusterNodeTypeAggregation.Id)
                 .Select(g => new ClusterNodeTypeAggregatedReport {
-                    ClusterNodeTypeAggregation = g.Key,
+                    ClusterNodeTypeAggregation = g.First().ClusterNodeTypeAggregation,
                     ClusterNodeTypes = g.Select(nt => new ClusterNodeTypeReport {
                         ClusterNodeType = nt,
                         Jobs = jobsList.Where(j => j.Tasks != null && j.Tasks.Any(t => t.NodeType != null && t.NodeType.Id == nt.Id))
