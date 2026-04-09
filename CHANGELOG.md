@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored entire system to a non-blocking `Task`-based model across all tiers (`RestApi`, `DataStagingAPI`, `ServiceTier`, and `BusinessLogic`).
 - Transitioned `ConnectionPool` to use `SemaphoreSlim.WaitAsync()` and `Task`-based connection lifecycle, eliminating potential thread pool starvation.
 - Implemented asynchronous SSH tunnel creation and removal in `SshTunnelUtils` and all scheduler adapters.
+- Introduced `MaxSessionsPerConnection` setting to replace hardcoded SSH multiplexing limits.
+- Implemented username resolution based on SSH Certificate Authority in the credential provisioning service.
+- Enhanced observability for background workers and scheduler interactions with `JobId` and user context injection.
 
 ### Changed
 - Centralized cluster storage path conversion in `ProjectExt` to reduce code duplication.
@@ -23,7 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated user validation service call and improved role validation logic.
 - System-wide lifecycle refactor: Updated all background services to correctly `await` asynchronous operations and handle exceptions gracefully in a non-blocking manner.
 - Standardized the use of `log4net` `LogicalThreadContext` to ensure that `JobId` and user context correctly flow through asynchronous task boundaries.
-- Concurrency control: Replaced legacy synchronous `lock` statements with asynchronous coordination primitives where safe and appropriate.
+- Refactored `ConnectionPool` to properly recreate and dispose of SSH client instances on retry, optimizing connection resilience.
+- Refactored credential provisioning into a dedicated service for improved robustness.
+- Replaced legacy synchronous `lock` statements with asynchronous coordination primitives where safe and appropriate.
 
 ### Fixed
 - Used correct repository (`SubmittedJobInfo`) and project ID for jobs when retrieving and submitting jobs.
@@ -31,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separated rate limit logs.
 - Resolved potential race conditions in `DataTransferLogic` task locking and tunnel de-registration.
 - Eliminated all `Task.Wait()` and `Task.Result` calls which previously caused deadlocks under high load.
+- Fixed duplicate project entries in `AggregatedUserGroupResourceUsageReport` endpoint.
+- Ensured usage consistency in `AggregatedUserGroupResourceUsageReport` by accounting for jobs without a sub-project (returned with null identifier).
+- Resolved redundant grouping of cluster node types in job reporting aggregation by using stable aggregation IDs.
+- Implemented robust error handling and configurable timeouts for all HTTP clients and database commands to prevent hangs.
+- Resolved database concurrency issues during seeding by replacing navigation properties with configuration ID maps in `MiddlewareContext`.
+- Added a resilient retry mechanism for SSH command timeouts specifically for SLURM job load failures.
+- Resolved `log4net` internal errors related to `RollingFileAppender` file access.
 
 ## V6.3.0
 
