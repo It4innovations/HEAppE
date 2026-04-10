@@ -1298,14 +1298,13 @@ public class ManagementLogic : IManagementLogic
                 .ToList();
     }
 
-    public async Task RemoveCredential(string username, long projectId, long? adaptorUserId = null)
+    public async Task RemoveCredential(string username, long projectId, long? adaptorUserId = null, bool isAdministrator = false)
     {
         var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username, _logger);
-        
+
         var filteredCredentials = clusterAuthenticationCredentials.Where(
             w => 
-                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId && a.AdaptorUserId == adaptorUserId)).ToList();
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId && (isAdministrator || adaptorUserId == null || a.AdaptorUserId == adaptorUserId))).ToList();
 
         if (!filteredCredentials.Any()) 
             throw new InvalidRequestException("HPCIdentityNotFound");

@@ -67,7 +67,7 @@ public interface IManagementLogic
     Task<List<CredentialResponse>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, 
                                                     long? adaptorUserId, bool isAdministrator);
 
-    Task RemoveCredential(string username, long projectId, long? adaptorUserId = null);
+    Task RemoveCredential(string username, long projectId, long? adaptorUserId = null, bool isAdministrator = false);
 
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);

@@ -654,15 +654,7 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isAdministrator)
-                {
-                    adaptorUserId = loggedUser.Id;
-                }
-                else if (isManager)
-                {
-                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
-                }
-                else if (isSubmitter)
+                if (isSubmitter)
                 {
                     if (project.IsOneToOneMapping)
                     {
@@ -680,7 +672,7 @@ public class ManagementService : IManagementService
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            await managementLogic.RemoveCredential(username, projectId, adaptorUserId);
+            await managementLogic.RemoveCredential(username, projectId, adaptorUserId, isAdministrator);
         }
     }
 
