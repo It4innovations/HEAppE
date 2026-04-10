@@ -81,13 +81,7 @@ public class ProjectExt
     public bool IsOneToOneMapping { get; set; }
     
     /// <summary>
-    /// Preferred authentication type
-    /// </summary>
-    [DataMember(Name = "PreferredAuthType")]
-    [Description("Preferred authentication type")]
-    public ClusterAuthenticationCredentialsAuthTypeExt? PreferredAuthType { get; set; }
-    
-    /// <summary>
+
     /// Key scripts directory path
     /// </summary>
     [DataMember(Name = "KeyScriptsDirectoryPath")]

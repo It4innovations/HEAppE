@@ -458,7 +458,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("PreferredAuthType")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
@@ -1087,11 +1089,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("PreferredAuthType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(4);
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");

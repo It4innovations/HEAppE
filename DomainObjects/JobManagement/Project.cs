@@ -45,8 +45,7 @@ public class Project : IdentifiableDbEntity, ISoftDeletableEntity
     [Required] public bool IsDeleted { get; set; } = false;
 
     [Required] public bool IsOneToOneMapping { get; set; } = false;
-    
-    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+
 
     #region Public methods
 

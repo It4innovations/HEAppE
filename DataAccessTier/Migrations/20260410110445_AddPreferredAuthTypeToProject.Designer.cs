@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20260407102409_FilterUniqueAccountingStringIndex")]
-    partial class FilterUniqueAccountingStringIndex
+    [Migration("20260410110445_AddPreferredAuthTypeToProject")]
+    partial class AddPreferredAuthTypeToProject
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -459,6 +459,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("PreferredAuthType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
@@ -1268,6 +1273,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("GpuCores")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GpuNodes")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsExclusive")
                         .HasColumnType("bit");
 
@@ -1290,6 +1301,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int?>("MaxCores")
                         .HasColumnType("int");
+
+                    b.Property<long?>("Memory")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerCPU")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerGPU")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("MinCores")
                         .HasColumnType("int");

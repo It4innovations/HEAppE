@@ -40,10 +40,10 @@ public interface IManagementLogic
 
     Project CreateProject(string accountingString, UsageType usageType, string name, string description,
         DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
-        ClusterAuthenticationCredentialsAuthType? preferredAuthType, AdaptorUser loggedUser);
+        AdaptorUser loggedUser);
 
     Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, ClusterAuthenticationCredentialsAuthType? preferredAuthType);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
     Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId, bool isAdministrator);

@@ -5,7 +5,7 @@
 namespace HEAppE.DataAccessTier.Migrations
 {
     /// <inheritdoc />
-    public partial class FilterUniqueAccountingStringIndex : Migration
+    public partial class AddPreferredAuthTypeToProject : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,6 +17,25 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_Project_AccountingString",
                 table: "Project");
+
+            migrationBuilder.AddColumn<int>(
+                name: "GpuCores",
+                table: "TaskSpecification",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "GpuNodes",
+                table: "TaskSpecification",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PreferredAuthType",
+                table: "ClusterProject",
+                type: "int",
+                nullable: false,
+                defaultValue: 4);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SubProject_Identifier_ProjectId",
@@ -43,6 +62,18 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_Project_AccountingString",
                 table: "Project");
+
+            migrationBuilder.DropColumn(
+                name: "GpuCores",
+                table: "TaskSpecification");
+
+            migrationBuilder.DropColumn(
+                name: "GpuNodes",
+                table: "TaskSpecification");
+
+            migrationBuilder.DropColumn(
+                name: "PreferredAuthType",
+                table: "ClusterProject");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SubProject_Identifier_ProjectId",

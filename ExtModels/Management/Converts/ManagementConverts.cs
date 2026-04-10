@@ -133,6 +133,7 @@ public static class ManagementConverts
             ProjectStoragePath = cp.ProjectStoragePath,
             CreatedAt = cp.CreatedAt,
             ModifiedAt = cp.ModifiedAt,
+            PreferredAuthType = cp.PreferredAuthType.ConvertIntToExt(),
             AdaptorUserId = cp.ClusterProjectCredentials.FirstOrDefault(x => !x.IsDeleted)?.AdaptorUserId
         };
         return convert;

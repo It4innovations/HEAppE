@@ -125,10 +125,8 @@ public class MiddlewareContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Project>().Property(p => p.PreferredAuthType)
-            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
-
         base.OnModelCreating(modelBuilder);
+
 
         //M:N relations for AdaptorUserUserGroupRole
         modelBuilder.Entity<AdaptorUserUserGroupRole>()
@@ -199,6 +197,11 @@ public class MiddlewareContext : DbContext
             .WithMany(p => p.ClusterProjects)
             .HasForeignKey(cp => new { cp.ProjectId });
 
+        modelBuilder.Entity<ClusterProject>()
+            .Property(p => p.PreferredAuthType)
+            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
+
+
         //M:N relations for ClusterProjectCredentials
         modelBuilder.Entity<ClusterProjectCredential>()
             .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
@@ -244,10 +247,6 @@ public class MiddlewareContext : DbContext
             .HasIndex(p => p.AccountingString)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
-
-        modelBuilder.Entity<Project>()
-            .Property(p => p.PreferredAuthType)
-            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
 
         //Subproject Identifier and ProjectId unique constraint
         modelBuilder.Entity<SubProject>()

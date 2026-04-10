@@ -82,10 +82,4 @@ public class CreateProjectModel : SessionCodeModel
     [Description("Map user account to exact robot account")]
     public bool? IsOneToOneMapping { get; set; } = false;
 
-    /// <summary>
-    /// Preferred authentication type
-    /// </summary>
-    [DataMember(Name = "PreferredAuthType", IsRequired = false)]
-    [Description("Preferred authentication type")]
-    public ClusterAuthenticationCredentialsAuthTypeExt? PreferredAuthType { get; set; }
 }
