@@ -4,10 +4,17 @@
 
 ```bash
 # from folder /heappe-core
+# Preferred way using startup project for context
+dotnet ef migrations add <migration-name> --project DataAccessTier --startup-project RestApi
+
+# Alternative from DataAccessTier folder (requires LocalWindows env for context setup)
 cd DataAccessTier 
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
 dotnet ef migrations add <migration-name> -c MiddlewareContext -o Migrations
 ```
+
+> [!TIP]
+> If you are adding a new non-nullable column to an existing table, ensure you set a `defaultValue` in the model or `OnModelCreating`. This allows the migration tool to automatically update existing rows with the specified default value.
 
 ### Dotnet core - Update database:
 

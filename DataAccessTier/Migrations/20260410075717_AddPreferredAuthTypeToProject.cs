@@ -14,7 +14,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "PreferredAuthType",
                 table: "Project",
                 type: "int",
-                nullable: true,
+                nullable: false,
                 defaultValue: 4);
         }
 

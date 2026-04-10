@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20260410072607_AddPreferredAuthTypeToProject")]
+    [Migration("20260410075717_AddPreferredAuthTypeToProject")]
     partial class AddPreferredAuthTypeToProject
     {
         /// <inheritdoc />
@@ -1091,7 +1091,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("PreferredAuthType")
+                    b.Property<int>("PreferredAuthType")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(4);

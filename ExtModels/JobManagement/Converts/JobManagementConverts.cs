@@ -278,7 +278,7 @@ public static class JobManagementConverts
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
-            PreferredAuthType = project.PreferredAuthType?.ConvertIntToExt(),
+            PreferredAuthType = project.PreferredAuthType.ConvertIntToExt(),
             KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
             CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
             ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)

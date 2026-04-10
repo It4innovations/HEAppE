@@ -125,6 +125,9 @@ public class MiddlewareContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Project>().Property(p => p.PreferredAuthType)
+            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
+
         base.OnModelCreating(modelBuilder);
 
         //M:N relations for AdaptorUserUserGroupRole
