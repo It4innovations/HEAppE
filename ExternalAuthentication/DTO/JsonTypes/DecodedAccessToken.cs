@@ -150,6 +150,11 @@ public class DecodedAccessToken
     public string PreferedUsername => GetClaim("preferred_username");
 
     /// <summary>
+    ///     Subject - unique identifier of the user.
+    /// </summary>
+    public string Subject => _token.Subject;
+
+    /// <summary>
     ///     Authorized party - the party to which the ID Token was issued.
     /// </summary>
     public string AuthorizedParty => GetClaim("azp");

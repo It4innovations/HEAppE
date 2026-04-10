@@ -32,7 +32,9 @@ using HEAppE.OpenStackAPI.DTO;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.Logging;
+using HEAppE.Utils;
 using SshCaAPI;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
@@ -415,18 +417,15 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
-        string username = string.Empty;
-        if (!string.IsNullOrEmpty(lexisUser.KeycloakSid))
+        string username = lexisUser.UserName;
+        if (string.IsNullOrEmpty(username))
         {
-            username = lexisUser.UserName;
+            username = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Email;
         }
-        else if (string.IsNullOrEmpty(lexisUser.UserName))
+
+        if (string.IsNullOrEmpty(username))
         {
-            username = lexisUser.KeycloakSid;
-        }
-        else
-        {
-            username = lexisUser.Email;
+            username = StringUtils.GenerateUsername(lexisUser.Id.ToString());
         }
         
         if (user is null)

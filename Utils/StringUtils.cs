@@ -47,6 +47,27 @@ public static class StringUtils
         return Convert.ToBase64String(random);
     }
 
+    public static string GenerateUsername(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return null;
+
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(key));
+        var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+        return "u_" + hashString.Substring(0, 8);
+    }
+
+    public static string GenerateUsername(long id, string accountingString)
+    {
+        string sanitized = (accountingString ?? "")
+            .ToLower()
+            .Replace(" ", "_")
+            .Replace("-", "_");
+        
+        return $"u_{id}_{sanitized}";
+    }
+
     public static Stream ToStream(this string str, Encoding enc = null)
     {
         enc = enc ?? Encoding.UTF8;

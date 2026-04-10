@@ -34,6 +34,7 @@ using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Security;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -1007,14 +1008,28 @@ public class ManagementLogic : IManagementLogic
             _logger.LogInformation("Username not provided, attempting automatic resolution.");
             
             // 1. SSH CA resolution
-            username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
-            
-            // 2. Expirio resolution (placeholder)
-            if (string.IsNullOrEmpty(username))
+            if (SshCaSettings.UsePosixAccountFromCertificate)
             {
-                username = await _expirioService.GetUsernameAsync(_httpContextKeys.Context.FIPToken, _logger);
+                username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
             }
-
+            
+            // 2. Kerberos enriched username resolution
+            if (string.IsNullOrEmpty(username) && authType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+            {
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    try
+                    {
+                        username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                    }
+                }
+            }
+            
             // 3. Token preferred_username resolution
             if (string.IsNullOrEmpty(username))
             {
@@ -1024,7 +1039,7 @@ public class ManagementLogic : IManagementLogic
                     try 
                     {
                         var decoded = JwtTokenDecoder.Decode(token);
-                        username = decoded.PreferedUsername;
+                        username = !string.IsNullOrEmpty(decoded.PreferedUsername) ? decoded.PreferedUsername : StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
                     }
                     catch (Exception ex)
                     {
