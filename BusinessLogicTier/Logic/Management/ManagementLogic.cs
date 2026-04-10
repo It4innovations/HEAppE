@@ -739,7 +739,7 @@ public class ManagementLogic : IManagementLogic
         }
         
         return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger, isAdministrator: isAdministrator))
-            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
+            .Where(x => !x.IsDeleted && (x.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent || !string.IsNullOrEmpty(x.PrivateKey)))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
             .ToList();
@@ -770,7 +770,7 @@ public class ManagementLogic : IManagementLogic
         
         var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository
                 .GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger, isAdministrator: isAdministrator))
-            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
+            .Where(x => !x.IsDeleted && (x.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent || !string.IsNullOrEmpty(x.PrivateKey)))
             .ToList();
 
         foreach (var cred in credentials)
@@ -888,7 +888,7 @@ public class ManagementLogic : IManagementLogic
         
         clusterAuthenticationCredentials = clusterAuthenticationCredentials.Where(
             w => 
-                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                 !w.IsDeleted &&
                  w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
 
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
@@ -952,7 +952,7 @@ public class ManagementLogic : IManagementLogic
         
         var filteredCredentials = clusterAuthenticationCredentials.Where(
             w => 
-                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                 !w.IsDeleted &&
                  w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
 
         if (!filteredCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
@@ -1437,7 +1437,7 @@ public class ManagementLogic : IManagementLogic
 
         var targetCredentials = clusterAuthenticationCredentials
             .Where(w =>
-                w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                !w.IsDeleted &&
                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId))
             .ToList();
 
