@@ -96,6 +96,53 @@ public class ExpirioService : IExpirioService
         _logger.Info("[Expirio] Method: FirecrestCredentials");
         var result = new Dictionary<string, dynamic>();
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+
+        // new solution
+        {
+            var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/firecrest";
+            var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+                    
+                using var doc = JsonDocument.Parse(content);
+
+                string? clientId = null, clientSecret = null, url = null, idpUrl = null;
+
+                if (doc.RootElement.TryGetProperty("clientId", out var contentProp))
+                    clientId = contentProp.GetString();
+
+                if (doc.RootElement.TryGetProperty("clientSecret", out contentProp))
+                    clientSecret = contentProp.GetString();
+
+                if (doc.RootElement.TryGetProperty("url", out contentProp))
+                    url = contentProp.GetString();
+
+                if (doc.RootElement.TryGetProperty("idpUrl", out contentProp))
+                    idpUrl = contentProp.GetString();
+
+                if (!String.IsNullOrEmpty(clientId))
+                    result.Add("f7t_client_id", clientId);
+
+                if (!String.IsNullOrEmpty(clientSecret))
+                    result.Add("f7t_client_secret", clientSecret);
+
+                if (!String.IsNullOrEmpty(url))
+                    result.Add("f7t_url", url);
+
+                if (!String.IsNullOrEmpty(idpUrl))
+                    result.Add("f7t_token_url", idpUrl);
+
+                return result;
+            }
+        }
+
+        // legacy solution
         var secrets = new[] { "f7t_client_id", "f7t_client_secret", "f7t_token_url", "f7t_url" };
         foreach (string secret in secrets)
         {
