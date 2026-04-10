@@ -202,7 +202,8 @@ public class ManagementService : IManagementService
     }
 
     public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping, string sessionCode)
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
+        ClusterAuthenticationCredentialsAuthTypeExt? preferredAuthType, string sessionCode)
     {
         _logger.LogInformation(
             $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}, IsOneToOneMapping: {isOneToOneMapping}");
@@ -213,13 +214,13 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate,
-                endDate, useAccountingStringForScheduler, piEmail, isOneToOneMapping, loggedUser);
+                endDate, useAccountingStringForScheduler, piEmail, isOneToOneMapping, preferredAuthType?.ConvertExtToInt(), loggedUser);
             return project.ConvertIntToExt();
         }
     }
 
     public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode)
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, ClusterAuthenticationCredentialsAuthTypeExt? preferredAuthType, string sessionCode)
     {
         _logger.LogInformation(
             $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
@@ -229,7 +230,7 @@ public class ManagementService : IManagementService
                 _logger, AdaptorUserRoleType.ManagementAdmin, id, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var project = managementLogic.ModifyProject(id, usageType, name, description, startDate, endDate,
-                useAccountingStringForScheduler, isOneToOneMapping);
+                useAccountingStringForScheduler, isOneToOneMapping, preferredAuthType?.ConvertExtToInt());
             return project.ConvertIntToExt();
         }
     }

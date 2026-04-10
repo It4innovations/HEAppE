@@ -32,6 +32,8 @@ public class MiddlewareContext : DbContext
     {
         _logger = logger;
 
+        if (logger.GetType().Name.Contains("NullLogger") || Environment.GetCommandLineArgs().Any(a => a.Contains("ef"))) return;
+
         if (!_isMigrated)
             lock (_lockObject)
             {
@@ -118,6 +120,7 @@ public class MiddlewareContext : DbContext
     {
         optionsBuilder.UseLazyLoadingProxies();
         optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -238,6 +241,10 @@ public class MiddlewareContext : DbContext
             .HasIndex(p => p.AccountingString)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<Project>()
+            .Property(p => p.PreferredAuthType)
+            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
 
         //Subproject Identifier and ProjectId unique constraint
         modelBuilder.Entity<SubProject>()

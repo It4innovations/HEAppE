@@ -344,7 +344,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="InputValidationException"></exception>
     public Project CreateProject(string accountingString, UsageType usageType, string name, string description,
         DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
-        AdaptorUser loggedUser)
+        ClusterAuthenticationCredentialsAuthType? preferredAuthType, AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
         if (existingProject != null) throw new InputValidationException("ProjectAlreadyExist");
@@ -356,7 +356,7 @@ public class ManagementLogic : IManagementLogic
                       };
 
         var project = InitializeProject(accountingString, usageType, name, description, startDate, endDate,
-            useAccountingStringForScheduler, contact, isOneToOneMapping);
+            useAccountingStringForScheduler, contact, isOneToOneMapping, preferredAuthType);
 
         // Create user groups for different purposes
         var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
@@ -426,7 +426,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping)
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, ClusterAuthenticationCredentialsAuthType? preferredAuthType)
     {
         var project = _unitOfWork.ProjectRepository.GetById(id)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -440,6 +440,7 @@ public class ManagementLogic : IManagementLogic
         project.UseAccountingStringForScheduler =
             useAccountingStringForScheduler ?? project.UseAccountingStringForScheduler;
         project.IsOneToOneMapping = isOneToOneMapping;
+        project.PreferredAuthType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey;
 
         _unitOfWork.ProjectRepository.Update(project);
         _unitOfWork.Save();
@@ -986,12 +987,17 @@ public class ManagementLogic : IManagementLogic
         // Resolve AuthType if not provided
         if (authType == null)
         {
-            var preferredAuthType = _unitOfWork.ClusterProjectRepository.GetAll()
-                .Where(x => x.ProjectId == projectId && !x.IsDeleted)
-                .Select(x => (ClusterAuthenticationCredentialsAuthType?)x.PreferredAuthType)
-                .FirstOrDefault();
+            authType = project.PreferredAuthType;
 
-            authType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey; // Default fallback
+            if (authType == null)
+            {
+                var preferredAuthType = _unitOfWork.ClusterProjectRepository.GetAll()
+                    .Where(x => x.ProjectId == projectId && !x.IsDeleted)
+                    .Select(x => (ClusterAuthenticationCredentialsAuthType?)x.PreferredAuthType)
+                    .FirstOrDefault();
+
+                authType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey; // Default fallback
+            }
             _logger.LogInformation($"AuthType not provided, using preferred type from project: {authType}");
         }
 
@@ -3433,7 +3439,8 @@ public class ManagementLogic : IManagementLogic
     /// <param name="contact"></param>
     /// <returns></returns>
     private static Project InitializeProject(string accountingString, UsageType usageType, string name,
-        string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, Contact contact, bool isOneToOneMapping)
+        string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, Contact contact, bool isOneToOneMapping,
+        ClusterAuthenticationCredentialsAuthType? preferredAuthType)
     {
         return new Project
         {
@@ -3446,6 +3453,7 @@ public class ManagementLogic : IManagementLogic
             UsageType = usageType,
             IsDeleted = false,
             UseAccountingStringForScheduler = useAccountingStringForScheduler,
+            PreferredAuthType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey,
             ProjectContacts = new List<ProjectContact>
             {
                 new()
@@ -3528,6 +3536,15 @@ public class ManagementLogic : IManagementLogic
                 credentials = new()
                 {
                     Username = username,
+                    ClusterProjectCredentials = new List<ClusterProjectCredential>(),
+                    IsGenerated = isGenerated
+                };
+                break;
+            case ClusterAuthenticationCredentialsAuthType.Password:
+                credentials = new()
+                {
+                    Username = username,
+                    Password = password,
                     ClusterProjectCredentials = new List<ClusterProjectCredential>(),
                     IsGenerated = isGenerated
                 };

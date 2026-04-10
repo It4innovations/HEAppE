@@ -9,6 +9,11 @@ public class AuthenticationTypeException : ExternalException
     {
     }
 
+    public AuthenticationTypeException(string message, string serviceName) : base(message)
+    {
+        ServiceName = serviceName;
+    }
+
     public AuthenticationTypeException(string message, params object[] args) : base(message, args)
     {
     }

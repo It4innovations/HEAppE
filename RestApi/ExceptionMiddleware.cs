@@ -136,8 +136,8 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
                 break;
-            case AuthenticationTypeException:
-                problem.Title = "UserOrg Authentication Problem";
+            case AuthenticationTypeException authEx:
+                problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
@@ -181,8 +181,8 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status403Forbidden;
                 break;
-            case ExternalException:
-                problem.Title = "External Problem: " + exception.GetType().Name;
+            case ExternalException externalEx:
+                problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem: " + exception.GetType().Name;
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 logLevel = LogLevel.Warning;

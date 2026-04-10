@@ -117,7 +117,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
                 catch (JsonException ex)
                 {
                     logger.LogError($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
-                    throw new AuthenticationTypeException("InvalidResponseFormat", $"Expected JSON but received invalid format: {ex.Message}");
+                    throw new AuthenticationTypeException("InvalidResponseFormat", "UserOrg") { Details = $"Expected JSON but received invalid format: {ex.Message}" };
                 }
             }
             else
@@ -128,24 +128,24 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.BadRequest:
-                        throw new AuthenticationTypeException("BadRequest", details);
+                        throw new AuthenticationTypeException("BadRequest", "UserOrg") { Details = details };
                     case HttpStatusCode.Unauthorized:
-                        throw new AuthenticationTypeException("InvalidToken", details);
+                        throw new AuthenticationTypeException("InvalidToken", "UserOrg") { Details = details };
                     case HttpStatusCode.NotFound:
-                        throw new AuthenticationTypeException("NotFound", details);
+                        throw new AuthenticationTypeException("NotFound", "UserOrg") { Details = details };
                     case HttpStatusCode.InternalServerError:
-                        throw new AuthenticationTypeException("ServerError", details);
+                        throw new AuthenticationTypeException("ServerError", "UserOrg") { Details = details };
                     case HttpStatusCode.BadGateway:
-                        throw new AuthenticationTypeException("UpstreamError", details);
+                        throw new AuthenticationTypeException("UpstreamError", "UserOrg") { Details = details };
                     default:
-                        throw new AuthenticationTypeException("ExternalApiError", details);
+                        throw new AuthenticationTypeException("ExternalApiError", "UserOrg") { Details = details };
                 }
             }
         }
         catch (TaskCanceledException ex) when (!ex.CancellationToken.IsCancellationRequested)
         {
             logger.LogError($"[UserOrg API Timeout] Request to {request.RequestUri} timed out after the configured timeout.");
-            throw new AuthenticationTypeException("ExternalApiTimeout", "The request to UserOrg API timed out.");
+            throw new AuthenticationTypeException("ExternalApiTimeout", "UserOrg") { Details = "The request to UserOrg API timed out." };
         }
         catch (Exception ex)
         {

@@ -43,10 +43,10 @@ public interface IManagementService
 
     ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
         DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
-        string sessionCode);
+        ClusterAuthenticationCredentialsAuthTypeExt? preferredAuthType, string sessionCode);
 
     ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, ClusterAuthenticationCredentialsAuthTypeExt? preferredAuthType, string sessionCode);
 
     void RemoveProject(long id, string sessionCode);
 

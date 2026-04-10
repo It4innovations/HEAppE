@@ -881,6 +881,7 @@ public class ManagementController : BaseController<ManagementController>
             model.Name, model.Description,
             model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
             model.PIEmail, model.IsOneToOneMapping ?? false,
+            model.PreferredAuthType,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(project);
@@ -906,7 +907,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
-            model.IsOneToOneMapping ?? false, model.SessionCode);
+            model.IsOneToOneMapping ?? false, model.PreferredAuthType, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(project);
     }

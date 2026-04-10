@@ -14,6 +14,7 @@ using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using HEAppE.Services.Expirio;
+using HEAppE.Exceptions.AbstractTypes;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -72,8 +73,8 @@ public static class JwtIntrospectionExtensions
                     {
                         OnAuthenticationFailed = context =>
                         {
-                            Log.Error($"[Introspection] Auth Failed. Error: {context.Error}. Path: {context.HttpContext.Request.Path}");
-                            context.Fail("Invalid token or not active");
+                            Log.Error($"[Introspection] Auth Failed (Keycloak). Error: {context.Error}. Path: {context.HttpContext.Request.Path}");
+                            context.Fail($"Authentication failed (Keycloak): {context.Error}");
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
@@ -91,8 +92,9 @@ public static class JwtIntrospectionExtensions
                             }
                             catch (Exception ex)
                             {
-                                Log.Error($"[Introspection] Internal Authorization Failed: {ex.Message}");
-                                context.Fail("Unauthorized");
+                                string serviceInfo = ex is HEAppE.Exceptions.AbstractTypes.ExternalException ee && !string.IsNullOrEmpty(ee.ServiceName) ? $" ({ee.ServiceName})" : "";
+                                Log.Error($"[Introspection] Internal Authorization Failed{serviceInfo}: {ex.Message}");
+                                context.Fail($"Internal authorization failed{serviceInfo}: {ex.Message}");
                                 return;
                             }
 
@@ -108,8 +110,8 @@ public static class JwtIntrospectionExtensions
                                 //get token endpoint from discovery document
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
                                 if (disco.IsError)                                {
-                                    Log.Error($"[Introspection] Discovery document retrieval failed: {disco.Error}");
-                                    context.Fail("Token exchange failed");
+                                    Log.Error($"[Introspection] Discovery document retrieval failed (Keycloak): {disco.Error}");
+                                    context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
                                     return;
                                 }
                                 else

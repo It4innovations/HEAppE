@@ -412,5 +412,12 @@ public static class ClusterInformationConverts
         };
     }
 
+    public static ClusterAuthenticationCredentialsAuthType ConvertExtToInt(
+        this ClusterAuthenticationCredentialsAuthTypeExt type)
+    {
+        _ = Enum.TryParse(type.ToString(), out ClusterAuthenticationCredentialsAuthType convert);
+        return convert;
+    }
+
     #endregion
 }

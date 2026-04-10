@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 
 namespace HEAppE.Exceptions.AbstractTypes;
 
@@ -24,5 +25,7 @@ public class ExternalException : BaseException
     {
     }
 
-    public string Details { get; set; }
+    public string? Details { get; set; }
+
+    public string? ServiceName { get; set; }
 }

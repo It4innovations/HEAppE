@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -44,6 +45,8 @@ public class Project : IdentifiableDbEntity, ISoftDeletableEntity
     [Required] public bool IsDeleted { get; set; } = false;
 
     [Required] public bool IsOneToOneMapping { get; set; } = false;
+    
+    public ClusterAuthenticationCredentialsAuthType? PreferredAuthType { get; set; }
 
     #region Public methods
 
