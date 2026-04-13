@@ -223,12 +223,14 @@ internal class MiddlewareContext : DbContext
 
         modelBuilder.Entity<Project>()
             .HasIndex(p => p.AccountingString)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         //Subproject Identifier and ProjectId unique constraint
         modelBuilder.Entity<SubProject>()
             .HasIndex(sp => new { sp.Identifier, sp.ProjectId })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         //M:N relations for ClusterNodeTypeAggregationAccounting
         modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
