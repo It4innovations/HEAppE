@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed duplicate project entries in `AggregatedUserGroupResourceUsageReport` endpoint.
 - Ensured usage consistency in `AggregatedUserGroupResourceUsageReport` by accounting for jobs without a sub-project (returned with null identifier).
 - Resolved redundant grouping of cluster node types in job reporting aggregation by using stable aggregation IDs.
+
 ## V6.3.0
 
 ### Added
