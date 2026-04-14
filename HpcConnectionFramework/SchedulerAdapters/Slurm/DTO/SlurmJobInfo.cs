@@ -134,7 +134,7 @@ public class SlurmJobInfo : ISchedulerJobInfo
     /// <summary>
     ///     Job run number of GPUs
     /// </summary>
-    [Scheduler("gres/gpu")]
+    [Scheduler("gres_gpu")]
     public int? UsedGpus { get; set; }
 
     /// <summary>

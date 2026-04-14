@@ -230,16 +230,15 @@ public class SlurmDataConvertor : SchedulerDataConvertor
                 var kv = component.Split('=', StringSplitOptions.RemoveEmptyEntries);
                 if (kv.Length == 2)
                 {
-                    // If key already exists (e.g. from a different TRES field), we might want to prioritize one or use a different naming scheme.
-                    // Here we use the component key directly (e.g. gres/gpu, cpu, mem).
-                    if (!parsedParameters.ContainsKey(kv[0]))
+                    // Normalize key to be compatible with formula parser (replace / with _)
+                    var key = kv[0].Replace('/', '_');
+                    if (!parsedParameters.ContainsKey(key))
                     {
-                        parsedParameters.Add(kv[0], kv[1]);
+                        parsedParameters.Add(key, kv[1]);
                     }
                     else
                     {
-                        // Optionally add with prefix if it exists
-                        parsedParameters.TryAdd($"{tresKey}_{kv[0]}", kv[1]);
+                        parsedParameters.TryAdd($"{tresKey}_{key}", kv[1]);
                     }
                 }
             }
