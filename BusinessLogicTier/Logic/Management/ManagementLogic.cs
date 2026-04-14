@@ -722,6 +722,11 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public async Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId, bool isAdministrator)
     {
+        if (!isAdministrator && adaptorUserId != null)
+        {
+            await SynchronizeCredentialsAsync(projectId, adaptorUserId);
+        }
+
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
         {
@@ -1001,47 +1006,7 @@ public class ManagementLogic : IManagementLogic
         if (string.IsNullOrEmpty(username))
         {
             _logger.LogInformation("Username not provided, attempting automatic resolution.");
-            
-            // 1. SSH CA resolution
-            if (SshCaSettings.UsePosixAccountFromCertificate)
-            {
-                username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
-            }
-            
-            // 2. Kerberos enriched username resolution
-            if (string.IsNullOrEmpty(username) && authType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
-                {
-                    try
-                    {
-                        username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
-                    }
-                }
-            }
-            
-            // 3. Token preferred_username resolution
-            if (string.IsNullOrEmpty(username))
-            {
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
-                {
-                    try 
-                    {
-                        var decoded = JwtTokenDecoder.Decode(token);
-                        username = !string.IsNullOrEmpty(decoded.PreferedUsername) ? decoded.PreferedUsername : StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
-                    }
-                }
-            }
+            username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
 
             if (string.IsNullOrEmpty(username))
             {
@@ -1049,6 +1014,12 @@ public class ManagementLogic : IManagementLogic
             }
             
             _logger.LogInformation($"Resolved username: {username}");
+
+            // Username synchronization - if the username has changed in the external system, update it in HEAppE
+            if (adaptorUserId != null)
+            {
+                await SynchronizeCredentialsAsync(projectId, adaptorUserId);
+            }
         }
 
         var existingCredentials = await 
@@ -1177,6 +1148,11 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public async Task<List<CredentialResponse>> GetCredentials(long projectId, long? adaptorUserId, bool isAdministrator)
     {
+        if (!isAdministrator && adaptorUserId != null)
+        {
+            await SynchronizeCredentialsAsync(projectId, adaptorUserId);
+        }
+
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
         {
@@ -3630,6 +3606,92 @@ public class ManagementLogic : IManagementLogic
         {
             result = null;
             return false;
+        }
+    }
+
+    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
+    {
+        string? username = null;
+        
+        // 1. SSH CA resolution
+        if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken))
+        {
+            try {
+                username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+            } catch (Exception ex) {
+                _logger.LogWarning(ex, "SSH CA username resolution failed.");
+            }
+        }
+        
+        // 2. Kerberos enriched username resolution
+        if (string.IsNullOrEmpty(username))
+        {
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            if (!string.IsNullOrEmpty(token))
+            {
+                try
+                {
+                    username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                }
+            }
+        }
+        
+        // 3. Token preferred_username resolution
+        if (string.IsNullOrEmpty(username))
+        {
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            if (!string.IsNullOrEmpty(token))
+            {
+                try 
+                {
+                    var decoded = JwtTokenDecoder.Decode(token);
+                    if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
+                        username = decoded.PreferedUsername;
+                    } else if (project != null) {
+                        username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                }
+            }
+        }
+        
+        return username;
+    }
+
+    private async Task SynchronizeCredentialsAsync(long projectId, long? adaptorUserId)
+    {
+        if (adaptorUserId == null) return;
+        
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
+        
+        if (string.IsNullOrEmpty(username)) return;
+
+        var existingForUser = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
+
+        bool anyChanged = false;
+        foreach (var cred in existingForUser)
+        {
+            if (cred.Username != username)
+            {
+                _logger.LogInformation($"Synchronizing username for Credential ID {cred.Id}: {cred.Username} -> {username}");
+                cred.Username = username;
+                await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
+                anyChanged = true;
+            }
+        }
+
+        if (anyChanged)
+        {
+            await _unitOfWork.SaveAsync();
         }
     }
 
