@@ -91,7 +91,7 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, string masterNodeName, CancellationToken cancellationToken = default)
     {
         _logger.Info("[Expirio] Method: FirecrestCredentials");
         var result = new Dictionary<string, dynamic>();
@@ -99,7 +99,7 @@ public class ExpirioService : IExpirioService
 
         // new solution
         {
-            var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/firecrest";
+            var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{masterNodeName}";
             var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

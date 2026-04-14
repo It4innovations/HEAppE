@@ -57,20 +57,16 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
     {
         // use masterNodeName to have unique scheduler for various Expirio users
-        var masterNodeName = "";
+        var masterNodeName = configuration.MasterNodeName;
         if (options != null)
         {
             if (options.TryGetValue("f7t_url", out dynamic value))
-                masterNodeName += value;
+                masterNodeName += "|" + value;
             if (options.TryGetValue("f7t_token_url", out value))
-                masterNodeName += value;
+                masterNodeName += "|" + value;
             if (options.TryGetValue("f7t_client_id", out value))
-                masterNodeName += value;
-            if (options.TryGetValue("f7t_client_secret", out value))
-                masterNodeName += value;
+                masterNodeName += "|" + value;
         }
-        if (String.IsNullOrEmpty(masterNodeName))
-            masterNodeName = configuration.MasterNodeName;
 
         var uniqueIdentifier = (masterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
 
@@ -86,17 +82,18 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
             _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
         }
 
+        // set or update values
         schedulerAdapter ??= _schedulerAdapters[uniqueIdentifier];
         if (options != null)
         {
-            if (options.TryGetValue("f7t_client_id", out dynamic value))
+            if (options.TryGetValue("f7t_url", out dynamic value))
+                schedulerAdapter.FirecRestUrl = value;
+            if (options.TryGetValue("f7t_token_url", out value))
+                schedulerAdapter.TokenEndpoint = value;
+            if (options.TryGetValue("f7t_client_id", out value))
                 schedulerAdapter.ClientId = value;
             if (options.TryGetValue("f7t_client_secret", out value))
                 schedulerAdapter.ClientSecret = value;
-            if (options.TryGetValue("f7t_token_url", out value))
-                schedulerAdapter.TokenEndpoint = value;
-            if (options.TryGetValue("f7t_url", out value))
-                schedulerAdapter.FirecRestUrl = value;
         }
 
         return _schedulerSingletons[uniqueIdentifier];

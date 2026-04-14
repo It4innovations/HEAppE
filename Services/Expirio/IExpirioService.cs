@@ -30,5 +30,5 @@ public interface IExpirioService
     /// <param name="token">Token to exchange</param>
     /// <param name="cancellationToken"></param>
     /// <returns>firecrest credentials</returns>
-    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, string masterNodeName, CancellationToken cancellationToken = default);
 }
