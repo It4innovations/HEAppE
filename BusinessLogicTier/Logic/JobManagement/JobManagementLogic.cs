@@ -933,6 +933,7 @@ internal class JobManagementLogic : IJobManagementLogic
         dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
         dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
         dbTaskInfo.AllocatedCores = clusterTaskInfo.AllocatedCores;
+        dbTaskInfo.AllocatedGpus = clusterTaskInfo.AllocatedGpus;
         dbTaskInfo.State = clusterTaskInfo.State;
         dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
         dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;

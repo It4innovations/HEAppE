@@ -128,8 +128,14 @@ public class SlurmJobInfo : ISchedulerJobInfo
     /// <summary>
     ///     Job run number of cores
     /// </summary>
-    /// Note: Not supported yet
+    [Scheduler("cpu")]
     public int? UsedCores { get; set; }
+
+    /// <summary>
+    ///     Job run number of GPUs
+    /// </summary>
+    [Scheduler("gres/gpu")]
+    public int? UsedGpus { get; set; }
 
     /// <summary>
     ///     Job allocated nodes
@@ -224,9 +230,19 @@ public class SlurmJobInfo : ISchedulerJobInfo
             var normalizedRunTime = jobInfo.UsedCores.Value * jobInfo.RunTime.TotalSeconds / UsedCores.Value;
             RunTime += TimeSpan.FromSeconds(Math.Round(normalizedRunTime, 3));
         }
+        else if (UsedGpus.HasValue && jobInfo.UsedGpus.HasValue && UsedGpus != jobInfo.UsedGpus)
+        {
+            var normalizedRunTime = jobInfo.UsedGpus.Value * jobInfo.RunTime.TotalSeconds / UsedGpus.Value;
+            RunTime += TimeSpan.FromSeconds(Math.Round(normalizedRunTime, 3));
+        }
         else
         {
             RunTime += jobInfo.RunTime;
+        }
+
+        if (jobInfo.UsedGpus.HasValue)
+        {
+            UsedGpus = (UsedGpus ?? 0) + jobInfo.UsedGpus.Value;
         }
 
         if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished

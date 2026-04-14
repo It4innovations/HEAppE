@@ -30,7 +30,7 @@ internal class MiddlewareContext : DbContext
 
     public MiddlewareContext()
     {
-        if (!_isMigrated)
+        if (!string.IsNullOrEmpty(MiddlewareContextSettings.ConnectionString) && !_isMigrated)
             lock (_lockObject)
             {
                 if (!_isMigrated)
@@ -104,7 +104,7 @@ internal class MiddlewareContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseLazyLoadingProxies();
-        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString ?? "Server=localhost;Database=dummy;TrustServerCertificate=true");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -465,9 +465,9 @@ internal class MiddlewareContext : DbContext
             if (useSetIdentity)
             {
 #pragma warning disable EF1002
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
+                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT [{tableName}] ON;");
                 SaveChanges();
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
+                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT [{tableName}] OFF;");
 #pragma warning restore EF1002
             }
             else

@@ -102,6 +102,7 @@ public class SlurmDataConvertor : SchedulerDataConvertor
             EndTime = obj.StartTime.HasValue && obj.TaskState >= TaskState.Finished ? obj.EndTime : null,
             AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
             AllocatedCores = obj.UsedCores,
+            AllocatedGpus = obj.UsedGpus,
             State = obj.IsDeadLock ? TaskState.Failed : obj.TaskState,
             TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
                     { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
@@ -150,6 +151,11 @@ public class SlurmDataConvertor : SchedulerDataConvertor
                 .Distinct();
 
             var parsedParameters = parameters.ToDictionary(i => i.Key, j => j.Value);
+
+            // Parse AllocTRES and ReqTRES into individual parameters
+            ParseTres(parsedParameters, "AllocTRES");
+            ParseTres(parsedParameters, "ReqTRES");
+
             var schedulerResultObj = new SlurmJobInfo(jobResponseMessage, parsedParameters);
 
             FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
@@ -212,6 +218,32 @@ public class SlurmDataConvertor : SchedulerDataConvertor
 
         jobAdapter.SetTasks(tasks);
         return jobAdapter.AllocationCmd;
+    }
+
+    private void ParseTres(Dictionary<string, string> parsedParameters, string tresKey)
+    {
+        if (parsedParameters.TryGetValue(tresKey, out var tresValue) && !string.IsNullOrEmpty(tresValue))
+        {
+            var components = tresValue.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var component in components)
+            {
+                var kv = component.Split('=', StringSplitOptions.RemoveEmptyEntries);
+                if (kv.Length == 2)
+                {
+                    // If key already exists (e.g. from a different TRES field), we might want to prioritize one or use a different naming scheme.
+                    // Here we use the component key directly (e.g. gres/gpu, cpu, mem).
+                    if (!parsedParameters.ContainsKey(kv[0]))
+                    {
+                        parsedParameters.Add(kv[0], kv[1]);
+                    }
+                    else
+                    {
+                        // Optionally add with prefix if it exists
+                        parsedParameters.TryAdd($"{tresKey}_{kv[0]}", kv[1]);
+                    }
+                }
+            }
+        }
     }
 
     #endregion
