@@ -56,7 +56,23 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <returns>Scheduler instance</returns>
     public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        // use masterNodeName to have unique scheduler for various Expirio users
+        var masterNodeName = "";
+        if (options != null)
+        {
+            if (options.TryGetValue("f7t_url", out dynamic value))
+                masterNodeName += value;
+            if (options.TryGetValue("f7t_token_url", out value))
+                masterNodeName += value;
+            if (options.TryGetValue("f7t_client_id", out value))
+                masterNodeName += value;
+            if (options.TryGetValue("f7t_client_secret", out value))
+                masterNodeName += value;
+        }
+        if (String.IsNullOrEmpty(masterNodeName))
+            masterNodeName = configuration.MasterNodeName;
+
+        var uniqueIdentifier = (masterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
 
         FirecRestSchedulerAdapter schedulerAdapter = null;
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
@@ -64,7 +80,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
             schedulerAdapter = CreateSchedulerAdapter() as FirecRestSchedulerAdapter;
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                null, // ssh connection pool not needed for FirecREST
                 schedulerAdapter
             );
             _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
@@ -111,14 +127,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <returns>SSH connector instance</returns>
     protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        var masterNodeName = configuration.MasterNodeName;
-        
-        if (!_connectorSingletons.ContainsKey(masterNodeName))
-        {
-            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService);
-        }
-
-        return _connectorSingletons[masterNodeName];
+        throw new NotImplementedException("CreateSchedulerConnector not implemented in FirecRestSchedulerFactory");
     }
 
     #endregion
