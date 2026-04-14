@@ -80,8 +80,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             await conn.OpenAsync();
 
             var cmd = conn.CreateCommand();
-            cmd.CommandText = $"SELECT 1 FROM sys.databases d WHERE d.name = '{conn.Database}' " +
-                $"AND d.recovery_model_desc IN ('FULL', 'BULK_LOGGED')";
+            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db " +
+                "AND d.recovery_model_desc IN ('FULL', 'BULK_LOGGED')";
+            cmd.Parameters.AddWithValue("@db", conn.Database);
 
             var result = await cmd.ExecuteScalarAsync();
             return result != null && (int)result > 0;
@@ -108,7 +109,8 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             string backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
             var cmd = conn.CreateCommand();
-            cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
+            cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = @path WITH INIT;";
+            cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
 
             _log.Info($"Database backup file was created to: {backupPath}");

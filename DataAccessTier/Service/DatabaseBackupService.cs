@@ -60,8 +60,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
-            string sql = $"BACKUP DATABASE [{databaseName}] TO DISK = @p0 WITH INIT;";
-            await _context.Database.ExecuteSqlRawAsync(sql, backupPath);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"BACKUP DATABASE [{databaseName}] TO DISK = {backupPath} WITH INIT;");
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
@@ -158,8 +157,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
-            string sql = $"BACKUP LOG [{databaseName}] TO DISK = @p0 WITH INIT;";
-            _context.Database.ExecuteSqlRaw(sql, backupPath);
+            _context.Database.ExecuteSqlInterpolated($"BACKUP LOG [{databaseName}] TO DISK = {backupPath} WITH INIT;");
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))

@@ -137,13 +137,13 @@ public class NoAuthenticationSshClient : SshClient
             {
                 FileName = "ssh-add",
                 WorkingDirectory = "/usr/bin/",
-                Arguments = "-l",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             },
             EnableRaisingEvents = true
         };
+        proc.StartInfo.ArgumentList.Add("-l");
 
         proc.Start();
         var result = proc.StandardOutput.ReadToEnd();

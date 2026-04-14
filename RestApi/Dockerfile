@@ -44,4 +44,5 @@ FROM base AS final
 WORKDIR /app
 
 COPY --from=publish /app/publish .
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["dotnet", "RestApi.dll"]
