@@ -194,7 +194,8 @@ namespace HEAppE.ConnectionPool
 
         public void ReturnConnection(ConnectionInfo connection)
         {
-            if (connection == null) return;
+            if (connection == null)
+                return;
 
             if (_userContexts.TryGetValue(connection.AuthCredentials.Id, out var userContext))
             {
