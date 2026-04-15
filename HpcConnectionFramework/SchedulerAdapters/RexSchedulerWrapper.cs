@@ -76,7 +76,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
     
@@ -114,7 +114,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -136,7 +136,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -148,7 +148,7 @@ public class RexSchedulerWrapper : IRexScheduler
         ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
         var cluster = nodeType.Cluster;
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        var schedulerConnection = _connectionPool?.GetConnectionForUser(credentials, cluster, sshCaToken);
         try
         {
             var usage = _adapter.GetCurrentClusterNodeUsage(schedulerConnection.Connection, nodeType);
@@ -156,7 +156,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -175,7 +175,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -196,7 +196,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -216,7 +216,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -237,7 +237,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -303,7 +303,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -324,7 +324,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -344,7 +344,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -365,7 +365,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -377,14 +377,14 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
         var schedulerConnection = (cluster.SchedulerType != SchedulerType.FirecRest) ? 
-            _connectionPool.GetConnectionForUser(taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken) : null;
+            _connectionPool?.GetConnectionForUser(taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken) : null;
         try
         {
             _adapter.RemoveTunnel(schedulerConnection, taskInfo);
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -427,7 +427,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -461,7 +461,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
     }
 
@@ -498,7 +498,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         finally
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            _connectionPool?.ReturnConnection(schedulerConnection);
         }
 
         if (checkLog.ErrorMessage != null && checkLog.ErrorMessage.Length > 500)
