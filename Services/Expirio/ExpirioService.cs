@@ -142,28 +142,6 @@ public class ExpirioService : IExpirioService
             }
         }
 
-        // legacy solution
-        var secrets = new[] { "f7t_client_id", "f7t_client_secret", "f7t_token_url", "f7t_url" };
-        foreach (string secret in secrets)
-        {
-            var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{secret}";
-            var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
-            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            using var response = await client.SendAsync(httpRequest, cancellationToken);
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-                result.Add(secret, content);
-            }
-            else
-            {
-                HandleErrorResponse(response, content, "data");
-                return null;
-            }
-        }
         return result;
     }
 
