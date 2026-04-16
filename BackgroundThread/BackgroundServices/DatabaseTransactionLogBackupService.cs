@@ -66,9 +66,10 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             await conn.OpenAsync();
 
             var cmd = conn.CreateCommand();
-            cmd.CommandText = $"SELECT 1 FROM sys.databases d WHERE d.name = '{conn.Database}' AND d.recovery_model_desc" +
-                $" IN ('FULL', 'BULK_LOGGED') AND EXISTS (SELECT 1 FROM msdb.dbo.backupset b WHERE b.database_name = '{conn.Database}' " +
-                $"AND b.type = 'D')";
+            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db AND d.recovery_model_desc" +
+                " IN ('FULL', 'BULK_LOGGED') AND EXISTS (SELECT 1 FROM msdb.dbo.backupset b WHERE b.database_name = @db " +
+                "AND b.type = 'D')";
+            cmd.Parameters.AddWithValue("@db", conn.Database);
 
             var result = await cmd.ExecuteScalarAsync();
             return result != null && (int)result > 0;
@@ -91,8 +92,8 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             var backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
             var cmd = conn.CreateCommand();
-            cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
-            cmd.CommandTimeout = 0; // Infinite timeout for backup
+            cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = @path WITH INIT;";
+            cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
