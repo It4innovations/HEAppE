@@ -536,7 +536,7 @@ public class MiddlewareContext : DbContext
                 }
                 catch (Exception ex)
                 {
-                    _loggerger.LogError($"Error inserting seed data with IDENTITY_INSERT for {tableName}", ex);
+                    _logger.LogError($"Error inserting seed data with IDENTITY_INSERT for {tableName}", ex);
                     transaction.Rollback();
                     throw;
                 }
