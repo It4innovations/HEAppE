@@ -581,23 +581,25 @@ public class ManagementLogic : IManagementLogic
         var existingClusterProjects = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId)
             .Where(x => !x.IsDeleted && x.ClusterId != clusterId);
 
-        foreach (var existingClusterProject in existingClusterProjects)
+        var existingCredentials = existingClusterProjects
+            .SelectMany(x => x.ClusterProjectCredentials)
+            .Where(x => !x.IsDeleted)
+            .DistinctBy(x => x.ClusterAuthenticationCredentialsId)
+            .ToList();
+
+        foreach (var existingCredential in existingCredentials)
         {
-            var existingCredentials = existingClusterProject.ClusterProjectCredentials.Where(x => !x.IsDeleted).ToList();
-            foreach (var existingCredential in existingCredentials)
+            var newCredential = new ClusterProjectCredential
             {
-                var newCredential = new ClusterProjectCredential
-                {
-                    ClusterAuthenticationCredentialsId = existingCredential.ClusterAuthenticationCredentialsId,
-                    CreatedAt = createdAt,
-                    IsDeleted = false,
-                    AdaptorUserId = existingCredential.AdaptorUserId,
-                    ClusterProject = clusterProject,
-                    IsInitialized = existingCredential.IsInitialized,
-                    IsServiceAccount = existingCredential.IsServiceAccount
-                };
-                clusterProject.ClusterProjectCredentials.Add(newCredential);
-            }
+                ClusterAuthenticationCredentialsId = existingCredential.ClusterAuthenticationCredentialsId,
+                CreatedAt = createdAt,
+                IsDeleted = false,
+                AdaptorUserId = existingCredential.AdaptorUserId,
+                ClusterProject = clusterProject,
+                IsInitialized = existingCredential.IsInitialized,
+                IsServiceAccount = existingCredential.IsServiceAccount
+            };
+            clusterProject.ClusterProjectCredentials.Add(newCredential);
         }
         
         project.ModifiedAt = createdAt;

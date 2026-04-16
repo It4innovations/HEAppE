@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.3.1
 
 ### Fixed
+- Fixed a tracking conflict in `CreateProjectAssignmentToCluster` API by deduplicating credentials when a project is assigned to multiple clusters.
 - Ensured the correct repository and project ID are used during job creation and management to prevent cross-project data leakage or errors.
 - Fixed duplicate project entries in `AggregatedUserGroupResourceUsageReport` endpoint.
 - Ensured usage consistency in `AggregatedUserGroupResourceUsageReport` by accounting for jobs without a sub-project (returned with null identifier).
