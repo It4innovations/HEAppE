@@ -89,8 +89,6 @@ public class NoAuthenticationSshClient : SshClient
             {
                 FileName = "ssh",
                 WorkingDirectory = "/usr/bin/",
-                Arguments =
-                    $"{(_port.HasValue ? $"-p {_port.Value}" : string.Empty)} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
@@ -98,8 +96,20 @@ public class NoAuthenticationSshClient : SshClient
             EnableRaisingEvents = true
         };
 
+        if (_port.HasValue)
+        {
+            proc.StartInfo.ArgumentList.Add("-p");
+            proc.StartInfo.ArgumentList.Add(_port.Value.ToString());
+        }
+
+        proc.StartInfo.ArgumentList.Add("-q");
+        proc.StartInfo.ArgumentList.Add("-o");
+        proc.StartInfo.ArgumentList.Add("StrictHostKeyChecking=no");
+        proc.StartInfo.ArgumentList.Add($"{_userName}@{_masterNodeName}");
+        proc.StartInfo.ArgumentList.Add(commandText);
+
         proc.Start();
-        _log.Info($"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+        _log.Info($"{proc.StartInfo.FileName} {string.Join(" ", proc.StartInfo.ArgumentList)}");
         var result = proc.StandardOutput.ReadToEnd();
         var error = proc.StandardError.ReadToEnd();
         proc.WaitForExit();
@@ -127,13 +137,13 @@ public class NoAuthenticationSshClient : SshClient
             {
                 FileName = "ssh-add",
                 WorkingDirectory = "/usr/bin/",
-                Arguments = "-l",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             },
             EnableRaisingEvents = true
         };
+        proc.StartInfo.ArgumentList.Add("-l");
 
         proc.Start();
         var result = proc.StandardOutput.ReadToEnd();

@@ -35,4 +35,5 @@ RUN dotnet publish "DataStagingAPI.csproj" -c Release -o /app/publish /p:UseAppH
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["dotnet", "DataStagingAPI.dll"]

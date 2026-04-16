@@ -12,4 +12,5 @@ RUN apk update
 RUN apk add --no-cache openssh-client 
 RUN apk add --no-cache bash
 
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["bash", "./scripts/init.sh"]

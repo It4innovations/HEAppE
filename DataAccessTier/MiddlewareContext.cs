@@ -1,6 +1,7 @@
 #pragma warning disable CS4014
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -21,6 +22,7 @@ using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace HEAppE.DataAccessTier;
 
@@ -30,7 +32,7 @@ internal class MiddlewareContext : DbContext
 
     public MiddlewareContext()
     {
-        if (!_isMigrated)
+        if (!string.IsNullOrEmpty(MiddlewareContextSettings.ConnectionString) && !_isMigrated)
             lock (_lockObject)
             {
                 if (!_isMigrated)
@@ -104,7 +106,7 @@ internal class MiddlewareContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseLazyLoadingProxies();
-        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString ?? "Server=localhost;Database=dummy;TrustServerCertificate=true");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -223,12 +225,14 @@ internal class MiddlewareContext : DbContext
 
         modelBuilder.Entity<Project>()
             .HasIndex(p => p.AccountingString)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         //Subproject Identifier and ProjectId unique constraint
         modelBuilder.Entity<SubProject>()
             .HasIndex(sp => new { sp.Identifier, sp.ProjectId })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         //M:N relations for ClusterNodeTypeAggregationAccounting
         modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
@@ -462,11 +466,28 @@ internal class MiddlewareContext : DbContext
 
             if (useSetIdentity)
             {
-#pragma warning disable EF1002
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
-                SaveChanges();
-                Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
-#pragma warning restore EF1002
+                using var transaction = Database.BeginTransaction();
+                try
+                {
+                    using var command = Database.GetDbConnection().CreateCommand();
+                    command.Transaction = transaction.GetDbTransaction();
+                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
+                    if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
+                    command.ExecuteNonQuery();
+
+                    SaveChanges();
+
+                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
+                    command.ExecuteNonQuery();
+
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error inserting seed data with IDENTITY_INSERT for {tableName}", ex);
+                    transaction.Rollback();
+                    throw;
+                }
             }
             else
             {

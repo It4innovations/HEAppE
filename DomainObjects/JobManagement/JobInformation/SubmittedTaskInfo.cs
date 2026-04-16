@@ -27,6 +27,11 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
     /// </summary>
     public int? AllocatedCores { get; set; }
 
+    /// <summary>
+    ///     Runtime used GPUs at scheduler
+    /// </summary>
+    public int? AllocatedGpus { get; set; }
+
     public DateTime? StartTime { get; set; }
 
     public DateTime? EndTime { get; set; }
