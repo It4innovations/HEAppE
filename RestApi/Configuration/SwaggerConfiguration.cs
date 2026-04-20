@@ -32,6 +32,11 @@ public sealed class SwaggerConfiguration
     public static string DetailedJobReportingTitle { get; set; }
 
     /// <summary>
+    ///     Dictionary API Title
+    /// </summary>
+    public static string DictionaryTitle { get; set; }
+
+    /// <summary>
     ///     API Description
     /// </summary>
     public static string Description { get; set; }
