@@ -29,12 +29,12 @@ public sealed class SwaggerConfiguration
     /// <summary>
     ///     Detailed Job Reporting API Title
     /// </summary>
-    public static string DetailedJobReportingTitle { get; set; }
+    public static string DetailedJobReportingTitle { get; set; } = "Detailed Job Reporting";
 
     /// <summary>
     ///     Dictionary API Title
     /// </summary>
-    public static string DictionaryTitle { get; set; }
+    public static string DictionaryTitle { get; set; } = "Enum Dictionary";
 
     /// <summary>
     ///     API Description
