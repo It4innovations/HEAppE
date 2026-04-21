@@ -88,8 +88,34 @@ services:
       - db_internal_network
       - external_network
       - vaultNet
+      - otelnet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.149.0
+    container_name: "${INSTANCE_NAME}_otel-collector"
+    volumes:
+      - ./otel-configs/otel-config.yaml:/etc/otel/config.yaml
+    command: --config /etc/otel/config.yaml
+    restart: unless-stopped
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - otelnet
+  
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.17.0
+    container_name: "${INSTANCE_NAME}_jaeger"
+    #volumes:
+      #- ./otel-configs/jaeger.yaml:/etc/jaeger/config.yaml
+      #- ./otel-configs/jaeger-ui.yaml:/etc/jaeger/ui-config.json
+    #command: --config /etc/jaeger/config.yaml
+    ports:
+      - "16686:16686"
+    networks:
+      - otelnet
 
   vault:
     image: hashicorp/vault:1.17.3
@@ -176,3 +202,5 @@ networks:
     internal: true
   vaultNet:
     internal: true
+  otelnet:
+    driver: bridge

@@ -1,0 +1,38 @@
+#extensions:
+  #jaeger_query:
+    #storage:
+    #  traces: some_trace_storage
+    #  metrics: some_metrics_storage
+  #  base_path: /
+  #  ui:
+  #    config_file: /etc/jaeger/ui-config.json
+  #    log_access: true
+  #  grpc:
+  #    endpoint: 0.0.0.0:16685
+  #  http:
+  #    endpoint: 0.0.0.0:16686
+
+# otelcol.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    #verbosity: detailed
+  otlp/jaeger:
+    endpoint: jaeger:4317 # The address of the Jaeger gRPC endpoint
+    tls:
+      insecure: true # Use TLS in production
+
+
+service:
+  #extensions: [jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlp/jaeger]
