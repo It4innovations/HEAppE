@@ -1,4 +1,4 @@
-﻿namespace HEAppE.DomainObjects.JobReporting.Enums;
+namespace HEAppE.DomainObjects.JobReporting.Enums;
 
 public enum UsageType
 {
