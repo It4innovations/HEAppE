@@ -1,6 +1,6 @@
 using System;
 
-namespace Services.Expirio.Exceptions;
+namespace HEAppE.Services.Expirio.Exceptions;
 
 public class ExpirioUpstreamException : ExpirioException
 {

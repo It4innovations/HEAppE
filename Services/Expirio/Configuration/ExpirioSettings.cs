@@ -1,4 +1,4 @@
-namespace Services.Expirio.Configuration
+namespace HEAppE.Services.Expirio.Configuration
 {
     public sealed class ExpirioSettings
     {
