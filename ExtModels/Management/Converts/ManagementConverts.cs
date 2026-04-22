@@ -26,6 +26,10 @@ public static class ManagementConverts
                 return UsageType.CoreHours;
             case UsageTypeExt.NodeHours:
                 return UsageType.NodeHours;
+            case UsageTypeExt.Credits:
+                return UsageType.Credits;
+            case UsageTypeExt.QPUSeconds:
+                return UsageType.QPUSeconds;
             default:
                 return UsageType.CoreHours;
         }

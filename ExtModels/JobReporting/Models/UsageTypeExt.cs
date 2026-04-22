@@ -9,5 +9,7 @@ namespace HEAppE.ExtModels.JobReporting.Models;
 public enum UsageTypeExt
 {
     NodeHours = 1,
-    CoreHours = 2
+    CoreHours = 2,
+    Credits = 3,
+    QPUSeconds = 4
 }
