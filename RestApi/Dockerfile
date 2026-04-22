@@ -43,6 +43,8 @@ RUN dotnet publish "RestApi.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 
+COPY --from=publish /app/publish .
+
 # install OpenTelemetry .NET Automatic Instrumentation
 ARG OTEL_VERSION=1.14.1
 ENV OTEL_DOTNET_AUTO_HOME=/otel-dotnet-auto
@@ -52,13 +54,12 @@ RUN apt-get update && apt-get install -y unzip && \
 RUN chmod +x /otel-dotnet-auto/instrument.sh
 
 # set OTEL variables
-ENV OTEL_SERVICE_NAME=my-demo-auto
-ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
+ENV OTEL_SERVICE_NAME=heappe-42
+ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 ENV OTEL_TRACES_EXPORTER=otlp
 ENV OTEL_METRICS_EXPORTER=otlp
 ENV OTEL_LOGS_EXPORTER=otlp
 
-COPY --from=publish /app/publish .
 # nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["/otel-dotnet-auto/instrument.sh", "dotnet", "RestApi.dll"]
