@@ -11,21 +11,23 @@ public class ExpirioException : ExternalException
 {
     public ExpirioException(string message) : base(message)
     {
+        ServiceName = "Expirio";
     }
 
     public ExpirioException(string message, string details) : base(message)
     {
         Details = details;
+        ServiceName = "Expirio";
     }
 
     public ExpirioException(string message, Exception innerException, string details) : base(message, innerException)
     {
         Details = details;
+        ServiceName = "Expirio";
     }
 
     public ExpirioException(string message, Exception innerException) : base(message, innerException)
     {
+        ServiceName = "Expirio";
     }
-
-    public string Details { get; }
 }

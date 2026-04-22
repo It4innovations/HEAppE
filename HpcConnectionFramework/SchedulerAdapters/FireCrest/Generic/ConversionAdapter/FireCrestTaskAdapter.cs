@@ -196,6 +196,21 @@ public class FirecRestTaskAdapter : ISchedulerTaskAdapter
         set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
+    public long? Memory
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem={value}" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-cpu={value}" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-gpu={value}" : string.Empty);
+    }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -207,8 +222,8 @@ public class FirecRestTaskAdapter : ISchedulerTaskAdapter
     /// <param name="maxCores">Task max cores</param>
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
         if (maxCores <= 0) throw new ArgumentException($"Invalid number of cores: {maxCores}");
         var allocationCmdBuilder = new StringBuilder();
@@ -225,7 +240,7 @@ public class FirecRestTaskAdapter : ISchedulerTaskAdapter
         }
         
         allocationCmdBuilder.Append(
-            $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+            $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)nodeCount)}{reqNodeGroupsCmd}");
 
         if (parSpec is not null)
         {

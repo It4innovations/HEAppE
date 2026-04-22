@@ -12,7 +12,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
@@ -27,10 +27,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
+    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger)
     {
         _conversionAdapterFactory = conversionAdapterFactory;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
 
     #endregion
@@ -50,7 +50,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     /// <summary>
     ///     Logger
     /// </summary>
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
 
     #endregion
 
@@ -67,6 +67,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+
         // Setting global parameters for all tasks
         var globalJobParameters = (string)jobAdapter.AllocationCmd;
         var tasks = new List<object>();
@@ -99,8 +100,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             taskSpecification.RequiredNodes.Select(s => s.NodeName).ToList(),
             taskSpecification.PlacementPolicy,
             taskSpecification.TaskParalizationSpecifications,
-            Convert.ToInt32(taskSpecification.MinCores),
-            Convert.ToInt32(taskSpecification.MaxCores),
+            taskSpecification.MinCores,
+            taskSpecification.MaxCores,
+            taskSpecification.GpuCores,
+            taskSpecification.GpuNodes,
             taskSpecification.ClusterNodeType.CoresPerNode,
             taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation);
 
@@ -132,6 +135,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
+
+        taskAdapter.Memory = taskSpecification.Memory;
+        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU;
+        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU;
 
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);

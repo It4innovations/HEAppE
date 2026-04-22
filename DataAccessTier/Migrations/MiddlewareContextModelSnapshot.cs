@@ -457,6 +457,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PreferredAuthType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
+
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
@@ -913,6 +918,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int?>("AllocatedCores")
                         .HasColumnType("int");
 
+                    b.Property<int?>("AllocatedGpus")
+                        .HasColumnType("int");
+
                     b.Property<double?>("AllocatedTime")
                         .HasColumnType("float");
 
@@ -1265,6 +1273,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("GpuCores")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GpuNodes")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsExclusive")
                         .HasColumnType("bit");
 
@@ -1287,6 +1301,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int?>("MaxCores")
                         .HasColumnType("int");
+
+                    b.Property<long?>("Memory")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerCPU")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerGPU")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("MinCores")
                         .HasColumnType("int");

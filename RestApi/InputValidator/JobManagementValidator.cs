@@ -189,13 +189,41 @@ public class JobManagementValidator : AbstractValidator
         if (ContainsIllegalCharacters(task.Name)) 
             _messageBuilder.AppendLine("Task name contains illegal characters.");
 
-        // Core and Walltime constraints
-        if (task.MinCores <= 0)
-            _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" has to be greater than 0.");
-        if (task.MaxCores <= 0)
-            _messageBuilder.AppendLine($"Maximal number of cores for task \"{task.Name}\" has to be greater than 0.");
-        if (task.MinCores > task.MaxCores)
-            _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" cannot be greater than maximal number of cores.");
+        // Core constraints
+        if ((!task.MinCores.HasValue || task.MinCores <= 0) 
+            && (!task.MaxCores.HasValue || task.MaxCores <= 0)
+            && (!task.GpuNodes.HasValue || task.GpuNodes <= 0)
+            && (!task.GpuCores.HasValue || task.GpuCores <= 0))
+        {
+            _messageBuilder.AppendLine($"Number of CPU or GPU cores/nodes for task \"{task.Name}\" have to be speficied.");
+        }
+        else if ((task.MinCores.HasValue || task.MaxCores.HasValue)
+            && (task.GpuNodes.HasValue || task.GpuCores.HasValue))
+        {
+            _messageBuilder.AppendLine($"Number of CPU cores and GPU cores for task \"{task.Name}\" can't be speficied both at same time.");
+        }
+        else if (task.MinCores.HasValue || task.MaxCores.HasValue)
+        {
+            // CPU cores
+            if (!task.MinCores.HasValue || task.MinCores <= 0)
+                _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" has to be greater than 0.");
+            if (!task.MaxCores.HasValue || task.MaxCores <= 0)
+                _messageBuilder.AppendLine($"Maximal number of cores for task \"{task.Name}\" has to be greater than 0.");
+            if (task.MinCores.HasValue && task.MaxCores.HasValue && task.MinCores > task.MaxCores)
+                _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" cannot be greater than maximal number of cores.");
+        }
+        else if (task.GpuCores.HasValue || task.GpuNodes.HasValue)
+        {
+            // GPU cores
+            if (task.GpuCores.HasValue && task.GpuNodes.HasValue)
+                _messageBuilder.AppendLine($"Number of GPU cores and nodes for task \"{task.Name}\" can't be specified both at same time.");
+            else if (task.GpuCores.HasValue && task.GpuCores <= 0)
+                _messageBuilder.AppendLine($"Number of GPU cores for task \"{task.Name}\" has to be greater than 0.");
+            else if (task.GpuNodes.HasValue && task.GpuNodes <= 0)
+                _messageBuilder.AppendLine($"Number of GPU nodes for task \"{task.Name}\" has to be greater than 0.");
+        }
+
+        // Walltime constraints
         if (task.WalltimeLimit <= 0)
             _messageBuilder.AppendLine($"Walltime limit for task \"{task.Name}\" has to be greater than 0.");
 

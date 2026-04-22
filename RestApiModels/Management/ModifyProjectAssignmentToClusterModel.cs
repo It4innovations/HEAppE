@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.Management;
@@ -41,4 +42,11 @@ public class ModifyProjectAssignmentToClusterModel : SessionCodeModel
     [StringLength(1000)]
     [Description("Project Storage Path")]
     public string ProjectStoragePath { get; set; }
+
+    /// <summary>
+    /// Preferred auth type
+    /// </summary>
+    [DataMember(Name = "PreferredAuthType", IsRequired = false)]
+    [Description("Preferred auth type")]
+    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
 }

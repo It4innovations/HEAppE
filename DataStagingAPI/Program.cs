@@ -148,7 +148,6 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 });
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-builder.Services.AddScoped<FileTransferService>();
 builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>

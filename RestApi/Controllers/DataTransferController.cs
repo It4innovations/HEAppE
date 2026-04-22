@@ -45,10 +45,10 @@ public class DataTransferController : BaseController<DataTransferController>
     /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
-        memoryCache)
+    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+       IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,memoryCache)
     {
-        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion
@@ -68,13 +68,13 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RequestDataTransfer(GetDataTransferMethodModel model)
+    public async Task<IActionResult> RequestDataTransfer(GetDataTransferMethodModel model)
     {
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(
-            _service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedTaskInfoId, model.SessionCode));
+            await _service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedTaskInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -90,12 +90,12 @@ public class DataTransferController : BaseController<DataTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CloseDataTransfer(EndDataTransferModel model)
+    public async Task<IActionResult> CloseDataTransfer(EndDataTransferModel model)
     {
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CloseDataTransfer(model.UsedTransferMethod, model.SessionCode);
+        await _service.CloseDataTransfer(model.UsedTransferMethod, model.SessionCode);
         return Ok("CloseDataTransfer");
     }
 

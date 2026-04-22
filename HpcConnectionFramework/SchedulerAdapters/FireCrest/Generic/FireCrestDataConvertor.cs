@@ -13,7 +13,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -83,11 +83,9 @@ internal class FirecRestJob
 
 public class FirecRestDataConvertor : SchedulerDataConvertor
 {
-    private readonly ILog _logger;
 
-    public FirecRestDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public FirecRestDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger) : base(conversionAdapterFactory, logger)
     {
-        _logger = LogManager.GetLogger(typeof(FirecRestDataConvertor));
     }
 
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
@@ -348,7 +346,7 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
         }
         catch (Exception ex)
         {
-            _logger.Error($"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}", ex);
+            _logger.LogError(ex, $"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}");
             throw;
         }
     }

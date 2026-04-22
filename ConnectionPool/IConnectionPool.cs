@@ -1,10 +1,11 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using System.Threading.Tasks;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.ConnectionPool;
 
 public interface IConnectionPool
 {
-    ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster,
-        string sshCaToken);
-    void ReturnConnection(ConnectionInfo schedulerConnection);
+    Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster,
+        string sshCaToken, string lexisToken);
+    Task ReturnConnectionAsync(ConnectionInfo schedulerConnection);
 }

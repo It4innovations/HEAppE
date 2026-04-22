@@ -136,8 +136,8 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
                 break;
-            case AuthenticationTypeException:
-                problem.Title = "UserOrg Authentication Problem";
+            case AuthenticationTypeException authEx:
+                problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
@@ -181,8 +181,8 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status403Forbidden;
                 break;
-            case ExternalException:
-                problem.Title = "External Service Error";
+            case ExternalException externalEx:
+                problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem: " + exception.GetType().Name;
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 logLevel = LogLevel.Warning;
@@ -256,12 +256,13 @@ public class ExceptionMiddleware
         var localizedException = exception switch
         {
             BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(
-                exceptionName, baseException.Args),
-            BaseException => _exceptionsLocalizer.GetString(exceptionName),
+                exceptionName, baseException.Args).Value,
+            BaseException => _exceptionsLocalizer.GetString(exceptionName).Value,
             _ => exception.Message
         };
 
         var message = localizedException == exceptionName ? exception.Message : localizedException;
+        
         builder.Append(message);
 
         if (exception.InnerException is not null)

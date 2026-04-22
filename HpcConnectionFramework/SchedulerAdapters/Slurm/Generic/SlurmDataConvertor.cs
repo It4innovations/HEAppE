@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -9,6 +10,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
+
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 
@@ -23,7 +25,7 @@ public class SlurmDataConvertor : SchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public SlurmDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public SlurmDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger) : base(conversionAdapterFactory, logger)
     {
     }
 
@@ -102,9 +104,10 @@ public class SlurmDataConvertor : SchedulerDataConvertor
             EndTime = obj.StartTime.HasValue && obj.TaskState >= TaskState.Finished ? obj.EndTime : null,
             AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
             AllocatedCores = obj.UsedCores,
+            AllocatedGpus = obj.UsedGpus,
             State = obj.IsDeadLock ? TaskState.Failed : obj.TaskState,
             TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
-                    { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
+                    { AllocationNodeId = s }) // ID will be set by Entity Framework / Logic merging
                 .ToList(),
             ErrorMessage = default,
             Reason = obj.Reason,
@@ -150,6 +153,11 @@ public class SlurmDataConvertor : SchedulerDataConvertor
                 .Distinct();
 
             var parsedParameters = parameters.ToDictionary(i => i.Key, j => j.Value);
+
+            // Parse AllocTRES and ReqTRES into individual parameters
+            ParseTres(parsedParameters, "AllocTRES");
+            ParseTres(parsedParameters, "ReqTRES");
+
             var schedulerResultObj = new SlurmJobInfo(jobResponseMessage, parsedParameters);
 
             FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
@@ -199,9 +207,11 @@ public class SlurmDataConvertor : SchedulerDataConvertor
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
         object schedulerAllocationCmd)
     {
+        // Set sbatch parameters via agency of job adapter
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+
         // Setting global parameters for all tasks
         var globalJobParameters = (string)jobAdapter.AllocationCmd;
         var tasks = new List<object>();
@@ -212,6 +222,31 @@ public class SlurmDataConvertor : SchedulerDataConvertor
 
         jobAdapter.SetTasks(tasks);
         return jobAdapter.AllocationCmd;
+    }
+
+    private void ParseTres(Dictionary<string, string> parsedParameters, string tresKey)
+    {
+        if (parsedParameters.TryGetValue(tresKey, out var tresValue) && !string.IsNullOrEmpty(tresValue))
+        {
+            var components = tresValue.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var component in components)
+            {
+                var kv = component.Split('=', StringSplitOptions.RemoveEmptyEntries);
+                if (kv.Length == 2)
+                {
+                    // Normalize key to be compatible with formula parser (replace / with _)
+                    var key = kv[0].Replace('/', '_');
+                    if (!parsedParameters.ContainsKey(key))
+                    {
+                        parsedParameters.Add(key, kv[1]);
+                    }
+                    else
+                    {
+                        parsedParameters.TryAdd($"{tresKey}_{key}", kv[1]);
+                    }
+                }
+            }
+        }
     }
 
     #endregion

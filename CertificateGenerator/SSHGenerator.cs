@@ -6,7 +6,7 @@ using HEAppE.CertificateGenerator.Generators.v2;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.Management;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.CertificateGenerator;
 
@@ -21,14 +21,14 @@ public class SSHGenerator
     ///     Construcotr
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
-    public SSHGenerator()
+    public SSHGenerator(ILogger logger)
     {
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
 
         CipherType = CipherGeneratorConfiguration.Type;
         if (CipherGeneratorConfiguration.Type == FileTransferCipherType.Unknown)
         {
-            _log.Warn(
+            _logger.LogWarning(
                 "Wrong fill \"TypeName\" or \"Size\" in \"appsetting.json\" config file. HEAppE uses default algorithm for generating temporary keys RSA (4096)!");
             CipherType = FileTransferCipherType.RSA4096;
         }
@@ -77,7 +77,7 @@ public class SSHGenerator
     /// <summary>
     ///     _logger
     /// </summary>
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     #endregion
 

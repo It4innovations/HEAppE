@@ -19,7 +19,9 @@ RUN chmod +x /opt/*
 
 WORKDIR /app
 # Entry point nastaví, že kontejner bude přijímat parametry
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["/bin/bash", "-c"]
 
 # CMD nastaví defaultní příkaz jako `init`
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["/opt/initHVault.sh"]

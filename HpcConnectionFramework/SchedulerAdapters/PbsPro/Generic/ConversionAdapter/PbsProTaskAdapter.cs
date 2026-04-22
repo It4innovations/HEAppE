@@ -265,6 +265,21 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
+    public long? Memory
+    {
+        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => _taskBuilder.Append(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
+    }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -276,9 +291,12 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <param name="maxCores">Task max cores</param>
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
+        if (!maxCores.HasValue || maxCores <= 0)
+            throw new ArgumentException("Argument 'maxCores' have to be specified for PbsPro CPU task.");
+
         var allocationCmdBuilder = new StringBuilder(" -l select=");
 
         //For specific node names
@@ -321,13 +339,13 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             {
                 allocationCmdBuilder.Append('+');
                 allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                    paralizationSpecs.Except(parSpecsForReqNodes).ToList(), remainingCores, coresPerNode));
+                    paralizationSpecs.Except(parSpecsForReqNodes).ToList(), (int)remainingCores, coresPerNode));
             }
         }
         else
         {
             allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                paralizationSpecs, maxCores, coresPerNode));
+                paralizationSpecs, (int)maxCores, coresPerNode));
         }
 
         _taskBuilder.Append(allocationCmdBuilder);

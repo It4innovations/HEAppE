@@ -1,0 +1,414 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Cryptography_Oid_InvalidValue" xml:space="preserve">
+    <value>The OID value is invalid.</value>
+  </data>
+  <data name="Cryptography_Oid_InvalidName" xml:space="preserve">
+    <value>No OID value matches this name.</value>
+  </data>
+  <data name="Cryptography_SSE_InvalidDataSize" xml:space="preserve">
+    <value>NoLength of the data to encrypt is invalid.</value>
+  </data>
+  <data name="Cryptography_Asn_EnumeratedValueRequiresNonFlagsEnum" xml:space="preserve">
+    <value>ASN.1 Enumerated values only apply to enum types without the [Flags] attribute.</value>
+  </data>
+  <data name="Cryptography_Asn_NamedBitListRequiresFlagsEnum" xml:space="preserve">
+    <value>Named bit list operations require an enum with the [Flags] attribute.</value>
+  </data>
+  <data name="Cryptography_Asn_NamedBitListValueTooBig" xml:space="preserve">
+    <value>The encoded named bit list value is larger than the value size of the '{0}' enum.</value>
+  </data>
+  <data name="Cryptography_Asn_UniversalValueIsFixed" xml:space="preserve">
+    <value>Tags with TagClass Universal must have the appropriate TagValue value for the data type being read or written.</value>
+  </data>
+  <data name="Cryptography_Asn_UnusedBitCountRange" xml:space="preserve">
+    <value>Unused bit count must be between 0 and 7, inclusive.</value>
+  </data>
+  <data name="Cryptography_AsnWriter_EncodeUnbalancedStack" xml:space="preserve">
+    <value>Encode cannot be called while a Sequence or SetOf is still open.</value>
+  </data>
+  <data name="Cryptography_AsnWriter_PopWrongTag" xml:space="preserve">
+    <value>Cannot pop the requested tag as it is not currently in progress.</value>
+  </data>
+  <data name="Cryptography_Der_Invalid_Encoding" xml:space="preserve">
+    <value>ASN1 corrupted data.</value>
+  </data>
+  <data name="Cryptography_Invalid_IA5String" xml:space="preserve">
+    <value>The string contains a character not in the 7 bit ASCII character set.</value>
+  </data>
+  <data name="Cryptography_WriteEncodedValue_OneValueAtATime" xml:space="preserve">
+    <value>The input to WriteEncodedValue must represent a single encoded value with no trailing data.</value>
+  </data>
+  <data name="Arg_RankMultiDimNotSupported" xml:space="preserve">
+    <value>Only single dimensional arrays are supported for the requested action.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Index" xml:space="preserve">
+    <value>Index was out of range. Must be non-negative and less than the size of the collection.</value>
+  </data>
+  <data name="ArgumentOutOfRange_NeedNonNegNum" xml:space="preserve">
+    <value>Non-negative number required.</value>
+  </data>
+  <data name="Argument_EncodeDestinationTooSmall" xml:space="preserve">
+    <value>The destination is too small to hold the encoded value.</value>
+  </data>
+  <data name="Argument_InvalidOidValue" xml:space="preserve">
+    <value>The OID value was invalid.</value>
+  </data>
+  <data name="Argument_InvalidOffLen" xml:space="preserve">
+    <value>Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.</value>
+  </data>
+  <data name="Argument_InvalidValue" xml:space="preserve">
+    <value>Value was invalid.</value>
+  </data>
+  <data name="ObjectDisposed_Generic" xml:space="preserve">
+    <value>Cannot access a disposed object.</value>
+  </data>
+  <data name="Cryptography_Der_Invalid_Encoding_Expected_Encoding" xml:space="preserve">
+    <value>ASN1 corrupted data. Expected {0}; Actual: {1}</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERROR_CLIENT_NOT_TRUSTED" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERROR_INVALID_SIG" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERROR_KDC_NOT_TRUSTED" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_BADOPTION" xml:space="preserve">
+    <value>KDC cannot accommodate requested option</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_BAD_PVNO" xml:space="preserve">
+    <value>Requested protocol version number not supported</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CANNOT_POSTDATE" xml:space="preserve">
+    <value>Ticket not eligible for postdating</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CANT_VERIFY_CERTIFICATE" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CERTIFICATE_MISMATCH" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CLIENT_NAME_MISMATCH" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CLIENT_NOTYET" xml:space="preserve">
+    <value>Client not yet valid; try again later</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_CLIENT_REVOKED" xml:space="preserve">
+    <value>Clients credentials have been revoked</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_C_OLD_MAST_KVNO" xml:space="preserve">
+    <value>Client's key encrypted in old master key</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_C_PRINCIPAL_UNKNOWN" xml:space="preserve">
+    <value>Client not found in Kerberos database</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_ETYPE_NOSUPP" xml:space="preserve">
+    <value>KDC has no support for encryption type</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_INVALID_CERTIFICATE" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_KDC_NAME_MISMATCH" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_KEY_EXPIRED" xml:space="preserve">
+    <value>Password has expired; change password to reset</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_KEY_TOO_WEAK" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_MUST_USE_USER2USER" xml:space="preserve">
+    <value>Server principal valid for user2user only</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_NAME_EXP" xml:space="preserve">
+    <value>Client's entry in database has expired</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_NEVER_VALID" xml:space="preserve">
+    <value>Requested starttime is later than end time</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_NULL_KEY" xml:space="preserve">
+    <value>The client or server has a null key</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PADATA_TYPE_NOSUPP" xml:space="preserve">
+    <value>KDC has no support for padata type</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PATH_NOT_ACCEPTED" xml:space="preserve">
+    <value>KDC Policy rejects transited path</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_POLICY" xml:space="preserve">
+    <value>KDC policy rejects request</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PREAUTH_FAILED" xml:space="preserve">
+    <value>Pre-authentication information was invalid</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PREAUTH_REQUIRED" xml:space="preserve">
+    <value>Additional pre-authentication required</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PRINCIPAL_NOT_UNIQUE" xml:space="preserve">
+    <value>Multiple principal entries in database</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_REVOCATION_STATUS_UNAVAILABLE" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_REVOCATION_STATUS_UNKNOWN" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_REVOKED_CERTIFICATE" xml:space="preserve">
+    <value>Reserved for PKINIT</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SERVER_NOMATCH" xml:space="preserve">
+    <value>Requested server and ticket don't match</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SERVICE_EXP" xml:space="preserve">
+    <value>Server's entry in database has expired</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SERVICE_NOTYET" xml:space="preserve">
+    <value>Server not yet valid; try again later</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SERVICE_REVOKED" xml:space="preserve">
+    <value>Credentials for server have been revoked</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SUMTYPE_NOSUPP" xml:space="preserve">
+    <value>KDC has no support for checksum type</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_SVC_UNAVAILABLE" xml:space="preserve">
+    <value>A service is not available</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_S_OLD_MAST_KVNO" xml:space="preserve">
+    <value>Server's key encrypted in old master key</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_S_PRINCIPAL_UNKNOWN" xml:space="preserve">
+    <value>Server not found in Kerberos database</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_TGT_REVOKED" xml:space="preserve">
+    <value>TGT has been revoked</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_TRTYPE_NOSUPP" xml:space="preserve">
+    <value>KDC has no support for transited type</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_WRONG_REALM" xml:space="preserve">
+    <value>Reserved for future use</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADADDR" xml:space="preserve">
+    <value>Incorrect net address</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADDIRECTION" xml:space="preserve">
+    <value>Incorrect message direction</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADKEYVER" xml:space="preserve">
+    <value>Specified version of key is not available</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADMATCH" xml:space="preserve">
+    <value>Ticket and authenticator don't match</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADORDER" xml:space="preserve">
+    <value>Message out of order</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADSEQ" xml:space="preserve">
+    <value>Incorrect sequence number in message</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BADVERSION" xml:space="preserve">
+    <value>Protocol version mismatch</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_BAD_INTEGRITY" xml:space="preserve">
+    <value>Integrity check on decrypted field failed</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_INAPP_CKSUM" xml:space="preserve">
+    <value>Inappropriate type of checksum in message</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_METHOD" xml:space="preserve">
+    <value>Alternative authentication method required</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_MODIFIED" xml:space="preserve">
+    <value>Message stream modified</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_MSG_TYPE" xml:space="preserve">
+    <value>Invalid msg type</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_MUT_FAIL" xml:space="preserve">
+    <value>Mutual authentication failed</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_NOKEY" xml:space="preserve">
+    <value>Service key not available</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_NOT_US" xml:space="preserve">
+    <value>The ticket isn't for us</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_NO_TGT" xml:space="preserve">
+    <value>No TGT available to validate USER-TO-USER</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_REPEAT" xml:space="preserve">
+    <value>Request is a replay</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_SKEW" xml:space="preserve">
+    <value>Clock skew too great</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_TKT_EXPIRED" xml:space="preserve">
+    <value>Ticket expired</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_TKT_NYV" xml:space="preserve">
+    <value>Ticket not yet valid</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_ERR_USER_TO_USER_REQUIRED" xml:space="preserve">
+    <value>Ticket must be for USER-TO-USER</value>
+  </data>
+  <data name="KRB_ERROR_KRB_AP_PATH_NOT_ACCEPTED" xml:space="preserve">
+    <value>Policy rejects transited path</value>
+  </data>
+  <data name="KRB_ERROR_KRB_ERR_FIELD_TOOLONG" xml:space="preserve">
+    <value>Field is too long for this implementation</value>
+  </data>
+  <data name="KRB_ERROR_KRB_ERR_GENERIC" xml:space="preserve">
+    <value>Generic error</value>
+  </data>
+  <data name="KRB_ERROR_KRB_ERR_RESPONSE_TOO_BIG" xml:space="preserve">
+    <value>Response too big for UDP; retry with TCP</value>
+  </data>
+  <data name="KRB_ERROR_AS_NONCE_MISMATCH" xml:space="preserve">
+    <value>AS-REQ nonce {0} does not match {1}</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_DH_KEY_PARAMETERS_NOT_ACCEPTED" xml:space="preserve">
+    <value>KDC policy has determined the provided Diffie-Hellman key parameters are not acceptable</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_DIGEST_IN_CERT_NOT_ACCEPTED" xml:space="preserve">
+    <value>The signature algorithm used to sign the CA certificate is not accepted</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_DIGEST_IN_SIGNED_DATA_NOT_ACCEPTED" xml:space="preserve">
+    <value>The signature algorithm used to sign the request is not accepted</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_INCONSISTENT_KEY_PURPOSE" xml:space="preserve">
+    <value>The client certificate does not contain the KeyPurposeId EKU and is required</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PA_CHECKSUM_MUST_BE_INCLUDED" xml:space="preserve">
+    <value>The client did not include the required paChecksum parameter</value>
+  </data>
+  <data name="KRB_ERROR_KDC_ERR_PUBLIC_KEY_ENCRYPTION_NOT_SUPPORTED" xml:space="preserve">
+    <value>The KDC does not support public key encryption for PKINIT</value>
+  </data>
+  <data name="ChasedReferralTooFar" xml:space="preserve">
+    <value>The client has been referred to too many realms before it could find the requested service principal</value>
+  </data>
+  <data name="S4uTargetTicketBothPresent" xml:space="preserve">
+    <value>Both the S4UTarget and S4UTicket properties are present on the service ticket request which is not allowed. Set S4UTarget for invoking the S4USelf flow or otherwise set S4UTicket for the S4UProxy (constrained delegation) flow.</value>
+  </data>
+</root>

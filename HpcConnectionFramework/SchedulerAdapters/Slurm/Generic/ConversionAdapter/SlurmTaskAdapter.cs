@@ -196,6 +196,21 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
+    public long? Memory
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem={value}" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-cpu={value}" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => _taskBuilder.Append(value != null ? $" --mem-per-gpu={value}" : string.Empty);
+    }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -207,12 +222,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <param name="maxCores">Task max cores</param>
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        if (maxCores <= 0)
-            throw new ArgumentException($"Invalid number of cores: {maxCores}");
-
         var allocationCmdBuilder = new StringBuilder();
         var reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
         var parSpec = paralizationSpecs.FirstOrDefault();
@@ -225,27 +237,85 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             // partial allocation
             if (isPartialAllocation)
             {
-                allocationCmdBuilder.Append($" --gpus={maxCores}");
+                // only temporary solution until LEXIS systems implement new gpu core/node parameters
+                // then remove this and use logic in else statement
+                if (maxCores.HasValue)
+                {
+                    allocationCmdBuilder.Append($" --gpus={maxCores}");
+                }
+                else
+                {
+                    if (!gpuCores.HasValue || gpuCores <= 0)
+                        throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
+
+                    allocationCmdBuilder.Append($" --gpus={gpuCores}");
+                }
             }
             else
             {
-                int gpuCount = maxCores;
-                var nodeCount = maxCores / coresPerNode;
-                nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
-                allocationCmdBuilder.Append($" --gpus={gpuCount}");
-                allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+                // only temporary solution until LEXIS systems implement new gpu core/node parameters
+                // then remove this and use logic in else statement
+                if (maxCores.HasValue)
+                {
+                    int gpuCount = (int)maxCores;
+                    var nodeCount = maxCores / coresPerNode;
+                    nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+
+                    allocationCmdBuilder.Append($" --gpus={gpuCount}");
+                    allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)nodeCount)}{reqNodeGroupsCmd}");
+                }
+                else
+                {
+                    if (!gpuNodes.HasValue || gpuNodes <= 0)
+                        throw new ArgumentException("Argument 'gpuNodes' have to be specified for Slurm task GPU full node allocation.");
+
+                    int gpuCount = (int)gpuNodes * coresPerNode;
+                    allocationCmdBuilder.Append($" --gpus={gpuCount}");
+                    allocationCmdBuilder.Append($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
+                }
             }
         }
         // CPU only allocation
         else
         {
+            if (!maxCores.HasValue || maxCores <= 0)
+                throw new ArgumentException($"Invalid number of cores: {maxCores} for Slurm task CPU allocation.");
+
             // TODO implement partial allocation?
             if (isPartialAllocation) { }
 
-            var nodeCount = maxCores / coresPerNode;
-            nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+            // Calculate node count based on parallelization specifications
+            int totalNodes = 0;
+            int totalSpecCores = 0;
+            if (paralizationSpecs != null && paralizationSpecs.Any())
+            {
+                foreach (var spec in paralizationSpecs)
+                {
+                    int specNodes = spec.MaxCores / coresPerNode;
+                    specNodes += spec.MaxCores % coresPerNode > 0 ? 1 : 0;
+                    totalNodes += specNodes;
+                    totalSpecCores += spec.MaxCores;
+                }
+            }
+
+            // Handle remaining cores (if maxCores is greater than spec sum, fill the rest)
+            int effectiveMaxCores = maxCores ?? 0;
+            int remainingCores = effectiveMaxCores - totalSpecCores;
+            if (remainingCores > 0)
+            {
+                int remainingNodes = remainingCores / coresPerNode;
+                remainingNodes += remainingCores % coresPerNode > 0 ? 1 : 0;
+                totalNodes += remainingNodes;
+            }
+
+            if (totalNodes == 0 && effectiveMaxCores > 0)
+            {
+                totalNodes = effectiveMaxCores / coresPerNode;
+                totalNodes += effectiveMaxCores % coresPerNode > 0 ? 1 : 0;
+            }
+
             allocationCmdBuilder.Append(
-                $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+                $" --nodes={totalNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), totalNodes)}{reqNodeGroupsCmd}");
         }
 
         if (parSpec is not null)

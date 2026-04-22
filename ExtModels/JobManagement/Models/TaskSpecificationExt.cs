@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Linq;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.Utils;
 
@@ -22,19 +23,32 @@ public class TaskSpecificationExt
     public string Name { get; set; }
 
     /// <summary>
-    /// Minimum number of cores
+    /// Minimum number of CPU cores
     /// </summary>
     [DataMember(Name = "MinCores")]
-    [Description("Minimum number of cores")]
+    [Description("Minimum number of CPU cores")]
     public int? MinCores { get; set; }
 
     /// <summary>
-    /// Maximum number of cores
+    /// Maximum number of CPU cores
     /// </summary>
     [DataMember(Name = "MaxCores")]
-    [Required]
-    [Description("Maximum number of cores")]
-    public int MaxCores { get; set; }
+    [Description("Maximum number of CPU cores")]
+    public int? MaxCores { get; set; }
+
+    /// <summary>
+    /// Number of GPU cores
+    /// </summary>
+    [DataMember(Name = "GpuCores")]
+    [Description("Number of GPU cores")]
+    public int? GpuCores { get; set; }
+
+    /// <summary>
+    /// Number of GPU nodes
+    /// </summary>
+    [DataMember(Name = "GpuNodes")]
+    [Description("Number of GPU nodes")]
+    public int? GpuNodes { get; set; }
 
     /// <summary>
     /// Walltime limit
@@ -168,6 +182,27 @@ public class TaskSpecificationExt
     public EnvironmentVariableExt[] EnvironmentVariables { get; set; }
 
     /// <summary>
+    /// Memory for task
+    /// </summary>
+    [DataMember(Name = "Memory")]
+    [Description("Allocated memory for task")]
+    public long? Memory { get; set; }
+
+    /// <summary>
+    /// Memory per CPU
+    /// </summary>
+    [DataMember(Name = "MemoryPerCPU")]
+    [Description("Allocated memory for task (CPU)")]
+    public long? MemoryPerCPU { get; set; }
+
+    /// <summary>
+    /// Memory per GPU
+    /// </summary>
+    [DataMember(Name = "MemoryPerGPU")]
+    [Description("Allocated memory for task (GPU)")]
+    public long? MemoryPerGPU { get; set; }
+
+    /// <summary>
     /// Depends on
     /// </summary>
     [DataMember(Name = "DependsOn")]
@@ -183,8 +218,14 @@ public class TaskSpecificationExt
 
     public override string ToString()
     {
+        var parParamsString = TaskParallelizationParameters != null ? "[" + string.Join(", ", TaskParallelizationParameters.Select(p => p.ToString())) + "]" : "null";
+        var envVarsString = EnvironmentVariables != null ? "[" + string.Join(", ", EnvironmentVariables.Select(ev => ev.ToString())) + "]" : "null";
+        var dependsOnString = DependsOn != null ? "[" + string.Join(", ", DependsOn.Select(d => d.Name)) + "]" : "null";
+        var templateParamsString = TemplateParameterValues != null ? "[" + string.Join(", ", TemplateParameterValues.Select(p => p.ToString())) + "]" : "null";
+        var requiredNodesString = RequiredNodes != null ? "[" + string.Join(", ", RequiredNodes) + "]" : "null";
+
         return
-            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParallelizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues})";
+            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={requiredNodesString}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParallelizationParameters={parParamsString}; environmentVariables={envVarsString}; dependsOn={dependsOnString}; templateParameterValues={templateParamsString}; memory={Memory}; memoryPerCPU={MemoryPerCPU}; memoryPerGPU={MemoryPerGPU})";
     }
 
     public override bool Equals(object obj)

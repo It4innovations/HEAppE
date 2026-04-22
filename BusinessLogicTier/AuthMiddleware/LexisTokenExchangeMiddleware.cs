@@ -25,7 +25,8 @@ public class LexisTokenExchangeMiddleware
         _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.LexisTokenExchangeMiddleware");
     }
 
-    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
+    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService,
+        IExpirioService expirioService)
     {
         ApplyRequestSizeLimit(context);
         context.Request.EnableBuffering();
@@ -50,18 +51,23 @@ public class LexisTokenExchangeMiddleware
             var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
             contextKeysService.Context.LEXISToken = incomingToken;
 
-            if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+            if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+                !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
-                if ((LexisAuthenticationConfiguration.UseBearerAuth && JwtTokenIntrospectionConfiguration.IsEnabled) || JwtTokenIntrospectionConfiguration.IsEnabled)
+                if ((LexisAuthenticationConfiguration.UseBearerAuth && JwtTokenIntrospectionConfiguration.IsEnabled) ||
+                    JwtTokenIntrospectionConfiguration.IsEnabled)
                 {
-                    _logger.LogInformation($"LexisTokenExchangeMiddleware: Introspection enabled but Lexis token exchange flow disabled. Using incoming token as FIP token.");
+                    _logger.LogInformation(
+                        $"LexisTokenExchangeMiddleware: Introspection enabled but Lexis token exchange flow disabled. Using incoming token as FIP token.");
                     context.Request.Headers["Authorization"] = $"Bearer {incomingToken}";
                     contextKeysService.Context.FIPToken = incomingToken;
                     _logger.LogDebug($"LexisTokenExchangeMiddleware: FIP Token set to incoming token: {incomingToken}");
                 }
-                else if (LexisAuthenticationConfiguration.UseBearerAuth && !JwtTokenIntrospectionConfiguration.IsEnabled)
+                else if (LexisAuthenticationConfiguration.UseBearerAuth &&
+                         !JwtTokenIntrospectionConfiguration.IsEnabled)
                 {
-                    _logger.LogInformation($"LexisTokenExchangeMiddleware: Bearer auth enabled but introspection disabled. Using incoming token.");
+                    _logger.LogInformation(
+                        $"LexisTokenExchangeMiddleware: Bearer auth enabled but introspection disabled. Using incoming token.");
                 }
             }
             else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
@@ -70,15 +76,17 @@ public class LexisTokenExchangeMiddleware
                 try
                 {
                     string exchanged;
-                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration
+                        .UseExpirioServiceForTokenExchange)
                     {
-                        _logger.LogInformation($"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
+                        _logger.LogInformation(
+                            $"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
                         var request = new ExchangeRequest()
                         {
                             ProviderName = ExpirioSettings.ProviderName,
                             ClientName = JwtTokenIntrospectionConfiguration.ClientId
                         };
-                        exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken);
+                        exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, _logger);
                     }
                     else
                     {
@@ -99,7 +107,7 @@ public class LexisTokenExchangeMiddleware
                 }
             }
         }
-        
+
         bool isStreamingEndpoint = context.Request.Path.Value
             ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
 
@@ -116,9 +124,13 @@ public class LexisTokenExchangeMiddleware
         await _next(context);
 
         responseBody.Seek(0, SeekOrigin.Begin);
-        var responseText = await new StreamReader(responseBody).ReadToEndAsync();
-        _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
+
+        using (var reader = new StreamReader(responseBody, leaveOpen: true))
+        {
+            var responseText = await reader.ReadToEndAsync();
+            _logger.LogDebug(
+                $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+        }
 
         responseBody.Seek(0, SeekOrigin.Begin);
         await responseBody.CopyToAsync(originalBodyStream);

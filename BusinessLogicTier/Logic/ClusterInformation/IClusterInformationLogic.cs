@@ -9,7 +9,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 public interface IClusterInformationLogic
 {
     IEnumerable<Cluster> ListAvailableClusters();
-    Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId);
+    Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser, long projectId);
 
     Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath,

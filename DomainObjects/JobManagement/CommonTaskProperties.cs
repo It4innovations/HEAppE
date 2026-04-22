@@ -25,6 +25,9 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
         if (commonTaskProperties.EnvironmentVariables != null)
             foreach (var envVariable in commonTaskProperties.EnvironmentVariables)
                 EnvironmentVariables.Add(new EnvironmentVariable(envVariable));
+        Memory = commonTaskProperties.Memory;
+        MemoryPerCPU = commonTaskProperties.MemoryPerCPU;
+        MemoryPerGPU = commonTaskProperties.MemoryPerGPU;
     }
 
     [Required] [StringLength(50)] public string Name { get; set; }
@@ -32,6 +35,10 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
     public int? MinCores { get; set; }
 
     public int? MaxCores { get; set; }
+
+    public int? GpuCores { get; set; }
+
+    public int? GpuNodes { get; set; }
 
     public TaskPriority? Priority { get; set; }
 
@@ -44,14 +51,25 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
     // Objects in all related collections have to implement the ICloneable interface to support the combination with client job specification.
     public virtual List<EnvironmentVariable> EnvironmentVariables { get; set; } = new();
 
+    public long? Memory { get; set; }
+
+    public long? MemoryPerCPU { get; set; }
+
+    public long? MemoryPerGPU { get; set; }
 
     public override string ToString()
     {
         var result = new StringBuilder();
         result.AppendLine("Id=" + Id);
         result.AppendLine("Name=" + Name);
-        result.AppendLine("MinCores=" + MinCores);
-        result.AppendLine("MaxCores=" + MaxCores);
+        if(MinCores != null)
+            result.AppendLine("MinCores=" + MinCores);
+        if (MaxCores != null)
+            result.AppendLine("MaxCores=" + MaxCores);
+        if (GpuCores != null)
+            result.AppendLine("GpuCores=" + GpuCores);
+        if(GpuNodes != null)
+            result.AppendLine("GpuNodes=" + GpuNodes);
         result.AppendLine("Priority=" + Priority);
         result.AppendLine("Project=" + Project);
         result.AppendLine("WalltimeLimit=" + WalltimeLimit);
@@ -59,6 +77,9 @@ public abstract class CommonTaskProperties : IdentifiableDbEntity
         if (EnvironmentVariables != null)
             foreach (var variable in EnvironmentVariables)
                 result.AppendLine("EnvironmentVariable" + i++ + ": " + variable);
+        result.AppendLine("Memory=" + Memory);
+        result.AppendLine("MemoryPerCPU=" + MemoryPerCPU);
+        result.AppendLine("MemoryPerGPU=" + MemoryPerGPU);
         return result.ToString();
     }
 }

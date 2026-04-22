@@ -1,0 +1,119 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--TargetFrameworks>netstandard2.0</TargetFrameworks-->
+    <TargetFramework>net9.0</TargetFramework>
+    <Product>Kerberos.NET library</Product>
+    <Description>A cross-platform, managed-code Kerberos Ticket parsing, validation, and authentication library.</Description>
+    <PackageTags>security kerberos</PackageTags>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants>WEAKCRYPTO</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Unix' And $(NETCoreSdkPortableRuntimeIdentifier.StartsWith('linux'))">
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Unix' And $(NETCoreSdkPortableRuntimeIdentifier.StartsWith('osx'))">
+    <DefineConstants>$(DefineConstants);MACOS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<AsnXml Include="Entities\ChangePassword\KrbChangePasswdData.xml" />	
+    <AsnXml Include="Entities\Kkdcp\KdcProxyMessage.xml" />
+    <AsnXml Include="Entities\Krb\KrbETypeList.xml" />
+    <AsnXml Include="Entities\Krb\KrbApReq.xml" />
+    <AsnXml Include="Entities\Krb\KrbApRep.xml" />
+    <AsnXml Include="Entities\Krb\KrbAsReq.xml" />
+    <AsnXml Include="Entities\Krb\KrbAsRep.xml" />
+    <AsnXml Include="Entities\Krb\KrbAuthenticator.xml" />
+    <AsnXml Include="Entities\Krb\KrbAuthorizationData.xml" />
+    <AsnXml Include="Entities\Krb\KrbAuthorizationDataSequence.xml" />
+    <AsnXml Include="Entities\Krb\KrbChecksum.xml" />
+    <AsnXml Include="Entities\Krb\KrbCred.xml" />
+    <AsnXml Include="Entities\Krb\KrbCredInfo.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncKrbCredPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncryptedData.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncryptionKey.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncAsRepPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncApRepPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncKdcRepPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncKrbPrivPart.xml" />	
+    <AsnXml Include="Entities\Krb\KrbEncTgsRepPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbEncTicketPart.xml" />
+    <AsnXml Include="Entities\Krb\KrbError.xml" />
+    <AsnXml Include="Entities\Krb\KrbErrorData.xml" />
+    <AsnXml Include="Entities\Krb\KrbETypeInfo2.xml" />
+    <AsnXml Include="Entities\Krb\KrbETypeInfo2Entry.xml" />
+    <AsnXml Include="Entities\Krb\KrbHostAddress.xml" />
+    <AsnXml Include="Entities\Krb\KrbKdcRep.xml" />
+    <AsnXml Include="Entities\Krb\KrbKdcReq.xml" />
+    <AsnXml Include="Entities\Krb\KrbKdcReqBody.xml" />
+    <AsnXml Include="Entities\Krb\KrbLastReq.xml" />
+    <AsnXml Include="Entities\Krb\KrbMethodData.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaData.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaEncTsEnc.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaForUser.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaPacOptions.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaPacRequest.xml" />
+    <AsnXml Include="Entities\Krb\KrbPaS4uX509User.xml" />
+    <AsnXml Include="Entities\Krb\KrbPrincipalName.xml" />
+	  <AsnXml Include="Entities\Krb\KrbPriv.xml" />	
+    <AsnXml Include="Entities\Krb\KrbS4uUserId.xml" />
+    <AsnXml Include="Entities\Krb\KrbTgsReq.xml" />
+    <AsnXml Include="Entities\Krb\KrbTgsRep.xml" />
+    <AsnXml Include="Entities\Krb\KrbTicket.xml" />
+    <AsnXml Include="Entities\Krb\KrbTransitedEncoding.xml" />
+    <AsnXml Include="Entities\Krb\IAKerbHeader.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbAlgorithmIdentifier.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbAuthPack.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbDHReplyInfo.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbDiffieHellmanDomainParameters.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbDiffieHellmanValidationParameters.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbExternalPrincipalIdentifier.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbKdcDHKeyInfo.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbPaPkAsReq.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbPaPkAsRep.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbPKAuthenticator.xml" />
+    <AsnXml Include="Entities\Pkinit\KrbSubjectPublicKeyInfo.xml" />
+    <AsnXml Include="Entities\SpNego\NegotiationToken.xml" />
+    <AsnXml Include="Entities\SpNego\NegTokenInit.xml" />
+    <AsnXml Include="Entities\SpNego\NegTokenResp.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Strings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Import Project="Asn1\AsnXml.targets" />
+
+</Project>

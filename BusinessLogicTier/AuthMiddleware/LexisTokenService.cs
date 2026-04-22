@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using log4net;
 
 namespace HEAppE.Services.AuthMiddleware;
@@ -13,8 +14,6 @@ namespace HEAppE.Services.AuthMiddleware;
 public interface ILexisTokenService
 {
     Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken);
-    string ExchangeLexisTokenForFip(string lexisToken) =>
-        ExchangeLexisTokenForFipAsync(lexisToken).GetAwaiter().GetResult();
 }
 
 public class LexisTokenService : ILexisTokenService
@@ -54,26 +53,31 @@ public class LexisTokenService : ILexisTokenService
 
         Log.Debug($"[TokenExchange Request] URL: {tokenEndpoint}, ClientID: {cfg.ClientId}, Scope: {cfg.Scope}");
 
-        var response = await client.PostAsync(tokenEndpoint, new FormUrlEncodedContent(payload));
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            Log.Error($"[TokenExchange Response] Error: {response.StatusCode}, Content: {responseContent}");
-            throw new Exception($"Token exchange failed: {response.StatusCode} - {responseContent}");
-        }
-
-        Log.Debug($"[TokenExchange Response] Success: {response.StatusCode}");
-
         try
         {
+            var response = await client.PostAsync(tokenEndpoint, new FormUrlEncodedContent(payload));
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Error($"[TokenExchange Response] Error: {response.StatusCode}, Content: {responseContent}");
+                throw new Exception($"Token exchange failed: {response.StatusCode} - {responseContent}");
+            }
+
+            Log.Debug($"[TokenExchange Response] Success: {response.StatusCode}");
+
             var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
             string exchangedAccessToken = json.GetProperty("access_token").GetString();
             return await GetFipTokenInfoAsync(exchangedAccessToken);
         }
+        catch (TaskCanceledException)
+        {
+            Log.Error($"[TokenExchange Timeout] Request to {tokenEndpoint} timed out.");
+            throw;
+        }
         catch (JsonException ex)
         {
-            Log.Error($"[TokenExchange] Invalid JSON format. Response content: {responseContent}");
+            Log.Error($"[TokenExchange] Invalid JSON format.");
             throw new Exception($"Failed to parse token exchange response: {ex.Message}", ex);
         }
     }

@@ -29,9 +29,12 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
-using log4net;
+using Microsoft.Extensions.Logging;
+using HEAppE.Utils;
 using SshCaAPI;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
@@ -39,13 +42,15 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                              IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
     }
 
     #endregion
@@ -60,9 +65,14 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     private readonly IUserOrgService _userOrgService;
+
+    /// <summary>
+    /// Expirio service
+    /// </summary>
+    private readonly IExpirioService _expirioService;
 
     /// <summary>
     ///     Session code expiration in seconds
@@ -83,7 +93,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
-            _log.Info("Authenticating local user with session code.");
+            _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);
         }
 
@@ -137,7 +147,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public async Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials)
     {
-        _log.Info($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
+        _logger.LogInformation($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
 
         var user = await HandleOpenIdAuthenticationAsync(credentials);
         return user;
@@ -155,7 +165,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _log.Info(
+            _logger.LogInformation(
                 $"OpenId: user \"{adaptorUser.Username}\" wants to authenticate to the OpenStack project \"{projectId}\".");
 
             if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
@@ -188,7 +198,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             _unitOfWork.OpenStackSessionRepository.Insert(openStackSession);
             _unitOfWork.Save();
 
-            _log.Info(
+            _logger.LogInformation(
                 $"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
             return openStackCredentials;
         }
@@ -227,9 +237,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService: null)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -368,8 +378,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
+            _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
             return GetOrRegisterLexisCredentials(result);
         }
         catch (HttpRequestException )
@@ -406,12 +417,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+        string username = lexisUser.UserName;
+        if (string.IsNullOrEmpty(username))
+        {
+            username = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Email;
+        }
+
+        if (string.IsNullOrEmpty(username))
+        {
+            username = StringUtils.GenerateUsername(lexisUser.Id.ToString());
+        }
         
         if (user is null)
         {
             try 
             {
-                string username = $"{LexisAuthenticationConfiguration.HEAppEUserPrefix}{lexisUser.KeycloakSid}_{lexisUser.UserName}";
                 user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             catch (Exception)
@@ -419,6 +439,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
                 if (user is null) throw;
             }
+        }
+        else
+        {
+            user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
         }
 
         var hasUserGroup = false;
@@ -468,7 +492,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             try
             {
                 user = CreateUser(openIdUser.UserName, openIdUser.Email, changedTime, AdaptorUserType.OpenId);
-                _log.Info($"OpenId: Created new HEAppE account for user: \"{user}\"");
+                _logger.LogInformation($"OpenId: Created new HEAppE account for user: \"{user}\"");
             }
             catch (Exception)
             {
@@ -489,7 +513,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
             {
-                _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                _logger.LogWarning($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
                 continue;
             }
 
@@ -497,7 +521,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
 
             hasUserGroup = true;
-            _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
+            _logger.LogInformation($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
         }
 
         _unitOfWork.Save();
@@ -524,6 +548,17 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             UserType = adaptorUserType
         };
         _unitOfWork.AdaptorUserRepository.Insert(user);
+        _unitOfWork.Save();
+        return user;
+    }
+
+    private AdaptorUser UpdateUser(AdaptorUser user, string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
+    {
+        user.Username = username;
+        user.Email = email;
+        user.ModifiedAt = changedTime;
+        user.UserType = adaptorUserType;
+        _unitOfWork.AdaptorUserRepository.Update(user);
         _unitOfWork.Save();
         return user;
     }
@@ -589,7 +624,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser GetActiveUser(string username)
     {
-        _log.Info($"User \"{username}\" wants to authenticate to the system.");
+        _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
         return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
                throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
     }

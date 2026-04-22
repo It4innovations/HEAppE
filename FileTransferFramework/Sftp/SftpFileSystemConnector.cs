@@ -14,6 +14,10 @@ using Renci.SshNet.Common;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
+using HEAppE.Services.Expirio;
+using Services.Expirio.Models;
+using System.Threading.Tasks;
+using Services.Expirio.Configuration;
 
 namespace HEAppE.FileTransferFramework.Sftp;
 
@@ -23,15 +27,17 @@ public class SftpFileSystemConnector : IPoolableAdapter
 
     private readonly ILogger _logger;
     private ISshCertificateAuthorityService _sshCaService;
+    private IExpirioService _expirio;
 
     #endregion
 
     #region Constructors
 
-    public SftpFileSystemConnector(ILogger logger, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public SftpFileSystemConnector(ILogger logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
     {
         _logger = logger;
         _sshCaService = sshCertificateAuthorityService;
+        _expirio = expirio;
     }
 
     #endregion
@@ -43,12 +49,13 @@ public class SftpFileSystemConnector : IPoolableAdapter
     /// </summary>
     /// <param name="masterNodeName">Master node name</param>
     /// <param name="credentials">Credentials</param>
-    /// <param name="proxy">Proxy</param>
+    /// <param name="cluster">Cluster</param>
     /// <param name="port">Port</param>
     /// <returns></returns>
-    public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, string sshCaToken, int? port)
+    public async Task<object> CreateConnectionObjectAsync(string masterNodeName, ClusterAuthenticationCredentials credentials,
+        Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
+        ClusterProxyConnection proxy = cluster.ProxyConnection;
         var sftpClient = (SftpClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
@@ -87,16 +94,19 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     credentials.PrivateKeyPassphrase, port),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
+                => await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
+                => await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port),
+            
+            ClusterAuthenticationCredentialsAuthType.Kerberos
+                => await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster.DomainName, lexisToken, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
-                CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
+                await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
-                CreateConnectionObjectUsingSshCertificateViaProxy(proxy.Host, proxy.Type,
+                await CreateConnectionObjectUsingSshCertificateViaProxyAsync(proxy.Host, proxy.Type,
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
 
             _ => throw new NotImplementedException(
@@ -108,7 +118,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
         return sftpClient;
     }
 
-    private SftpClient CreateConnectionObjectUsingSshCertificateViaProxy(string proxyHost,
+    private async Task<SftpClient> CreateConnectionObjectUsingSshCertificateViaProxyAsync(string proxyHost,
         ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
         ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
         try
@@ -118,9 +128,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
-                .GetAwaiter()
-                .GetResult();
+            var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
@@ -147,6 +155,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -156,7 +165,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
         
     }
 
-    private SftpClient CreateConnectionObjectUsingSshCertificate(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    private async Task<SftpClient> CreateConnectionObjectUsingSshCertificateAsync(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
     {
         try
         {
@@ -165,9 +174,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
-                .GetAwaiter()
-                .GetResult();
+            var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
@@ -184,6 +191,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -193,22 +201,18 @@ public class SftpFileSystemConnector : IPoolableAdapter
         
     }
 
-    /// <summary>
-    ///     Connect client to server
-    /// </summary>
-    /// <param name="connectorClient"></param>
-    public void Connect(object connectorClient)
+
+
+    public async Task ConnectAsync(object connectorClient)
     {
-        new SftpClientAdapter((SftpClient)connectorClient).Connect();
+        var adapter = connectorClient as SftpClientAdapter ?? new SftpClientAdapter((SftpClient)connectorClient);
+        await adapter.ConnectAsync();
     }
 
-    /// <summary>
-    ///     Disconnect client from server
-    /// </summary>
-    /// <param name="connectorClient"></param>
-    public void Disconnect(object connectorClient)
+    public async Task DisconnectAsync(object connectorClient)
     {
-        new SftpClientAdapter((SftpClient)connectorClient).Disconnect();
+        var adapter = connectorClient as SftpClientAdapter ?? new SftpClientAdapter((SftpClient)connectorClient);
+        await adapter.DisconnectAsync();
     }
     
     /// <summary>
@@ -260,7 +264,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 new PasswordAuthenticationMethod(username, password))
         };
 
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -290,7 +296,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
             proxyUsername,
             proxyPassword,
             new PasswordAuthenticationMethod(username, password));
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -308,7 +316,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -352,7 +362,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
         {
             foreach (var prompt in e.Prompts) prompt.Response = password;
         };
-        return new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+        return client;
     }
 
     /// <summary>
@@ -384,6 +396,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -437,6 +450,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -477,6 +491,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             };
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -520,6 +535,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)));
 
             var client = new SftpClient(connectionInfo);
+            client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
         }
         catch (Exception e)
@@ -528,10 +544,38 @@ public class SftpFileSystemConnector : IPoolableAdapter
         }
     }
 
-    private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName,
+    private async Task<NoAuthenticationSftpClient> CreateConnectionObjectUsingNoAuthenticationAsync(string masterNodeName,
         string username, int? port)
     {
         return new NoAuthenticationSftpClient(_logger, masterNodeName, username, port);
+    }
+
+    private async Task<KerberosSftpClient> CreateConnectionObjectUsingKerberosAuthenticationAsync(string masterNodeName,
+        string username, string address, string lexisToken, int? port)
+    {
+        if (Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
+        {
+            byte[] krbtkt = await GetKernelTicketAsync(lexisToken);
+            Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
+        }
+        return new KerberosSftpClient(_logger, masterNodeName, address, username);
+    }
+
+    private async Task<byte[]> GetKernelTicketAsync(string lexisToken)
+    {
+        return await GetKerberosTicket(lexisToken);
+    }
+
+    /// <summary>
+    ///     Get the kerberos ticket for a user given the LEXIS token.
+    /// </summary>
+    /// <param name="lexisToken"></param>
+    /// <returns></returns>
+    private async Task<byte[]> GetKerberosTicket(string lexisToken)
+    {
+        KerberosExchangeRequest request = new() { ProviderName = ExpirioSettings.ProviderName };
+        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken, _logger);
+        return Convert.FromBase64String(ticket);
     }
 
     #endregion

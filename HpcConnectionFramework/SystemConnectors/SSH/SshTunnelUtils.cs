@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -28,58 +30,74 @@ public sealed class SshTunnelUtils
         throw new InvalidCastException("connectorClient is not an SshClient or valid ConnectionInfo");
     }
 
-    public void CreateTunnel(object connectorClient, long taskId, string nodeHost, int nodePort)
+    public async Task CreateTunnelAsync(object connectorClient, long taskId, string nodeHost, int nodePort)
     {
+        var sshClient = GetSshClient(connectorClient);
+        TunnelInfo sshTunnelInfo;
+
         lock (_lock)
         {
-            var sshClient = GetSshClient(connectorClient);
+            var localPort = GetFirstFreePort();
+            var forwPort = new ForwardedPortLocal(TunnelConfiguration.LocalhostName, (uint)localPort, nodeHost, (uint)nodePort);
+            sshClient.AddForwardedPort(forwPort);
+            forwPort.Exception += (sender, e) => throw new UnableToCreateTunnelException("ExceptionOccurs", e.Exception);
             
-            if (_jobUsedPorts.ContainsKey(taskId))
+            sshTunnelInfo = new TunnelInfo(localPort, nodePort, nodeHost, forwPort);
+            _usedLocalPorts.Add(localPort);
+
+            if (!_jobUsedPorts.ContainsKey(taskId))
             {
-                var allocatedAddressWithPorts = _jobUsedPorts[taskId];
-                if (allocatedAddressWithPorts.ContainsKey(nodeHost))
-                {
-                    var allocatedPortsForJob = allocatedAddressWithPorts[nodeHost];
-                    var sshTunnelInfo = CreateSshTunnel(sshClient, TunnelConfiguration.LocalhostName, GetFirstFreePort(), nodeHost, nodePort);
-                    allocatedPortsForJob.Add(sshTunnelInfo);
-                }
-                else
-                {
-                    var sshTunnelInfo = CreateSshTunnel(sshClient, TunnelConfiguration.LocalhostName, GetFirstFreePort(), nodeHost, nodePort);
-                    allocatedAddressWithPorts.Add(nodeHost, new List<TunnelInfo> { sshTunnelInfo });
-                }
+                _jobUsedPorts.Add(taskId, new Dictionary<string, List<TunnelInfo>> { { nodeHost, new List<TunnelInfo> { sshTunnelInfo } } });
             }
             else
             {
-                var sshTunnelInfo = CreateSshTunnel(sshClient, TunnelConfiguration.LocalhostName, GetFirstFreePort(), nodeHost, nodePort);
-                _jobUsedPorts.Add(taskId, new Dictionary<string, List<TunnelInfo>> { { nodeHost, new List<TunnelInfo> { sshTunnelInfo } } });
-            }
-        }
-    }
-
-    public void RemoveTunnel(object connectorClient, long taskId)
-    {
-        lock (_lock)
-        {
-            if (!_jobUsedPorts.ContainsKey(taskId))
-                throw new UnableToCreateTunnelException("NoActiveTunnel", taskId);
-
-            var sshClient = GetSshClient(connectorClient);
-
-            foreach (var nodeAddress in _jobUsedPorts[taskId].Keys)
-            {
-                foreach (var s in _jobUsedPorts[taskId][nodeAddress])
+                var allocatedAddressWithPorts = _jobUsedPorts[taskId];
+                if (!allocatedAddressWithPorts.ContainsKey(nodeHost))
                 {
-                    try
-                    {
-                        s.ForwardedPort.Stop();
-                        sshClient.RemoveForwardedPort(s.ForwardedPort);
-                        _usedLocalPorts.Remove(s.LocalPort);
-                    }
-                    catch { }
+                    allocatedAddressWithPorts.Add(nodeHost, new List<TunnelInfo> { sshTunnelInfo });
+                }
+                else
+                {
+                    allocatedAddressWithPorts[nodeHost].Add(sshTunnelInfo);
                 }
             }
-            _jobUsedPorts.Remove(taskId);
+        }
+
+        // Move the blocking network call outside the lock and into a Task
+        await Task.Run(() => sshTunnelInfo.ForwardedPort.Start());
+    }
+
+    public async Task RemoveTunnelAsync(object connectorClient, long taskId)
+    {
+        List<TunnelInfo> tunnelsToRemove = null;
+        var sshClient = GetSshClient(connectorClient);
+
+        lock (_lock)
+        {
+            if (_jobUsedPorts.TryGetValue(taskId, out var nodeTunnels))
+            {
+                tunnelsToRemove = nodeTunnels.Values.SelectMany(t => t).ToList();
+                _jobUsedPorts.Remove(taskId);
+            }
+        }
+
+        if (tunnelsToRemove != null)
+        {
+            foreach (var s in tunnelsToRemove)
+            {
+                try
+                {
+                    await Task.Run(() => {
+                        s.ForwardedPort.Stop();
+                        sshClient.RemoveForwardedPort(s.ForwardedPort);
+                    });
+                    lock (_lock)
+                    {
+                        _usedLocalPorts.Remove(s.LocalPort);
+                    }
+                }
+                catch { }
+            }
         }
     }
 
@@ -93,17 +111,7 @@ public sealed class SshTunnelUtils
         }
     }
 
-    private static TunnelInfo CreateSshTunnel(SshClient sshClient, string localHost, int localPort, string nodeHost, int nodePort)
-    {
-        var forwPort = new ForwardedPortLocal(localHost, (uint)localPort, nodeHost, (uint)nodePort);
-        sshClient.AddForwardedPort(forwPort);
-        forwPort.Exception += (sender, e) => throw new UnableToCreateTunnelException("ExceptionOccurs", e.Exception);
 
-        forwPort.Start();
-        _usedLocalPorts.Add(localPort);
-
-        return new TunnelInfo(localPort, nodePort, nodeHost, forwPort);
-    }
 
     private static int GetFirstFreePort()
     {

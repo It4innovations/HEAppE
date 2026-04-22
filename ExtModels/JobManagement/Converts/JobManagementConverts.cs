@@ -57,7 +57,7 @@ public static class JobManagementConverts
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             FileTransferMethodId = jobSpecification.FileTransferMethodId,
-            ClusterId = jobSpecification.ClusterId ?? 0
+            ClusterId = jobSpecification.ClusterId ?? 0,
         };
 
         //Same Reference for DependOn tasks
@@ -96,6 +96,8 @@ public static class JobManagementConverts
             Name = taskSpecificationExt.Name,
             MinCores = taskSpecificationExt.MinCores,
             MaxCores = taskSpecificationExt.MaxCores,
+            GpuCores = taskSpecificationExt.GpuCores,
+            GpuNodes = taskSpecificationExt.GpuNodes,
             WalltimeLimit = taskSpecificationExt.WalltimeLimit,
             PlacementPolicy = taskSpecificationExt.PlacementPolicy,
             RequiredNodes = taskSpecificationExt.RequiredNodes?
@@ -131,6 +133,9 @@ public static class JobManagementConverts
             EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
+            Memory = taskSpecificationExt.Memory,
+            MemoryPerCPU = taskSpecificationExt.MemoryPerCPU,
+            MemoryPerGPU = taskSpecificationExt.MemoryPerGPU,
             CpuHyperThreading = taskSpecificationExt.CpuHyperThreading,
             JobSpecification = jobSpecification,
             TaskParalizationSpecifications = taskSpecificationExt.TaskParallelizationParameters?
@@ -274,6 +279,7 @@ public static class JobManagementConverts
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
             KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
+
             CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
             ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)
         };

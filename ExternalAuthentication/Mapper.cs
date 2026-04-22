@@ -6,7 +6,9 @@ using System.Text.RegularExpressions;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
+using HEAppE.Utils;
 using Newtonsoft.Json;
+
 
 namespace HEAppE.ExternalAuthentication;
 
@@ -22,7 +24,8 @@ public static class Mapper
             FamilyName = obj.FamilyName,
             UserName = obj.EmailVerified && !string.IsNullOrWhiteSpace(obj.Email)
                 ? $"{ExternalAuthConfiguration.HEAppEUserPrefix}{obj.Email}"
-                : $"{ExternalAuthConfiguration.HEAppEUserPrefix}{Regex.Replace(obj.PreferredUsername, @"\s+", " ", RegexOptions.Compiled)}",
+                : $"{ExternalAuthConfiguration.HEAppEUserPrefix}{Regex.Replace(obj.PreferredUsername ?? StringUtils.GenerateUsername(obj.Sub), @"\s+", " ", RegexOptions.Compiled)}",
+
             Projects = GetProjectWithRoleMapping(obj)
         };
     }

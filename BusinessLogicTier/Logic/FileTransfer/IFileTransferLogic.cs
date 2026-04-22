@@ -8,17 +8,17 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer;
 
 public interface IFileTransferLogic
 {
-    void RemoveJobsTemporaryFileTransferKeys();
+    Task RemoveJobsTemporaryFileTransferKeys();
     Task<FileTransferMethod> TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<FileTransferMethod> GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser);
-    void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser);
+    Task EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser);
 
-    IList<JobFileContent> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffset[] taskFileOffsets,
+    Task<IList<JobFileContent>> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffset[] taskFileOffsets,
         AdaptorUser loggedUser);
 
-    IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles();
-    ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser);
-    byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser);
+    Task<IList<SynchronizedJobFiles>> SynchronizeAllUnfinishedJobFiles();
+    Task<ICollection<FileInformation>> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<byte[]> DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser);
     FileTransferMethod GetFileTransferMethodById(long fileTransferMethodId);
     IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId);
 
@@ -26,6 +26,6 @@ public interface IFileTransferLogic
         AdaptorUser loggedUser);
     Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
         AdaptorUser loggedUser);
-    dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
+    Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
     Task<FileTransferMethod> ProvideCredentials(long modelProjectId, long modelClusterId, AdaptorUser loggedUser);
 }

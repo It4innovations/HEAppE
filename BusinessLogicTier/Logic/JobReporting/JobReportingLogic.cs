@@ -11,7 +11,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Project = HEAppE.DomainObjects.JobManagement.Project;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
@@ -19,14 +19,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
 internal class JobReportingLogic : IJobReportingLogic
 {
     protected readonly IUnitOfWork _unitOfWork;
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
 
-    internal JobReportingLogic(IUnitOfWork unitOfWork)
+    internal JobReportingLogic(IUnitOfWork unitOfWork, ILogger logger)
     {
         _unitOfWork = unitOfWork;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
-
     public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
     {
         var enumerable = projects as Project[] ?? projects.ToArray();

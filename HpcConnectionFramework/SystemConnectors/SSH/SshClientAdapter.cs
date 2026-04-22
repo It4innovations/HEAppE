@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -31,38 +32,65 @@ public class SshClientAdapter
 
     #region Local Methods
 
+
+
     /// <summary>
-    ///     Run command
+    ///     Run command async
     /// </summary>
     /// <param name="command">Command</param>
     /// <returns></returns>
-    public SshCommandWrapper RunCommand(string command)
+    public async Task<SshCommandWrapper> RunCommandAsync(string command)
     {
         if (_sshClient is NoAuthenticationSshClient ownSshCommand)
-            return ownSshCommand.RunShellCommand(command);
+            return await Task.Run(() => ownSshCommand.RunShellCommand(command));
+        
+        if (_sshClient is KerberosSshClient krbSshCommand)
+            return await krbSshCommand.ExecuteAsync(command);
         
         using var cmd = _sshClient.CreateCommand(command);
-        cmd.Execute();
+        await Task.Factory.FromAsync(cmd.BeginExecute(), cmd.EndExecute);
         return new SshCommandWrapper(cmd);
     }
 
 
 
     /// <summary>
-    ///     Connect
+    ///     Connect async
     /// </summary>
-    public void Connect()
+    public async Task ConnectAsync()
     {
+        switch (_sshClient)
+        {
+            case NoAuthenticationSshClient:
+                break;
+            case KerberosSshClient krbClient:
+                await krbClient.ConnectAsync();
+                break;
+            default:
+                await Task.Run(() => _sshClient.Connect());
+                break;
+        }
+
+        // Set keep-alive interval after successful connection
         _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        if (_sshClient is not NoAuthenticationSshClient) _sshClient.Connect();
     }
 
     /// <summary>
-    ///     Disconnect
+    ///     Disconnect async
     /// </summary>
-    public void Disconnect()
+    public async Task DisconnectAsync()
     {
-        if (_sshClient is not NoAuthenticationSshClient) _sshClient.Disconnect();
+        switch (_sshClient)
+        {
+            case NoAuthenticationSshClient:
+                break;
+            case KerberosSshClient krbClient:
+                krbClient.Disconnect();
+                break;
+            default:
+                await Task.Run(() => _sshClient.Disconnect());
+                break;
+        }
     }
 
     #endregion

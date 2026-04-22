@@ -4,7 +4,7 @@ using System.Data;
 using System.Globalization;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.Utils;
 
@@ -13,15 +13,15 @@ public static class ResourceAccountingUtils
     private static readonly DataTable _calculator = new DataTable();
     private static readonly char[] _operators = "+-*/%()".ToCharArray();
 
-    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
+    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILogger logger)
     {
         if (dbTaskInfo == null || submittedTaskInfo == null)
         {
-            logger?.Error("Cannot compute accounting: dbTaskInfo or submittedTaskInfo is null.");
+            logger?.LogError("Cannot compute accounting: dbTaskInfo or submittedTaskInfo is null.");
             return;
         }
 
-        logger?.Info($"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
+        logger?.LogInformation($"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
 
         var accounting = dbTaskInfo.NodeType
             ?.ClusterNodeTypeAggregation
@@ -34,11 +34,11 @@ public static class ResourceAccountingUtils
 
         if (accounting == null)
         {
-            logger?.Info($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
+            logger?.LogInformation($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
             return;
         }
 
-        logger?.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {dbTaskInfo.Id}");
+        logger?.LogInformation($"Accounting {accounting.Id} found for SubmittedTaskInfo: {dbTaskInfo.Id}");
 
         if ((submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0) && !string.IsNullOrEmpty(submittedTaskInfo.AllParameters))
         {
@@ -58,7 +58,7 @@ public static class ResourceAccountingUtils
         dbTaskInfo.ResourceConsumed.Accounting = accounting;
     }
 
-    private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILog logger)
+    private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(accountingFormula))
             return 0;
@@ -97,7 +97,7 @@ public static class ResourceAccountingUtils
             }
             catch (Exception ex)
             {
-                logger?.Error($"Error processing parameter {param.Key}: {ex.Message}");
+                logger?.LogError(ex, $"Error processing parameter {param.Key}: {ex.Message}");
             }
         }
 
@@ -106,13 +106,13 @@ public static class ResourceAccountingUtils
             var resultObj = _calculator.Compute(accountingFormula, null);
             double finalResult = Convert.ToDouble(resultObj, CultureInfo.InvariantCulture);
 
-            logger?.Info($"Allocated Resources | OrigFormula: [{originalFormula}] | Params: [{string.Join(", ", paramLogs)}] | ParsedFormula: [{accountingFormula}] | Result: {finalResult}");
+            logger?.LogInformation($"Allocated Resources | OrigFormula: [{originalFormula}] | Params: [{string.Join(", ", paramLogs)}] | ParsedFormula: [{accountingFormula}] | Result: {finalResult}");
 
             return finalResult;
         }
         catch (Exception ex)
         {
-            logger?.Error($"Error computing final formula [{accountingFormula}]: {ex.Message}");
+            logger?.LogError(ex, $"Error computing final formula [{accountingFormula}]: {ex.Message}");
         }
 
         return 0;

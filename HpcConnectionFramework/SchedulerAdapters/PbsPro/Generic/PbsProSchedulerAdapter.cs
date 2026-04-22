@@ -13,7 +13,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
@@ -29,12 +29,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     ///     Constructor
     /// </summary>
     /// <param name="convertor">Convertor</param>
-    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(PbsProSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion
@@ -54,7 +54,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel
@@ -79,34 +79,74 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="credentials">Credentials</param>
     /// <returns></returns>
     /// <exception cref="PbsException"></exception>
-    public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
+    public virtual async Task<IEnumerable<SubmittedTaskInfo>> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         var jobIdsWithJobArrayIndexes = new List<string>();
         SshCommandWrapper command = null;
 
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var sshCommandBase64 =
             $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
+            command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64, _logger);
             var jobIds = _convertor.GetJobIds(command.Result).ToList();
 
             for (var i = 0; i < jobSpecification.Tasks.Count; i++)
                 jobIdsWithJobArrayIndexes.AddRange(string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays)
                     ? new List<string> { jobIds[i] }
                     : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
-            return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
+
+            IEnumerable<SubmittedTaskInfo> tasks = null;
+            int retryCount = 3;
+            while (retryCount >= 0)
+            {
+                try
+                {
+                    tasks = await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
+                    if (tasks.Count() >= jobIdsWithJobArrayIndexes.Count && 
+                        tasks.All(t => !string.IsNullOrEmpty(t.Name) && t.State > TaskState.Configuring))
+                    {
+                        return tasks;
+                    }
+                }
+                catch (PbsException) when (retryCount > 0)
+                {
+                    // eventual consistency: wait and retry
+                }
+                
+                if (retryCount > 0)
+                {
+                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in 1s... ({retryCount} attempts left)");
+                    await Task.Delay(1000);
+                }
+                retryCount--;
+            }
+            
+            var resultTasks = (tasks ?? await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes)).ToList();
+            
+            _logger.LogInformation($"SubmitJob cleanup: {resultTasks.Count} tasks found in qstat response.");
+
+            // Create placeholder DB tasks for enforcement (we only have jobSpecification here)
+            var dbTasks = jobSpecification.Tasks.Select((t, i) => new SubmittedTaskInfo 
+            { 
+                ScheduledJobId = jobIds[i], 
+                Specification = t 
+            }).ToList();
+
+            EnforceMetadataAndLog(resultTasks, dbTasks, "SubmitJob");
+            
+            return resultTasks;
         }
         catch (PbsException ex)
         {
             throw new PbsException("SubmitJobException", ex, jobSpecification.Name, jobSpecification.Cluster.Name,
-                command.Result, command.Error, sshCommandBase64)
+                command?.Result, command?.Error, sshCommandBase64)
             {
-                CommandError = command.Error
+                CommandError = command?.Error
             };
         }
     }
@@ -120,7 +160,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="key"></param>
     /// <returns></returns>
     /// <exception cref="PbsException"></exception>
-    public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    public virtual async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfo(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
@@ -131,7 +171,11 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                     ? new List<string> { s.ScheduledJobId }
                     : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
 
-            return GetActualTasksInfo(connectorClient, cluster, jobIdsWithJobArrayIndexes);
+            var result = (await GetActualTasksInfoAsync(connectorClient, cluster, jobIdsWithJobArrayIndexes)).ToList();
+            
+            EnforceMetadataAndLog(result, submitedTasksInfo, "RefreshState");
+            
+            return result;
         }
         catch (SshCommandException ce)
         {
@@ -150,7 +194,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                         .Select(s => s.Groups.GetValueOrDefault("JobId").Value));
                 }
 
-            _log.Warn(
+            _logger.LogWarning(
                 $"Scheduled Job ids: \"{missingJobIds}\" are not in PBS Professional scheduler database. Mentioned jobs were canceled!");
             var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
             if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
@@ -161,7 +205,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
             if (!reducedjobIdsWithJobArrayIndexes.Any()) return Enumerable.Empty<SubmittedTaskInfo>();
 
-            return GetActualTasksInfo(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
+            return await GetActualTasksInfoAsync(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
         }
     }
 
@@ -171,7 +215,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
     /// <param name="message">Message</param>
-    public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
+    public virtual async Task CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         string message)
     {
         StringBuilder cmdBuilder = new();
@@ -180,14 +224,14 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             submitedTasksInfo.ToList().ForEach(f =>
                 cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
             var sshCommand = cmdBuilder.ToString();
-            _log.Info(
+            _logger.LogInformation(
                 $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
         }
         catch (SshCommandException ce)
         {
-            if (!ce.Contains("qdel: Job has finished")) throw;
+            if (!ce.Contains("qdel: Job has finished") && !ce.Contains("qdel: Unknown Job Id")) throw;
         }
     }
 
@@ -198,15 +242,15 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="nodeType">Cluster node type</param>
     /// <returns></returns>
     /// <exception cref="PbsException"></exception>
-    public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+    public virtual async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
     {
         SshCommandWrapper command = null;
         var sshCommand = $"{_commands.InterpreterCommand} 'qstat -Q -f {nodeType.Queue}'";
-        _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
             return _convertor.ReadQueueActualInformation(nodeType, command.Result);
         }
         catch (PbsException ex)
@@ -223,7 +267,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="taskInfo">Task information</param>
-    public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
+    public virtual async Task<IEnumerable<string>> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
     {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
@@ -238,10 +282,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         });
 
         var sshCommand = cmdBuilder.ToString();
-        _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
             return command.Result
                 .Split('\n')
                 .Where(w => !string.IsNullOrEmpty(w))
@@ -266,9 +310,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="userScriptPath">Generic script path</param>
     /// <returns></returns>
-    public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+    public virtual async Task<IEnumerable<string>> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
     {
-        return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
+        return await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
     }
 
     /// <summary>
@@ -277,10 +321,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKey">Public key</param>
     /// <param name="jobInfo">Job information</param>
-    public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo)
     {
-        _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
     }
 
     /// <summary>
@@ -289,9 +333,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
     /// <param name="projectAccountingString">Project accounting string</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
+        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
     }
 
     /// <summary>
@@ -301,10 +345,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="jobInfo">Job information</param>
     /// <param name="localBasePath"></param>
     /// <param name="sharedAccountsPoolMode"></param>
-    public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public async Task CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
-        _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
+        await _commands.CreateJobDirectoryAsync(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
     }
 
     /// <summary>
@@ -312,9 +356,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job info</param>
-    public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        return _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
+        return await _commands.DeleteJobDirectoryAsync(connectorClient, jobInfo, localBasePath);
     }
 
     /// <summary>
@@ -323,10 +367,10 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+    public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path)
     {
-        _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
+        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
     }
 
     /// <summary>
@@ -335,23 +379,16 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
+    public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
     {
-        _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
+        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
     }
 
     #region SSH tunnel methods
 
-    /// <summary>
-    ///     Create tunnel
-    /// </summary>
-    /// <param name="connectorClient">Connector</param>
-    /// <param name="taskInfo">Task info</param>
-    /// <param name="nodeHost">Cluster node address</param>
-    /// <param name="nodePort">Cluster node port</param>
-    public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
+    public async Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
     {
-        _sshTunnelUtil.CreateTunnel(connectorClient, taskInfo.Id, nodeHost, nodePort);
+        await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
     }
 
     /// <summary>
@@ -359,9 +396,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="taskInfo">Task info</param>
-    public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
+    public async Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
     {
-        _sshTunnelUtil.RemoveTunnel(connectorClient, taskInfo.Id);
+        await _sshTunnelUtil.RemoveTunnelAsync(connectorClient, taskInfo.Id);
     }
 
     /// <summary>
@@ -383,18 +420,18 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    public async Task<bool> InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
-        return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
+        return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory,
             overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
 
     #endregion
 
-    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
-        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
     #endregion
 
@@ -408,28 +445,74 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="scheduledJobIds">Scheduler job id´s</param>
     /// <returns></returns>
     /// <exception cref="PbsException"></exception>
-    private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<string> scheduledJobIds)
     {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", scheduledJobIds)}\"");
 
         cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}'");
         var sshCommand = cmdBuilder.ToString();
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
+            command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", scheduledJobIds)}: {command.Result}");
+            var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
             return submittedTasksInfo;
         }
         catch (PbsException ex)
         {
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", scheduledJobIds)}. Result: {command?.Result}, Error: {command?.Error}");
             throw new PbsException("GetActualTasksInfo", ex, string.Join(", ", scheduledJobIds), command.Result,
                 command.Error, sshCommand)
             {
                 CommandError = command.Error
             };
+        }
+    }
+
+    private void EnforceMetadataAndLog(List<SubmittedTaskInfo> clusterTasks, IEnumerable<SubmittedTaskInfo> dbTasks, string context)
+    {
+        var dbTasksList = dbTasks.ToList();
+        _logger.LogInformation($"[{context}] Validating {clusterTasks.Count} cluster tasks against {dbTasksList.Count} DB tasks.");
+        
+        foreach (var clusterTask in clusterTasks)
+        {
+            var oldState = clusterTask.State;
+            // Always ensure at least Submitted state if we found it in qstat
+            if (clusterTask.State == TaskState.Configuring)
+                clusterTask.State = TaskState.Submitted;
+
+            if (string.IsNullOrEmpty(clusterTask.Name))
+            {
+                foreach (var dbTask in dbTasksList)
+                {
+                    var originalJobId = dbTask.ScheduledJobId;
+                    if (clusterTask.ScheduledJobId == originalJobId || 
+                        (originalJobId != null && originalJobId.EndsWith("[]") && 
+                         clusterTask.ScheduledJobId.StartsWith(originalJobId.Replace("[]", "["))))
+                    {
+                        if (dbTask.Specification != null)
+                        {
+                            clusterTask.Name = dbTask.Specification.Id.ToString();
+                            _logger.LogInformation($"[{context}] Enforced name mapping for task {clusterTask.ScheduledJobId}: {clusterTask.Name} (State: {oldState}->{clusterTask.State})");
+                            break;
+                        }
+                    }
+                }
+                
+                if (string.IsNullOrEmpty(clusterTask.Name))
+                {
+                    _logger.LogWarning($"[{context}] Could not find mapping for cluster task {clusterTask.ScheduledJobId} (State: {clusterTask.State})");
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"[{context}] Task {clusterTask.ScheduledJobId} has name: {clusterTask.Name} (State: {clusterTask.State})");
+            }
         }
     }
 
@@ -473,7 +556,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)
@@ -508,7 +591,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
-    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    public Task<DryRunJobInfo> DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
     {
         // Currently not implemented for PBS Pro
         throw new NotSupportedException("Dry run job is not supported for PBS Pro scheduler.");

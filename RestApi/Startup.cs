@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
@@ -110,10 +111,10 @@ public class Startup
             SshCaSettings.CAName,
             SshCaSettings.ConnectionTimeoutInSeconds
         ));
-
+        
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-
+        
         var retryPolicy = HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
@@ -134,13 +135,13 @@ public class Startup
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
-            options.Filters.Add(new AuthorizeFilter());
+                options.Filters.Add(new AuthorizeFilter());
         }).AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
-
+        
         services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -148,11 +149,12 @@ public class Startup
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
             {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-                conf.Timeout = TimeSpan.FromSeconds(60);
+                conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         });
 
-        services.AddScoped<IExpirioService, ExpirioService>();
+        //services.AddScoped<IExpirioService, ExpirioService>();
+        services.AddSingleton<IExpirioService, ExpirioService>();
 
         services.AddHttpClient("ExpirioClient", conf =>
         {
@@ -161,12 +163,12 @@ public class Startup
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)));
-
+        
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 
-        services.AddSmartAuthentication(Configuration);
+            services.AddSmartAuthentication(Configuration);
 
         services.AddCors(options =>
         {
@@ -177,9 +179,12 @@ public class Startup
                     .AllowAnyMethod();
             });
         });
-
-        services.AddHttpClient("LexisTokenExchangeClient");
-        services.AddSingleton<ILexisTokenService, LexisTokenService>();
+        
+        services.AddHttpClient("LexisTokenExchangeClient", conf => 
+        {
+            conf.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.ConnectionTimeoutInSeconds);
+        });
+        services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
         {
@@ -201,43 +206,43 @@ public class Startup
                     Array.Empty<string>()
                 }
             });
-
-            gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = "Bearer",
-                BearerFormat = "JWT"
-            });
-
-            gen.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
+            
+                gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    new OpenApiSecurityScheme
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT"
+                });
+
+                gen.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
                     {
+                        new OpenApiSecurityScheme
+                        {
                         Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()
-                }
-            });
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             
             gen.ParameterFilter<PascalCaseParameterFilter>();
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo { Title = SwaggerConfiguration.Title, Version = SwaggerConfiguration.Version });
             gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo { Title = "Detailed Job Reporting API", Version = SwaggerConfiguration.Version });
             gen.SwaggerDoc("py4heappe", new OpenApiInfo { Title = "py4heappe API", Version = SwaggerConfiguration.Version });
-
-            gen.DocInclusionPredicate((documentName, apiDescription) =>
-            {
+            
+                gen.DocInclusionPredicate((documentName, apiDescription) =>
+                {
                 if (documentName == "DetailedJobReporting") return apiDescription.GroupName == "DetailedJobReporting";
                 if (documentName == SwaggerConfiguration.Version) return string.IsNullOrEmpty(apiDescription.GroupName);
                 if (documentName == "py4heappe") return true;
-                return false;
-            });
-
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            gen.IncludeXmlComments(xmlPath);
+                    return false;
+                });
+                
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                gen.IncludeXmlComments(xmlPath);
         });
 
         services.AddRazorPages();
@@ -267,6 +272,8 @@ public class Startup
         else
             loggerFactory.AddLog4Net("Logging/log4net.config");
 
+        ConfigureLog4NetLevel();
+
         AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
 
         ServiceActivator.Configure(app.ApplicationServices);
@@ -285,7 +292,7 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
         });
-
+        
         app.UseSwaggerUI(swaggerUI =>
         {
             var hostPrefix = string.IsNullOrEmpty(SwaggerConfiguration.HostPostfix) ? string.Empty : "/" + SwaggerConfiguration.HostPostfix;
@@ -298,10 +305,10 @@ public class Startup
 
         app.UseRequestLocalization();
         app.UseRouting();
-        app.UseMiddleware<LogUserContextMiddleware>();
         app.UseMiddleware<LexisAuthMiddleware>();
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
+        app.UseMiddleware<LogUserContextMiddleware>();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseAuthorization();
 
@@ -316,5 +323,28 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+    }
+
+    private void ConfigureLog4NetLevel()
+    {
+        var logLevel = Configuration["Logging:LogLevel:Default"];
+        if (string.IsNullOrEmpty(logLevel)) return;
+
+        var repository = LogManager.GetRepository(Assembly.GetEntryAssembly()) as log4net.Repository.Hierarchy.Hierarchy;
+        if (repository == null) return;
+
+        // Map .NET LogLevel strings to log4net levels if necessary, 
+        // though log4net.Core.LevelMap handles standard names (DEBUG, INFO, WARN, ERROR, FATAL)
+        string mappedLevel = logLevel.ToUpper() switch
+        {
+            "INFORMATION" => "INFO",
+            "WARNING" => "WARN",
+            "CRITICAL" => "FATAL",
+            _ => logLevel.ToUpper()
+        };
+
+        log4net.Core.Level level = repository.LevelMap[mappedLevel] ?? log4net.Core.Level.Info;
+        repository.Root.Level = level;
+        repository.RaiseConfigurationChanged(EventArgs.Empty);
     }
 }

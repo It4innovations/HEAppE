@@ -4,10 +4,13 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.Services.Expirio;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using System;
 using System.Collections.Generic;
 using System.Xml.Schema;
+
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -54,7 +57,14 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <param name="project">Project information</param>
     /// <param name="adaptorUserId">Optional adapter user ID for one-to-one mapping</param>
     /// <returns>Scheduler instance</returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, Dictionary<string, dynamic> options)
+    public override IRexScheduler CreateScheduler(
+        Cluster configuration,
+        Project project,
+        ISshCertificateAuthorityService sshCertificateAuthorityService,
+        long? adaptorUserId,
+        IExpirioService expirio,
+        ILogger logger,
+        Dictionary<string, dynamic> options = null)
     {
         // use masterNodeName to have unique scheduler for various Expirio users
         var masterNodeName = configuration.MasterNodeName;
@@ -73,11 +83,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         FirecRestSchedulerAdapter schedulerAdapter = null;
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
         {
-            schedulerAdapter = CreateSchedulerAdapter() as FirecRestSchedulerAdapter;
+            schedulerAdapter = CreateSchedulerAdapter(logger) as FirecRestSchedulerAdapter;
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
                 null, // ssh connection pool not needed for FirecREST
-                schedulerAdapter
+                schedulerAdapter,
+                logger
             );
             _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
         }
@@ -103,18 +114,18 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     ///     Create or get existing FirecRest scheduler adapter instance
     /// </summary>
     /// <returns>FirecRest scheduler adapter</returns>
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor());
+        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), logger);
     }
 
     /// <summary>
     ///     Create or get existing FirecRest data convertor
     /// </summary>
     /// <returns>FirecRest data convertor</returns>
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
-        return _convertorSingleton ??= new FirecRestDataConvertor(new FirecRestConversionAdapterFactory());
+        return _convertorSingleton ??= new FirecRestDataConvertor(new FirecRestConversionAdapterFactory(), logger);
     }
 
     /// <summary>
@@ -122,7 +133,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// </summary>
     /// <param name="configuration">Cluster configuration data</param>
     /// <returns>SSH connector instance</returns>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger)
     {
         throw new NotImplementedException("CreateSchedulerConnector not implemented in FirecRestSchedulerFactory");
     }

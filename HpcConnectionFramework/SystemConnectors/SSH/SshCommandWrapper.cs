@@ -78,5 +78,21 @@ public class SshCommandWrapper
         sshCommand.Dispose();
     }
 
+    /// <summary>
+    ///     Constructor
+    /// </summary>
+    public SshCommandWrapper(string commandText, bool isError, string line)
+    {
+        _exitStatus = 0;
+        _error = string.Empty;
+        _result = string.Empty;
+        _commandText = commandText;
+
+        if(isError)
+            _error = line;
+        else
+            _result = line;
+    }
+
     #endregion
 }

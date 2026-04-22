@@ -64,7 +64,12 @@ public class NoAuthenticationSftpClient : SftpClient
         {
             proc.StartInfo.FileName = "sftp";
             proc.StartInfo.WorkingDirectory = "/usr/bin/";
-            proc.StartInfo.Arguments = $"-P {_port} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
+            proc.StartInfo.ArgumentList.Add("-P");
+            proc.StartInfo.ArgumentList.Add(_port.ToString());
+            proc.StartInfo.ArgumentList.Add("-q");
+            proc.StartInfo.ArgumentList.Add("-o");
+            proc.StartInfo.ArgumentList.Add("StrictHostKeyChecking=no");
+            proc.StartInfo.ArgumentList.Add($"{_userName}@{_masterNodeName}");
             proc.StartInfo.UseShellExecute = false;
             proc.StartInfo.RedirectStandardInput = true;
             proc.StartInfo.RedirectStandardOutput = true;
@@ -72,7 +77,7 @@ public class NoAuthenticationSftpClient : SftpClient
             proc.StartInfo.CreateNoWindow = true;
             proc.EnableRaisingEvents = true;
 
-            _logger.LogInformation(proc.StartInfo.Arguments);
+            _logger.LogInformation(string.Join(" ", proc.StartInfo.ArgumentList));
             proc.Start();
             proc.StandardInput.WriteLine(command);
             proc.StandardInput.WriteLine("quit");

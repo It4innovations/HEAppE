@@ -2,6 +2,7 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
@@ -30,10 +31,17 @@ namespace HEAppE.RestApi.Logging
             _sshCertificateAuthorityService = sshCertificateAuthorityService;
         }
 
-        public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService)
+        public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
         {
-            var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService);
+            ApplyRequestSizeLimit(context);
+
+            var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
             var jobId = await ExtractJobId(context);
+
+            if (userId <= 0 && string.IsNullOrEmpty(userName))
+            {
+                userName = await ExtractUserNameFromContent(context);
+            }
 
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
             if (jobId.HasValue)
@@ -55,7 +63,42 @@ namespace HEAppE.RestApi.Logging
             }
         }
 
-        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context, IHttpContextKeys keys, IUserOrgService userOrg)
+        private static void ApplyRequestSizeLimit(HttpContext context)
+        {
+            var endpoint = context.GetEndpoint();
+            if (endpoint == null) return;
+
+            // Use reflection to avoid compile-time dependency on Metadata/Features interfaces
+            var metadata = endpoint.Metadata;
+            var sizeLimitMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IRequestSizeLimitMetadata") != null);
+            var allowLargeBodyMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IAllowLargeRequestBodyMetadata") != null);
+
+            if (sizeLimitMetadata == null && allowLargeBodyMetadata == null) return;
+
+            var feature = context.Features.FirstOrDefault(f => f.Key.Name == "IHttpRequestBodySizeFeature").Value;
+            if (feature == null) return;
+
+            var isReadOnlyProp = feature.GetType().GetProperty("IsReadOnly");
+            if (isReadOnlyProp != null && (bool)isReadOnlyProp.GetValue(feature)) return;
+
+            var maxRequestBodySizeProp = feature.GetType().GetProperty("MaxRequestBodySize");
+            if (maxRequestBodySizeProp == null) return;
+
+            if (allowLargeBodyMetadata != null)
+            {
+                maxRequestBodySizeProp.SetValue(feature, null);
+            }
+            else if (sizeLimitMetadata != null)
+            {
+                var limitProp = sizeLimitMetadata.GetType().GetProperty("MaxRequestBodySize");
+                if (limitProp != null)
+                {
+                    maxRequestBodySizeProp.SetValue(feature, limitProp.GetValue(sizeLimitMetadata));
+                }
+            }
+        }
+
+        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context, IHttpContextKeys keys, IUserOrgService userOrg, IExpirioService expirioService)
         {
             var sessionCode = await ExtractSessionCode(context);
 
@@ -73,7 +116,7 @@ namespace HEAppE.RestApi.Logging
             }
             else
             {
-                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg));
+                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg, expirioService));
                 userId = userInfo.userId;
                 userName = userInfo.userName;
                 email = userInfo.email;
@@ -96,7 +139,7 @@ namespace HEAppE.RestApi.Logging
                 var body = await reader.ReadToEndAsync();
                 context.Request.Body.Position = 0;
 
-                try
+                try 
                 {
                     var json = JsonDocument.Parse(body);
                     if (json.RootElement.TryGetProperty("SessionCode", out var prop))
@@ -164,13 +207,13 @@ namespace HEAppE.RestApi.Logging
             return null;
         }
 
-        private (long userId, string userName, string email) GetUserInfo(string sessionCode, IHttpContextKeys keys, IUserOrgService userOrg)
+        private (long userId, string userName, string email) GetUserInfo(string sessionCode, IHttpContextKeys keys, IUserOrgService userOrg, IExpirioService expirioService)
         {
             try
             {
-                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
-                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys);
+                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys, expirioService, _logger);
 
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 
@@ -181,6 +224,36 @@ namespace HEAppE.RestApi.Logging
                 _logger.LogDebug(ex, "Failed to retrieve user information for session code");
                 return (-1, null, null);
             }
+        }
+
+        private async Task<string> ExtractUserNameFromContent(HttpContext context)
+        {
+            if (context.Request.ContentLength > 0 && (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                context.Request.EnableBuffering();
+                var position = context.Request.Body.Position;
+                context.Request.Body.Position = 0;
+
+                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
+                var body = await reader.ReadToEndAsync();
+                context.Request.Body.Position = position;
+
+                try
+                {
+                    var json = JsonDocument.Parse(body);
+                    // Look for Username in generic credentials structure
+                    if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
+                    {
+                        if (creds.TryGetProperty("Username", out var user) || creds.TryGetProperty("username", out user))
+                            return user.GetString();
+                    }
+                    // Direct Username property
+                    if (json.RootElement.TryGetProperty("Username", out var directUser) || json.RootElement.TryGetProperty("username", out directUser))
+                        return directUser.GetString();
+                }
+                catch { }
+            }
+            return null;
         }
     }
 }

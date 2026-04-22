@@ -34,9 +34,15 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .Include(j => j.Tasks)
             .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
             .Include(j => j.Project)
             .Include(j => j.Submitter)
             .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+            .AsSplitQuery()
             .ToList();
     }
 

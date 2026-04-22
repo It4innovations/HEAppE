@@ -5,8 +5,7 @@ using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
 
@@ -14,16 +13,19 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
-    // Static members ensure the cache and client are shared across all instances of VaultConnector
-    private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
-    
+    public VaultConnector(ILogger logger)
+    {
+        _logger = logger;
+    }
+
     // Static HttpClient prevents Socket Exhaustion issues
-    private static readonly HttpClient _httpClient = new HttpClient { 
-        BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress) 
+    private static readonly HttpClient _httpClient = new HttpClient {
+        BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress),
+        Timeout = TimeSpan.FromSeconds(VaultConnectorSettings.ConnectionTimeoutInSeconds)
     };
 
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
-    protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Get cluster authentication credentials with cache support.
@@ -31,13 +33,8 @@ public class VaultConnector : IVaultConnector
     /// </summary>
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
-        // GetOrCreateAsync handles locking, so only one HTTP request is made per ID
-        return await _cache.GetOrCreateAsync(id, entry =>
-        {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(5);
-            _log.Debug($"Cache miss for ID: {id}, fetching from Vault.");
-            return GetClusterAuthenticationCredentialsInternal(id);
-        });
+        _logger.LogDebug($"Fetching credentials for ID: {id} from Vault.");
+        return await GetClusterAuthenticationCredentialsInternal(id);
     }
 
     /// <summary>
@@ -51,12 +48,12 @@ public class VaultConnector : IVaultConnector
         {
             var result = await _httpClient.GetStringAsync(path);
             var vaultPart = ClusterProjectCredentialVaultPart.FromVaultJsonData(result);
-            _log.Debug($"Retrieved vault ClusterProjectCredential with ID: {id}");
+            _logger.LogDebug($"Retrieved vault ClusterProjectCredential with ID: {id}");
             return vaultPart;
         }
         catch (HttpRequestException e)
         {
-            _log.Warn($"Vault request for Id: {id} not found. Exception: {e}");
+            _logger.LogWarning($"Vault request for Id: {id} not found. Exception: {e}");
             return ClusterProjectCredentialVaultPart.Empty;
         }
     }
@@ -71,17 +68,16 @@ public class VaultConnector : IVaultConnector
         var content = data.AsVaultDataJsonObject();
         var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
-        _log.Debug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
+        _logger.LogDebug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
         var result = await _httpClient.PostAsync(path, payload);
 
         if (result.IsSuccessStatusCode)
         {
-            _log.Debug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
-            _cache.Remove(data.Id); // Invalidate shared cache
+            _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
             return true;
         }
 
-        _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
+        _logger.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
         return false;
     }
 
@@ -97,12 +93,11 @@ public class VaultConnector : IVaultConnector
 
         if (result.IsSuccessStatusCode)
         {
-            _log.Debug($"Deleted vault ClusterProjectCredential with ID: {id}");
-            _cache.Remove(id); // Invalidate shared cache
+            _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
         }
         else
         {
-            _log.Warn($"Failed to delete vault ClusterProjectCredential with ID: {id}");
+            _logger.LogWarning($"Failed to delete vault ClusterProjectCredential with ID: {id}");
         }
     }
     
@@ -113,7 +108,7 @@ public class VaultConnector : IVaultConnector
 
     public async Task<byte[]> CreateSnapshot()
     {
-        _log.Info("Initiating Vault backup using TAR format.");
+        _logger.LogInformation("Initiating Vault backup using TAR format.");
     
         string vaultSourcePath = "/opt/vault-backup-access/data";
 
@@ -121,20 +116,20 @@ public class VaultConnector : IVaultConnector
         {
             if (!Directory.Exists(vaultSourcePath))
             {
-                _log.Error($"Source path {vaultSourcePath} does not exist.");
+                _logger.LogError($"Source path {vaultSourcePath} does not exist.");
                 return Array.Empty<byte>();
             }
 
             using (var ms = new MemoryStream())
             {
                 await Task.Run(() => TarFile.CreateFromDirectory(vaultSourcePath, ms, false));
-                _log.Info("Vault backup successfully archived into TAR format.");
+                _logger.LogInformation("Vault backup successfully archived into TAR format.");
                 return ms.ToArray();
             }
         }
         catch (Exception ex)
         {
-            _log.Error($"TAR backup failed: {ex.Message}");
+            _logger.LogError($"TAR backup failed: {ex.Message}");
             return Array.Empty<byte>();
         }
     }

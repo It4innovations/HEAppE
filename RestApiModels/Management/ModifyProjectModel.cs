@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.RestApiModels.AbstractModels;
 
@@ -71,4 +72,5 @@ public class ModifyProjectModel : SessionCodeModel
     [DataMember(Name = "IsOneToOneMapping", IsRequired = false)]
     [Description("Map user account to exact robot account")]
     public bool? IsOneToOneMapping { get; set; } = false;    
+
 }

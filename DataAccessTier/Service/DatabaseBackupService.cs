@@ -1,15 +1,15 @@
-﻿using HEAppE.DataAccessTier.Configuration;
-using HEAppE.DomainObjects.Management;
-using HEAppE.Exceptions.External;
-using HEAppE.Exceptions.Internal;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using log4net;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DomainObjects.Management;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 
 namespace HEAppE.DataAccessTier.Service;
 
@@ -17,12 +17,11 @@ internal class DatabaseBackupService : IDatabaseBackupService
 {
     #region Constructors
 
-    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector)
+    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector, ILogger logger)
     {
         _context = context;
         _vaultConnector = vaultConnector;
-        _log = LogManager.GetLogger(nameof(DatabaseBackupService));
-        
+        _logger = logger;
     }
 
     #endregion
@@ -30,7 +29,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
     #region Instances
 
     protected readonly MiddlewareContext _context;
-    private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IVaultConnector _vaultConnector;
 
     #endregion
@@ -60,8 +59,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
-            string sql = $"BACKUP DATABASE [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
-            await _context.Database.ExecuteSqlRawAsync(sql);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"BACKUP DATABASE [{databaseName}] TO DISK = {backupPath} WITH INIT;");
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
@@ -102,13 +100,13 @@ internal class DatabaseBackupService : IDatabaseBackupService
             }
             else
             {
-                _log.Warn($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
+                _logger.LogWarning($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
             }
             #endregion
             
             #region HashiCorp Vault backup
 
-            _log.Info("Starting HashiCorp Vault snapshot as part of full backup.");
+            _logger.LogInformation("Starting HashiCorp Vault snapshot as part of full backup.");
             try
             {
                 byte[] vaultSnapshot = await _vaultConnector.CreateSnapshot();
@@ -125,12 +123,12 @@ internal class DatabaseBackupService : IDatabaseBackupService
                         string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, vaultBackupFileName);
                         await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
                     }
-                    _log.Debug("Vault snapshot included in backup successfully.");
+                    _logger.LogDebug("Vault snapshot included in backup successfully.");
                 }
             }
             catch (Exception ex)
             {
-                _log.Error($"Vault backup failed, but continuing with DB backup: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed, but continuing with DB backup: {ex.Message}");
             }
 
             #endregion
@@ -158,8 +156,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
-            string sql = $"BACKUP LOG [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
-            _context.Database.ExecuteSqlRaw(sql);
+            _context.Database.ExecuteSqlInterpolated($"BACKUP LOG [{databaseName}] TO DISK = {backupPath} WITH INIT;");
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))

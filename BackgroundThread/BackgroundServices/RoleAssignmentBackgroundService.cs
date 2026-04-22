@@ -7,7 +7,7 @@ using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -16,12 +16,13 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 public class RoleAssignmentBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger _logger;
     private readonly BackGroundThreadConfiguration _configuration;
-    private static readonly ILog _log = LogManager.GetLogger(typeof(RoleAssignmentBackgroundService));
 
-    public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory, BackGroundThreadConfiguration configuration)
+    public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory, ILoggerFactory loggerFactory, BackGroundThreadConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.RoleAssignmentBackgroundService");
         _configuration = configuration;
     }
 
@@ -32,11 +33,11 @@ public class RoleAssignmentBackgroundService : BackgroundService
         {
             try
             {
-                _log.Info("Starting system role assignment synchronization.");
+                _logger.LogInformation("Starting system role assignment synchronization.");
                 
                 using (IServiceScope scope = _scopeFactory.CreateScope())
                 {
-                    using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork())
+                    using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork(_logger))
                     {
                         var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
                         var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
@@ -45,22 +46,22 @@ public class RoleAssignmentBackgroundService : BackgroundService
                         {
                             if (stoppingToken.IsCancellationRequested) break;
 
-                            using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
+                            using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
                             {
                                 var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
                                 if (localGroup != null)
                                 {
-                                    RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _log);
+                                    RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _logger);
                                 }
                             }
                         }
                     }
                 }
-                _log.Info("Role assignment synchronization finished successfully.");
+                _logger.LogInformation("Role assignment synchronization finished successfully.");
             }
             catch (Exception ex)
             {
-                _log.Error("Role assignment failed, will retry in next interval.", ex);
+                _logger.LogError(ex, "Role assignment failed, will retry in next interval.");
             }
 
             try

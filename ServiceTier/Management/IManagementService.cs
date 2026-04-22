@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -52,10 +53,10 @@ public interface IManagementService
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
     ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
-    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode);
 
-    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
+    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType,
         string sessionCode);
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
@@ -69,6 +70,17 @@ public interface IManagementService
         string sessionCode);
 
     Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
+
+    Task<CredentialResponseExt> CreateCredential(long projectId, string sessionCode, string? username, ClusterAuthenticationCredentialsAuthType? authType, 
+                                                      bool? generateNewKey, string? privateKey, string? password, string? passphrase, long? adaptorUserId = null);                                              
+    
+    Task<List<CredentialResponseExt>> GetCredentials(long projectId, string sessionCode, long? adaptorUserId = null);
+
+    //Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
+    //                                                   bool? generateNewKey, string? privateKey, string? password, string? passphrase);
+    Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, string sessionCode, long? adaptorUserId = null);
+
+    Task RemoveCredential(long projectId, string sessionCode, string username, long? adaptorUserId = null);
 
     public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);

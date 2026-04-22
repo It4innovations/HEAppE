@@ -51,7 +51,7 @@ public class FileTransferController : BaseController<FileTransferController>
         memoryCache)
     {
         _userOrgService = userOrgService;
-        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion
@@ -92,12 +92,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CloseFileTransfer(EndFileTransferModel model)
+    public async Task<IActionResult> CloseFileTransfer(EndFileTransferModel model)
     {
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
+            await _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
         return Ok("File transfer closed");
     }
 
@@ -114,12 +114,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
+    public async Task<IActionResult> DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
     {
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets,
+            return Ok(await _service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets,
             model.SessionCode));
     }
 
@@ -138,7 +138,7 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
     {
         var model = new ListChangedFilesForJobModel
         {
@@ -148,7 +148,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
+            return Ok(await _service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -164,16 +164,16 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DownloadFileFromCluster(DownloadFileFromClusterModel model)
+    public async Task<IActionResult> DownloadFileFromCluster(DownloadFileFromClusterModel model)
     {
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath,
+            return Ok(await _service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath,
             model.SessionCode));
     }
 
-    static List<FileUploadResultExt> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
+    static async Task<List<FileUploadResultExt>> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
     {
         var result = new List<FileUploadResultExt>();
         for (var i = 0; i < tasks.Count; i++)
@@ -183,7 +183,7 @@ public class FileTransferController : BaseController<FileTransferController>
             var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false, Path = null };
             result.Add(item);
 
-            Dictionary<string, dynamic> taskResult = task.Result;
+            Dictionary<string, dynamic> taskResult = await task;
             if (taskResult == null)
                 continue;
             item.Succeeded = taskResult["Succeeded"];
@@ -212,7 +212,7 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult UploadFilesToJobExecutionDir(
+    public async Task<IActionResult> UploadFilesToJobExecutionDir(
         [FromQuery(Name = "SessionCode")] string sessionCode,
         [FromQuery(Name = "JobId")] long jobId,
         [FromQuery(Name = "TaskId")] long? taskId,
@@ -227,7 +227,7 @@ public class FileTransferController : BaseController<FileTransferController>
         validator.ValidateAndThrow(model);
         long jobSpecificationId;
         long? taskSpecificationId = null;
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                       throw new Exception("NotExistingJob");
@@ -239,20 +239,16 @@ public class FileTransferController : BaseController<FileTransferController>
                                       throw new Exception("TaskDoesNotBelongToJob");
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
-                            AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
+                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new Exception("LoggedUserIsNotSubmitterOfJob");
         }
 
-        var tasks = new List<Task<dynamic>>();
+        List<Task<dynamic>> tasks = new List<Task<dynamic>>();
         foreach (var file in files)
-        {
-            tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService)
-                .UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
-        }
-        Task.WaitAll(tasks);
+            tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
 
-        List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
+        List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
         return Ok(result);
     }
 

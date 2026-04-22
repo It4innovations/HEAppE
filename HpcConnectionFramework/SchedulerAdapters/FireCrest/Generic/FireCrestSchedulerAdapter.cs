@@ -1,15 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.Exceptions.Internal;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SystemCommands;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
-using Microsoft.Extensions.DependencyInjection;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,6 +10,17 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SystemCommands;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using Microsoft.Extensions.Logging;
+
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -30,7 +30,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     protected ISchedulerDataConvertor _convertor;
     protected ICommands _commands;
-    protected ILog _logger;
+    protected ILogger _logger;
     protected HttpClient _httpClient;
     
     public string FirecRestUrl { private get; set; }
@@ -46,11 +46,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #region Constructors
 
-    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _logger = LogManager.GetLogger(typeof(FirecRestSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
         FirecRestUrl = FirecRestSettings.FirecRestUrl;
         ClientId = FirecRestSettings.ClientId;
@@ -98,7 +98,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
         catch (Exception ex)
         {
-            _logger.Error($"Failed to retrieve FirecRest authentication token: {ex.Message}", ex);
+            _logger.LogError(ex, $"Failed to retrieve FirecRest authentication token: {ex.Message}");
             throw new SshCommandException("Failed to retrieve FirecRest authentication token", ex.Message);
         }
     }
@@ -117,18 +117,18 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
         if (response.IsSuccessStatusCode)
         {
-            _logger.Debug($"[CreateDirectory] SUCCESS: Directory created: {directoryPath}");
+            _logger.LogDebug($"[CreateDirectory] SUCCESS: Directory created: {directoryPath}");
             return;
         }
 
-        _logger.Debug($"[CreateDirectory] FAILURE DETECTED. Analyzing error...");
+        _logger.LogDebug($"[CreateDirectory] FAILURE DETECTED. Analyzing error...");
 
         if ((response.StatusCode == HttpStatusCode.BadRequest ||
              response.StatusCode == HttpStatusCode.InternalServerError ||
              response.StatusCode == HttpStatusCode.NotFound) &&
             (responseContent.Contains("File exists") || responseContent.Contains("directory already exists")))
         {
-            _logger.Debug($"[CreateDirectory] Directory already exists (safe to ignore): {directoryPath}");
+            _logger.LogDebug($"[CreateDirectory] Directory already exists (safe to ignore): {directoryPath}");
             return;
         }
 
@@ -136,11 +136,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             response.StatusCode == HttpStatusCode.InternalServerError ||
             response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.Debug(
+            _logger.LogDebug(
                 $"[CreateDirectory] Status {response.StatusCode} suggests missing parent or permission issue. Triggering recursion.");
 
             var parentDirectory = Path.GetDirectoryName(directoryPath.TrimEnd('/'))?.Replace("\\", "/");
-            _logger.Debug($"[CreateDirectory] Calculated Parent Directory: {parentDirectory}");
+            _logger.LogDebug($"[CreateDirectory] Calculated Parent Directory: {parentDirectory}");
 
             if (!string.IsNullOrEmpty(parentDirectory) && parentDirectory != "/" && parentDirectory != ".")
             {
@@ -152,11 +152,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         var updatedRequestBody = jsonNode.DeepClone();
                         updatedRequestBody["path"] = parentDirectory;
 
-                        _logger.Debug($"[CreateDirectory] RECURSION: Creating parent {parentDirectory}...");
+                        _logger.LogDebug($"[CreateDirectory] RECURSION: Creating parent {parentDirectory}...");
                         CreateDirectory(endpoint, token, parentDirectory, updatedRequestBody);
-                        _logger.Debug($"[CreateDirectory] RECURSION DONE. Parent {parentDirectory} handled.");
+                        _logger.LogDebug($"[CreateDirectory] RECURSION DONE. Parent {parentDirectory} handled.");
 
-                        _logger.Debug($"[CreateDirectory] RETRYING original: {directoryPath}");
+                        _logger.LogDebug($"[CreateDirectory] RETRYING original: {directoryPath}");
                         using var retryRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
                         retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                         retryRequest.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -166,12 +166,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         var retryContent = retryResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
                             .GetResult();
 
-                        _logger.Debug($"[CreateDirectory] RETRY Status: {retryResponse.StatusCode}");
-                        _logger.Debug($"[CreateDirectory] RETRY Content: {retryContent}");
+                        _logger.LogDebug($"[CreateDirectory] RETRY Status: {retryResponse.StatusCode}");
+                        _logger.LogDebug($"[CreateDirectory] RETRY Content: {retryContent}");
 
                         if (retryResponse.IsSuccessStatusCode)
                         {
-                            _logger.Debug($"[CreateDirectory] RETRY SUCCESS: Directory created: {directoryPath}");
+                            _logger.LogDebug($"[CreateDirectory] RETRY SUCCESS: Directory created: {directoryPath}");
                             return;
                         }
 
@@ -180,12 +180,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                              retryResponse.StatusCode == HttpStatusCode.NotFound) &&
                             (retryContent.Contains("File exists") || retryContent.Contains("directory already exists")))
                         {
-                            _logger.Debug(
+                            _logger.LogDebug(
                                 $"[CreateDirectory] RETRY indicates directory now exists: {directoryPath}");
                             return;
                         }
 
-                        _logger.Debug($"[CreateDirectory] RETRY FAILED. Throwing exception.");
+                        _logger.LogDebug($"[CreateDirectory] RETRY FAILED. Throwing exception.");
                         throw new FirecrestApiException(
                             $"Failed to create directory (retry): {directoryPath}. Status: {retryResponse.StatusCode}, Response: {retryContent}",
                             retryResponse.StatusCode, retryContent);
@@ -197,8 +197,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug($"[CreateDirectory] EXCEPTION during recursion logic: {ex.Message}");
-                    _logger.Debug($"[CreateDirectory] Stack Trace: {ex.StackTrace}");
+                    _logger.LogDebug($"[CreateDirectory] EXCEPTION during recursion logic: {ex.Message}");
+                    _logger.LogDebug($"[CreateDirectory] Stack Trace: {ex.StackTrace}");
                     throw new FirecrestApiException(
                         $"Failed to create directory during recursion: {directoryPath}. Original error: {responseContent}. Recursive error: {ex.Message}",
                         response.StatusCode, responseContent);
@@ -206,11 +206,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             }
             else
             {
-                _logger.Debug($"[CreateDirectory] Parent directory was null/root. Cannot recurse further.");
+                _logger.LogDebug($"[CreateDirectory] Parent directory was null/root. Cannot recurse further.");
             }
         }
 
-        _logger.Debug($"[CreateDirectory] FATAL FAILURE. Throwing exception for: {directoryPath}");
+        _logger.LogDebug($"[CreateDirectory] FATAL FAILURE. Throwing exception for: {directoryPath}");
         throw new FirecrestApiException(
             $"Failed to create directory: {directoryPath}. Status: {response.StatusCode}. Response: {responseContent}",
             response.StatusCode, responseContent);
@@ -218,22 +218,22 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #endregion
 
-    public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
+    public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         try
         {
-            _logger.Debug($"[SubmitJob] STARTING... JobId: {jobSpecification.Id}, Name: {jobSpecification.Name}");
+            _logger.LogDebug($"[SubmitJob] STARTING... JobId: {jobSpecification.Id}, Name: {jobSpecification.Name}");
             var token = GetAuthTokenAsync();
 
             string clusterName = jobSpecification.Cluster.Name;
             string account = jobSpecification.ClusterUser?.Username ?? "default";
-            _logger.Debug($"[SubmitJob] Target Cluster: {clusterName}, Account: {account}");
+            _logger.LogDebug($"[SubmitJob] Target Cluster: {clusterName}, Account: {account}");
 
             var tasksToQuery = new List<SubmittedTaskInfo>();
             var failedTasks = new List<SubmittedTaskInfo>();
 
-            _logger.Debug($"[SubmitJob] Found {jobSpecification.Tasks.Count} tasks to submit.");
+            _logger.LogDebug($"[SubmitJob] Found {jobSpecification.Tasks.Count} tasks to submit.");
 
             foreach (var taskSpec in jobSpecification.Tasks)
             {
@@ -274,7 +274,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
                     if (!submitResponse.IsSuccessStatusCode)
                     {
-                        _logger.Debug($"[SubmitJob] ERROR: Request failed for Task {taskSpec.Id}");
+                        _logger.LogDebug($"[SubmitJob] ERROR: Request failed for Task {taskSpec.Id}");
                         failedTasks.Add(new SubmittedTaskInfo
                         {
                             Name = taskSpec.Id.ToString(), State = TaskState.Failed, Specification = taskSpec,
@@ -284,13 +284,13 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         continue;
                     }
 
-                    _logger.Debug($"[SubmitJob] Parsing Job ID from response...");
+                    _logger.LogDebug($"[SubmitJob] Parsing Job ID from response...");
                     var jobIds = _convertor.GetJobIds(submitResponseContent);
                     var submittedJobId = jobIds.FirstOrDefault();
 
                     if (submittedJobId != null)
                     {
-                        _logger.Debug($"[SubmitJob] SUCCESS! FirecREST Job ID found: {submittedJobId}");
+                        _logger.LogDebug($"[SubmitJob] SUCCESS! FirecREST Job ID found: {submittedJobId}");
                         tasksToQuery.Add(new SubmittedTaskInfo
                         {
                             ScheduledJobId = submittedJobId,
@@ -300,7 +300,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                     }
                     else
                     {
-                        _logger.Debug($"[SubmitJob] ERROR: Could not parse Job ID.");
+                        _logger.LogDebug($"[SubmitJob] ERROR: Could not parse Job ID.");
                         failedTasks.Add(new SubmittedTaskInfo
                         {
                             Name = taskSpec.Id.ToString(), State = TaskState.Failed, Specification = taskSpec,
@@ -311,7 +311,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug($"[SubmitJob] EXCEPTION inside loop: {ex}");
+                    _logger.LogDebug($"[SubmitJob] EXCEPTION inside loop: {ex}");
                     failedTasks.Add(new SubmittedTaskInfo
                     {
                         Name = taskSpec.Id.ToString(), State = TaskState.Failed, Specification = taskSpec,
@@ -324,8 +324,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             if (tasksToQuery.Any())
             {
-                _logger.Debug($"[SubmitJob] Querying actual status for {tasksToQuery.Count} tasks...");
-                var queriedTasks = GetActualTasksInfo(connectorClient, jobSpecification.Cluster, tasksToQuery, null);
+                _logger.LogDebug($"[SubmitJob] Querying actual status for {tasksToQuery.Count} tasks...");
+                var queriedTasks = await GetActualTasksInfo(connectorClient, jobSpecification.Cluster, tasksToQuery, null);
                 finalSubmittedTasks.AddRange(queriedTasks);
             }
 
@@ -333,14 +333,17 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
         catch (Exception ex)
         {
-            _logger.Error($"An unhandled error occurred in SubmitJob: {ex.Message}", ex);
+            _logger.LogError(ex, $"An unhandled error occurred in SubmitJob: {ex.Message}");
             throw;
         }
     }
 
-    public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfo(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string key)
     {
+
+        await Task.Delay(1);
+
         if (submittedTasksInfo == null || !submittedTasksInfo.Any())
         {
             return Enumerable.Empty<SubmittedTaskInfo>();
@@ -354,7 +357,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             {
                 if (string.IsNullOrEmpty(task.ScheduledJobId))
                 {
-                    _logger.Debug($"[GetActualTasksInfo] Skipping task {task.Name} (No ScheduledJobId).");
+                    _logger.LogDebug($"[GetActualTasksInfo] Skipping task {task.Name} (No ScheduledJobId).");
                     continue;
                 }
 
@@ -369,12 +372,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                     var responseContent = await response.Content.ReadAsStringAsync();
                     if (response.IsSuccessStatusCode)
                     {
-                        _logger.Debug($"[GetActualTasksInfo] Parsing response for Job {task.ScheduledJobId}...");
+                        _logger.LogDebug($"[GetActualTasksInfo] Parsing response for Job {task.ScheduledJobId}...");
                         var taskInfoList = _convertor.ReadParametersFromResponse(cluster, responseContent);
 
                         if (taskInfoList?.FirstOrDefault() is { } newInfo)
                         {
-                            _logger.Debug(
+                            _logger.LogDebug(
                                 $"[GetActualTasksInfo] SUCCESS. Updating Task {task.Name} state to: {newInfo.State}");
                             task.State = newInfo.State;
                             task.StartTime = newInfo.StartTime;
@@ -384,18 +387,18 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         }
                         else
                         {
-                            _logger.Debug(
+                            _logger.LogDebug(
                                 $"[GetActualTasksInfo] WARNING: Parser returned null or empty list for Job {task.ScheduledJobId}");
                         }
                     }
                     else
                     {
-                        _logger.Debug($"[GetActualTasksInfo] ERROR: Request failed for Job {task.ScheduledJobId}");
+                        _logger.LogDebug($"[GetActualTasksInfo] ERROR: Request failed for Job {task.ScheduledJobId}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error checking status for job {task.ScheduledJobId}: {ex.Message}", ex);
+                    _logger.LogError(ex, $"Error checking status for job {task.ScheduledJobId}: {ex.Message}");
                     throw;
                 }
             }
@@ -404,8 +407,10 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         return submittedTasksInfo;
     }
 
-    public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
+    public async Task CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
     {
+        await Task.Delay(1);
+
         if (submittedTasksInfo == null || !submittedTasksInfo.Any())
         {
             throw new ArgumentException("Cannot cancel jobs: The provided list of tasks is null or empty.",
@@ -419,16 +424,16 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                 .Where(task => !string.IsNullOrEmpty(task.ScheduledJobId))
                 .ToList();
 
-            _logger.Debug($"[CancelJob] Found {tasksToCancel.Count} tasks with valid ScheduledJobId to cancel.");
+            _logger.LogDebug($"[CancelJob] Found {tasksToCancel.Count} tasks with valid ScheduledJobId to cancel.");
 
             var cancellationTasks = tasksToCancel.Select(async task =>
             {
                 string clusterName = task.Specification.JobSpecification.Cluster.Name;
                 var endpoint = $"{FirecRestUrl}/compute/{clusterName}/jobs/{task.ScheduledJobId}";
 
-                _logger.Debug(
+                _logger.LogDebug(
                     $"[CancelJob] Sending DELETE request for Job {task.ScheduledJobId} on {clusterName}...");
-                _logger.Debug($"[CancelJob] Endpoint: {endpoint}");
+                _logger.LogDebug($"[CancelJob] Endpoint: {endpoint}");
 
                 using var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -438,44 +443,44 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                     var response = await _httpClient.SendAsync(request);
                     var content = await response.Content.ReadAsStringAsync();
 
-                    _logger.Debug(
+                    _logger.LogDebug(
                         $"[CancelJob] Response for Job {task.ScheduledJobId}: Status={response.StatusCode}, Content={content}");
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        _logger.Debug($"[CancelJob] WARNING: Failed to cancel Job {task.ScheduledJobId}");
+                        _logger.LogDebug($"[CancelJob] WARNING: Failed to cancel Job {task.ScheduledJobId}");
                     }
 
                     return response;
                 }
                 catch (Exception innerEx)
                 {
-                    _logger.Debug($"[CancelJob] EXCEPTION canceling Job {task.ScheduledJobId}: {innerEx.Message}");
+                    _logger.LogDebug($"[CancelJob] EXCEPTION canceling Job {task.ScheduledJobId}: {innerEx.Message}");
                     throw;
                 }
             }).ToList();
 
             if (cancellationTasks.Any())
             {
-                _logger.Debug(
+                _logger.LogDebug(
                     $"[CancelJob] Waiting for {cancellationTasks.Count} cancellation requests to complete...");
                 Task.WhenAll(cancellationTasks).GetAwaiter().GetResult();
-                _logger.Debug("[CancelJob] All cancellation requests completed.");
+                _logger.LogDebug("[CancelJob] All cancellation requests completed.");
             }
             else
             {
-                _logger.Debug(
+                _logger.LogDebug(
                     "[CancelJob] WARNING: No valid tasks found to cancel (ScheduledJobId was missing for all inputs).");
             }
         }
         catch (Exception ex)
         {
-            _logger.Error($"An error occurred while canceling jobs in parallel: {ex.Message}", ex);
+            _logger.LogError(ex, $"An error occurred while canceling jobs in parallel: {ex.Message}");
             throw new Exception("Failed to cancel jobs via FirecRest API. See inner exception for details.", ex);
         }
     }
 
-    public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public async Task CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
         try
@@ -491,7 +496,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             CreateDirectory(endpoint, token, jobDirectoryPath, jobRequestBody);
 
-            _logger.Debug($"[CreateJobDirectory] Found {jobInfo.Tasks.Count} tasks. Creating subdirectories...");
+            _logger.LogDebug($"[CreateJobDirectory] Found {jobInfo.Tasks.Count} tasks. Creating subdirectories...");
 
             foreach (var task in jobInfo.Tasks)
             {
@@ -502,12 +507,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
         catch (Exception ex)
         {
-            _logger.Error($"Error creating job directory: {ex.Message}", ex);
+            _logger.LogError(ex, $"Error creating job directory: {ex.Message}");
             throw;
         }
     }
 
-    public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
         try
         {
@@ -527,70 +532,69 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                _logger.Warn(
+                _logger.LogWarning(
                     $"Failed to delete job directory for Job ID {jobInfo.Id}. Status: {response.StatusCode}. Response: {errorContent}");
                 return false;
             }
             else
             {
-                _logger.Info(
+                _logger.LogInformation(
                     $"Successfully received response for job directory deletion for Job ID {jobInfo.Id}. Status: {response.StatusCode}.");
                 return true;
             }
         }
         catch (Exception ex)
         {
-            _logger.Error($"An exception occurred while deleting job directory for Job ID {jobInfo.Id}: {ex.Message}", ex);
+            _logger.LogError($"An exception occurred while deleting job directory for Job ID {jobInfo.Id}: {ex.Message}", ex);
             return false;
         }
     }
 
-    public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType) =>
+    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType) =>
         throw new NotImplementedException();
 
-    public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo) =>
+    public async Task<IEnumerable<string>> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo) =>
         throw new NotImplementedException();
 
-    public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath) =>
-        _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
+    public async Task<IEnumerable<string>> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath) =>
+        await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
 
-    public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo) =>
-        _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
 
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys,
+    public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys,
         string projectAccountingString) =>
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
+        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
 
-    public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
-        string path) => _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
+    public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+        string path) => _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
 
-    public void
-        CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
-        _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
+    public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
+        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
 
-    public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
-        _sshTunnelUtil.CreateTunnel(connectorClient, taskInfo.Id, nodeHost, nodePort);
+    public async Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
+        await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
 
-    public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo) =>
-        _sshTunnelUtil.RemoveTunnel(connectorClient, taskInfo.Id);
+    public async Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo) =>
+        await _sshTunnelUtil.RemoveTunnelAsync(connectorClient, taskInfo.Id);
 
     public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost) =>
         _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
 
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    public async Task<bool> InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        string account, bool isServiceAccount) => _commands.InitializeClusterScriptDirectory(
+        string account, bool isServiceAccount) => await _commands.InitializeClusterScriptDirectoryAsync(
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
         localBasepath, account, isServiceAccount);
 
-    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo,
+    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo,
         IEnumerable<Tuple<string, string>> sourceDestinations) =>
-        _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotImplementedException();
 
-    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
+    public Task<DryRunJobInfo> DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
         throw new NotImplementedException();
 }

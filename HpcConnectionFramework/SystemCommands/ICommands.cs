@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands;
@@ -20,7 +21,7 @@ public interface ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="userScriptPath">Generic script path</param>
     /// <returns></returns>
-    IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath);
+    Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath);
 
     /// <summary>
     ///     Copy job data to temp folder
@@ -29,7 +30,7 @@ public interface ICommands
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
     /// <param name="path">Path</param>
-    void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+    Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path);
 
     /// <summary>
@@ -38,7 +39,7 @@ public interface ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
-    void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash);
+    Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash);
 
     /// <summary>
     ///     Allow direct file transfer acces for user
@@ -46,14 +47,14 @@ public interface ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKey">Public key</param>
     /// <param name="jobInfo">Job information</param>
-    void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo);
+    Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey, SubmittedJobInfo jobInfo);
 
     /// <summary>
     ///     Remove direct file transfer acces for user
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString);
+    Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString);
 
     /// <summary>
     ///     Create job directory
@@ -62,7 +63,7 @@ public interface ICommands
     /// <param name="jobInfo">Job information</param>
     /// <param name="localBasePath"></param>
     /// <param name="sharedAccountsPoolMode"></param>
-    void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode);
 
     /// <summary>
@@ -70,7 +71,7 @@ public interface ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
-    bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
+    Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
     /// <summary>
     ///     Initialize Cluster Script Directory
@@ -81,8 +82,8 @@ public interface ICommands
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-    bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, 
+    Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, 
         bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
-    bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
+    Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 }

@@ -7,34 +7,49 @@ using System.Threading.Tasks;
 using Services.Expirio.Exceptions;
 using Services.Expirio.Models;
 using Microsoft.Extensions.Configuration;
-using log4net;
 using System.Net;
 using Services.Expirio.Configuration;
 using System.Net.Http.Headers;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
-    protected readonly ILog _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private const string CLIENT_NAME = "ExpirioClient";
 
     public ExpirioService(IHttpClientFactory httpClientFactory)
     {
-        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default)
     {
-        _logger.Info("[Expirio] Method: ExchangeTokenForKerberos");
+        var response = await PerformKerberosExchangeAsync(request, token, logger, cancellationToken);
+        return response?.Content;
+    }
 
+    public async Task<string?> GetEnrichedUsernameAsync(string token, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("[Expirio] Method: GetEnrichedUsername");
+        
+        var request = new KerberosExchangeRequest
+        {
+            ProviderName = ExpirioSettings.ProviderName
+        };
+
+        var response = await PerformKerberosExchangeAsync(request, token, logger, cancellationToken);
+        return response?.PreferredUsername;
+    }
+
+    private async Task<KerberosCredentialResponse> PerformKerberosExchangeAsync(KerberosExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken)
+    {
         var jsonRequest = JsonSerializer.Serialize(request);
         var url = $"{ExpirioSettings.BaseUrl}/kerberos/exchange";
         
-        _logger.Debug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
+        logger.LogDebug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
 
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
         {
@@ -44,29 +59,48 @@ public class ExpirioService : IExpirioService
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+        try 
+        {
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {
-            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}");
-            return ParseTokenResponse(content);
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
+                
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
         }
         else
         {
-            HandleErrorResponse(response, content, "Kerberos ticket");
+                HandleErrorResponse(response, content, "Kerberos ticket exchange", logger);
+                return null; 
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            logger.LogError($"[Expirio Timeout] Request to {url} timed out.");
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
             return null; 
         }
     }
 
-    public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default)
     {
-        _logger.Info("[Expirio] Method: ExchangeToken");
+        logger.LogInformation("[Expirio] Method: ExchangeToken");
 
         var jsonRequest = JsonSerializer.Serialize(request);
         var url = $"{ExpirioSettings.BaseUrl}/exchange";
 
-        _logger.Debug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
+        logger.LogDebug($"[Expirio Request] POST {url} | Body: {jsonRequest}");
 
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
         {
@@ -81,19 +115,19 @@ public class ExpirioService : IExpirioService
 
         if (response.IsSuccessStatusCode)
         {
-            _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-            return ParseTokenResponse(content);
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+            return ParseTokenResponse(content, logger);
         }
         else
         {
-            HandleErrorResponse(response, content, "data");
+            HandleErrorResponse(response, content, "data", logger);
             return null;
         }
     }
 
-    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, string masterNodeName, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, string masterNodeName, ILogger logger, CancellationToken cancellationToken = default)
     {
-        _logger.Info("[Expirio] Method: FirecrestCredentials");
+        logger.LogInformation("[Expirio] Method: FirecrestCredentials");
         var result = new Dictionary<string, dynamic>();
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
 
@@ -108,7 +142,7 @@ public class ExpirioService : IExpirioService
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
             if (response.IsSuccessStatusCode)
             {
-                _logger.Debug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
                     
                 using var doc = JsonDocument.Parse(content);
 
@@ -145,47 +179,15 @@ public class ExpirioService : IExpirioService
         return result;
     }
 
-    private string ParseTokenResponse(string content)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-            throw new ExpirioException("Empty response from Expirio.");
-
-        if (content.TrimStart().StartsWith("<", StringComparison.OrdinalIgnoreCase) || content.Contains("<html", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.Error($"[Expirio Error] Unexpected HTML response received despite 200 OK status. Content: {content}");
-            throw new ExpirioException("Failed to parse token. Received HTML instead of JSON token payload.");
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(content);
-            if (doc.RootElement.ValueKind == JsonValueKind.String)
-            {
-                return doc.RootElement.GetString();
-            }
-
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("Content", out var contentProp))
-            {
-                return contentProp.GetString();
-            }
-            
-            return content.Trim('"');
-        }
-        catch (JsonException)
-        {
-            return content.Trim('"');
-        }
-    }
-
-    private void HandleErrorResponse(HttpResponseMessage response, string content, string context)
+    private void HandleErrorResponse(HttpResponseMessage response, string content, string context, ILogger logger)
     {
         string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-        _logger.Error($"[Expirio Error] Exchange failed for {context}. Details: {details}");
+        logger.LogError($"[Expirio Error] Exchange failed for {context}. Details: {details}");
 
         switch (response.StatusCode)
         {
             case HttpStatusCode.BadRequest:
-                throw new ExpirioBadRequestException($"Bad Expirio {context} request", details);
+                throw new ExpirioBadRequestException($"Bad Request on Expirio {context} request", details);
             case HttpStatusCode.Unauthorized:
                 throw new ExpirioUnauthorizedException($"Unauthorized Expirio {context} request", details);
             case HttpStatusCode.NotFound:
@@ -196,6 +198,32 @@ public class ExpirioService : IExpirioService
                 throw new ExpirioUpstreamException($"Bad Gateway on Expirio {context} request", details);
             default:
                 throw new ExpirioException($"Error while getting Expirio {context}.", details);
+        }
+    }
+
+    public async Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        // Placeholder implementation
+        await Task.Delay(1);
+        return true;
+    }
+
+    private string ParseTokenResponse(string content, ILogger logger)
+    {
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var response = JsonSerializer.Deserialize<ExchangeResponse>(content, options);
+            return response?.Content;
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
+            return null;
         }
     }
 }
