@@ -59,6 +59,7 @@ services:
       - db_internal_network
       - external_network
       - vaultNet
+      - otelnet
     profiles:
       - staging
 
