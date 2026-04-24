@@ -55,10 +55,9 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
-                    IExpirioService expirioService = scope.ServiceProvider.GetRequiredService<IExpirioService>();
 
                     await LogicFactory.GetLogicFactory()
-                        .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService, _logger)
+                        .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
                         .RemoveJobsTemporaryFileTransferKeys();
                 }
                 catch (Exception ex)

@@ -29,7 +29,7 @@ public class DataStagingEndpoint : IApiRoute
             .WithTags("DataStaging");
 
         group.MapPost("GetFileTransferMethod", async ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                    [FromServices] IHttpContextKeys httpContextKeys, [FromServices]IExpirioService expirioService, [FromServices] IUserOrgService userOrgService) =>
+                    [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices]IExpirioService expirioService) =>
                 {
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
@@ -53,7 +53,7 @@ public class DataStagingEndpoint : IApiRoute
             });
 
         group.MapPost("ProvideCredentials", async ([Validate] ProvideCredentialsModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                    [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IExpirioService expirioService, [FromServices] IUserOrgService userOrgService) =>
+                    [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
                 {
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "ProvideCredentials" Parameters: "{@model}" """, model);
                     var fileTransferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
@@ -72,12 +72,12 @@ public class DataStagingEndpoint : IApiRoute
 
         group.MapPost("DownloadPartsOfJobFilesFromCluster", async ([Validate] DownloadPartsOfJobFilesFromClusterModel model,
                 [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IExpirioService expirioService, [FromServices] IUserOrgService userOrgService) =>
+                [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
             {
                 LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
 
-                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
+                var result = await new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
                     .DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode);
 
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -97,14 +97,14 @@ public class DataStagingEndpoint : IApiRoute
                 [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId,
                 [FromServices] ILogger<DataStagingEndpoint> logger,
                 [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IExpirioService expirioService, [FromServices] IUserOrgService userOrgService) =>
+                [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
             {
                 LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
                 var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                 validator.ValidateAndThrow(model);
 
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """, model);
-                var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
+                var result = await new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
                     .ListChangedFilesForJob(submittedJobInfoId, sessionCode);
 
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -121,13 +121,13 @@ public class DataStagingEndpoint : IApiRoute
             });
 
         group.MapPost("DownloadFileFromCluster",
-                ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                async ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IExpirioService expirioService, [FromServices] IUserOrgService userOrgService) =>
                 {
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """, model);
 
-                    var result = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
+                    var result = await new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
                         .DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode);
 
                     LoggingUtils.RemoveJobIdFromLogThreadContext();
@@ -147,8 +147,8 @@ public class DataStagingEndpoint : IApiRoute
                     [FromServices] IValidator<UploadFileToClusterModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys,
-                    [FromServices] IExpirioService expirioService,
-                    [FromServices] IUserOrgService userOrgService
+                    [FromServices] IUserOrgService userOrgService,
+                    [FromServices] IExpirioService expirioService
                 ) =>
                 {
                     var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
@@ -181,8 +181,8 @@ public class DataStagingEndpoint : IApiRoute
                     [FromServices] IValidator<UploadJobScriptsToClusterProjectDirModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys,
-                    [FromServices] IExpirioService expirioService,
-                    [FromServices] IUserOrgService userOrgService
+                    [FromServices] IUserOrgService userOrgService,
+                    [FromServices] IExpirioService expirioService
                 ) =>
                 {
                     var model = new UploadJobScriptsToClusterProjectDirModel() { SessionCode = sessionCode };

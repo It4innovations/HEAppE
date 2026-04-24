@@ -191,7 +191,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[User:{credentials.Id}] Connection setup failed", ex);
+                _logger.LogError(ex, $"[User:{credentials.Id}] Connection setup failed");
                 userContext.UserSemaphore.Release();
                 throw;
             }
@@ -303,7 +303,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[User:{cred.Id}] Failed to load vault data", ex);
+                _logger.LogError(ex, $"[User:{cred.Id}] Failed to load vault data");
                 _vaultCache.TryRemove(cred.Id, out _);
                 throw;
             }
@@ -317,7 +317,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                _logger.LogWarning($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
+                _logger.LogWarning(ex, $"Error while disconnecting connection for user {connection.AuthCredentials.Id}");
             }
             finally
             {

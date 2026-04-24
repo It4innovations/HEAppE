@@ -23,8 +23,8 @@ public class DataTransferService : IDataTransferService
 {
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    private readonly IExpirioService _expirioService;
     private readonly IUserOrgService _userOrgService;
+    private readonly IExpirioService _expirioService;
     private readonly ILogger _logger;
     
     public DataTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
@@ -33,7 +33,6 @@ public class DataTransferService : IDataTransferService
         _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _expirioService = expirioService;
         _logger = logger;
     }
     

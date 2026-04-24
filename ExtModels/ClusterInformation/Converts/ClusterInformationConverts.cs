@@ -46,8 +46,7 @@ public static class ClusterInformationConverts
         return convert;
     }
     
-    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects,
-        bool onlyActive)
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
     {
         var convert = new ExtendedClusterExt
         {
@@ -152,8 +151,7 @@ public static class ClusterInformationConverts
         return convert;
     }
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects,
-        bool onlyActive)
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
     {
         var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
         var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));

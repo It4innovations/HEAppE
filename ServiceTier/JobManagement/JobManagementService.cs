@@ -1,4 +1,10 @@
-﻿using HEAppE.BusinessLogicTier;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -12,15 +18,9 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using SshCaAPI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
@@ -31,9 +31,9 @@ public class JobManagementService : IJobManagementService
     private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    private readonly IExpirioService _expirioService;
     private readonly IUserOrgService _userOrgService;
-
+    private readonly IExpirioService _expirioService;
+    
     #endregion
 
     #region Constructors

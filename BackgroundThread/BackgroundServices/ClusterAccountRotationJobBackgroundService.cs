@@ -58,7 +58,6 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                     {
                         using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                         IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
-                        IExpirioService expirioService = scope.ServiceProvider.GetRequiredService<IExpirioService>();
 
                         var allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccount();
 

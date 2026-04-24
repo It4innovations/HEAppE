@@ -307,7 +307,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error deleting job directory for job {jobInfo.Id}", ex);
+            _logger.LogError(ex, $"Error deleting job directory for job {jobInfo.Id}");
             return false;
         }
         finally

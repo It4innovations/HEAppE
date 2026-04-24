@@ -340,6 +340,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="nodePort">Cluster node port</param>
     public async Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
     {
+        await Task.Delay(1);
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
     }
 
@@ -351,6 +352,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="taskInfo">Task info</param>
     public async Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
     {
+        await Task.Delay(1);
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
     }
 

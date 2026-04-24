@@ -100,7 +100,7 @@ public class LexisTokenExchangeMiddleware
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}", ex);
+                    _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Token exchange failed");
                     return;

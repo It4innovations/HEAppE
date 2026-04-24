@@ -56,13 +56,12 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
-                    IExpirioService expirioService = scope.ServiceProvider.GetRequiredService<IExpirioService>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()
-                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService, _logger);
+                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, expirioService, _logger);
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
                     

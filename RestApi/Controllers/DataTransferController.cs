@@ -193,7 +193,7 @@ public class DataTransferController : BaseController<DataTransferController>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during HttpPostToJobNodeStream: {Message}", ex.Message);
+            _logger.LogError(ex, $"Error during HttpPostToJobNodeStream: {ex.Message}");
             await Response.WriteAsync($"data: Error: {ex.Message}\n\n");
             await Response.Body.FlushAsync();
         }

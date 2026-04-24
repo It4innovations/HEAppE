@@ -63,7 +63,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #region Private Methods
 
-    private string GetAuthTokenAsync()
+    private string GetAuthToken()
     {
         try
         {
@@ -224,7 +224,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         try
         {
             _logger.LogDebug($"[SubmitJob] STARTING... JobId: {jobSpecification.Id}, Name: {jobSpecification.Name}");
-            var token = GetAuthTokenAsync();
+            var token = GetAuthToken();
 
             string clusterName = jobSpecification.Cluster.Name;
             string account = jobSpecification.ClusterUser?.Username ?? "default";
@@ -351,7 +351,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
         Task.Run(async () =>
         {
-            var token = GetAuthTokenAsync();
+            var token = GetAuthToken();
 
             foreach (var task in submittedTasksInfo)
             {
@@ -419,7 +419,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
         try
         {
-            var token = GetAuthTokenAsync();
+            var token = GetAuthToken();
             var tasksToCancel = submittedTasksInfo
                 .Where(task => !string.IsNullOrEmpty(task.ScheduledJobId))
                 .ToList();
@@ -485,7 +485,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            var token = GetAuthTokenAsync();
+            await Task.Delay(1);
+            var token = GetAuthToken();
 
             string clusterName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
@@ -516,7 +517,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            var token = GetAuthTokenAsync();
+            await Task.Delay(1);
+            var token = GetAuthToken();
 
             string systemName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
@@ -545,16 +547,22 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An exception occurred while deleting job directory for Job ID {jobInfo.Id}: {ex.Message}", ex);
+            _logger.LogError(ex, $"An exception occurred while deleting job directory for Job ID {jobInfo.Id}: {ex.Message}");
             return false;
         }
     }
 
-    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType) =>
+    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+    {
+        await Task.Delay(1);
         throw new NotImplementedException();
+    }
 
-    public async Task<IEnumerable<string>> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo) =>
+    public async Task<IEnumerable<string>> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
+    {
+        await Task.Delay(1);
         throw new NotImplementedException();
+    }
 
     public async Task<IEnumerable<string>> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath) =>
         await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
@@ -563,12 +571,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         SubmittedJobInfo jobInfo) =>
         await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
 
-    public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys,
-        string projectAccountingString) =>
+    public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) =>
         await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
 
-    public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
-        string path) => _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
+    public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) =>
+        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
 
     public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
         await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
@@ -588,8 +595,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
         localBasepath, account, isServiceAccount);
 
-    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo,
-        IEnumerable<Tuple<string, string>> sourceDestinations) =>
+    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations) =>
         await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>

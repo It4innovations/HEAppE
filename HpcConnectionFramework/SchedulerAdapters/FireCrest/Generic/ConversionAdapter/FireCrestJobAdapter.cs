@@ -44,7 +44,8 @@ internal class FirecRestJobAdapter : ISchedulerJobAdapter
     public void SetTasks(IEnumerable<object> tasksAllocationcmd)
     {
         _jobCommandBuilder.Clear();
-        foreach (var task in tasksAllocationcmd) _jobCommandBuilder.Append((string)task);
+        foreach (var task in tasksAllocationcmd)
+            _jobCommandBuilder.Append((string)task);
     }
 
     /// <summary>

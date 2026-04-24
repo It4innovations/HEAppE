@@ -37,9 +37,10 @@ public interface IExpirioService
     Task<string?> GetEnrichedUsernameAsync(string token, ILogger logger, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Exchanges firecrest credentials.
+    /// Exchanges FirecREST credentials.
     /// </summary>
     /// <param name="token">Token to exchange</param>
+    /// <param name="masterNodeName">Name of value to GET from Expirio</param>
     /// <param name="cancellationToken"></param>
     /// <returns>firecrest credentials</returns>
     Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, string masterNodeName, ILogger logger, CancellationToken cancellationToken = default);

@@ -19,9 +19,7 @@ using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.Extensions.Logging;
-
 using SshCaAPI;
-
 
 namespace HEAppE.ServiceTier.FileTransfer;
 
@@ -30,8 +28,8 @@ public class FileTransferService : IFileTransferService
     private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    private readonly IExpirioService _expirioService;
     private readonly IUserOrgService _userOrgService;
+    private readonly IExpirioService _expirioService;
     
     public FileTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
@@ -39,7 +37,6 @@ public class FileTransferService : IFileTransferService
         _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _expirioService = expirioService;
         _logger = logger;
     }
 

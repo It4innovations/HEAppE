@@ -34,8 +34,8 @@ public class DataTransferLogic : IDataTransferLogic
     private readonly IJobManagementLogic _managementLogic;
     private readonly IUserOrgService _userOrgService;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    private readonly IExpirioService _expirioService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
 
     private static readonly ConcurrentDictionary<long, List<ActiveTunnelState>> _activeTunnels = new();
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> _taskLocks = new();
@@ -47,8 +47,8 @@ public class DataTransferLogic : IDataTransferLogic
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _expirioService = expirioService;
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
         _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
     }
 

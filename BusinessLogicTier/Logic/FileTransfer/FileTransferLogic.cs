@@ -29,11 +29,10 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueD
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet.Common;
 using SshCaAPI;
 using SshCaAPI.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer;
 
