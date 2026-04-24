@@ -55,6 +55,7 @@ services:
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       TZ: "Europe/Prague"
+      OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
     networks:
       - db_internal_network
       - external_network
@@ -84,6 +85,7 @@ services:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
       TZ: "Europe/Prague"
+      OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
     networks:
       - sshagent_internal_network
       - db_internal_network
