@@ -19,18 +19,6 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "Project");
 
             migrationBuilder.AddColumn<int>(
-                name: "GpuCores",
-                table: "TaskSpecification",
-                type: "int",
-                nullable: true);
-
-            migrationBuilder.AddColumn<int>(
-                name: "GpuNodes",
-                table: "TaskSpecification",
-                type: "int",
-                nullable: true);
-
-            migrationBuilder.AddColumn<int>(
                 name: "PreferredAuthType",
                 table: "ClusterProject",
                 type: "int",
@@ -62,14 +50,6 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_Project_AccountingString",
                 table: "Project");
-
-            migrationBuilder.DropColumn(
-                name: "GpuCores",
-                table: "TaskSpecification");
-
-            migrationBuilder.DropColumn(
-                name: "GpuNodes",
-                table: "TaskSpecification");
 
             migrationBuilder.DropColumn(
                 name: "PreferredAuthType",

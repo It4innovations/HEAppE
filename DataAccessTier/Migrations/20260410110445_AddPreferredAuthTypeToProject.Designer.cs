@@ -1273,12 +1273,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("GpuCores")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("GpuNodes")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsExclusive")
                         .HasColumnType("bit");
 
