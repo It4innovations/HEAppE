@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
@@ -15,7 +15,7 @@ public class EnvironmentVariableExt
     /// Name
     /// </summary>
     [DataMember(Name = "Name")]
-    [StringLength(50)]
+    [StringLength(100)]
     [Description("Name")]
     public string Name { get; set; }
 
@@ -23,7 +23,7 @@ public class EnvironmentVariableExt
     /// Value
     /// </summary>
     [DataMember(Name = "Value")]
-    [StringLength(100)]
+    [StringLength(2000)]
     [Description("Value")]
     public string Value { get; set; }
 
