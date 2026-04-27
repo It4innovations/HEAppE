@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Services.Expirio.Models;
+namespace HEAppE.Services.Expirio.Models;
 
 public class KerberosCredentialResponse
 {

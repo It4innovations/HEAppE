@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace Services.Expirio.Models;
+namespace HEAppE.Services.Expirio.Models;
 
 /// <summary>
 /// Kerberos Exchange Request

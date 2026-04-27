@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Services.Expirio.Models;
+using HEAppE.Services.Expirio.Models;
 
 namespace HEAppE.Services.Expirio;
 

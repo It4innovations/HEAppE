@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -39,6 +39,7 @@ public static class ClusterInformationConverts
             Id = cluster.Id,
             Name = cluster.Name,
             Description = cluster.Description,
+            MasterNodeName = cluster.MasterNodeName,
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()

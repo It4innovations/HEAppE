@@ -1,6 +1,7 @@
 #pragma warning disable CS4014
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -20,6 +21,7 @@ using HEAppE.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace HEAppE.DataAccessTier;
@@ -34,7 +36,7 @@ public class MiddlewareContext : DbContext
 
         if (logger.GetType().Name.Contains("NullLogger") || Environment.GetCommandLineArgs().Any(a => a.Contains("ef"))) return;
 
-        if (!_isMigrated)
+        if (!string.IsNullOrEmpty(MiddlewareContextSettings.ConnectionString) && !_isMigrated)
             lock (_lockObject)
             {
                 if (!_isMigrated)
@@ -119,7 +121,7 @@ public class MiddlewareContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseLazyLoadingProxies();
-        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString ?? "Server=localhost;Database=dummy;TrustServerCertificate=true");
         optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
@@ -516,11 +518,28 @@ public class MiddlewareContext : DbContext
 
             if (useSetIdentity)
             {
-#pragma warning disable EF1002
-                await Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
-                await SaveChangesAsync();
-                await Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
-#pragma warning restore EF1002
+                using var transaction = Database.BeginTransaction();
+                try
+                {
+                    using var command = Database.GetDbConnection().CreateCommand();
+                    command.Transaction = transaction.GetDbTransaction();
+                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
+                    if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
+                    command.ExecuteNonQuery();
+
+                    SaveChanges();
+
+                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
+                    command.ExecuteNonQuery();
+
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error inserting seed data with IDENTITY_INSERT for {tableName}", ex);
+                    transaction.Rollback();
+                    throw;
+                }
             }
             else
             {

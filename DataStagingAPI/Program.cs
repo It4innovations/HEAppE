@@ -34,7 +34,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
-using Services.Expirio.Configuration;
+using HEAppE.Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using HEAppE.BackgroundThread.Configuration;

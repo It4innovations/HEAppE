@@ -17,10 +17,10 @@ public class EnvironmentVariable : IdentifiableDbEntity, ICloneable
         Value = environment.Value;
     }
 
-    [Required] [StringLength(50)] public string Name { get; set; }
+    [Required] [StringLength(100)] public string Name { get; set; }
 
     //[Required]
-    [StringLength(100)] public string Value { get; set; }
+    [StringLength(2000)] public string Value { get; set; }
 
     #region ICloneable Members
 

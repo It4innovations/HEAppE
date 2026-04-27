@@ -2,7 +2,7 @@
 using System;
 using HEAppE.Exceptions.AbstractTypes;
 
-namespace Services.Expirio.Exceptions;
+namespace HEAppE.Services.Expirio.Exceptions;
 
 /// <summary>
 ///     Represents base Expirio exception with information details

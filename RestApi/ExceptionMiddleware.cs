@@ -131,7 +131,7 @@ public class ExceptionMiddleware
                 break;
             case SessionCodeNotValidException:
             case AdaptorUserNotAuthorizedForJobException:
-                problem.Title = "Session Code Authentication Problem";
+                problem.Title = "Authorization Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
