@@ -50,7 +50,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         _logger = logger;
         _convertor = convertor;
-        _commands = new LinuxCommands(logger);
+        _commands = null;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
         FirecRestUrl = FirecRestSettings.FirecRestUrl;
         ClientId = FirecRestSettings.ClientId;
@@ -565,20 +565,20 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     }
 
     public async Task<IEnumerable<string>> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath) =>
-        await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
+        await _commands?.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
 
     public async Task AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo) =>
-        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
+        await _commands?.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
 
     public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) =>
-        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
+        await _commands?.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
 
     public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) =>
-        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
+        await _commands?.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
 
     public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
-        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
+        await _commands?.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
 
     public async Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
         await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
@@ -591,12 +591,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        string account, bool isServiceAccount) => await _commands.InitializeClusterScriptDirectoryAsync(
+        string account, bool isServiceAccount) => await _commands?.InitializeClusterScriptDirectoryAsync(
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
         localBasepath, account, isServiceAccount);
 
     public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations) =>
-        await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotImplementedException();

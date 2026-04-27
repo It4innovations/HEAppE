@@ -972,7 +972,7 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     private static async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork,
-        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount, ILogger logger)
+        Func<long, IRexScheduler> schedulerProxy, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount, ILogger logger)
     {
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
@@ -993,7 +993,8 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobSpecification.Id);
             logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
-            return await scheduler(jobSpecification.Submitter.Id).GetActualTasksInfoAsync(unfinishedTasks, account, null, null);
+            var scheduler = schedulerProxy(jobSpecification.Submitter.Id);
+            return await scheduler.GetActualTasksInfoAsync(unfinishedTasks, account, null, null);
         }
         finally
         {
