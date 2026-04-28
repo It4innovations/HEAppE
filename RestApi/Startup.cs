@@ -6,7 +6,6 @@ using System.Net;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
-using System.Net;
 using Microsoft.Extensions.Http;
 using Polly;
 using Polly.Extensions.Http;
@@ -56,11 +55,10 @@ using Microsoft.OpenApi.Models;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
-using Services.Expirio;
-using Services.Expirio.Configuration;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
-using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 
 namespace HEAppE.RestApi;
@@ -229,12 +227,14 @@ public class Startup
             
             gen.ParameterFilter<PascalCaseParameterFilter>();
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo { Title = SwaggerConfiguration.Title, Version = SwaggerConfiguration.Version });
-            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo { Title = "Detailed Job Reporting API", Version = SwaggerConfiguration.Version });
+            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo { Title = SwaggerConfiguration.DetailedJobReportingTitle, Version = SwaggerConfiguration.Version });
+            gen.SwaggerDoc("Dictionary", new OpenApiInfo { Title = SwaggerConfiguration.DictionaryTitle, Version = SwaggerConfiguration.Version });
             gen.SwaggerDoc("py4heappe", new OpenApiInfo { Title = "py4heappe API", Version = SwaggerConfiguration.Version });
             
                 gen.DocInclusionPredicate((documentName, apiDescription) =>
                 {
                 if (documentName == "DetailedJobReporting") return apiDescription.GroupName == "DetailedJobReporting";
+                if (documentName == "Dictionary") return apiDescription.GroupName == "Dictionary";
                 if (documentName == SwaggerConfiguration.Version) return string.IsNullOrEmpty(apiDescription.GroupName);
                 if (documentName == "py4heappe") return true;
                     return false;
@@ -297,7 +297,8 @@ public class Startup
         {
             var hostPrefix = string.IsNullOrEmpty(SwaggerConfiguration.HostPostfix) ? string.Empty : "/" + SwaggerConfiguration.HostPostfix;
             swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
-            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", "Detailed Job Reporting API");
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", SwaggerConfiguration.DetailedJobReportingTitle);
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/Dictionary/swagger.json", SwaggerConfiguration.DictionaryTitle);
             swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/py4heappe/swagger.json", "py4heappe API");
             swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             swaggerUI.EnableTryItOutByDefault();

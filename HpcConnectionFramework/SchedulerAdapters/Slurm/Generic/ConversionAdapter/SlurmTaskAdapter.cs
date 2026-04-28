@@ -246,9 +246,18 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 else
                 {
                     if (!gpuCores.HasValue || gpuCores <= 0)
-                        throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
+                    {
+                        //throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
+                        //compute gpu cores based on gpu nodes and cores per node if gpu cores not specified
+                        if (!gpuNodes.HasValue || gpuNodes <= 0)
+                        {
+                            gpuNodes = maxCores / coresPerNode;
+                            gpuNodes += maxCores % coresPerNode > 0 ? 1 : 0;
+                        }
+                    }
 
                     allocationCmdBuilder.Append($" --gpus={gpuCores}");
+                    allocationCmdBuilder.Append($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
                 }
             }
             else

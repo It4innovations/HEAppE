@@ -131,7 +131,7 @@ public class ExceptionMiddleware
                 break;
             case SessionCodeNotValidException:
             case AdaptorUserNotAuthorizedForJobException:
-                problem.Title = "Session Code Authentication Problem";
+                problem.Title = "Authorization Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
@@ -195,6 +195,11 @@ public class ExceptionMiddleware
                     "Not found." => StatusCodes.Status404NotFound,
                     _ => StatusCodes.Status400BadRequest
                 };
+                break;
+            case ArgumentException argumentException:
+                problem.Title = "Invalid Argument";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
                 break;
             default:
                 problem.Title = "Problem";

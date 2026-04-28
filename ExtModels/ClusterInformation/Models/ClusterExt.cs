@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -31,6 +31,13 @@ public class ClusterExt
     [DataMember(Name = "Description")]
     [Description("Description")]
     public string Description { get; set; }
+
+    /// <summary>
+    /// Master node name
+    /// </summary>
+    [DataMember(Name = "MasterNodeName")]
+    [Description("Master node name")]
+    public string MasterNodeName { get; set; }
     
     /// <summary>
     /// File transfer id
@@ -48,6 +55,6 @@ public class ClusterExt
 
     public override string ToString()
     {
-        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; NodeTypes={NodeTypes})";
+        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; MasterNodeName={MasterNodeName}; NodeTypes={NodeTypes})";
     }
 }

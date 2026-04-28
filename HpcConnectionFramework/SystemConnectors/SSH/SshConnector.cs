@@ -21,9 +21,9 @@ using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 using HEAppE.Services.Expirio;
-using Services.Expirio.Models;
+using HEAppE.Services.Expirio.Models;
 using System.Threading.Tasks;
-using Services.Expirio.Configuration;
+using HEAppE.Services.Expirio.Configuration;
 
 using Microsoft.Extensions.Logging;
 

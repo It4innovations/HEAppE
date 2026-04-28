@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20260410110445_AddPreferredAuthTypeToProject")]
-    partial class AddPreferredAuthTypeToProject
+    [Migration("20260424062543_ExpandEnvironmentVariableLengths")]
+    partial class ExpandEnvironmentVariableLengths
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -751,15 +751,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<long?>("TaskSpecificationId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Value")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.HasKey("Id");
 
@@ -919,6 +919,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("text");
 
                     b.Property<int?>("AllocatedCores")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AllocatedGpus")
                         .HasColumnType("int");
 
                     b.Property<double?>("AllocatedTime")
@@ -1272,6 +1275,12 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
+
+                    b.Property<int?>("GpuCores")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GpuNodes")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsExclusive")
                         .HasColumnType("bit");

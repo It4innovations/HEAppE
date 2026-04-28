@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -318,6 +318,10 @@ public static class JobManagementConverts
                 return UsageTypeExt.NodeHours;
             case UsageType.CoreHours:
                 return UsageTypeExt.CoreHours;
+            case UsageType.Credits:
+                return UsageTypeExt.Credits;
+            case UsageType.QPUSeconds:
+                return UsageTypeExt.QPUSeconds;
             default:
                 return UsageTypeExt.NodeHours;
         }

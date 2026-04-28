@@ -9,8 +9,8 @@ using HEAppE.Services.Expirio;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Services.Expirio.Configuration;
-using Services.Expirio.Models;
+using HEAppE.Services.Expirio.Configuration;
+using HEAppE.Services.Expirio.Models;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 

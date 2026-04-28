@@ -87,25 +87,6 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
             commandTemplateName, forceRefresh ?? false));
     }
 
-    [HttpPost("ListAvailableClustersClearCache")]
-    [RequestSizeLimit(200)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClustersClearCache(string sessionCode)
-    {
-        ListAvailableClustersModel model = new()
-        {
-            SessionCode = sessionCode
-        };
-        var validationResult = new ClusterInformationValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        return Ok(_service.ListAvailableClustersClearCache(sessionCode));
-    }
-
     /// <summary>
     ///     Get command template parameters name
     /// </summary>
