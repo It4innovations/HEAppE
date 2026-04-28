@@ -514,7 +514,8 @@ public class MiddlewareContext : DbContext
         await Database.OpenConnectionAsync();
         try
         {
-            foreach (var item in items) await AddOrUpdateItem(item);
+            foreach (var item in items)
+                await AddOrUpdateItem(item);
 
             if (useSetIdentity)
             {

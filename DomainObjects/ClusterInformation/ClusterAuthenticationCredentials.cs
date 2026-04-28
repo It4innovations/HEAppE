@@ -95,11 +95,11 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
         if (_vaultData.Id != Id) _vaultData = _vaultData with { Id = Id };
 
         //if PrivateKey is path then cat file and encode
-        if (Path.Exists(PrivateKey)) PrivateKey = File.ReadAllText(PrivateKey);
+        if (PrivateKey != null && Path.Exists(PrivateKey)) PrivateKey = File.ReadAllText(PrivateKey);
 
-        var base64PK =
+        var base64PK = (PrivateKey == null) ? null :
             Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKey.Replace("\r\n", "\n"))); // Replace CRLF with LF
-        var base64PKCert =
+        var base64PKCert = (PrivateKeyCertificate == null) ? null :
             Convert.ToBase64String(
                 Encoding.UTF8.GetBytes(PrivateKeyCertificate.Replace("\r\n", "\n"))); // Replace CRLF with LF
         var passphrase = PrivateKeyPassphrase;
