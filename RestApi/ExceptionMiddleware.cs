@@ -196,6 +196,11 @@ public class ExceptionMiddleware
                     _ => StatusCodes.Status400BadRequest
                 };
                 break;
+            case ArgumentException argumentException:
+                problem.Title = "Invalid Argument";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                break;
             default:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
