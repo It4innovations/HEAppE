@@ -91,18 +91,24 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
         object schedulerAllocationCmd)
     {
-        var task = (TaskSpecification)schedulerAllocationCmd;
+        return ConvertTaskSpecificationToTask(jobSpecification, (TaskSpecification)schedulerAllocationCmd, "");
+    }
+
+
+    public override object ConvertTaskSpecificationToTask(JobSpecification jobSpecification,
+        TaskSpecification taskSpecification, object schedulerAllocationCmd)
+    {
         var scriptBuilder = new StringBuilder();
         string baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
         string account = jobSpecification.ClusterUser?.Username ?? "default";
-        string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{task.Id}".Replace("\\", "/");
+        string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpecification.Id}".Replace("\\", "/");
 
         scriptBuilder.AppendLine("#!/bin/bash");
         scriptBuilder.AppendLine($"#SBATCH -J {jobSpecification.Name}");
 
-        if (task.ClusterNodeType != null && !string.IsNullOrEmpty(task.ClusterNodeType.Queue))
+        if (taskSpecification.ClusterNodeType != null && !string.IsNullOrEmpty(taskSpecification.ClusterNodeType.Queue))
         {
-            scriptBuilder.AppendLine($"#SBATCH -p {task.ClusterNodeType.Queue}");
+            scriptBuilder.AppendLine($"#SBATCH -p {taskSpecification.ClusterNodeType.Queue}");
         }
 
         if (jobSpecification.Project != null && !string.IsNullOrEmpty(jobSpecification.Project.AccountingString))
@@ -110,21 +116,21 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             scriptBuilder.AppendLine($"#SBATCH -A {jobSpecification.Project.AccountingString}");
         }
 
-        if (task.WalltimeLimit.HasValue)
+        if (taskSpecification.WalltimeLimit.HasValue)
         {
-            var walltime = TimeSpan.FromSeconds(task.WalltimeLimit.Value);
+            var walltime = TimeSpan.FromSeconds(taskSpecification.WalltimeLimit.Value);
             scriptBuilder.AppendLine($"#SBATCH -t {walltime:d\\-hh\\:mm\\:ss}");
         }
 
-        if (task.MinCores.HasValue)
+        if (taskSpecification.MinCores.HasValue)
         {
-            scriptBuilder.AppendLine($"#SBATCH --ntasks={task.MinCores.Value}");
+            scriptBuilder.AppendLine($"#SBATCH --ntasks={taskSpecification.MinCores.Value}");
         }
 
-        if (task.RequiredNodes != null && task.RequiredNodes.Any())
+        if (taskSpecification.RequiredNodes != null && taskSpecification.RequiredNodes.Any())
         {
-            scriptBuilder.AppendLine($"#SBATCH --nodes={task.RequiredNodes.Count}");
-            var nodeNames = task.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName)
+            scriptBuilder.AppendLine($"#SBATCH --nodes={taskSpecification.RequiredNodes.Count}");
+            var nodeNames = taskSpecification.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName)
                 .ToList();
             if (nodeNames.Any())
             {
@@ -132,31 +138,31 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             }
         }
 
-        scriptBuilder.AppendLine($"#SBATCH -o {workingDirectory}/{task.StandardOutputFile}");
-        scriptBuilder.AppendLine($"#SBATCH -e {workingDirectory}/{task.StandardErrorFile}");
+        scriptBuilder.AppendLine($"#SBATCH -o {workingDirectory}/{taskSpecification.StandardOutputFile}");
+        scriptBuilder.AppendLine($"#SBATCH -e {workingDirectory}/{taskSpecification.StandardErrorFile}");
         scriptBuilder.AppendLine($"#SBATCH -D {workingDirectory}");
 
-        if (task.IsExclusive)
+        if (taskSpecification.IsExclusive)
         {
             scriptBuilder.AppendLine("#SBATCH --exclusive");
         }
 
-        scriptBuilder.AppendLine(task.IsRerunnable ? "#SBATCH --requeue" : "#SBATCH --no-requeue");
+        scriptBuilder.AppendLine(taskSpecification.IsRerunnable ? "#SBATCH --requeue" : "#SBATCH --no-requeue");
 
-        if (!string.IsNullOrEmpty(task.StandardInputFile))
+        if (!string.IsNullOrEmpty(taskSpecification.StandardInputFile))
         {
-            scriptBuilder.AppendLine($"#SBATCH -i {workingDirectory}/{task.StandardInputFile}");
+            scriptBuilder.AppendLine($"#SBATCH -i {workingDirectory}/{taskSpecification.StandardInputFile}");
         }
 
-        if (task.EnvironmentVariables != null && task.EnvironmentVariables.Any())
+        if (taskSpecification.EnvironmentVariables != null && taskSpecification.EnvironmentVariables.Any())
         {
-            var envVars = string.Join(",", task.EnvironmentVariables.Select(e => $"{e.Name}={e.Value}"));
+            var envVars = string.Join(",", taskSpecification.EnvironmentVariables.Select(e => $"{e.Name}={e.Value}"));
             scriptBuilder.AppendLine($"#SBATCH --export={envVars}");
         }
 
-        if (task.TaskParalizationSpecifications != null && task.TaskParalizationSpecifications.Any())
+        if (taskSpecification.TaskParalizationSpecifications != null && taskSpecification.TaskParalizationSpecifications.Any())
         {
-            var parSpec = task.TaskParalizationSpecifications.First();
+            var parSpec = taskSpecification.TaskParalizationSpecifications.First();
             if (parSpec.MPIProcesses.HasValue)
             {
                 scriptBuilder.AppendLine($"#SBATCH --ntasks-per-node={parSpec.MPIProcesses.Value}");
@@ -168,29 +174,29 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             }
         }
 
-        if (task.ClusterNodeType?.ClusterNodeTypeAggregation != null &&
-            (task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") ||
-             task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")))
+        if (taskSpecification.ClusterNodeType?.ClusterNodeTypeAggregation != null &&
+            (taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") ||
+             taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")))
         {
-            if (task.MaxCores.HasValue)
+            if (taskSpecification.MaxCores.HasValue)
             {
-                scriptBuilder.AppendLine($"#SBATCH --gpus={task.MaxCores.Value}");
+                scriptBuilder.AppendLine($"#SBATCH --gpus={taskSpecification.MaxCores.Value}");
             }
         }
 
-        if (!string.IsNullOrEmpty(task.PlacementPolicy))
+        if (!string.IsNullOrEmpty(taskSpecification.PlacementPolicy))
         {
-            scriptBuilder.AppendLine($"#SBATCH --constraint={task.PlacementPolicy}");
+            scriptBuilder.AppendLine($"#SBATCH --constraint={taskSpecification.PlacementPolicy}");
         }
 
-        if (task.CommandTemplate != null && !string.IsNullOrEmpty(task.CommandTemplate.ExtendedAllocationCommand))
+        if (taskSpecification.CommandTemplate != null && !string.IsNullOrEmpty(taskSpecification.CommandTemplate.ExtendedAllocationCommand))
         {
-            scriptBuilder.AppendLine($"#SBATCH {task.CommandTemplate.ExtendedAllocationCommand.Trim()}");
+            scriptBuilder.AppendLine($"#SBATCH {taskSpecification.CommandTemplate.ExtendedAllocationCommand.Trim()}");
         }
 
         scriptBuilder.AppendLine();
 
-        string commandToExecute = GetCommandFromTemplate(task);
+        string commandToExecute = GetCommandFromTemplate(taskSpecification);
         scriptBuilder.AppendLine(commandToExecute);
 
         return scriptBuilder.ToString();
