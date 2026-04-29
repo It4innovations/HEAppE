@@ -107,6 +107,8 @@ services:
       - "4318:4318"
     networks:
       - otelnet
+    profiles:
+      - telemetry
   
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.17.0
@@ -119,6 +121,8 @@ services:
       - "16686:16686"
     networks:
       - otelnet
+    profiles:
+      - telemetry
 
   vault:
     image: hashicorp/vault:1.17.3
