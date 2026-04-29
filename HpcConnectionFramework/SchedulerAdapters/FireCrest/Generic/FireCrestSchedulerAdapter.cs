@@ -235,13 +235,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             _logger.LogDebug($"[SubmitJob] Found {jobSpecification.Tasks.Count} tasks to submit.");
 
-            foreach (var taskSpec in jobSpecification.Tasks)
+            var tasks = (List<(TaskSpecification, string)>)_convertor.ConvertJobSpecificationToJob(jobSpecification, "");
+
+            foreach (var (taskSpec, finalScript) in tasks)
             {
                 try
                 {
-                    var finalScript = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, taskSpec);
-                    finalScript = finalScript.Replace("\r\n", "\n");
-
                     string taskDirectoryPath =
                         $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}".Replace("\\", "/");
 

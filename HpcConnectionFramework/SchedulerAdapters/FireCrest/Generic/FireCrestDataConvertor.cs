@@ -88,10 +88,15 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     {
     }
 
-    public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
-        object schedulerAllocationCmd)
+    public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
     {
-        return ConvertTaskSpecificationToTask(jobSpecification, (TaskSpecification)schedulerAllocationCmd, "");
+        var result = new List<(TaskSpecification, string)>();
+        foreach (var taskSpec in jobSpecification.Tasks)
+        {
+            var script = ((string)ConvertTaskSpecificationToTask(jobSpecification, taskSpec, "")).Replace("\r\n", "\n");
+            result.Add((taskSpec, script));
+        }
+        return result;
     }
 
 
