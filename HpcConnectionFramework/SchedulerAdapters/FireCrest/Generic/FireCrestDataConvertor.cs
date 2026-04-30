@@ -100,8 +100,8 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     }
 
 
-    public override object ConvertTaskSpecificationToTask(JobSpecification jobSpecification,
-        TaskSpecification taskSpecification, object schedulerAllocationCmd)
+    public override object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification,
+        object schedulerAllocationCmd)
     {
         var scriptBuilder = new StringBuilder();
         string baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
@@ -199,6 +199,25 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             scriptBuilder.AppendLine($"#SBATCH {taskSpecification.CommandTemplate.ExtendedAllocationCommand.Trim()}");
         }
 
+        if (!string.IsNullOrEmpty(jobSpecification.NotificationEmail) &&
+            ((jobSpecification.NotifyOnStart ?? false) || (jobSpecification.NotifyOnFinish ?? false) || (jobSpecification.NotifyOnAbort ?? false)))
+        {
+            var mailParameters = string.Empty;
+
+            if (jobSpecification.NotifyOnAbort ?? false)
+                mailParameters += "FAIL,";
+
+            if (jobSpecification.NotifyOnStart ?? false)
+                mailParameters += "BEGIN,";
+
+            if (jobSpecification.NotifyOnFinish ?? false)
+                mailParameters += "END,";
+
+            mailParameters = mailParameters.Remove(mailParameters.Length - 1, 1);
+            scriptBuilder.AppendLine($"#SBATCH --mail-type={mailParameters}");
+            scriptBuilder.AppendLine($"#SBATCH --mail-user={jobSpecification.NotificationEmail}");
+        }
+
         scriptBuilder.AppendLine();
 
         string commandToExecute = GetCommandFromTemplate(taskSpecification);
@@ -285,7 +304,6 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     {
         throw new NotImplementedException();
     }
-
 
     public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
     {
