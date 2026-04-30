@@ -12,7 +12,8 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SystemCommands;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
@@ -104,6 +105,18 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
         object schedulerAllocationCmd)
     {
         var scriptBuilder = new StringBuilder();
+
+        _conversionAdapterFactory = null;
+        //_conversionAdapterFactory = new PbsProConversionAdapterFactory();
+        //_conversionAdapterFactory = new SlurmConversionAdapterFactory();
+
+        if (_conversionAdapterFactory != null)
+        {
+            var taskScript = (string)base.ConvertTaskSpecificationToTask(jobSpecification, taskSpecification, "#!/bin/bash");
+            return taskScript;
+        }
+        
+        scriptBuilder.Clear();
         string baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
         string account = jobSpecification.ClusterUser?.Username ?? "default";
         string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpecification.Id}".Replace("\\", "/");

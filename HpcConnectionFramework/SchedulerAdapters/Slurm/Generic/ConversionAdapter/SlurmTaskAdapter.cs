@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
@@ -21,7 +22,10 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <param name="taskSource"></param>
     public SlurmTaskAdapter(string taskSource)
     {
+        _sbatch = taskSource.StartsWith("#!");
         _taskBuilder = new StringBuilder(taskSource);
+        if (_sbatch)
+            _taskBuilder.AppendLine();
     }
 
     #endregion
@@ -29,9 +33,27 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     #region Instances
 
     /// <summary>
+    ///     Build script instead of command line parameters
+    /// </summary>
+    protected bool _sbatch;
+
+    /// <summary>
     ///     Task (HPC job) allocation command builder
     /// </summary>
     protected StringBuilder _taskBuilder;
+
+    /// <summary>
+    ///     Append parameter to builder
+    /// </summary>
+    protected void DoAppend(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+        if (_sbatch)
+            _taskBuilder.AppendLine("#SBATCH " + value);
+        else
+            _taskBuilder.Append(value);
+    }
 
     /// <summary>
     ///     Job priority multiplier for setting priority from range [0-max(int)]
@@ -52,7 +74,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public TaskPriority Priority
     {
-        set => _taskBuilder.Append($" --priority {_priorityMultiplier * (int)value}");
+        set => DoAppend($" --priority {_priorityMultiplier * (int)value}");
     }
 
     /// <summary>
@@ -60,7 +82,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Queue
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --partition={value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" --partition={value}" : string.Empty);
     }
 
     /// <summary>
@@ -68,7 +90,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string QualityOfService
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --qos={value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" --qos={value}" : string.Empty);
     }
 
     /// <summary>
@@ -76,7 +98,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string ClusterAllocationName
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --clusters={value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" --clusters={value}" : string.Empty);
     }
 
 
@@ -85,7 +107,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool CpuHyperThreading
     {
-        set => _taskBuilder.Append(value ? " --hint=multithread" : string.Empty);
+        set => DoAppend(value ? " --hint=multithread" : string.Empty);
     }
 
     /// <summary>
@@ -93,7 +115,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string JobArrays
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --array={value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" --array={value}" : string.Empty);
     }
 
     /// <summary>
@@ -101,7 +123,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Name
     {
-        set => _taskBuilder.Append($" -J {value}");
+        set => DoAppend($" -J {value}");
     }
 
     /// <summary>
@@ -109,7 +131,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Project
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
     }
 
     /// <summary>
@@ -121,9 +143,15 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         {
             if (value != null && value.Any())
             {
+                if (_sbatch)
+                    _taskBuilder.Append("#SBATCH");
+
                 var builder = new StringBuilder(" --dependency=afterok");
                 value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}_parsed"));
                 _taskBuilder.Append(builder);
+
+                if (_sbatch)
+                    _taskBuilder.AppendLine();
             }
         }
     }
@@ -133,7 +161,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsExclusive
     {
-        set => _taskBuilder.Append(value ? " -exclusive=mcs" : string.Empty);
+        set => DoAppend(value ? " -exclusive=mcs" : string.Empty);
     }
 
     /// <summary>
@@ -141,7 +169,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsRerunnable
     {
-        set => _taskBuilder.Append(value ? " --requeue" : " --no-requeue");
+        set => DoAppend(value ? " --requeue" : " --no-requeue");
     }
 
     /// <summary>
@@ -152,7 +180,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         set
         {
             var wallTime = TimeSpan.FromSeconds(value);
-            _taskBuilder.Append($" -t {wallTime:dd\\-hh\\:mm\\:ss}");
+            DoAppend($" -t {wallTime:dd\\-hh\\:mm\\:ss}");
         }
     }
 
@@ -161,7 +189,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdErrFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
     }
 
     /// <summary>
@@ -169,7 +197,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdInFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -i {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -i {value}" : string.Empty);
     }
 
     /// <summary>
@@ -177,7 +205,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdOutFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
     }
 
     /// <summary>
@@ -185,7 +213,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string WorkDirectory
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -D {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -D {value}" : string.Empty);
     }
 
     /// <summary>
@@ -193,22 +221,22 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string ExtendedAllocationCommand
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
     public long? Memory
     {
-        set => _taskBuilder.Append(value != null ? $" --mem={value}" : string.Empty);
+        set => DoAppend(value != null ? $" --mem={value}" : string.Empty);
     }
 
     public long? MemoryPerCPU
     {
-        set => _taskBuilder.Append(value != null ? $" --mem-per-cpu={value}" : string.Empty);
+        set => DoAppend(value != null ? $" --mem-per-cpu={value}" : string.Empty);
     }
 
     public long? MemoryPerGPU
     {
-        set => _taskBuilder.Append(value != null ? $" --mem-per-gpu={value}" : string.Empty);
+        set => DoAppend(value != null ? $" --mem-per-gpu={value}" : string.Empty);
     }
 
     /// <summary>
@@ -226,11 +254,22 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
         var allocationCmdBuilder = new StringBuilder();
+        void doAppend(string value) {
+            if (string.IsNullOrEmpty(value))
+                return;
+            if (_sbatch)
+                allocationCmdBuilder.Append("#SBATCH");
+            allocationCmdBuilder.Append(value);
+            if (_sbatch)
+                allocationCmdBuilder.AppendLine();
+        }
+
         var reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
         var parSpec = paralizationSpecs.FirstOrDefault();
 
         bool isPartialAllocation = aggregation != null && aggregation.AllocationType.Contains("partial-allocation", StringComparison.OrdinalIgnoreCase);
         bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
+        
         // GPU allocation
         if (isGpuAllocation)
         {
@@ -241,7 +280,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 // then remove this and use logic in else statement
                 if (maxCores.HasValue)
                 {
-                    allocationCmdBuilder.Append($" --gpus={maxCores}");
+                    doAppend($" --gpus={maxCores}");
                 }
                 else
                 {
@@ -256,8 +295,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                         }
                     }
 
-                    allocationCmdBuilder.Append($" --gpus={gpuCores}");
-                    allocationCmdBuilder.Append($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
+                    doAppend($" --gpus={gpuCores}");
+                    doAppend($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
                 }
             }
             else
@@ -270,8 +309,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                     var nodeCount = maxCores / coresPerNode;
                     nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
 
-                    allocationCmdBuilder.Append($" --gpus={gpuCount}");
-                    allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)nodeCount)}{reqNodeGroupsCmd}");
+                    doAppend($" --gpus={gpuCount}");
+                    doAppend($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)nodeCount)}{reqNodeGroupsCmd}");
                 }
                 else
                 {
@@ -279,8 +318,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                         throw new ArgumentException("Argument 'gpuNodes' have to be specified for Slurm task GPU full node allocation.");
 
                     int gpuCount = (int)gpuNodes * coresPerNode;
-                    allocationCmdBuilder.Append($" --gpus={gpuCount}");
-                    allocationCmdBuilder.Append($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
+                    doAppend($" --gpus={gpuCount}");
+                    doAppend($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
                 }
             }
         }
@@ -323,21 +362,21 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 totalNodes += effectiveMaxCores % coresPerNode > 0 ? 1 : 0;
             }
 
-            allocationCmdBuilder.Append(
+            doAppend(
                 $" --nodes={totalNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), totalNodes)}{reqNodeGroupsCmd}");
         }
 
         if (parSpec is not null)
         {
             if (parSpec.MPIProcesses.HasValue)
-                allocationCmdBuilder.Append($" --ntasks-per-node={parSpec.MPIProcesses.Value}");
+                doAppend($" --ntasks-per-node={parSpec.MPIProcesses.Value}");
 
             if (parSpec.OpenMPThreads.HasValue)
-                allocationCmdBuilder.Append($" --cpus-per-task={parSpec.OpenMPThreads.Value}");
+                doAppend($" --cpus-per-task={parSpec.OpenMPThreads.Value}");
         }
 
         if (!string.IsNullOrEmpty(placementPolicy))
-            allocationCmdBuilder.Append($" --constraint={placementPolicy}");
+            doAppend($" --constraint={placementPolicy}");
 
         _taskBuilder.Append(allocationCmdBuilder);
     }
@@ -351,9 +390,16 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         if (variables != null && variables.Any())
         {
+            if (_sbatch)
+                _taskBuilder.Append("#SBATCH");
+
             _taskBuilder.Append(" --export ");
-            foreach (var variable in variables) _taskBuilder.Append($"{variable.Name}={variable.Value},");
+            foreach (var variable in variables)
+                _taskBuilder.Append($"{variable.Name}={variable.Value},");
             _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
+
+            if (_sbatch)
+                _taskBuilder.AppendLine();
         }
     }
 
@@ -368,6 +414,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        if (_sbatch)
+            _taskBuilder.Append("#SBATCH");
+
         _taskBuilder.Append($" --wrap \'cd {workDir};");
         _taskBuilder.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
@@ -391,6 +440,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                     : $"{commandLine};");
 
         _taskBuilder.Append('\'');
+
+        if (_sbatch)
+            _taskBuilder.AppendLine();
     }
 
     #endregion
@@ -407,7 +459,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (requestedNodeGroups.Any())
         {
             var builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
-            foreach (var nodeGroup in requestedNodeGroups.Skip(1)) builder.Append($",{nodeGroup}");
+            foreach (var nodeGroup in requestedNodeGroups.Skip(1))
+                builder.Append($",{nodeGroup}");
             return builder.ToString();
         }
 
