@@ -306,7 +306,7 @@ internal class LinuxCommands : ICommands
         }
     }
 
-    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
         _log.Info($"Copying job files to cluster");
         var cmdBuilder = new StringBuilder();
@@ -324,7 +324,7 @@ internal class LinuxCommands : ICommands
             string account = jobInfo.Specification.ClusterUser.Username;
 
             cmdBuilder.Append(
-                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id};");
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
 
             foreach (var task in jobInfo.Tasks)
             {
@@ -333,16 +333,12 @@ internal class LinuxCommands : ICommands
                     : string.Empty;
 
                 cmdBuilder.Append(
-                    $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath};");
+                    $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
             }
         }
 
-        cmdBuilder.Append("umask 0077; ");
-        
         foreach (var sourceDestination in sourceDestinations)
         {
-            string destinationDirectory = Path.GetDirectoryName(sourceDestination.Item2)?.Replace("\\", "/");
-            cmdBuilder.Append($"mkdir -p {destinationDirectory};");
             cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
         }
 

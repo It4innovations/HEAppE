@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -50,7 +50,7 @@ public interface ISchedulerAdapter
     bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
         bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
-    bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
+    bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode);
 
     Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog);
     DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification);

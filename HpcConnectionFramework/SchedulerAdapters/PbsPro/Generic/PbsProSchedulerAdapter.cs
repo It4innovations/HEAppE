@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -392,9 +392,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
     #endregion
 
-    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
-        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
     }
     #endregion
 
