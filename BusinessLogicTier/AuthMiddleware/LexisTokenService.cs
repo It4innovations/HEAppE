@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using log4net;
 
 namespace HEAppE.Services.AuthMiddleware;
 
@@ -20,19 +19,20 @@ public class LexisTokenService : ILexisTokenService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
-    private static readonly ILog Log = LogManager.GetLogger(typeof(LexisTokenService));
+    private readonly ILogger<LexisTokenService> _log;
 
-    public LexisTokenService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public LexisTokenService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<LexisTokenService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _log = logger;
     }
 
     public async Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken)
     {
         if (string.IsNullOrWhiteSpace(lexisAccessToken))
         {
-            Log.Warn("ExchangeLexisTokenForFipAsync: lexisAccessToken is null or empty.");
+            _log.LogWarning("ExchangeLexisTokenForFipAsync: lexisAccessToken is null or empty.");
             return null;
         }
 
@@ -51,7 +51,7 @@ public class LexisTokenService : ILexisTokenService
             ["scope"] = cfg.Scope
         };
 
-        Log.Debug($"[TokenExchange Request] URL: {tokenEndpoint}, ClientID: {cfg.ClientId}, Scope: {cfg.Scope}");
+        _log.LogDebug("[TokenExchange Request] URL: {TokenEndpoint}, ClientID: {ClientId}, Scope: {Scope}", tokenEndpoint, cfg.ClientId, cfg.Scope);
 
         try
         {
@@ -60,11 +60,11 @@ public class LexisTokenService : ILexisTokenService
 
             if (!response.IsSuccessStatusCode)
             {
-                Log.Error($"[TokenExchange Response] Error: {response.StatusCode}, Content: {responseContent}");
+                _log.LogError("[TokenExchange Response] Error: {StatusCode}, Content: {Content}", response.StatusCode, responseContent);
                 throw new Exception($"Token exchange failed: {response.StatusCode} - {responseContent}");
             }
 
-            Log.Debug($"[TokenExchange Response] Success: {response.StatusCode}");
+            _log.LogDebug("[TokenExchange Response] Success: {StatusCode}", response.StatusCode);
 
             var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
             string exchangedAccessToken = json.GetProperty("access_token").GetString();
@@ -72,12 +72,12 @@ public class LexisTokenService : ILexisTokenService
         }
         catch (TaskCanceledException)
         {
-            Log.Error($"[TokenExchange Timeout] Request to {tokenEndpoint} timed out.");
+            _log.LogError("[TokenExchange Timeout] Request to {TokenEndpoint} timed out.", tokenEndpoint);
             throw;
         }
         catch (JsonException ex)
         {
-            Log.Error($"[TokenExchange] Invalid JSON format.");
+            _log.LogError("[TokenExchange] Invalid JSON format.");
             throw new Exception($"Failed to parse token exchange response: {ex.Message}", ex);
         }
     }
@@ -90,7 +90,7 @@ public class LexisTokenService : ILexisTokenService
         var cfg = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration;
         var userinfoUrl = $"{cfg.BaseUrl}/realms/{cfg.Realm}/broker/{cfg.Broker}/token";
 
-        Log.Debug($"[FipTokenInfo Request] URL: {userinfoUrl}");
+        _log.LogDebug("[FipTokenInfo Request] URL: {UserinfoUrl}", userinfoUrl);
 
         var client = _httpClientFactory.CreateClient("LexisTokenExchangeClient");
         var request = new HttpRequestMessage(HttpMethod.Get, userinfoUrl);
@@ -101,11 +101,11 @@ public class LexisTokenService : ILexisTokenService
 
         if (!response.IsSuccessStatusCode)
         {
-            Log.Error($"[FipTokenInfo Response] Error: {response.StatusCode}, Content: {responseContent}");
+            _log.LogError("[FipTokenInfo Response] Error: {StatusCode}, Content: {Content}", response.StatusCode, responseContent);
             throw new Exception($"Failed to retrieve FIP token info: {response.StatusCode} - {responseContent}");
         }
 
-        Log.Debug("[FipTokenInfo Response] Success");
+        _log.LogDebug("[FipTokenInfo Response] Success");
 
         try
         {
@@ -114,7 +114,7 @@ public class LexisTokenService : ILexisTokenService
         }
         catch (JsonException ex)
         {
-            Log.Error($"[FipTokenInfo] Invalid JSON format. Response content: {responseContent}");
+            _log.LogError("[FipTokenInfo] Invalid JSON format. Response content: {Content}", responseContent);
             throw new Exception($"Failed to parse FIP token info response: {ex.Message}", ex);
         }
     }

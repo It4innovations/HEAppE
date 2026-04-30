@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using HEAppE.Exceptions.Internal;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Tmds.Ssh;
 using TmdsClient = Tmds.Ssh.SshClient;
@@ -24,7 +24,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     /// <param name="address"></param>
     /// <param name="userName">Username</param>
     /// <exception cref="ArgumentException"></exception>
-    public KerberosSshClient(string masterNodeName, string address, string userName) : base(
+    public KerberosSshClient(string masterNodeName, string address, string userName, ILogger logger = null) : base(
         new ConnectionInfo(masterNodeName, userName,
             new NoneAuthenticationMethod(userName))) //cannot be null
     {
@@ -38,7 +38,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
         _address = address;
         _userName = userName;
 
-        _log = LogManager.GetLogger(typeof(KerberosSshClient));
+        _log = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
 
         InitializeClient();
     }
@@ -51,7 +51,7 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     private readonly string _address;
     private readonly string _userName;
     private TmdsClient _client;
-    protected ILog _log;
+    protected ILogger _log;
     private bool _triedToConnect = false;
     private bool _isConnected = false;
 

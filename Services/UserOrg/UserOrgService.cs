@@ -7,9 +7,9 @@ using System.Text.Json;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
+using log4net;
 //using HEAppE.HpcConnectionFramework.Configuration;
 using Microsoft.Extensions.Logging;
-using log4net;
 
 namespace HEAppE.Services.UserOrg;
 

@@ -16,7 +16,6 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using log4net;
 #nullable enable
 using System;
 using System.Collections.Generic;
