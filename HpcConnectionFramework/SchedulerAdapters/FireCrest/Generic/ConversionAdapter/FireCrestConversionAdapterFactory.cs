@@ -13,7 +13,7 @@ public class FirecRestConversionAdapterFactory : ConversionAdapterFactory
     /// <returns></returns>
     public override ISchedulerJobAdapter CreateJobAdapter()
     {
-        return new FirecRestJobAdapter();
+        return null;// new FirecRestJobAdapter();
     }
 
     /// <summary>
@@ -23,6 +23,6 @@ public class FirecRestConversionAdapterFactory : ConversionAdapterFactory
     /// <returns></returns>
     public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
     {
-        return new FirecRestTaskAdapter((string)taskSource);
+        return null;// new FirecRestTaskAdapter((string)taskSource);
     }
 }
