@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -443,9 +443,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
 
-    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
-        return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
+        return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
     }
 
     private static string PrepareSbatchCommand(
