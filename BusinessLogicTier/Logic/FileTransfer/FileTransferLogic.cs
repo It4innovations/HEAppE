@@ -582,7 +582,7 @@ public class FileTransferLogic : IFileTransferLogic
         var cluster = clusterProject.Cluster;
         
         var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-        var clusterUserAuthCredentials = await clusterLogic.GetNextAvailableUserCredentials(modelClusterId, modelProjectId, false, loggedUser.Id);
+        var clusterUserAuthCredentials = await clusterLogic.GetNextAvailableUserCredentials(modelClusterId, modelProjectId, true, loggedUser.Id);
 
         if (clusterUserAuthCredentials == null)
             throw new ClusterAuthenticationException("NotExistingClusterAuthenticationCredentials", loggedUser.Id, modelClusterId);
