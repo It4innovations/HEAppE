@@ -22,6 +22,13 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
+  file/traces:
+    path: /var/log/otel/traces.json
+    rotation:
+      max_megabytes: 512 # max file size
+      max_backups: 10 # max files to keep
+      max_days: 7 # number of days of history
+    #compression: zstd
   debug:
     #verbosity: detailed
   otlp/jaeger:
@@ -35,4 +42,4 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp/jaeger]
+      exporters: [file/traces, otlp/jaeger]
