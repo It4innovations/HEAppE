@@ -94,7 +94,7 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
         var result = new List<(TaskSpecification, string)>();
         foreach (var taskSpec in jobSpecification.Tasks)
         {
-            var script = ((string)ConvertTaskSpecificationToTask(jobSpecification, taskSpec, "")).Replace("\r\n", "\n");
+            var script = ((string)ConvertTaskSpecificationToTask(jobSpecification, taskSpec, ""));
             result.Add((taskSpec, script));
         }
         return result;
@@ -108,135 +108,23 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
 
         _conversionAdapterFactory = null;
         //_conversionAdapterFactory = new PbsProConversionAdapterFactory();
-        //_conversionAdapterFactory = new SlurmConversionAdapterFactory();
+        _conversionAdapterFactory = new SlurmConversionAdapterFactory();
 
         if (_conversionAdapterFactory != null)
         {
             var taskScript = (string)base.ConvertTaskSpecificationToTask(jobSpecification, taskSpecification, "#!/bin/bash");
+            if (_conversionAdapterFactory is SlurmConversionAdapterFactory)
+            {
+                taskScript = Regex.Replace(taskScript, @"^#SBATCH\s+--wrap\s+'([^']*)'\s*$", "$1", RegexOptions.Multiline); // unwrap commands
+            }
+            else if (_conversionAdapterFactory is PbsProConversionAdapterFactory)
+            {
+
+            }
             return taskScript;
         }
-        
-        scriptBuilder.Clear();
-        string baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
-        string account = jobSpecification.ClusterUser?.Username ?? "default";
-        string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpecification.Id}".Replace("\\", "/");
 
-        scriptBuilder.AppendLine("#!/bin/bash");
-        scriptBuilder.AppendLine($"#SBATCH -J {jobSpecification.Name}");
-
-        if (taskSpecification.ClusterNodeType != null && !string.IsNullOrEmpty(taskSpecification.ClusterNodeType.Queue))
-        {
-            scriptBuilder.AppendLine($"#SBATCH -p {taskSpecification.ClusterNodeType.Queue}");
-        }
-
-        if (jobSpecification.Project != null && !string.IsNullOrEmpty(jobSpecification.Project.AccountingString))
-        {
-            scriptBuilder.AppendLine($"#SBATCH -A {jobSpecification.Project.AccountingString}");
-        }
-
-        if (taskSpecification.WalltimeLimit.HasValue)
-        {
-            var walltime = TimeSpan.FromSeconds(taskSpecification.WalltimeLimit.Value);
-            scriptBuilder.AppendLine($"#SBATCH -t {walltime:d\\-hh\\:mm\\:ss}");
-        }
-
-        if (taskSpecification.MinCores.HasValue)
-        {
-            scriptBuilder.AppendLine($"#SBATCH --ntasks={taskSpecification.MinCores.Value}");
-        }
-
-        if (taskSpecification.RequiredNodes != null && taskSpecification.RequiredNodes.Any())
-        {
-            scriptBuilder.AppendLine($"#SBATCH --nodes={taskSpecification.RequiredNodes.Count}");
-            var nodeNames = taskSpecification.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName)
-                .ToList();
-            if (nodeNames.Any())
-            {
-                scriptBuilder.AppendLine($"#SBATCH --nodelist={string.Join(",", nodeNames)}");
-            }
-        }
-
-        scriptBuilder.AppendLine($"#SBATCH -o {workingDirectory}/{taskSpecification.StandardOutputFile}");
-        scriptBuilder.AppendLine($"#SBATCH -e {workingDirectory}/{taskSpecification.StandardErrorFile}");
-        scriptBuilder.AppendLine($"#SBATCH -D {workingDirectory}");
-
-        if (taskSpecification.IsExclusive)
-        {
-            scriptBuilder.AppendLine("#SBATCH --exclusive");
-        }
-
-        scriptBuilder.AppendLine(taskSpecification.IsRerunnable ? "#SBATCH --requeue" : "#SBATCH --no-requeue");
-
-        if (!string.IsNullOrEmpty(taskSpecification.StandardInputFile))
-        {
-            scriptBuilder.AppendLine($"#SBATCH -i {workingDirectory}/{taskSpecification.StandardInputFile}");
-        }
-
-        if (taskSpecification.EnvironmentVariables != null && taskSpecification.EnvironmentVariables.Any())
-        {
-            var envVars = string.Join(",", taskSpecification.EnvironmentVariables.Select(e => $"{e.Name}={e.Value}"));
-            scriptBuilder.AppendLine($"#SBATCH --export={envVars}");
-        }
-
-        if (taskSpecification.TaskParalizationSpecifications != null && taskSpecification.TaskParalizationSpecifications.Any())
-        {
-            var parSpec = taskSpecification.TaskParalizationSpecifications.First();
-            if (parSpec.MPIProcesses.HasValue)
-            {
-                scriptBuilder.AppendLine($"#SBATCH --ntasks-per-node={parSpec.MPIProcesses.Value}");
-            }
-
-            if (parSpec.OpenMPThreads.HasValue)
-            {
-                scriptBuilder.AppendLine($"#SBATCH --cpus-per-task={parSpec.OpenMPThreads.Value}");
-            }
-        }
-
-        if (taskSpecification.ClusterNodeType?.ClusterNodeTypeAggregation != null &&
-            (taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") ||
-             taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")))
-        {
-            if (taskSpecification.MaxCores.HasValue)
-            {
-                scriptBuilder.AppendLine($"#SBATCH --gpus={taskSpecification.MaxCores.Value}");
-            }
-        }
-
-        if (!string.IsNullOrEmpty(taskSpecification.PlacementPolicy))
-        {
-            scriptBuilder.AppendLine($"#SBATCH --constraint={taskSpecification.PlacementPolicy}");
-        }
-
-        if (taskSpecification.CommandTemplate != null && !string.IsNullOrEmpty(taskSpecification.CommandTemplate.ExtendedAllocationCommand))
-        {
-            scriptBuilder.AppendLine($"#SBATCH {taskSpecification.CommandTemplate.ExtendedAllocationCommand.Trim()}");
-        }
-
-        if (!string.IsNullOrEmpty(jobSpecification.NotificationEmail) &&
-            ((jobSpecification.NotifyOnStart ?? false) || (jobSpecification.NotifyOnFinish ?? false) || (jobSpecification.NotifyOnAbort ?? false)))
-        {
-            var mailParameters = string.Empty;
-
-            if (jobSpecification.NotifyOnAbort ?? false)
-                mailParameters += "FAIL,";
-
-            if (jobSpecification.NotifyOnStart ?? false)
-                mailParameters += "BEGIN,";
-
-            if (jobSpecification.NotifyOnFinish ?? false)
-                mailParameters += "END,";
-
-            mailParameters = mailParameters.Remove(mailParameters.Length - 1, 1);
-            scriptBuilder.AppendLine($"#SBATCH --mail-type={mailParameters}");
-            scriptBuilder.AppendLine($"#SBATCH --mail-user={jobSpecification.NotificationEmail}");
-        }
-
-        scriptBuilder.AppendLine();
-
-        string commandToExecute = GetCommandFromTemplate(taskSpecification);
-        scriptBuilder.AppendLine(commandToExecute);
-
-        return scriptBuilder.ToString();
+        return null;
     }
 
     private string GetCommandFromTemplate(TaskSpecification task)

@@ -253,7 +253,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                             account = jobSpecification.Project?.AccountingString,
                             standard_output = taskSpec.StandardOutputFile,
                             standard_error = taskSpec.StandardErrorFile,
-                            script = finalScript
+                            script = finalScript.Replace("\r\n", "\n")
                         }
                     };
 
