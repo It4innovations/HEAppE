@@ -127,49 +127,6 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
         return null;
     }
 
-    private string GetCommandFromTemplate(TaskSpecification task)
-    {
-        if (task.CommandTemplate == null)
-        {
-            throw new InvalidOperationException($"Command template for Task ID {task.Id} is not loaded or is missing.");
-        }
-
-        var commandBuilder = new StringBuilder();
-
-        if (!string.IsNullOrWhiteSpace(task.CommandTemplate.PreparationScript))
-        {
-            commandBuilder.AppendLine(task.CommandTemplate.PreparationScript);
-        }
-
-        commandBuilder.Append(task.CommandTemplate.ExecutableFile);
-
-        if (!string.IsNullOrWhiteSpace(task.CommandTemplate.CommandParameters))
-        {
-            commandBuilder.Append($" {task.CommandTemplate.CommandParameters}");
-        }
-
-        string commandTemplateString = commandBuilder.ToString();
-
-        if (task.CommandParameterValues == null || !task.CommandParameterValues.Any())
-        {
-            return commandTemplateString;
-        }
-
-        foreach (var parameter in task.CommandParameterValues)
-        {
-            if (parameter.TemplateParameter == null || string.IsNullOrEmpty(parameter.TemplateParameter.Identifier))
-            {
-                continue;
-            }
-
-            string placeholder = $"{{{parameter.TemplateParameter.Identifier}}}";
-            string value = parameter.Value ?? string.Empty;
-            commandTemplateString = commandTemplateString.Replace(placeholder, value);
-        }
-
-        return commandTemplateString;
-    }
-
     public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
     {
         return new ClusterNodeUsage();
