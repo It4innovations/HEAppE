@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -19,7 +20,8 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using Microsoft.Extensions.Logging;
+using HEAppE.Utils;
+
 
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
@@ -38,9 +40,9 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     public string ClientSecret { private get; set; }
     public string TokenEndpoint { private get; set; }
 
-    protected string _baseDirectoryPath;
-
     protected static readonly SshTunnelUtils _sshTunnelUtil = new();
+
+    protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
     #endregion
 
@@ -56,7 +58,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         ClientId = FirecRestSettings.ClientId;
         ClientSecret = FirecRestSettings.ClientSecret;
         TokenEndpoint = FirecRestSettings.TokenEndpoint;
-        _baseDirectoryPath = FirecRestSettings.BaseDirectoryPath;
     }
 
     #endregion
@@ -241,8 +242,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             {
                 try
                 {
-                    string taskDirectoryPath =
-                        $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}".Replace("\\", "/");
+                    string taskDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
 
                     var jobPayload = new
                     {
@@ -276,7 +276,9 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         _logger.LogDebug($"[SubmitJob] ERROR: Request failed for Task {taskSpec.Id}");
                         failedTasks.Add(new SubmittedTaskInfo
                         {
-                            Name = taskSpec.Id.ToString(), State = TaskState.Failed, Specification = taskSpec,
+                            Name = taskSpec.Id.ToString(),
+                            State = TaskState.Failed,
+                            Specification = taskSpec,
                             Reason =
                                 $"Job submission request failed with status {submitResponse.StatusCode}. Response: {submitResponseContent}"
                         });
@@ -302,7 +304,9 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         _logger.LogDebug($"[SubmitJob] ERROR: Could not parse Job ID.");
                         failedTasks.Add(new SubmittedTaskInfo
                         {
-                            Name = taskSpec.Id.ToString(), State = TaskState.Failed, Specification = taskSpec,
+                            Name = taskSpec.Id.ToString(),
+                            State = TaskState.Failed,
+                            Specification = taskSpec,
                             Reason =
                                 $"Job submission response did not contain a parsable job ID. Response: {submitResponseContent}"
                         });
@@ -490,7 +494,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             string clusterName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
 
-            string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
+            string jobDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
+
             var endpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/mkdir";
             var jobRequestBody = new { path = jobDirectoryPath, p = true };
 
@@ -522,7 +527,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             string systemName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
 
-            string remotePathToDelete = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
+            string remotePathToDelete = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
+
             var endpoint =
                 $"{FirecRestUrl}/filesystem/{systemName}/ops/rm?path={Uri.EscapeDataString(remotePathToDelete)}";
 
