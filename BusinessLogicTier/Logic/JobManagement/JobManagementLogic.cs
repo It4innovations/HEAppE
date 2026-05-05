@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -363,14 +363,14 @@ internal class JobManagementLogic : IJobManagementLogic
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardOutputFile),
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile),
             });
-
+        
         var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
         var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
         var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
         var isArchived = await SchedulerFactory.GetInstance(schedulerType).
             CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger, options: schedulerOptions).
-            MoveJobFilesAsync(jobInfo, sourceDestinations, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            MoveJobFilesAsync(jobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
         return isArchived;
     }
 

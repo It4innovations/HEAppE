@@ -286,17 +286,10 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 {
                     if (!gpuCores.HasValue || gpuCores <= 0)
                     {
-                        //throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
-                        //compute gpu cores based on gpu nodes and cores per node if gpu cores not specified
-                        if (!gpuNodes.HasValue || gpuNodes <= 0)
-                        {
-                            gpuNodes = maxCores / coresPerNode;
-                            gpuNodes += maxCores % coresPerNode > 0 ? 1 : 0;
-                        }
+                        throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
                     }
 
                     doAppend($" --gpus={gpuCores}");
-                    doAppend($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
                 }
             }
             else
@@ -315,7 +308,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 else
                 {
                     if (!gpuNodes.HasValue || gpuNodes <= 0)
-                        throw new ArgumentException("Argument 'gpuNodes' have to be specified for Slurm task GPU full node allocation.");
+                    {
+                        //set gpuNodes -- count
+                        gpuNodes = maxCores / coresPerNode;
+                        gpuNodes += maxCores % coresPerNode > 0 ? 1 : 0;
+                    }
 
                     int gpuCount = (int)gpuNodes * coresPerNode;
                     doAppend($" --gpus={gpuCount}");

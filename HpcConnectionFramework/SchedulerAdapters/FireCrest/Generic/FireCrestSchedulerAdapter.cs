@@ -594,8 +594,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
         localBasepath, account, isServiceAccount);
 
-    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations) =>
-        await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations);
+    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
+        await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotImplementedException();

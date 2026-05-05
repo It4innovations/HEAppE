@@ -186,7 +186,7 @@ public class JobManagementService : IJobManagementService
             bool isJobOwner = job.Submitter.Id == loggedUser.Id;
             
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            if (JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued))
             {
                 var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
                 return jobInfoFromHPC.ConvertIntToExt();

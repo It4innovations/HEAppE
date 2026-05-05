@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Services.UserOrg;
@@ -20,8 +21,6 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public static class JwtIntrospectionExtensions
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(JwtIntrospectionExtensions));
-
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         if (true)
@@ -36,13 +35,15 @@ public static class JwtIntrospectionExtensions
             {
                 options.ForwardDefaultSelector = context =>
                 {
+                    var log = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger(nameof(JwtIntrospectionExtensions));
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
                     if (JwtTokenIntrospectionConfiguration.IsEnabled && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
-                        Log.Debug($"[SmartScheme] Path: {context.Request.Path} -> OAuth2Introspection");
+                        log.LogDebug("[SmartScheme] Path: {Path} -> OAuth2Introspection", context.Request.Path);
                         return OAuth2IntrospectionDefaults.AuthenticationScheme;
                     }
-                    Log.Debug($"[SmartScheme] Path: {context.Request.Path} -> LocalScheme");
+                    log.LogDebug("[SmartScheme] Path: {Path} -> LocalScheme", context.Request.Path);
                     return "LocalScheme";
                 };
             })
@@ -73,13 +74,19 @@ public static class JwtIntrospectionExtensions
                     {
                         OnAuthenticationFailed = context =>
                         {
-                            Log.Error($"[Introspection] Auth Failed (Keycloak). Error: {context.Error}. Path: {context.HttpContext.Request.Path}");
+                            var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                                .CreateLogger(nameof(JwtIntrospectionExtensions));
+                            log.LogError("[Introspection] Auth Failed (Keycloak). Error: {Error}. Path: {Path}", context.Error, context.HttpContext.Request.Path);
                             context.Fail($"Authentication failed (Keycloak): {context.Error}");
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
                         {
-                            Log.Info($"[Introspection] Token Validated. User: {context.Principal?.Identity?.Name}. Claims: {string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+                            var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                                .CreateLogger(nameof(JwtIntrospectionExtensions));
+                            log.LogInformation("[Introspection] Token Validated. User: {User}. Claims: {Claims}",
+                                context.Principal?.Identity?.Name,
+                                string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}")));
 
                             var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
@@ -88,12 +95,12 @@ public static class JwtIntrospectionExtensions
                             try
                             {
                                 await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().Authorize(sshCaService, userOrgService, expirioService);
-                                Log.Debug("[Introspection] Internal Authorization Success");
+                                log.LogDebug("[Introspection] Internal Authorization Success");
                             }
                             catch (Exception ex)
                             {
                                 string serviceInfo = ex is HEAppE.Exceptions.AbstractTypes.ExternalException ee && !string.IsNullOrEmpty(ee.ServiceName) ? $" ({ee.ServiceName})" : "";
-                                Log.Error($"[Introspection] Internal Authorization Failed{serviceInfo}: {ex.Message}");
+                                log.LogError("[Introspection] Internal Authorization Failed{ServiceInfo}: {Message}", serviceInfo, ex.Message);
                                 context.Fail($"Internal authorization failed{serviceInfo}: {ex.Message}");
                                 return;
                             }
@@ -110,13 +117,13 @@ public static class JwtIntrospectionExtensions
                                 //get token endpoint from discovery document
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
                                 if (disco.IsError)                                {
-                                    Log.Error($"[Introspection] Discovery document retrieval failed (Keycloak): {disco.Error}");
+                                    log.LogError("[Introspection] Discovery document retrieval failed (Keycloak): {Error}", disco.Error);
                                     context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
                                     return;
                                 }
                                 else
                                 {
-                                    Log.Debug($"[Introspection] Discovery document retrieved successfully. Token endpoint: {disco.TokenEndpoint}");
+                                    log.LogDebug("[Introspection] Discovery document retrieved successfully. Token endpoint: {TokenEndpoint}", disco.TokenEndpoint);
                                 }
                                 await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
                             }
@@ -140,17 +147,22 @@ public static class JwtIntrospectionExtensions
 
 public class LoggingHandler : DelegatingHandler
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(LoggingHandler));
+    private readonly ILogger<LoggingHandler> _log;
+
+    public LoggingHandler(ILogger<LoggingHandler> logger)
+    {
+        _log = logger;
+    }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
     {
         var requestContent = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
-        Log.Debug($"[Introspection Request] {request.Method} {request.RequestUri} Content: {requestContent}");
+        _log.LogDebug("[Introspection Request] {Method} {RequestUri} Content: {Content}", request.Method, request.RequestUri, requestContent);
 
         var response = await base.SendAsync(request, cancellationToken);
 
         var responseContent = response.Content != null ? await response.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
-        Log.Debug($"[Introspection Response] Status: {response.StatusCode} Content: {responseContent}");
+        _log.LogDebug("[Introspection Response] Status: {StatusCode} Content: {Content}", response.StatusCode, responseContent);
 
         return response;
     }

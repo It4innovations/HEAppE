@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -463,13 +463,13 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public async Task<bool> MoveJobFilesAsync(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, string sshCaToken, string lexisToken)
+    public async Task<bool> MoveJobFilesAsync(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode, string sshCaToken, string lexisToken)
     {
         var cluster = jobInfo.Specification.Cluster;
         var schedulerConnection = await GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            return await _adapter.MoveJobFiles(schedulerConnection?.Connection, jobInfo, sourceDestinations);
+            return await _adapter.MoveJobFiles(schedulerConnection?.Connection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
         }
         finally
         {
