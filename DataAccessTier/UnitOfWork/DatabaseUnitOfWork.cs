@@ -19,6 +19,8 @@ using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Service;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DataAccessTier.IRepository.FirecRest;
+using HEAppE.DataAccessTier.Repository.FirecRest;
 
 namespace HEAppE.DataAccessTier.UnitOfWork;
 
@@ -104,6 +106,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     private ITaskSpecificationRequiredNodeRepository _taskSpecificationRequiredNodeRepository;
     private IOpenStackSessionRepository _openStackSessionRepository;
     private IDatabaseBackupService _databaseBackupService;
+    private IFirecRestEndpointRepository _firecRestEndpointRepository;
 
     #endregion
 
@@ -409,6 +412,11 @@ public class DatabaseUnitOfWork : IUnitOfWork
             return _databaseBackupService =
                 _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(_logger), _logger);
         }
+    }
+
+    public IFirecRestEndpointRepository FirecRestEndpointRepository
+    {
+        get { return _firecRestEndpointRepository = _firecRestEndpointRepository ?? new FirecRestEndpointRepository(_context); }
     }
 
     #endregion

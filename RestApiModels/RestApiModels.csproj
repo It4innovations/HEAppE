@@ -8,6 +8,6 @@
         <PackageReference Include="FluentValidation" Version="12.0.0" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\ExtModels\ExtModels.csproj"/>
+        <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
     </ItemGroup>
 </Project>

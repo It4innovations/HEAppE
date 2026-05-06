@@ -1,14 +1,4 @@
 #nullable enable
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Transactions;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -18,6 +8,7 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.FirecRest;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -32,9 +23,20 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Services.Expirio;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Security;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Transactions;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -3697,5 +3699,75 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
+    /// <summary>
+    ///     List all FirecRestEndpoint
+    /// </summary>
+    /// <returns></returns>
+    public List<FirecRestEndpoint> ListFirecRestEndpoints()
+    {
+        return _unitOfWork.FirecRestEndpointRepository.GetAll().ToList();
+    }
+
+    /// <summary>
+    ///     Get FirecRestEndpoint by id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+    public FirecRestEndpoint GetFirecRestEndpointById(long id)
+    {
+        return _unitOfWork.FirecRestEndpointRepository.GetById(id)
+               ?? throw new RequestedObjectDoesNotExistException("AccountingNotFound", id);
+    }
+
+    /// <summary>
+    ///     Create FirecRestEndpoint
+    /// </summary>
+    public FirecRestEndpoint CreateFirecRestEndpoint(string name, string description, string url, string idpUrl)
+    {
+        var endpoint = new FirecRestEndpoint
+        {
+            Name = name,
+            Description = description,
+            Url = url,
+            IdpUrl = idpUrl,
+        };
+        _unitOfWork.FirecRestEndpointRepository.Insert(endpoint);
+        _unitOfWork.Save();
+
+        return endpoint;
+    }
+
+    /// <summary>
+    ///     Modify FirecRestEndpoint
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    public FirecRestEndpoint ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl)
+    {
+        var endpoint = _unitOfWork.FirecRestEndpointRepository.GetById(id)
+                         ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
+
+        endpoint.Name = name;
+        endpoint.Description = description;
+        endpoint.Url = url;
+        endpoint.IdpUrl = idpUrl;
+        _unitOfWork.FirecRestEndpointRepository.Update(endpoint);
+        _unitOfWork.Save();
+
+        return endpoint;
+    }
+
+    /// <summary>
+    ///     Remove FirecRestEndpoint
+    /// </summary>
+    /// <param name="id"></param>
+    public void RemoveFirecRestEndpoint(long id)
+    {
+        var endpoint = _unitOfWork.FirecRestEndpointRepository.GetById(id)
+                         ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
+        _unitOfWork.FirecRestEndpointRepository.Delete(endpoint);
+        _unitOfWork.Save();
+    }
     #endregion
 }

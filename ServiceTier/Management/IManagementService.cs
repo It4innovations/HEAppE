@@ -1,16 +1,18 @@
 ﻿#nullable enable
-using System;
-using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.FirecRest.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
-using System.Threading.Tasks;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -239,4 +241,10 @@ public interface IManagementService
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
+
+    List<FirecRestEndpointExt> ListFirecRestEndpoints(string sessionCode);
+    FirecRestEndpointExt GetFirecRestEndpointById(long id, string sessionCode);
+    FirecRestEndpointExt CreateFirecRestEndpoint(string name, string description, string url, string idpUrl, string sessionCode);
+    FirecRestEndpointExt ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl, string sessionCode);
+    void RemoveFirecRestEndpoint(long id, string sessionCode);
 }

@@ -1,5 +1,6 @@
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
+using HEAppE.DataAccessTier.IRepository.FirecRest;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
@@ -65,6 +66,7 @@ public interface IUnitOfWork : IDisposable
     ISessionCodeRepository SessionCodeRepository { get; }
     IOpenStackSessionRepository OpenStackSessionRepository { get; }
     IDatabaseBackupService DatabaseBackupService { get; }
+    IFirecRestEndpointRepository FirecRestEndpointRepository { get; }
 
     #endregion
 }

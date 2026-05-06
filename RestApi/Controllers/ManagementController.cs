@@ -1,16 +1,19 @@
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -18,23 +21,23 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.FirecRest.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
+using HEAppE.RestApiModels.FirecRest;
 using HEAppE.RestApiModels.Management;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
-using HEAppE.BusinessLogicTier.AuthMiddleware;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using HEAppE.Services.UserOrg;
-using HEAppE.Services.Expirio;
+
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2488,6 +2491,123 @@ public class ManagementController : BaseController<ManagementController>
 
         return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
+
+
+
+
+
+    /// <summary>
+    ///     List Accountings
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("FirecRestEndpoints")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<AccountingExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListFirecRestEndpoints(string sessionCode)
+    {
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListAccountings(sessionCode));
+    }
+
+    /// <summary>
+    ///     Get FirecRestEndpoint by id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("FirecRestEndpoint")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(AccountingExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetFirecRestEndpointById(long id, string sessionCode)
+    {
+        var accounting = _managementService.GetAccountingById(id, sessionCode);
+        return Ok(accounting);
+    }
+
+    /// <summary>
+    ///     Create FirecRestEndpoint
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("FirecRestEndpoint")]
+    [RequestSizeLimit(300)]
+    [ProducesResponseType(typeof(FirecRestEndpointExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult CreateFirecRestEndpoint(CreateFirecRestEndpointModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.ValidityTo, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(accounting);
+    }
+
+    /// <summary>
+    ///     Modify FirecRestEndpoint
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPut("FirecRestEndpoint")]
+    [RequestSizeLimit(300)]
+    [ProducesResponseType(typeof(FirecRestEndpointExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ModifyFirecRestEndpoint(ModifyFirecRestEndpointModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var accounting = _managementService.ModifyAccounting(model.Id, model.Formula, model.ValidityFrom,
+            model.ValidityTo, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(accounting);
+    }
+
+    /// <summary>
+    ///     Remove Accounting
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpDelete("FirecRestEndpoint")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult RemoveFirecRestEndpoint(RemoveFirecRestEndpointModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        _managementService.RemoveAccounting(model.Id, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok("FirecRestEndpoint was deleted.");
+    }
+
+
 
     #endregion
     #endregion

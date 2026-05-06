@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.FirecRest;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -220,4 +221,10 @@ public interface IManagementLogic
     AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     List<AdaptorUser> ListAdaptorUsers();
+
+    List<FirecRestEndpoint> ListFirecRestEndpoints();
+    FirecRestEndpoint GetFirecRestEndpointById(long id);
+    FirecRestEndpoint CreateFirecRestEndpoint(string name, string description, string url, string idpUrl);
+    FirecRestEndpoint ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl);
+    void RemoveFirecRestEndpoint(long id);
 }

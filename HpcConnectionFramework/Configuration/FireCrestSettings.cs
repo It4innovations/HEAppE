@@ -9,6 +9,4 @@ public class FirecRestSettings
     public static string ClientId { get; set; }
     
     public static string ClientSecret { get; set; }
-    
-    public static string BaseDirectoryPath { get; set; }
 }

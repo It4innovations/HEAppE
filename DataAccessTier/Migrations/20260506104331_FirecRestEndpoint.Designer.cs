@@ -4,6 +4,7 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20260506104331_FirecRestEndpoint")]
+    partial class FirecRestEndpoint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1789,7 +1792,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.FirecRestEndpoint", "FirecRestEndpoint")
+                    b.HasOne("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", "FirecRestEndpoint")
                         .WithMany("Clusters")
                         .HasForeignKey("FirecRestEndpointId");
 
@@ -2394,7 +2397,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("RequestedNodeGroups");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.FirecRestEndpoint", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", b =>
                 {
                     b.Navigation("Clusters");
                 });
