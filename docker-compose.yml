@@ -96,7 +96,7 @@ services:
       - "host.docker.internal:host-gateway"
   
   otel-collector:
-    user: "0"
+    user: 0:0
     image: otel/opentelemetry-collector-contrib:0.151.0
     container_name: "${INSTANCE_NAME}_otel-collector"
     volumes:
