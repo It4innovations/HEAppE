@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -131,7 +131,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     {
         var credentials = (await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                clusterId, projectId, false, null)).ToList();
+                clusterId, projectId, false, adaptorUserId)).ToList();
         
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         if (credentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication && adaptorUserId.HasValue)
@@ -151,6 +151,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             );
             _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         }
+
+        _unitOfWork.Save();
         return credentials;
     }
     
