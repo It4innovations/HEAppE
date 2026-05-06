@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -61,11 +61,11 @@ public class RoleAssignmentConfiguration
 
         foreach (var username in new HashSet<string>(usernames))
         {
-            var user = unitOfWork.AdaptorUserRepository.GetByName(username);
-            if (user != null)
+            var user = unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
+            if (user != null && !user.IsDeleted)
             {
                 bool hasRole = user.AdaptorUserUserGroupRoles?.Any(r => 
-                    r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)roleType) ?? false;
+                    r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)roleType && !r.IsDeleted) ?? false;
 
                 if (!hasRole)
                 {
@@ -75,7 +75,7 @@ public class RoleAssignmentConfiguration
                 }
                 else existingCount++;
             }
-            else missing.Add(username);
+            else if (user == null) missing.Add(username);
         }
         return (assigned, missing, existingCount);
     }
