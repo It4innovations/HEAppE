@@ -1789,7 +1789,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.FirecRestEndpoint", "FirecRestEndpoint")
+                    b.HasOne("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", "FirecRestEndpoint")
                         .WithMany("Clusters")
                         .HasForeignKey("FirecRestEndpointId");
 
@@ -2394,7 +2394,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("RequestedNodeGroups");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.FirecRestEndpoint", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", b =>
                 {
                     b.Navigation("Clusters");
                 });
