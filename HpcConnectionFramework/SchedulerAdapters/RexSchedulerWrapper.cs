@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -418,13 +418,13 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, string sshCaToken)
+    public bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode, string sshCaToken)
     {
         var schedulerConnection =
             _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
         try
         {
-            return _adapter.MoveJobFiles(schedulerConnection.Connection, jobInfo, sourceDestinations);
+            return _adapter.MoveJobFiles(schedulerConnection.Connection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
         }
         finally
         {

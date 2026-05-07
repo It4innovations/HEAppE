@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
@@ -84,5 +84,5 @@ public interface ICommands
     bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, 
         bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
-    bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
+    bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode);
 }

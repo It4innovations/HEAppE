@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -322,7 +322,7 @@ internal class JobManagementLogic : IJobManagementLogic
         
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
             CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id).
-            MoveJobFiles(jobInfo, sourceDestinations, _httpContextKeys.Context.SshCaToken);
+            MoveJobFiles(jobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken);
         return isArchived;
     }
 

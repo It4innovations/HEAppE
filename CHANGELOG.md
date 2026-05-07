@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.3.2
+
+### Added
+- Proactively create job and task directories on the cluster during file archiving by utilizing the `create_job_directory.sh` script.
+
+### Fixed
+- Forced new cluster user credentials retrieval during file transfer operations.
+- Aligned job file archiving permissions and `umask` with the `CreateJob` endpoint by passing the `sharedAccountsPoolMode` flag to directory creation scripts and copy operations.
+
+### Changed
+- Refactored `RoleAssignmentBackgroundService` to run as a single-execution startup task instead of a periodic background loop, improving system efficiency and resource allocation.
+
+### Security
+- Upgraded `log4net` to version `3.3.0` across all projects to resolve security vulnerability [GHSA-4f7c-pmjv-c25w](https://github.com/advisories/GHSA-4f7c-pmjv-c25w).
+- Standardized directory permissions to ensure only the owner has access (default) or the group has access in shared account mode (`2770`/`700`).
+
+### Performance
+- Optimized `GetActualTasksInfo` calls by restricting them to only jobs that are in `Running` or `Queued` states, reducing superfluous calls to external services.
+
 ## V6.3.1
 
 ### Fixed

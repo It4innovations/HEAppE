@@ -306,15 +306,39 @@ internal class LinuxCommands : ICommands
         }
     }
 
-    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
         _log.Info($"Copying job files to cluster");
         var cmdBuilder = new StringBuilder();
+
+        var clusterProject = jobInfo.Specification.Cluster.ClusterProjects
+            .FirstOrDefault(cp => cp.ProjectId == jobInfo.Specification.ProjectId);
+
+        if (clusterProject != null)
+        {
+            var projectBasePath = string.IsNullOrEmpty(clusterProject.ProjectStoragePath) 
+                ? clusterProject.ScratchStoragePath 
+                : clusterProject.ProjectStoragePath;
+
+            var heappeJobsDir = $"{_scripts.InstanceIdentifierPath.TrimStart('/')}/{_scripts.JobLogArchiveSubPath.TrimStart('/')}";
+            string account = jobInfo.Specification.ClusterUser.Username;
+
+            cmdBuilder.Append(
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+
+            foreach (var task in jobInfo.Tasks)
+            {
+                var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
+                    ? $"/{task.Specification.ClusterTaskSubdirectory}"
+                    : string.Empty;
+
+                cmdBuilder.Append(
+                    $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+            }
+        }
+
         foreach (var sourceDestination in sourceDestinations)
         {
-            //mkdir dest, eremove filename
-            string destinationDirectory = Path.GetDirectoryName(sourceDestination.Item2);
-            cmdBuilder.Append($"mkdir -p {destinationDirectory};");
             cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
         }
 

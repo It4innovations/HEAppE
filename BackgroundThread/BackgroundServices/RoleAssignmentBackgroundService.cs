@@ -28,49 +28,37 @@ public class RoleAssignmentBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            _log.Info("Starting system role assignment synchronization.");
+            
+            using (IServiceScope scope = _scopeFactory.CreateScope())
             {
-                _log.Info("Starting system role assignment synchronization.");
-                
-                using (IServiceScope scope = _scopeFactory.CreateScope())
+                using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork())
                 {
-                    using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork())
+                    var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
+                    var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
+
+                    foreach (var userGroup in userGroups)
                     {
-                        var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
-                        var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
+                        if (stoppingToken.IsCancellationRequested) break;
 
-                        foreach (var userGroup in userGroups)
+                        using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
                         {
-                            if (stoppingToken.IsCancellationRequested) break;
-
-                            using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
+                            var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
+                            if (localGroup != null)
                             {
-                                var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
-                                if (localGroup != null)
-                                {
-                                    RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _log);
-                                }
+                                RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _log);
                             }
                         }
                     }
                 }
-                _log.Info("Role assignment synchronization finished successfully.");
             }
-            catch (Exception ex)
-            {
-                _log.Error("Role assignment failed, will retry in next interval.", ex);
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(_configuration.RoleAssignmentSyncCheck), stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            _log.Info("Role assignment synchronization finished successfully.");
+        }
+        catch (Exception ex)
+        {
+            _log.Error("Role assignment failed.", ex);
         }
     }
 }
