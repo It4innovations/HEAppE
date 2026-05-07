@@ -36,9 +36,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected HttpClient _httpClient;
     
     public string FirecRestUrl { private get; set; }
+    public string TokenEndpoint { private get; set; }
+
     public string ClientId { private get; set; }
     public string ClientSecret { private get; set; }
-    public string TokenEndpoint { private get; set; }
+
 
     protected static readonly SshTunnelUtils _sshTunnelUtil = new();
 
@@ -54,10 +56,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         _convertor = convertor;
         _commands = null;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
-        FirecRestUrl = FirecRestSettings.FirecRestUrl;
-        ClientId = FirecRestSettings.ClientId;
-        ClientSecret = FirecRestSettings.ClientSecret;
-        TokenEndpoint = FirecRestSettings.TokenEndpoint;
     }
 
     #endregion
