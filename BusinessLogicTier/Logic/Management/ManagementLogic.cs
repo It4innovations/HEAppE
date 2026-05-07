@@ -3717,7 +3717,7 @@ public class ManagementLogic : IManagementLogic
     public FirecRestEndpoint GetFirecRestEndpointById(long id)
     {
         return _unitOfWork.FirecRestEndpointRepository.GetById(id)
-               ?? throw new RequestedObjectDoesNotExistException("AccountingNotFound", id);
+               ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
     }
 
     /// <summary>

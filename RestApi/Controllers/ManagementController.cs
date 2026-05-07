@@ -2497,7 +2497,7 @@ public class ManagementController : BaseController<ManagementController>
 
 
     /// <summary>
-    ///     List Accountings
+    ///     List FirecREST Endpoints
     /// </summary>
     /// <param name="sessionCode"></param>
     /// <returns></returns>
@@ -2515,7 +2515,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.ListAccountings(sessionCode));
+        return Ok(_managementService.ListFirecRestEndpoints(sessionCode));
     }
 
     /// <summary>
@@ -2533,7 +2533,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetFirecRestEndpointById(long id, string sessionCode)
     {
-        var accounting = _managementService.GetAccountingById(id, sessionCode);
+        var accounting = _managementService.GetFirecRestEndpointById(id, sessionCode);
         return Ok(accounting);
     }
 
@@ -2555,7 +2555,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.ValidityTo, model.SessionCode);
+        var accounting = _managementService.CreateFirecRestEndpoint(model.Name, model.Description, model.Url, model.IdpUrl, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(accounting);
     }
@@ -2578,14 +2578,13 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var accounting = _managementService.ModifyAccounting(model.Id, model.Formula, model.ValidityFrom,
-            model.ValidityTo, model.SessionCode);
+        var accounting = _managementService.ModifyFirecRestEndpoint(model.Id, model.Name, model.Description, model.Url, model.IdpUrl, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(accounting);
     }
 
     /// <summary>
-    ///     Remove Accounting
+    ///     Remove FirecRestEndpoint
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
@@ -2602,12 +2601,10 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _managementService.RemoveAccounting(model.Id, model.SessionCode);
+        _managementService.RemoveFirecRestEndpoint(model.Id, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok("FirecRestEndpoint was deleted.");
     }
-
-
 
     #endregion
     #endregion
