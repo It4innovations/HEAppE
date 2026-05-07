@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.FirecRest.Converts;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
@@ -64,7 +65,8 @@ public static class ClusterInformationConverts
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
-                .ToArray()
+                .ToArray(),
+            FirecRestEndpoint = cluster.FirecRestEndpoint?.ConvertIntToExt()
         };
         return convert;
     }
