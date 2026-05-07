@@ -11,10 +11,10 @@ namespace HEAppE.DomainObjects.FirecRest;
 public class FirecRestEndpoint : IdentifiableDbEntity
 {
     #region Properties
-    [Required] [StringLength(250)] 
+    [Required] [StringLength(50)] 
     public string Name { get; set; }
 
-    [Required] [StringLength(200)] 
+    [Required] [StringLength(250)] 
     public string Description { get; set; }
 
     [Required] [StringLength(250)] 

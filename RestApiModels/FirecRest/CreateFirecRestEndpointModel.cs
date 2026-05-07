@@ -16,9 +16,9 @@ public class CreateFirecRestEndpointModel : SessionCodeModel
     public string Name { get; set; }
 
     [DataMember(Name = "Description", IsRequired = true)]
-    [StringLength(200)]
+    [StringLength(250)]
     [Description("Description")]
-    public string Description { get; set; }
+    public string Description { get; set; } = "";
 
     [DataMember(Name = "Url", IsRequired = true)]
     [StringLength(250)]

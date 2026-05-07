@@ -110,11 +110,13 @@ public interface IManagementLogic
 
     Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId);
 
     Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId);
 
     void RemoveCluster(long id);
 

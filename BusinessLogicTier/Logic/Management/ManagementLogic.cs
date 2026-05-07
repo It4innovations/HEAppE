@@ -1686,7 +1686,8 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId)
     {
         if (proxyConnectionId.HasValue)
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
@@ -1703,7 +1704,8 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
             DomainName = domainName,
-            ProxyConnectionId = proxyConnectionId
+            ProxyConnectionId = proxyConnectionId,
+            FirecRestEndpointId = firecRestEndpointId
         };
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
@@ -1729,7 +1731,8 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
@@ -1747,6 +1750,7 @@ public class ManagementLogic : IManagementLogic
         existingCluster.UpdateJobStateByServiceAccount = updateJobStateByServiceAccount;
         existingCluster.DomainName = domainName;
         existingCluster.ProxyConnectionId = proxyConnectionId;
+        existingCluster.FirecRestEndpointId = firecRestEndpointId;
         _unitOfWork.ClusterRepository.Update(existingCluster);
         _unitOfWork.Save();
 

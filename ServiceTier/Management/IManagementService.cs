@@ -118,12 +118,14 @@ public interface IManagementService
 
     ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId,
         string sessionCode);
 
     ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId, long? firecRestEndpointId,
         string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);

@@ -87,4 +87,11 @@ public class CreateClusterModel : SessionCodeModel
     [DataMember(Name = "ProxyConnectionId", IsRequired = true)]
     [Description("Proxy connection id")]
     public long? ProxyConnectionId { get; set; }
+
+    /// <summary>
+    /// FirecREST Endpoint Id
+    /// </summary>
+    [DataMember(Name = "FirecRestEndpointId", IsRequired = true)]
+    [Description("Proxy connection id")]
+    public long? FirecRestEndpointId { get; set; }
 }

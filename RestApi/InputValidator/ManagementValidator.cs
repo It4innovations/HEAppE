@@ -568,6 +568,7 @@ public class ManagementValidator : AbstractValidator
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
+        if (model.FirecRestEndpointId.HasValue) ValidateId(model.FirecRestEndpointId, nameof(model.FirecRestEndpointId));
 
         return _messageBuilder.ToString();
     }
