@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -371,16 +371,30 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                 case "DateTime":
                 {
                     var parsedText = Convert.ToString(obj)?.Replace("  ", " ");
-
                     if (string.IsNullOrEmpty(parsedText)) return null;
 
-                    if (string.IsNullOrEmpty(format) && DateTime.TryParse(parsedText, out var date))
+                    DateTime date;
+                    try
                     {
+                        if (string.IsNullOrEmpty(format))
+                        {
+                            if (!DateTime.TryParse(parsedText, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out date) &&
+                                !DateTime.TryParse(parsedText, CultureInfo.CurrentCulture, DateTimeStyles.None, out date))
+                            {
+                                throw new FormatException($"Unable to parse DateTime: '{parsedText}'");
+                            }
+                        }
+                        else
+                        {
+                            date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
+                        }
+
                         return date.Convert(cluster.TimeZone);
                     }
-
-                    date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
-                    return date.Convert(cluster.TimeZone);
+                    catch (Exception ex) when (ex is not SchedulerException)
+                    {
+                        throw new SchedulerException("ConvertingError", ex, type, obj, format);
+                    }
                 }
                 default:
                 {

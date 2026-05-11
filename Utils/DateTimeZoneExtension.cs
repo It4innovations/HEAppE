@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NodaTime;
 
 namespace HEAppE.Utils;
@@ -14,10 +14,13 @@ public static class DateTimeZoneExtension
     /// <returns></returns>
     public static DateTime Convert(this DateTime dateInZone, string zone)
     {
-        var timeZone = DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone);
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone);
+
         if (timeZone == null) throw new ArgumentException("Argument 'zone' could not find in zones");
 
-        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneStrictly(timeZone).ToDateTimeUtc();
+        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneLeniently(timeZone).ToDateTimeUtc();
         return utcTime;
     }
 
@@ -29,7 +32,7 @@ public static class DateTimeZoneExtension
     public static DateTime Convert(this DateTime dateInZone)
     {
         var timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
-        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneStrictly(timeZone).ToDateTimeUtc();
+        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneLeniently(timeZone).ToDateTimeUtc();
         return utcTime;
     }
 
