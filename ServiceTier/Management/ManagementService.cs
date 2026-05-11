@@ -30,10 +30,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.Expirio;
 using Microsoft.Extensions.Logging;
-using HEAppE.ExtModels.FirecRest.Models;
-using Org.BouncyCastle.Asn1.X509;
-using HEAppE.DomainObjects.FirecRest;
-using HEAppE.ExtModels.FirecRest.Converts;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -1031,7 +1027,7 @@ public class ManagementService : IManagementService
     public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId,
+        long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -1043,7 +1039,7 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName,
-                proxyConnectionId, firecRestEndpointId);
+                proxyConnectionId);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
@@ -1051,7 +1047,7 @@ public class ManagementService : IManagementService
     public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId,
+        long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -1063,7 +1059,7 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName,
-                proxyConnectionId, firecRestEndpointId);
+                proxyConnectionId);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
@@ -1861,75 +1857,6 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
             managementLogic.RestoreDatabase(backupFileName, includeLogs);
-        }
-    }
-    /* 
-     
- 
-
-     
-     */
-    public List<FirecRestEndpointExt> ListFirecRestEndpoints(string sessionCode)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                    _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var endpoints = managementLogic.ListFirecRestEndpoints();
-            return endpoints.Select(a => a.ConvertIntToExt()).ToList();
-        }
-    }
-
-    public FirecRestEndpointExt GetFirecRestEndpointById(long id, string sessionCode)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                    _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var endpoint = managementLogic.GetFirecRestEndpointById(id);
-            return endpoint.ConvertIntToExt();
-        }
-    }
-
-    public FirecRestEndpointExt CreateFirecRestEndpoint(string name, string description, string url, string idpUrl, string sessionCode)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                    _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var endpoint = managementLogic.CreateFirecRestEndpoint(name, description, url, idpUrl);
-            return endpoint.ConvertIntToExt();
-        }
-    }
-
-    public FirecRestEndpointExt ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl, string sessionCode)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                    _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var endpoint = managementLogic.ModifyFirecRestEndpoint(id, name, description, url, idpUrl);
-            return endpoint.ConvertIntToExt();
-        }
-    }
-
-    public void RemoveFirecRestEndpoint(long id, string sessionCode)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                    _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            managementLogic.RemoveFirecRestEndpoint(id);
         }
     }
 

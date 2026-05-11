@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.DomainObjects.FirecRest;
 using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DomainObjects.ClusterInformation;
@@ -54,13 +53,8 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     [ForeignKey("ClusterProxyConnection")] 
     public long? ProxyConnectionId { get; set; }
-
-    [ForeignKey("FirecRestEndpoint")]
-    public long? FirecRestEndpointId { get; set; }
-
     public virtual ClusterProxyConnection ProxyConnection { get; set; }
     public virtual List<ClusterProject> ClusterProjects { get; set; } = new();
-    public virtual FirecRestEndpoint FirecRestEndpoint { get; set; }
     
     #endregion
 }

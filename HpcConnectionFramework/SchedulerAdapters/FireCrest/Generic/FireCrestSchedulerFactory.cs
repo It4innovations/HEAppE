@@ -93,10 +93,10 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
             _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
         }
 
-        if (configuration.FirecRestEndpointId != null)
+        if (configuration.ProxyConnection != null)
         {
-            schedulerAdapter.FirecRestUrl = configuration.FirecRestEndpoint.Url;
-            schedulerAdapter.TokenEndpoint = configuration.FirecRestEndpoint.IdpUrl;
+            schedulerAdapter.FirecRestUrl = configuration.ProxyConnection.FirecRestOptions.Url;
+            schedulerAdapter.TokenEndpoint = configuration.ProxyConnection.FirecRestOptions.IdpUrl;
         }
 
         // set or update values

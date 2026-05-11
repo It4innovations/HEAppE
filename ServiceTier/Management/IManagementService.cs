@@ -6,7 +6,6 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
-using HEAppE.ExtModels.FirecRest.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
@@ -119,13 +118,13 @@ public interface IManagementService
     ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId,
+        long? proxyConnectionId,
         string sessionCode);
 
     ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId,
+        long? proxyConnectionId,
         string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);
@@ -243,10 +242,4 @@ public interface IManagementService
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
-
-    List<FirecRestEndpointExt> ListFirecRestEndpoints(string sessionCode);
-    FirecRestEndpointExt GetFirecRestEndpointById(long id, string sessionCode);
-    FirecRestEndpointExt CreateFirecRestEndpoint(string name, string description, string url, string idpUrl, string sessionCode);
-    FirecRestEndpointExt ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl, string sessionCode);
-    void RemoveFirecRestEndpoint(long id, string sessionCode);
 }

@@ -56,7 +56,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .Include(c => c.ProxyConnection)
-            .Include(c => c.FirecRestEndpoint)
             .FirstOrDefault(c => c.Id == id);
     }
 
@@ -68,8 +67,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands)
             .Include(c => c.FileTransferMethods)
-            .Include(c => c.ProxyConnection)
-            .Include(c => c.FirecRestEndpoint);
+            .Include(c => c.ProxyConnection);
     }
 
     #endregion
@@ -91,8 +89,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             Port = cluster.Port,
             ProxyConnection = cluster.ProxyConnection == null ? null : cluster.ProxyConnection,
             ProxyConnectionId = cluster.ProxyConnection == null ? null : cluster.ProxyConnectionId,
-            FirecRestEndpoint = cluster.FirecRestEndpoint == null ? null : cluster.FirecRestEndpoint,
-            FirecRestEndpointId = cluster.FirecRestEndpoint == null ? null : cluster.FirecRestEndpointId,
             SchedulerType = cluster.SchedulerType,
             TimeZone = cluster.TimeZone,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,

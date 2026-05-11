@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
-using HEAppE.ExtModels.FirecRest.Models;
 
 namespace HEAppE.ExtModels.Management.Models;
 
@@ -89,13 +88,6 @@ public class ExtendedClusterExt
     [DataMember(Name = "ProxyConnection")]
     [Description("Proxy connection")]
     public virtual ClusterProxyConnectionExt ProxyConnection { get; set; }
-
-    /// <summary>
-    /// FirecRest Endpoint
-    /// </summary>
-    [DataMember(Name = "FirecRestEndpoint")]
-    [Description("FirecREST Endpoint")]
-    public virtual FirecRestEndpointExt FirecRestEndpoint { get; set; }
 
     /// <summary>
     /// File transfer id

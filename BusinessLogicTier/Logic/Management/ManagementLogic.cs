@@ -8,7 +8,6 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.DomainObjects.FirecRest;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -1687,7 +1686,7 @@ public class ManagementLogic : IManagementLogic
     public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId)
+        long? proxyConnectionId)
     {
         if (proxyConnectionId.HasValue)
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
@@ -1704,8 +1703,7 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
             DomainName = domainName,
-            ProxyConnectionId = proxyConnectionId,
-            FirecRestEndpointId = firecRestEndpointId
+            ProxyConnectionId = proxyConnectionId
         };
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
@@ -1732,7 +1730,7 @@ public class ManagementLogic : IManagementLogic
     public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, long? firecRestEndpointId)
+        long? proxyConnectionId)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
@@ -1750,7 +1748,6 @@ public class ManagementLogic : IManagementLogic
         existingCluster.UpdateJobStateByServiceAccount = updateJobStateByServiceAccount;
         existingCluster.DomainName = domainName;
         existingCluster.ProxyConnectionId = proxyConnectionId;
-        existingCluster.FirecRestEndpointId = firecRestEndpointId;
         _unitOfWork.ClusterRepository.Update(existingCluster);
         _unitOfWork.Save();
 
@@ -3742,75 +3739,5 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
-    /// <summary>
-    ///     List all FirecRestEndpoint
-    /// </summary>
-    /// <returns></returns>
-    public List<FirecRestEndpoint> ListFirecRestEndpoints()
-    {
-        return _unitOfWork.FirecRestEndpointRepository.GetAll().ToList();
-    }
-
-    /// <summary>
-    ///     Get FirecRestEndpoint by id
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public FirecRestEndpoint GetFirecRestEndpointById(long id)
-    {
-        return _unitOfWork.FirecRestEndpointRepository.GetById(id)
-               ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
-    }
-
-    /// <summary>
-    ///     Create FirecRestEndpoint
-    /// </summary>
-    public FirecRestEndpoint CreateFirecRestEndpoint(string name, string description, string url, string idpUrl)
-    {
-        var endpoint = new FirecRestEndpoint
-        {
-            Name = name,
-            Description = description,
-            Url = url,
-            IdpUrl = idpUrl,
-        };
-        _unitOfWork.FirecRestEndpointRepository.Insert(endpoint);
-        _unitOfWork.Save();
-
-        return endpoint;
-    }
-
-    /// <summary>
-    ///     Modify FirecRestEndpoint
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public FirecRestEndpoint ModifyFirecRestEndpoint(long id, string name, string description, string url, string idpUrl)
-    {
-        var endpoint = _unitOfWork.FirecRestEndpointRepository.GetById(id)
-                         ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
-
-        endpoint.Name = name;
-        endpoint.Description = description;
-        endpoint.Url = url;
-        endpoint.IdpUrl = idpUrl;
-        _unitOfWork.FirecRestEndpointRepository.Update(endpoint);
-        _unitOfWork.Save();
-
-        return endpoint;
-    }
-
-    /// <summary>
-    ///     Remove FirecRestEndpoint
-    /// </summary>
-    /// <param name="id"></param>
-    public void RemoveFirecRestEndpoint(long id)
-    {
-        var endpoint = _unitOfWork.FirecRestEndpointRepository.GetById(id)
-                         ?? throw new RequestedObjectDoesNotExistException("FirecRestEndpointNotFound", id);
-        _unitOfWork.FirecRestEndpointRepository.Delete(endpoint);
-        _unitOfWork.Save();
-    }
     #endregion
 }

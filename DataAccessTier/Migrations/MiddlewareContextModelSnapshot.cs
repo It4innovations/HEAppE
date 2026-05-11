@@ -45,9 +45,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
-                    b.Property<long?>("FirecRestEndpointId")
-                        .HasColumnType("bigint");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -79,8 +76,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FirecRestEndpointId");
 
                     b.HasIndex("IsDeleted");
 
@@ -346,38 +341,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("SubmittedJobId");
 
                     b.ToTable("FileTransferTemporaryKey");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("IdpUrl")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FirecRestEndpoint");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Accounting", b =>
@@ -1792,15 +1755,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
-                    b.HasOne("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", "FirecRestEndpoint")
-                        .WithMany("Clusters")
-                        .HasForeignKey("FirecRestEndpointId");
-
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterProxyConnection", "ProxyConnection")
                         .WithMany()
                         .HasForeignKey("ProxyConnectionId");
-
-                    b.Navigation("FirecRestEndpoint");
 
                     b.Navigation("ProxyConnection");
                 });
@@ -2395,11 +2352,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("PossibleCommands");
 
                     b.Navigation("RequestedNodeGroups");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.FirecRest.FirecRestEndpoint", b =>
-                {
-                    b.Navigation("Clusters");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Accounting", b =>
