@@ -649,9 +649,17 @@ public class ManagementValidator : AbstractValidator
     private string ValidateCreateClusterProxyConnectionModel(CreateClusterProxyConnectionModel model)
     {
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        if (!sessionCodeValidation.IsValid)
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
-        if (model.Port <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        if (model.FirecRestOptions == null)
+        {
+            if (model.Host == null)
+                _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null");
+
+            if (model.Port <= 0)
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        }
 
         return _messageBuilder.ToString();
     }
@@ -663,7 +671,14 @@ public class ManagementValidator : AbstractValidator
 
         ValidateId(model.Id, "Id");
 
-        if (model.Port <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        if (model.FirecRestOptions == null)
+        {
+            if (model.Host == null)
+                _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null");
+
+            if (model.Port <= 0)
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        }
 
         return _messageBuilder.ToString();
     }

@@ -1953,6 +1953,27 @@ public class ManagementLogic : IManagementLogic
         return clusterProxyConnection.ToList();
     }
 
+    private void PrepareClusterProxyConnection(ClusterProxyConnection clusterProxyConnection)
+    {
+        if (clusterProxyConnection.Type == ProxyType.FirecRest)
+        {
+            if (String.IsNullOrEmpty(clusterProxyConnection.FirecRestOptions.Url))
+            {
+                var url = new UriBuilder(clusterProxyConnection.Host);
+                if (clusterProxyConnection.Port > 0)
+                    url.Port = clusterProxyConnection.Port;
+                clusterProxyConnection.FirecRestOptions.Url = url.ToString();
+            }
+
+            if (String.IsNullOrEmpty(clusterProxyConnection.Host))
+            {
+                var url = new UriBuilder(clusterProxyConnection.FirecRestOptions.Url);
+                clusterProxyConnection.Host = url.ToString();
+                clusterProxyConnection.Port = url.Port;
+            }
+        }
+    }
+
     /// <summary>
     ///     Create ClusterProxyConnection
     /// </summary>
@@ -1963,7 +1984,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="type"></param>
     /// <returns></returns>
     public ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type)
+        ProxyType type, FirecRestOptions firecRestOptions)
     {
         var clusterProxyConnection = new ClusterProxyConnection
         {
@@ -1971,8 +1992,10 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             Username = username,
             Password = password,
-            Type = type
+            Type = type,
+            FirecRestOptions = firecRestOptions
         };
+        PrepareClusterProxyConnection(clusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Insert(clusterProxyConnection);
         _unitOfWork.Save();
 
@@ -1991,7 +2014,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type)
+        string password, ProxyType type, FirecRestOptions firecRestOptions)
     {
         var existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id) ??
                                              throw new RequestedObjectDoesNotExistException(
@@ -2002,7 +2025,21 @@ public class ManagementLogic : IManagementLogic
         existingClusterProxyConnection.Username = username;
         existingClusterProxyConnection.Password = password;
         existingClusterProxyConnection.Type = type;
+        existingClusterProxyConnection.FirecRestOptions = firecRestOptions;
+        PrepareClusterProxyConnection(existingClusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
+
+        if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
+        {
+            // update MasterNodeName and connection protocol in clusters using this proxy
+            var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
+            foreach (var c in clusters)
+            {
+                c.MasterNodeName = existingClusterProxyConnection.FirecRestOptions.Url;
+                c.ConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
+                _unitOfWork.ClusterRepository.Update(c);
+            }
+        }
         _unitOfWork.Save();
 
         return existingClusterProxyConnection;
@@ -2024,6 +2061,8 @@ public class ManagementLogic : IManagementLogic
         foreach (var c in clusters)
         {
             c.ProxyConnection = null;
+            if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
+                c.ConnectionProtocol = ClusterConnectionProtocol.None;
             _unitOfWork.ClusterRepository.Update(c);
         }
 

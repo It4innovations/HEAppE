@@ -275,6 +275,9 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<AdaptorUser>()
             .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
 
+        modelBuilder.Entity<ClusterProxyConnection>()
+            .Property(p => p.FirecRestOptions).HasJsonConversion();
+
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
             .Where(t => typeof(ISoftDeletableEntity).IsAssignableFrom(t.ClrType));

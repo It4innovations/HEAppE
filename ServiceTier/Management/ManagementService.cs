@@ -1183,7 +1183,7 @@ public class ManagementService : IManagementService
     }
 
     public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username,
-        string password, ProxyType type, string sessionCode)
+        string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1192,13 +1192,13 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterProxyConnection =
-                managementLogic.CreateClusterProxyConnection(host, port, username, password, type);
+                managementLogic.CreateClusterProxyConnection(host, port, username, password, type, firecRestOptions);
             return clusterProxyConnection.ConvertIntToExt();
         }
     }
 
     public ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type, string sessionCode)
+        string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1207,7 +1207,7 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterProxyConnection =
-                managementLogic.ModifyClusterProxyConnection(id, host, port, username, password, type);
+                managementLogic.ModifyClusterProxyConnection(id, host, port, username, password, type, firecRestOptions);
             return clusterProxyConnection.ConvertIntToExt();
         }
     }

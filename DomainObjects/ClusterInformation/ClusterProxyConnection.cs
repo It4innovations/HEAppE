@@ -11,7 +11,7 @@ public class ClusterProxyConnection : IdentifiableDbEntity, ISoftDeletableEntity
     public override string ToString()
     {
         return
-            $"ClusterProxyConnection: Id={Id}, Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={Password}";
+            $"ClusterProxyConnection: Id={Id}, Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={Password}, FirecRestOptions={FirecRestOptions}";
     }
 
     #endregion
@@ -29,6 +29,8 @@ public class ClusterProxyConnection : IdentifiableDbEntity, ISoftDeletableEntity
     [StringLength(50)] public string Password { get; set; }
 
     [Required] public bool IsDeleted { get; set; } = false;
+
+    public FirecRestOptions FirecRestOptions { get; set; } = null;
 
     #endregion
 }

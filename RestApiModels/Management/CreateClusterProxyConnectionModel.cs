@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.Management;
@@ -50,4 +51,11 @@ public class CreateClusterProxyConnectionModel : SessionCodeModel
     [DataMember(Name = "Type", IsRequired = true)]
     [Description("Type")]
     public ProxyType Type { get; set; }
+
+    /// <summary>
+    /// FirecREST Options
+    /// </summary>
+    [DataMember(Name = "FirecRestOptions", IsRequired = true)]
+    [Description("FirecRestOptions")]
+    public FirecRestOptionsExt FirecRestOptions { get; set; }
 }

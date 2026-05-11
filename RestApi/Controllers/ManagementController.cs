@@ -19,6 +19,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
+using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.FirecRest.Models;
@@ -1313,7 +1314,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("ClusterProxyConnection")]
-    [RequestSizeLimit(300)]
+    [RequestSizeLimit(4096)]
     [ProducesResponseType(typeof(ClusterProxyConnectionExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1326,7 +1327,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProxyConnection = _managementService.CreateClusterProxyConnection(model.Host, model.Port,
-            model.Username, model.Password, model.Type, model.SessionCode);
+            model.Username, model.Password, model.Type, model.FirecRestOptions.ConvertExtToInt(), model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProxyConnection);
     }
@@ -1337,7 +1338,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("ClusterProxyConnection")]
-    [RequestSizeLimit(300)]
+    [RequestSizeLimit(4096)]
     [ProducesResponseType(typeof(ClusterProxyConnectionExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1350,7 +1351,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProxyConnection = _managementService.ModifyClusterProxyConnection(model.Id, model.Host, model.Port,
-            model.Username, model.Password, model.Type,
+            model.Username, model.Password, model.Type, model.FirecRestOptions.ConvertExtToInt(),
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProxyConnection);
