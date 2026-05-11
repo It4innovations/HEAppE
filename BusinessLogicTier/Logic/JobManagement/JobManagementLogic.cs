@@ -61,14 +61,16 @@ internal class JobManagementLogic : IJobManagementLogic
         _expirioService = expirioService;
     }
 
-    private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType, string masterNodeName)
+    private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType, Cluster cluster)
     {
-        if (schedulerType == SchedulerType.FirecRest)
+        if (schedulerType.HasFlag(SchedulerType.FirecRest))
         {
             var FIPToken = _httpContextKeys.Context.FIPToken;
             if (!String.IsNullOrEmpty(FIPToken))
             {
-                return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken, masterNodeName, _logger);
+                FirecRestOptions firecRestOptions = cluster?.ProxyConnection?.FirecRestOptions;
+                if (firecRestOptions != null)
+                    return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken, firecRestOptions, _logger);
             }
         }
         return null;
@@ -159,8 +161,7 @@ internal class JobManagementLogic : IJobManagementLogic
                      ?? throw new InvalidRequestException("NotExistingProject");
                 
                  var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-                 var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-                 var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+                 var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
                 
                  //Create job directory
                  await SchedulerFactory.GetInstance(schedulerType)
@@ -205,8 +206,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             jobInfo.SubmitTime = DateTime.UtcNow;
             var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-            var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-            var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+            var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
             var submittedTasks = await SchedulerFactory.GetInstance(schedulerType)
                 .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                     loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
@@ -232,8 +232,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
 
         var schedulerType = cluster.SchedulerType;
-        var masterNodeName = cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
         var actualUnfinishedSchedulerTasksInfo = (await SchedulerFactory.GetInstance(schedulerType)
             .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
             .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
@@ -264,8 +263,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 .ToList();
 
             var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-            var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-            var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+            var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
             var scheduler = SchedulerFactory.GetInstance(schedulerType)
                 .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger, options: schedulerOptions);
             await scheduler.CancelJobAsync(submittedTask, "Job cancelled manually by the client.",
@@ -312,8 +310,7 @@ internal class JobManagementLogic : IJobManagementLogic
             or >= JobState.Finished and not JobState.WaitingForServiceAccount and not JobState.Deleted)
         {
             var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-            var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-            var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+            var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
             var isDeleted = await SchedulerFactory.GetInstance(schedulerType)
                 .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                     loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
@@ -365,8 +362,7 @@ internal class JobManagementLogic : IJobManagementLogic
             });
         
         var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-        var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
         var isArchived = await SchedulerFactory.GetInstance(schedulerType).
             CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger, options: schedulerOptions).
@@ -467,8 +463,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var userJobsGroups = jobGroup.GroupBy(g => g.Specification.ClusterUser).ToList();
             
             SchedulerType schedulerType = cluster.SchedulerType;
-            var masterNodeName = cluster.MasterNodeName;
-            Dictionary<string, dynamic> schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+            Dictionary<string, dynamic> schedulerOptions = await GetSchedulerOptions(schedulerType, cluster);
 
             if (userJobsGroups.Any())
             {
@@ -592,8 +587,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ?? throw new InvalidRequestException("NotExistingProject");
 
         var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-        var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
         await SchedulerFactory.GetInstance(schedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
@@ -611,8 +605,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ?? throw new InvalidRequestException("NotExistingProject");
 
         var schedulerType = jobInfo.Specification.Cluster.SchedulerType;
-        var masterNodeName = jobInfo.Specification.Cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, jobInfo.Specification.Cluster);
         await SchedulerFactory.GetInstance(schedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
@@ -627,8 +620,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
         var schedulerType = cluster.SchedulerType;
-        var masterNodeName = cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, cluster);
         var stringIPs = await SchedulerFactory.GetInstance(schedulerType)
             .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger, options: schedulerOptions)
@@ -660,8 +652,7 @@ internal class JobManagementLogic : IJobManagementLogic
         };
 
         var schedulerType = cluster.SchedulerType;
-        var masterNodeName = cluster.MasterNodeName;
-        var schedulerOptions = await GetSchedulerOptions(schedulerType, masterNodeName);
+        var schedulerOptions = await GetSchedulerOptions(schedulerType, cluster);
         return await SchedulerFactory.GetInstance(schedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService,
                 loggedUser.Id, _expirioService, _logger,  options: schedulerOptions)

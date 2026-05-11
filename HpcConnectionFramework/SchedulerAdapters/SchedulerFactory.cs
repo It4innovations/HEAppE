@@ -33,15 +33,17 @@ public abstract class SchedulerFactory
     {
         lock (_schedulerFactoryPoolSingletons)
         {
-            if (_schedulerFactoryPoolSingletons.ContainsKey(type)) return _schedulerFactoryPoolSingletons[type];
+            if (_schedulerFactoryPoolSingletons.ContainsKey(type))
+                return _schedulerFactoryPoolSingletons[type];
 
             SchedulerFactory factoryInstance = type switch
             {
+                SchedulerType.FirecRest | SchedulerType.PbsPro => new FirecRestSchedulerFactory(),
+                SchedulerType.FirecRest | SchedulerType.Slurm => new FirecRestSchedulerFactory(),
                 SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
                 SchedulerType.HyperQueue => new HyperQueueSchedulerFactory(),
-                SchedulerType.FirecRest => new FirecRestSchedulerFactory(),
                 _ => throw new SchedulerException("NotValidType", type)
             };
             _schedulerFactoryPoolSingletons.Add(type, factoryInstance);

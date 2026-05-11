@@ -246,7 +246,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var cluster = jobInfo.Specification.Cluster;
 
-        if (cluster.SchedulerType == SchedulerType.FirecRest)
+        if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
         {
             await _adapter.CreateJobDirectory(null, jobInfo, localBasePath, sharedAccountsPoolMode);
             return;
@@ -541,7 +541,7 @@ public class RexSchedulerWrapper : IRexScheduler
 
     private async Task<ConnectionInfo> GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
-        if (_connectionPool != null && cluster.SchedulerType != SchedulerType.FirecRest)
+        if (_connectionPool != null && !cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
             return await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         return null;
     }

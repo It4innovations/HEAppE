@@ -2033,6 +2033,7 @@ public class ManagementLogic : IManagementLogic
             foreach (var c in clusters)
             {
                 c.MasterNodeName = existingClusterProxyConnection.FirecRestOptions.Url;
+                c.SchedulerType = c.SchedulerType & SchedulerType.FirecRest;
                 c.ConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
                 _unitOfWork.ClusterRepository.Update(c);
             }
@@ -2059,7 +2060,10 @@ public class ManagementLogic : IManagementLogic
         {
             c.ProxyConnection = null;
             if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
+            {
+                c.SchedulerType = c.SchedulerType & (~SchedulerType.FirecRest);
                 c.ConnectionProtocol = ClusterConnectionProtocol.None;
+            }
             _unitOfWork.ClusterRepository.Update(c);
         }
 
