@@ -122,30 +122,39 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
-        var jobIds = string.Join(" ", submitedTasksInfo.Select(s => s.ScheduledJobId));
-        if (string.IsNullOrEmpty(jobIds)) return Enumerable.Empty<SubmittedTaskInfo>();
+        var tasksInfo = new List<SubmittedTaskInfo>();
+        foreach (var task in submitedTasksInfo)
+        {
+            var actualInfo = await GetActualHqJobInfoAsync(connectorClient, cluster, task.ScheduledJobId);
+            if (string.IsNullOrEmpty(actualInfo.ScheduledJobId))
+            {
+                task.State = actualInfo.State;
+                task.ErrorMessage = actualInfo.ErrorMessage;
+                tasksInfo.Add(task);
+                continue;
+            }
 
-        var sshCommand = $"ml HyperQueue && hq job info {jobIds} --output-mode=json";
-        var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
-        return _convertor.ReadParametersFromResponse(cluster, command.Result);
+            tasksInfo.Add(actualInfo);
+        }
+
+        return tasksInfo;
     }
 
     public async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
     {
-        var jobIds = string.Join(" ", submitedTasksInfo.Select(s => s.ScheduledJobId));
-        if (string.IsNullOrEmpty(jobIds)) return;
-
-        var sshCommand = $"echo {jobIds} | xargs -r hq job cancel";
-        _logger.LogInformation($"Cancel HyperQueue jobs: {jobIds}");
-        
+        var sshCommand =
+            $"ml HyperQueue && hq job cancel {string.Join(", ", submitedTasksInfo.Select(s => s.ScheduledJobId))}";
+        SshCommandWrapper command = null;
         try
         {
-            await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
         }
-        catch (Exception e)
+        catch (FormatException e)
         {
-            _logger.LogError(e, $"Failed to cancel HyperQueue jobs: {jobIds}");
-            throw;
+            throw new Exception(
+                @$"Exception thrown when cancelling job with id: ""{string.Join(", ", submitedTasksInfo.Select(s => s.ScheduledJobId))}"".
+                                       Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}"".\n", e);
         }
     }
 

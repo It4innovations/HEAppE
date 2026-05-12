@@ -92,10 +92,10 @@ public class HyperQueueDataConvertor : SchedulerDataConvertor
                         ErrorMessage = jsonString
                     }
                 };
-            var hyperQueueJobInfos = JsonConvert.DeserializeObject<List<Job>>(jsonString);
-            if (hyperQueueJobInfos == null) return Enumerable.Empty<SubmittedTaskInfo>();
+            var hyperQueueJobInfo = JsonConvert.DeserializeObject<List<Job>>(jsonString);
 
-            return hyperQueueJobInfos.Select(j => ConvertTaskToTaskInfo(new HyperQueueJobInfo(j))).ToList();
+            hyperQueueJobWrapper = new HyperQueueJobInfo(hyperQueueJobInfo.First());
+            return new List<SubmittedTaskInfo> { ConvertTaskToTaskInfo(hyperQueueJobWrapper) };
         }
         catch (Exception ex)
         {

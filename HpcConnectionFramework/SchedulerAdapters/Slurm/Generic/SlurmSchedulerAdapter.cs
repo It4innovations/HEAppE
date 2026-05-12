@@ -57,15 +57,14 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
         _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}\"");
 
-        var groupedByAllocation = schedulerJobIdClusterAllocationNamePairs
-            .GroupBy(p => p.ClusterAllocationName);
-
-        foreach (var group in groupedByAllocation)
+        foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
         {
-            var allocationCluster = !string.IsNullOrEmpty(group.Key) ? $"-M {group.Key} " : string.Empty;
-            var jobIds = string.Join(" ", group.Select(s => s.ScheduledJobId));
+            var allocationCluster = string.Empty;
 
-            cmdBuilder.Append($"echo {jobIds} | xargs -r -I {{}} -n 1 scontrol show JobId {allocationCluster}{{}} -o;");
+            if (!string.IsNullOrEmpty(ClusterAllocationName)) allocationCluster = $"-M {ClusterAllocationName} ";
+
+            cmdBuilder.Append(
+                $"{_commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
         }
 
         var sshCommand = cmdBuilder.ToString();
@@ -216,15 +215,15 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         string message)
     {
         StringBuilder cmdBuilder = new();
-        var groupedByAllocation = submitedTasksInfo
-            .GroupBy(s => s.Specification.ClusterNodeType.ClusterAllocationName);
-
-        foreach (var group in groupedByAllocation)
+        foreach (var submitedTaskInfo in submitedTasksInfo)
         {
-            var allocationCluster = !string.IsNullOrEmpty(group.Key) ? $"-M {group.Key} " : string.Empty;
-            var jobIds = string.Join(" ", group.Select(s => s.ScheduledJobId));
+            var allocationCluster = string.Empty;
 
-            cmdBuilder.Append($"echo {jobIds} | xargs -r scancel {allocationCluster};");
+            if (!string.IsNullOrEmpty(submitedTaskInfo.Specification.ClusterNodeType.ClusterAllocationName))
+                allocationCluster = $"-M {submitedTaskInfo.Specification.ClusterNodeType.ClusterAllocationName} ";
+
+            cmdBuilder.Append(
+                $"{_commands.InterpreterCommand} 'scancel {allocationCluster}{submitedTaskInfo.ScheduledJobId}';");
         }
 
         var sshCommand = cmdBuilder.ToString();

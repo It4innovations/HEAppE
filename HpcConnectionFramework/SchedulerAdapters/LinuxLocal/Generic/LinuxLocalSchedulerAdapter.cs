@@ -52,18 +52,21 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<string> scheduledJobIds, string account)
     {
-        var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct().ToList();
-        if (!scheduledJobIdsList.Any()) return Enumerable.Empty<SubmittedTaskInfo>();
+        var submittedTaskInfos = new List<SubmittedTaskInfo>();
+        var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
+        foreach (var jobId in scheduledJobIdsList)
+        {
+            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, account, jobId)
+                .Replace('\\', '/');
+            var cliCommand =
+                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+            var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, cliCommand, _logger);
 
-        var jobIds = string.Join(" ", scheduledJobIdsList);
-        var subExecPath = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath;
-        var scriptsPath = _scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath;
-        var scriptName = _linuxLocalCommandScripts.GetJobInfoCmdScriptName;
+            _logger.LogInformation($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
+            submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
+        }
 
-        var cliCommand = $"echo {jobIds} | xargs -r -I {{}} -n 1 {scriptsPath}/{scriptName} {_scripts.InstanceIdentifierPath}/{subExecPath}/{account}/{{}}";
-        var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, cliCommand, _logger);
-
-        return _convertor.ReadParametersFromResponse(cluster, command.Result);
+        return submittedTaskInfos;
     }
 
     #endregion
@@ -187,16 +190,13 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     public virtual async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         string message)
     {
+        StringBuilder commandSb = new();
         var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
-            .Distinct().ToList();
-        if (!localClusterJobIds.Any()) return;
-
-        var jobIds = string.Join(" ", localClusterJobIds);
-        var scriptsPath = _scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath;
-        var scriptName = _linuxLocalCommandScripts.CancelJobCmdScriptName;
-        var subExecPath = _scripts.SubExecutionsPath;
-
-        var command = $"echo {jobIds} | xargs -r -I {{}} -n 1 {scriptsPath}/{scriptName} {subExecPath}/{{}}";
+            .Distinct();
+        localClusterJobIds.ToList().ForEach(id =>
+            commandSb.Append(
+                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
+        var command = commandSb.ToString();
 
         _logger.LogInformation(
             $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");

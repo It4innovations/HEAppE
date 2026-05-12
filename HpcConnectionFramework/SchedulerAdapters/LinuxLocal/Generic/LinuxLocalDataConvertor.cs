@@ -127,29 +127,9 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
     public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object response)
     {
         List<SubmittedTaskInfo> taskInfos = new();
-        var responseString = response.ToString();
-        if (string.IsNullOrWhiteSpace(responseString)) return taskInfos;
-
-        try
-        {
-            var bytes = Encoding.UTF8.GetBytes(responseString);
-            var reader = new Utf8JsonReader(bytes);
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.StartObject)
-                {
-                    var jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(ref reader);
-                    if (jobsAdapter != null)
-                    {
-                        taskInfos.AddRange(ConvertTasksToTaskInfoCollection(jobsAdapter, jobsAdapter.Jobs));
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed to parse LinuxLocal job info response: {responseString}");
-        }
+        var jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(response.ToString());
+        var allTasks = jobsAdapter.Jobs;
+        taskInfos.AddRange(ConvertTasksToTaskInfoCollection(jobsAdapter, allTasks));
 
         return taskInfos;
     }
