@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -221,8 +221,8 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
         try
         {
-            submitedTasksInfo.ToList().ForEach(f =>
-                cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
+            var jobIds = string.Join(" ", submitedTasksInfo.Select(s => s.ScheduledJobId));
+            cmdBuilder.Append($"echo {jobIds} | xargs -r qdel;");
             var sshCommand = cmdBuilder.ToString();
             _logger.LogInformation(
                 $"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
@@ -452,7 +452,8 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
         _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", scheduledJobIds)}\"");
 
-        cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}'");
+        var jobIds = string.Join(" ", scheduledJobIds);
+        cmdBuilder.Append($"echo {jobIds} | xargs -r -n 1 qstat -f -x;");
         var sshCommand = cmdBuilder.ToString();
 
         try

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -92,10 +92,10 @@ public class HyperQueueDataConvertor : SchedulerDataConvertor
                         ErrorMessage = jsonString
                     }
                 };
-            var hyperQueueJobInfo = JsonConvert.DeserializeObject<List<Job>>(jsonString);
+            var hyperQueueJobInfos = JsonConvert.DeserializeObject<List<Job>>(jsonString);
+            if (hyperQueueJobInfos == null) return Enumerable.Empty<SubmittedTaskInfo>();
 
-            hyperQueueJobWrapper = new HyperQueueJobInfo(hyperQueueJobInfo.First());
-            return new List<SubmittedTaskInfo> { ConvertTaskToTaskInfo(hyperQueueJobWrapper) };
+            return hyperQueueJobInfos.Select(j => ConvertTaskToTaskInfo(new HyperQueueJobInfo(j))).ToList();
         }
         catch (Exception ex)
         {

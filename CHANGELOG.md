@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Resolved critical parsing errors for scheduler timestamps when cluster TimeZone is unconfigured, implementing a robust fallback to system default and supporting ISO 8601 format.
+- Optimized `xargs` parameter sequence and implemented command batching in scheduler adapters to eliminate unnecessary diagnostic warnings and reduce SSH overhead. ([#9](https://github.com/It4innovations/HEAppE/issues/9))
 - Corrected node allocation calculations for Slurm tasks to ensure accurate resource accounting.
 - Fixed various regex and multi-line parsing issues in PBS Pro response processing.
 - Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
