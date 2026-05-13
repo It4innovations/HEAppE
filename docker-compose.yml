@@ -97,6 +97,7 @@ services:
   
   otel-collector-init:
     image: busybox:1.37.0
+    container_name: "${INSTANCE_NAME}_otel-collector-init"
     command: sh -c "chown -R 10001:10001 /var/log/otel"
     volumes:
       - /var/log/otel:/var/log/otel
