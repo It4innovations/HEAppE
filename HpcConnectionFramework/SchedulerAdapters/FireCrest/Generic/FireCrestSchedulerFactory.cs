@@ -70,7 +70,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         string url = configuration.ProxyConnection.FirecRestOptions.Url;
         string idpUrl = configuration.ProxyConnection.FirecRestOptions.IdpUrl;
 
-        // proxy username and password should be set to empty string in production
+        // proxy username and password => default credentials for FirecREST
         string clientId = configuration.ProxyConnection.Username;
         string clientSecret = configuration.ProxyConnection.Password;
 

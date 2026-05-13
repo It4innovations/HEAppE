@@ -1735,6 +1735,7 @@ public class ManagementLogic : IManagementLogic
             clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
             masterNodeName = firecRestProxy.Host;
             port = firecRestProxy.Port;
+            proxyConnectionId = firecRestProxy.Id;
         }
         else
         {
@@ -1800,6 +1801,7 @@ public class ManagementLogic : IManagementLogic
             clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
             masterNodeName = firecRestProxy.Host;
             port = firecRestProxy.Port;
+            proxyConnectionId = firecRestProxy.Id;
         }
         else
         {

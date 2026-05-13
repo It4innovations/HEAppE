@@ -65,12 +65,12 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         if (schedulerType.HasFlag(SchedulerType.FirecRest))
         {
-            var FIPToken = _httpContextKeys.Context.FIPToken;
-            if (!String.IsNullOrEmpty(FIPToken))
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            if (!String.IsNullOrEmpty(token))
             {
                 FirecRestOptions firecRestOptions = cluster?.ProxyConnection?.FirecRestOptions;
                 if (firecRestOptions != null)
-                    return await _expirioService.ExchangeFirecrestCredentialsAsync(FIPToken, firecRestOptions, _logger);
+                    return await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger);
             }
         }
         return null;
