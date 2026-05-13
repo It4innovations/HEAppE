@@ -383,7 +383,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         // 2. Kerberos enriched username resolution
         if (string.IsNullOrEmpty(username))
         {
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
             if (!string.IsNullOrEmpty(token))
             {
                 try
@@ -400,7 +400,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         // 3. Token preferred_username resolution
         if (string.IsNullOrEmpty(username))
         {
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
             if (!string.IsNullOrEmpty(token))
             {
                 try 
