@@ -1,18 +1,3 @@
-#extensions:
-  #jaeger_query:
-    #storage:
-    #  traces: some_trace_storage
-    #  metrics: some_metrics_storage
-  #  base_path: /
-  #  ui:
-  #    config_file: /etc/jaeger/ui-config.json
-  #    log_access: true
-  #  grpc:
-  #    endpoint: 0.0.0.0:16685
-  #  http:
-  #    endpoint: 0.0.0.0:16686
-
-# otelcol.yaml
 receivers:
   otlp:
     protocols:
@@ -21,25 +6,56 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+processors:
+  # Protect Collector from memory exhaustion
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1024
+    spike_limit_mib: 256
+  # Batch telemetry to reduce write overhead
+  batch:
+    timeout: 5s                 # sends a batch after timeout value
+    send_batch_size: 1000       # target size of the batch (could be larger in some circumstances)
+    send_batch_max_size: 1000   # hard limit
+  # Keep all errors and high latency traces, sample success traces at sampling_percentage
+  tail_sampling:
+    decision_wait: 20s    # maximum expected trace duration
+    num_traces: 1000      # Number of traces to keep in memory
+    policies: # processed in order, with OR logic
+      [
+        {
+          name: status-policy,
+          type: status_code,
+          status_code: {status_codes: [ERROR]}
+        },
+        {
+          name: latency-policy,
+          type: latency,
+          latency: {threshold_ms: 100}
+        },
+        { 
+          name: probabilistic-policy, 
+          type: probabilistic,
+          probabilistic: {sampling_percentage: 25}
+        }
+      ]
+
 exporters:
   file/traces:
     path: /var/log/otel/traces.json
     rotation:
-      max_megabytes: 512 # max file size
-      max_backups: 10 # max files to keep
-      max_days: 7 # number of days of history
-    #compression: zstd
-  debug:
-    #verbosity: detailed
+      max_megabytes: 512  # max file size
+      max_backups: 10     # max files to keep
+      max_days: 7         # number of days of history
+    compression: zstd
   otlp/jaeger:
     endpoint: jaeger:4317 # The address of the Jaeger gRPC endpoint
     tls:
-      insecure: true # Use TLS in production
-
+      insecure: true # TODO: use TLS in production
 
 service:
-  #extensions: [jaeger_query]
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [memory_limiter, tail_sampling, batch]
       exporters: [file/traces, otlp/jaeger]
