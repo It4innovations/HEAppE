@@ -58,8 +58,14 @@ ENV OTEL_SERVICE_NAME=heappe-42
 ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 ENV OTEL_TRACES_EXPORTER=otlp
-ENV OTEL_METRICS_EXPORTER=otlp
-ENV OTEL_LOGS_EXPORTER=otlp
+# enable Head Sampling on trace signals
+#ENV OTEL_TRACES_SAMPLER=traceidratio
+#ENV OTEL_TRACES_SAMPLER_ARG=0.5
+
+# disable metrics
+ENV OTEL_DOTNET_AUTO_METRICS_INSTRUMENTATION_ENABLED=false
+# disable logs
+ENV OTEL_DOTNET_AUTO_LOGS_INSTRUMENTATION_ENABLED=false
 
 # nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["/otel-dotnet-auto/instrument.sh", "dotnet", "RestApi.dll"]
