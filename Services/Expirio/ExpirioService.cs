@@ -177,6 +177,13 @@ public class ExpirioService : IExpirioService
 
             return result;
         }
+        else
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                // TODO: resolve not found
+            }
+        }
 
         return result;
     }

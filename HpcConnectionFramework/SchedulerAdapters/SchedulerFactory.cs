@@ -69,7 +69,8 @@ public abstract class SchedulerFactory
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
-            clusterConf.SchedulerType, adaptorUserId);
+            clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId);
+
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
             key => 

@@ -66,19 +66,41 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         ILogger logger,
         Dictionary<string, dynamic> options = null)
     {
-        // use masterNodeName to have unique scheduler for various Expirio users
-        var masterNodeName = configuration.MasterNodeName;
+        // take values from FirecRest options
+        string url = configuration.ProxyConnection.FirecRestOptions.Url;
+        string idpUrl = configuration.ProxyConnection.FirecRestOptions.IdpUrl;
+
+        // proxy username and password should be set to empty string in production
+        string clientId = configuration.ProxyConnection.Username;
+        string clientSecret = configuration.ProxyConnection.Password;
+
+        // try get values provided by Expirio
         if (options != null)
         {
-            if (options.TryGetValue("f7t_url", out dynamic value))
-                masterNodeName += "|" + value;
-            if (options.TryGetValue("f7t_token_url", out value))
-                masterNodeName += "|" + value;
+            dynamic value;
+
+            // get clientId and clientSecret for use with FirecRest's keycloak
             if (options.TryGetValue("f7t_client_id", out value))
-                masterNodeName += "|" + value;
+                clientId = value;
+            if (options.TryGetValue("f7t_client_secret", out value))
+                clientSecret = value;
+
+            // it is still possible to override url and idpUrl if enabled by metadata
+            if (options.TryGetValue("f7t_url", out value))
+                url = value;
+            if (options.TryGetValue("f7t_token_url", out value))
+                idpUrl = value;
         }
 
-        var uniqueIdentifier = (masterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        // use masterNodeName to have unique scheduler for various Expirio users
+        var uniqueKey = $"_FirecRest|{url}|{idpUrl}";
+        if (!string.IsNullOrEmpty(clientId))
+            uniqueKey += $"|{clientId}";
+        if (!string.IsNullOrEmpty(clientSecret))
+            uniqueKey += $"|{clientSecret}";
+
+        // try to get existing scheduler
+        var uniqueIdentifier = (uniqueKey, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
 
         FirecRestSchedulerAdapter schedulerAdapter = null;
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
@@ -93,25 +115,13 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
             _schedulerAdapters[uniqueIdentifier] = schedulerAdapter;
         }
 
-        if (configuration.ProxyConnection != null)
-        {
-            schedulerAdapter.FirecRestUrl = configuration.ProxyConnection.FirecRestOptions.Url;
-            schedulerAdapter.TokenEndpoint = configuration.ProxyConnection.FirecRestOptions.IdpUrl;
-        }
-
         // set or update values
         schedulerAdapter ??= _schedulerAdapters[uniqueIdentifier];
-        if (options != null)
-        {
-            if (options.TryGetValue("f7t_url", out dynamic value))
-                schedulerAdapter.FirecRestUrl = value;
-            if (options.TryGetValue("f7t_token_url", out value))
-                schedulerAdapter.TokenEndpoint = value;
-            if (options.TryGetValue("f7t_client_id", out value))
-                schedulerAdapter.ClientId = value;
-            if (options.TryGetValue("f7t_client_secret", out value))
-                schedulerAdapter.ClientSecret = value;
-        }
+        
+        schedulerAdapter.FirecRestUrl = url;
+        schedulerAdapter.TokenEndpoint = idpUrl;
+        schedulerAdapter.ClientId = clientId;
+        schedulerAdapter.ClientSecret = clientSecret;
 
         return _schedulerSingletons[uniqueIdentifier];
     }

@@ -34,8 +34,10 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected ICommands _commands;
     protected ILogger _logger;
     protected HttpClient _httpClient;
+
+    protected string _firecRestUrl;
     
-    public string FirecRestUrl { private get; set; }
+    public string FirecRestUrl { private get => _firecRestUrl; set => _firecRestUrl = value.TrimEnd('/'); }
     public string TokenEndpoint { private get; set; }
 
     public string ClientId { private get; set; }
