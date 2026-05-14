@@ -1,4 +1,4 @@
-﻿using HEAppE.BackgroundThread.Configuration;
+using HEAppE.BackgroundThread.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
@@ -117,7 +117,6 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         {
             var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_LOGS_*.trn")
                              .Select(f => new FileInfo(f))
-                             .OrderByDescending(f => f.CreationTime)
                              .ToList();
 
             var grouped = files.Select(f => new
@@ -127,6 +126,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                 RetentionCategory = GetRetentionCategory(ParseDateFromFileName(f.Name))
             })
                 .Where(x => x.Date != null)
+                .OrderByDescending(x => x.Date)
                 .GroupBy(x => x.RetentionCategory);
 
             foreach (var group in grouped)
@@ -157,7 +157,9 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         {
             var parts = fileName.Split('_');
             var datePart = parts[^1].Replace(".trn", "");
-            return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
+            if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            return null;
         }
         catch
         {

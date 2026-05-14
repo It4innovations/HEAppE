@@ -278,6 +278,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
+        app.UseMiddleware<ExceptionMiddleware>();
         app.UseIpRateLimiting();
         app.UseStatusCodePages();
         app.UseStaticFiles();
@@ -309,7 +310,7 @@ public class Startup
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<LogUserContextMiddleware>();
-        app.UseMiddleware<ExceptionMiddleware>();
+
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>

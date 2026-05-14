@@ -125,7 +125,16 @@ public static class JwtIntrospectionExtensions
                                 {
                                     log.LogDebug("[Introspection] Discovery document retrieved successfully. Token endpoint: {TokenEndpoint}", disco.TokenEndpoint);
                                 }
-                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                try
+                                {
+                                    await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                }
+                                catch (Exception ex)
+                                {
+                                    log.LogError(ex, "[Introspection] SSH CA token exchange failed: {Message}", ex.Message);
+                                    context.Fail($"SSH CA token exchange failed: {ex.Message}");
+                                    return;
+                                }
                             }
                         }
                     };
