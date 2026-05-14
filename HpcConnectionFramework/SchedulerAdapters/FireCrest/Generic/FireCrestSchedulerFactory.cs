@@ -135,7 +135,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         schedulerAdapter ??= _schedulerAdapters[uniqueIdentifier];
         
         schedulerAdapter.FirecRestUrl = url;
-        schedulerAdapter.TokenEndpoint = idpUrl;
+        schedulerAdapter.FirecRestIdpUrl = idpUrl;
         schedulerAdapter.ClientId = clientId;
         schedulerAdapter.ClientSecret = clientSecret;
 

@@ -68,7 +68,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
             if (!String.IsNullOrEmpty(token))
             {
-                FirecRestOptions firecRestOptions = cluster?.ProxyConnection?.FirecRestOptions;
+                FirecRestOptions firecRestOptions = (cluster?.ProxyConnection?.FirecRestOptions) ?? FirecRestConfiguration.FirecRestOptions[cluster.MasterNodeName];
                 if (firecRestOptions != null)
                     return await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger);
             }

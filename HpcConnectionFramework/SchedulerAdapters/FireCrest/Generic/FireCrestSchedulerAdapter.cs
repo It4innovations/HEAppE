@@ -36,9 +36,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected HttpClient _httpClient;
 
     protected string _firecRestUrl;
-    
+
+    protected string _firecRestIdpUrl;
+
     public string FirecRestUrl { private get => _firecRestUrl; set => _firecRestUrl = value.TrimEnd('/'); }
-    public string TokenEndpoint { private get; set; }
+    public string FirecRestIdpUrl { private get => _firecRestIdpUrl; set => _firecRestIdpUrl = value.TrimEnd('/'); }
 
     public string ClientId { private get; set; }
     public string ClientSecret { private get; set; }
@@ -75,7 +77,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                 new KeyValuePair<string, string>("client_secret", ClientSecret)
             });
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint);
+            using var request = new HttpRequestMessage(HttpMethod.Post, FirecRestIdpUrl);
             request.Content = tokenRequestContent;
 
             var tokenResponse = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();

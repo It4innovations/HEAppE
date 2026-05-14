@@ -1669,35 +1669,6 @@ public class ManagementLogic : IManagementLogic
         return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
     }
 
-    private ClusterProxyConnection? FindFirecRestProxy(long? proxyConnectionId, ClusterConnectionProtocol clusterConnectionProtocol, SchedulerType schedulerType, string masterNodeName, int? port)
-    {
-        ClusterProxyConnection? firecRestProxy = null;
-        if (proxyConnectionId != null)
-        {
-            var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
-            if (proxyConnection != null && proxyConnection.Type == ProxyType.FirecRest)
-                firecRestProxy = proxyConnection;
-        }
-        else
-        {
-            // try to find proxy according to hostname and port if we are trying to setup FirecRest
-            if (schedulerType.HasFlag(SchedulerType.FirecRest) || clusterConnectionProtocol == ClusterConnectionProtocol.FirecRestApi)
-            {
-                // try to find our FirecREST proxy
-                var proxyConnections = _unitOfWork.ClusterProxyConnectionRepository.GetAll();
-                if (proxyConnections.Count > 0)
-                {
-                    // we must find exactly one possibly suitable proxy
-                    var candidateProxyConnections = proxyConnections.Where(pc => pc.Host == masterNodeName && pc.Port == (port != null ? port.Value : pc.Port)).ToList();
-                    if (candidateProxyConnections == null || candidateProxyConnections.Count != 1)
-                        throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound: No suitale FirecREST proxy found to use with this cluster. Please create and assign proxy manually by setting `proxyConnectionId`.");
-                    firecRestProxy = candidateProxyConnections.First();
-                }
-            }
-        }
-        return firecRestProxy;
-    }
-
     /// <summary>
     ///     Creates a new cluster in the database and returns it
     /// </summary>
@@ -2025,37 +1996,6 @@ public class ManagementLogic : IManagementLogic
         var clusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetAll();
 
         return clusterProxyConnection.ToList();
-    }
-
-    private void PreprocessClusterProxyConnection(ClusterProxyConnection clusterProxyConnection)
-    {
-        if (clusterProxyConnection.Type == ProxyType.FirecRest)
-        {
-            UriBuilder url;
-
-            // if url is not set in options, but is provided as host and port, derive it's value
-            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.Url))
-            {
-                url = new(clusterProxyConnection.Host);
-                if (clusterProxyConnection.Port > 0)
-                    url.Port = clusterProxyConnection.Port;
-                clusterProxyConnection.FirecRestOptions.Url = url.ToString();
-            }
-
-            // it idpUrl is not set, try to guess it from url
-            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.IdpUrl))
-            {
-                url = new(clusterProxyConnection.FirecRestOptions.Url);
-                var realm = "kcrealm"; // realm from FirecREST demo
-                url.Path = $"/auth/realms/{realm}/protocol/openid-connect/token";
-                clusterProxyConnection.FirecRestOptions.IdpUrl = url.ToString();
-            }
-
-            // synchronize proxy host and port with value in url
-            url = new(clusterProxyConnection.FirecRestOptions.Url);
-            clusterProxyConnection.Host = url.Host;
-            clusterProxyConnection.Port = url.Port;
-        }
     }
 
     /// <summary>
@@ -3830,6 +3770,51 @@ public class ManagementLogic : IManagementLogic
         {
             await _unitOfWork.SaveAsync();
         }
+    }
+
+    // try to setup reasonable defaults if needed
+    private void PreprocessClusterProxyConnection(ClusterProxyConnection clusterProxyConnection)
+    {
+        if (clusterProxyConnection.Type == ProxyType.FirecRest)
+        {
+            UriBuilder url;
+
+            // if url is not set in options, but is provided as host and port, derive it's value
+            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.Url))
+            {
+                url = new(clusterProxyConnection.Host);
+                if (clusterProxyConnection.Port > 0)
+                    url.Port = clusterProxyConnection.Port;
+                clusterProxyConnection.FirecRestOptions.Url = url.ToString();
+            }
+
+            // it idpUrl is not set, try to guess it from url
+            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.IdpUrl))
+            {
+                url = new(clusterProxyConnection.FirecRestOptions.Url);
+                var realm = "kcrealm"; // realm from FirecREST demo
+                url.Path = $"/auth/realms/{realm}/protocol/openid-connect/token";
+                clusterProxyConnection.FirecRestOptions.IdpUrl = url.ToString();
+            }
+
+            // synchronize proxy host and port with value in url
+            url = new(clusterProxyConnection.FirecRestOptions.Url);
+            clusterProxyConnection.Host = url.Host;
+            clusterProxyConnection.Port = url.Port;
+        }
+    }
+
+    // returns proxy only if it is FirecREST proxy
+    private ClusterProxyConnection? FindFirecRestProxy(long? proxyConnectionId, ClusterConnectionProtocol clusterConnectionProtocol, SchedulerType schedulerType, string masterNodeName, int? port)
+    {
+        ClusterProxyConnection? firecRestProxy = null;
+        if (proxyConnectionId != null)
+        {
+            var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
+            if (proxyConnection != null && proxyConnection.Type == ProxyType.FirecRest)
+                firecRestProxy = proxyConnection;
+        }
+        return firecRestProxy;
     }
 
     #endregion
