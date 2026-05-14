@@ -1,15 +1,14 @@
-﻿using HEAppE.ConnectionPool;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Services.Expirio;
-using Microsoft.Extensions.Logging;
 using SshCaAPI;
-using System;
-using System.Collections.Generic;
-using System.Xml.Schema;
 
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
@@ -53,12 +52,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create or get existing scheduler instance for the specified cluster and project
     /// </summary>
-    /// <param name="configuration">Cluster configuration data</param>
+    /// <param name="cluster">Cluster configuration data</param>
     /// <param name="project">Project information</param>
     /// <param name="adaptorUserId">Optional adapter user ID for one-to-one mapping</param>
     /// <returns>Scheduler instance</returns>
     public override IRexScheduler CreateScheduler(
-        Cluster configuration,
+        Cluster cluster,
         Project project,
         ISshCertificateAuthorityService sshCertificateAuthorityService,
         long? adaptorUserId,
@@ -66,13 +65,30 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         ILogger logger,
         Dictionary<string, dynamic> options = null)
     {
-        // take values from FirecRest options
-        string url = configuration.ProxyConnection.FirecRestOptions.Url;
-        string idpUrl = configuration.ProxyConnection.FirecRestOptions.IdpUrl;
+        string url, idpUrl, clientId = "", clientSecret = "";
 
-        // proxy username and password => default credentials for FirecREST
-        string clientId = configuration.ProxyConnection.Username;
-        string clientSecret = configuration.ProxyConnection.Password;
+        if (cluster.ProxyConnection?.FirecRestOptions != null)
+        {
+            // take values from FirecRest options in proxy
+            url = cluster.ProxyConnection.FirecRestOptions.Url;
+            idpUrl = cluster.ProxyConnection.FirecRestOptions.IdpUrl;
+
+            // proxy username and password => default credentials for FirecREST
+            clientId = cluster.ProxyConnection.Username;
+            clientSecret = cluster.ProxyConnection.Password;
+        }
+        else
+        {
+            // fallback to configuration in appsettings.json
+            var firecRestOptions = FirecRestConfiguration.FirecRestOptions[cluster.MasterNodeName];
+
+            if (firecRestOptions == null)
+                throw new Exception("No options for FirecREST found!");
+            
+            // setup FirecREST urls
+            url = firecRestOptions.Url;
+            idpUrl = firecRestOptions.IdpUrl;
+        }
 
         // try get values provided by Expirio
         if (options != null)

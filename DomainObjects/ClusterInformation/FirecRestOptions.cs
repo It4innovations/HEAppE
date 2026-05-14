@@ -1,6 +1,4 @@
-﻿using static HEAppE.DomainObjects.ClusterInformation.FirecRestOptions.ExpirioMetadata_;
-
-namespace HEAppE.DomainObjects.ClusterInformation;
+﻿namespace HEAppE.DomainObjects.ClusterInformation;
 
 /// <summary>
 /// FirecRest options shared among multiple clusters that connect to the same FirecREST instance.
