@@ -66,6 +66,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         Dictionary<string, dynamic> options = null)
     {
         string url, idpUrl, clientId = "", clientSecret = "";
+        dynamic value;
 
         if (cluster.ProxyConnection?.FirecRestOptions != null)
         {
@@ -80,7 +81,9 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         else
         {
             // fallback to configuration in appsettings.json
-            var firecRestOptions = FirecRestConfiguration.FirecRestOptions[cluster.MasterNodeName];
+            FirecRestOptions firecRestOptions = null;
+            if (options != null && options.TryGetValue("FirecRestOptions", out value))
+                firecRestOptions = value;
 
             if (firecRestOptions == null)
                 throw new Exception("No options for FirecREST found!");
@@ -93,7 +96,6 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         // try get values provided by Expirio
         if (options != null)
         {
-            dynamic value;
 
             // get clientId and clientSecret for use with FirecRest's keycloak
             if (options.TryGetValue("f7t_client_id", out value))

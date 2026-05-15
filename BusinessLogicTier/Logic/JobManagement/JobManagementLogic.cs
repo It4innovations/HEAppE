@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -22,6 +20,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
+using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -29,6 +28,7 @@ using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
@@ -46,10 +46,12 @@ internal class JobManagementLogic : IJobManagementLogic
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
-    
+    private readonly IOptionsMonitor<FirecRestConfiguration> _firecRestConfiguration;
+
     internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                 IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
+        using var serviceScope = ServiceActivator.GetScope();
         _unitOfWork = unitOfWork;
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
         _tasksToAddToSpec = new List<TaskSpecification>();
@@ -59,21 +61,28 @@ internal class JobManagementLogic : IJobManagementLogic
         _userOrgService = userOrgService;
         _logger = logger;
         _expirioService = expirioService;
+        _firecRestConfiguration = (IOptionsMonitor<FirecRestConfiguration>)serviceScope.ServiceProvider.GetService(typeof(IOptionsMonitor<FirecRestConfiguration>));
+        _logger.LogDebug($"Endpoints count in appsettinsg: {_firecRestConfiguration.CurrentValue.Endpoints.Count}");
     }
 
     private async Task<Dictionary<string, dynamic>> GetSchedulerOptions(SchedulerType schedulerType, Cluster cluster)
     {
+        Dictionary<string, dynamic> result = new();
         if (schedulerType.HasFlag(SchedulerType.FirecRest))
         {
+            // get firecrest options
+            FirecRestOptions firecRestOptions = (cluster?.ProxyConnection?.FirecRestOptions) ?? _firecRestConfiguration.CurrentValue.FirecRestOptions[cluster.MasterNodeName];
+            if (firecRestOptions != null)
+                result.Add("FirecRestOptions", firecRestOptions);
+            
+            // get expirio credentials
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
-            if (!String.IsNullOrEmpty(token))
+            if (!String.IsNullOrEmpty(token) && firecRestOptions != null)
             {
-                FirecRestOptions firecRestOptions = (cluster?.ProxyConnection?.FirecRestOptions) ?? FirecRestConfiguration.FirecRestOptions[cluster.MasterNodeName];
-                if (firecRestOptions != null)
-                    return await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger);
+                result.Concat(await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger));
             }
         }
-        return null;
+        return result;
     }
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,

@@ -5,9 +5,9 @@ using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.HpcConnectionFramework.Configuration;
 
-public sealed class FirecRestConfiguration
+public class FirecRestConfiguration
 {
-    public static List<EndpointPair> Endpoints { get; set; } = [];
+    public List<EndpointPair> Endpoints { get; set; } = [];
 
     public class EndpointPair
     {
@@ -18,15 +18,14 @@ public sealed class FirecRestConfiguration
         public FirecRestOptions Options { get; set; }
     }
     
-    
-    public static FirecRestOptionsGetter FirecRestOptions { get => _options ??= new(); }
+    public FirecRestOptionsGetter FirecRestOptions { get => _getter ??= new(this); }
 
-    public class FirecRestOptionsGetter
+    public class FirecRestOptionsGetter(FirecRestConfiguration _that)
     {
         public FirecRestOptions this[string masterNodeName] {
-            get => Endpoints.FirstOrDefault(p => p.MasterNodeName == masterNodeName)?.Options;
+            get => _that.Endpoints.FirstOrDefault(p => p.MasterNodeName == masterNodeName)?.Options;
         }
     }
 
-    private static FirecRestOptionsGetter _options = null;
+    private FirecRestOptionsGetter _getter = null;
 }
