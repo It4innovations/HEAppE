@@ -170,7 +170,6 @@ public class JobManagementService : IJobManagementService
             .ToArray();
     }
 
-
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -186,10 +185,17 @@ public class JobManagementService : IJobManagementService
             bool isJobOwner = job.Submitter.Id == loggedUser.Id;
             
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            if (JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued))
+            if (isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued))
             {
-                var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
-                return jobInfoFromHPC.ConvertIntToExt();
+                // refresh in case we have Lexis token and any cluster in job's project is accessed via FirecREST
+                bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken);
+                bool isFirecRestJob() => job.Project.ClusterProjects.Any(cp => cp.Cluster.ConnectionProtocol == DomainObjects.ClusterInformation.ClusterConnectionProtocol.FirecRestApi);
+                // TODO: F7T, test that this ^^^ works
+                if (JwtTokenIntrospectionConfiguration.IsEnabled || (hasToken() && isFirecRestJob()))
+                {
+                    var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
+                    return jobInfoFromHPC.ConvertIntToExt();
+                }
             }
             var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser, isAdmin);
             return jobInfo.ConvertIntToExt();
