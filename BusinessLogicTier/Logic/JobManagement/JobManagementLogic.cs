@@ -79,7 +79,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
             if (!String.IsNullOrEmpty(token) && firecRestOptions != null)
             {
-                result.Concat(await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger));
+                result = result.Concat(await _expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, _logger)).ToDictionary();
             }
         }
         return result;
