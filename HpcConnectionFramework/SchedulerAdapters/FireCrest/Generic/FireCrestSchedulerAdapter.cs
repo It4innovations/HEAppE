@@ -36,7 +36,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected HttpClient _httpClient;
 
     protected string _firecRestUrl;
-
     protected string _firecRestIdpUrl;
 
     public string FirecRestUrl { private get => _firecRestUrl; set => _firecRestUrl = value.TrimEnd('/'); }
@@ -44,9 +43,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public string ClientId { private get; set; }
     public string ClientSecret { private get; set; }
-
-
-    protected static readonly SshTunnelUtils _sshTunnelUtil = new();
 
     protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
@@ -587,27 +583,27 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
         await _commands?.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
 
-    public async Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
-        await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
+    public Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
+        throw new NotSupportedException();
 
-    public async Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo) =>
-        await _sshTunnelUtil.RemoveTunnelAsync(connectorClient, taskInfo.Id);
+    public Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo) =>
+        throw new NotSupportedException();
 
     public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost) =>
-        _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
+        throw new NotSupportedException();
 
     public async Task<bool> InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         string account, bool isServiceAccount) => await _commands?.InitializeClusterScriptDirectoryAsync(
-        schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
-        localBasepath, account, isServiceAccount);
+            schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
+            localBasepath, account, isServiceAccount);
 
     public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
         await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
-        throw new NotImplementedException();
+        throw new NotSupportedException();
 
     public Task<DryRunJobInfo> DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
-        throw new NotImplementedException();
+        throw new NotSupportedException();
 }

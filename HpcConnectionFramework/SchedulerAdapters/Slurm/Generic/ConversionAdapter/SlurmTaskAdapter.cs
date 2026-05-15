@@ -23,9 +23,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public SlurmTaskAdapter(string taskSource)
     {
         _sbatch = taskSource.StartsWith("#!");
-        _taskBuilder = new StringBuilder(taskSource);
+        _taskAppender = new StringBuilder(taskSource);
         if (_sbatch)
-            _taskBuilder.AppendLine();
+            _taskAppender.AppendLine();
     }
 
     #endregion
@@ -40,7 +40,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <summary>
     ///     Task (HPC job) allocation command builder
     /// </summary>
-    protected StringBuilder _taskBuilder;
+    protected StringBuilder _taskAppender;
 
     /// <summary>
     ///     Append parameter to builder
@@ -50,9 +50,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (string.IsNullOrEmpty(value))
             return;
         if (_sbatch)
-            _taskBuilder.AppendLine("#SBATCH " + value);
+            _taskAppender.AppendLine("#SBATCH " + value);
         else
-            _taskBuilder.Append(value);
+            _taskAppender.Append(value);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <summary>
     ///     Task allocation command
     /// </summary>
-    public object AllocationCmd => _taskBuilder.ToString();
+    public object AllocationCmd => _taskAppender.ToString();
 
     /// <summary>
     ///     Task priority
@@ -144,14 +144,14 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             if (value != null && value.Any())
             {
                 if (_sbatch)
-                    _taskBuilder.Append("#SBATCH");
+                    _taskAppender.Append("#SBATCH");
 
                 var builder = new StringBuilder(" --dependency=afterok");
                 value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}_parsed"));
-                _taskBuilder.Append(builder);
+                _taskAppender.Append(builder);
 
                 if (_sbatch)
-                    _taskBuilder.AppendLine();
+                    _taskAppender.AppendLine();
             }
         }
     }
@@ -375,7 +375,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (!string.IsNullOrEmpty(placementPolicy))
             doAppend($" --constraint={placementPolicy}");
 
-        _taskBuilder.Append(allocationCmdBuilder);
+        _taskAppender.Append(allocationCmdBuilder);
     }
 
 
@@ -388,15 +388,15 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (variables != null && variables.Any())
         {
             if (_sbatch)
-                _taskBuilder.Append("#SBATCH");
+                _taskAppender.Append("#SBATCH");
 
-            _taskBuilder.Append(" --export ");
+            _taskAppender.Append(" --export ");
             foreach (var variable in variables)
-                _taskBuilder.Append($"{variable.Name}={variable.Value},");
-            _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
+                _taskAppender.Append($"{variable.Name}={variable.Value},");
+            _taskAppender.Remove(_taskAppender.Length - 1, 1);
 
             if (_sbatch)
-                _taskBuilder.AppendLine();
+                _taskAppender.AppendLine();
         }
     }
 
@@ -412,34 +412,34 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
         if (_sbatch)
-            _taskBuilder.Append("#SBATCH");
+            _taskAppender.Append("#SBATCH");
 
-        _taskBuilder.Append($" --wrap \'cd {workDir};");
-        _taskBuilder.Append(
+        _taskAppender.Append($" --wrap \'cd {workDir};");
+        _taskAppender.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
                 : recursiveSymlinkCommand.Last().Equals(';')
                     ? recursiveSymlinkCommand
                     : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
 
-        _taskBuilder.Append($"1>> {stdOutFile} 2>> {stdErrFile} ");
-        _taskBuilder.Append(
+        _taskAppender.Append($"1>> {stdOutFile} 2>> {stdErrFile} ");
+        _taskAppender.Append(
             string.IsNullOrEmpty(preparationScript)
                 ? string.Empty
                 : preparationScript.Last().Equals(';')
                     ? preparationScript
                     : $"{preparationScript};");
-        _taskBuilder.Append(
+        _taskAppender.Append(
             string.IsNullOrEmpty(commandLine)
                 ? string.Empty
                 : commandLine.Last().Equals(';')
                     ? commandLine
                     : $"{commandLine};");
 
-        _taskBuilder.Append('\'');
+        _taskAppender.Append('\'');
 
         if (_sbatch)
-            _taskBuilder.AppendLine();
+            _taskAppender.AppendLine();
     }
 
     #endregion

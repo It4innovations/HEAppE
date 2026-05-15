@@ -4,9 +4,12 @@ using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.Services.Expirio;
 using SshCaAPI;
 
@@ -45,9 +48,19 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// </summary>
     private ISchedulerAdapter _schedulerAdapterInstance;
 
+    /// <summary>
+    ///     Scheduler type
+    /// </summary>
+    SchedulerType _schedulerType;
+
     #endregion
 
     #region SchedulerFactory Members
+
+    public FirecRestSchedulerFactory(SchedulerType schedulerType)
+    {
+        _schedulerType = schedulerType;
+    }
 
     /// <summary>
     ///     Create or get existing scheduler instance for the specified cluster and project
@@ -159,7 +172,13 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <returns>FirecRest data convertor</returns>
     protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
-        return _convertorSingleton ??= new FirecRestDataConvertor(new FirecRestConversionAdapterFactory(), logger);
+        ConversionAdapterFactory conversionAdapterFactory = null;
+        if (_schedulerType.HasFlag(SchedulerType.PbsPro))
+            conversionAdapterFactory = new PbsProConversionAdapterFactory();
+        else if (_schedulerType.HasFlag(SchedulerType.Slurm))
+            conversionAdapterFactory = new SlurmConversionAdapterFactory();
+
+        return _convertorSingleton ??= new FirecRestDataConvertor(conversionAdapterFactory, logger);
     }
 
     /// <summary>

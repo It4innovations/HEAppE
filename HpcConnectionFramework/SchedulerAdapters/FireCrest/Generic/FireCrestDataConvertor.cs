@@ -106,9 +106,9 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     {
         var scriptBuilder = new StringBuilder();
 
-        _conversionAdapterFactory = null;
+        //_conversionAdapterFactory = null;
         //_conversionAdapterFactory = new PbsProConversionAdapterFactory();
-        _conversionAdapterFactory = new SlurmConversionAdapterFactory();
+        //_conversionAdapterFactory = new SlurmConversionAdapterFactory();
 
         if (_conversionAdapterFactory != null)
         {
