@@ -2,9 +2,7 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:${env:OTEL_HOST_GRPC_PORT}
 
 processors:
   # Protect Collector from memory exhaustion
@@ -36,7 +34,7 @@ processors:
         { 
           name: probabilistic-policy, 
           type: probabilistic,
-          probabilistic: {sampling_percentage: 25}
+          probabilistic: {sampling_percentage: 10}
         }
       ]
 

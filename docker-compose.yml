@@ -55,7 +55,9 @@ services:
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       TZ: "Europe/Prague"
+      OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]-datastagingapi
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT}
     networks:
       - db_internal_network
       - external_network
@@ -85,7 +87,9 @@ services:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
       TZ: "Europe/Prague"
+      OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT}
     networks:
       - sshagent_internal_network
       - db_internal_network
@@ -110,14 +114,15 @@ services:
     depends_on:
       otel-collector-init:
         condition: service_completed_successfully
+    environment:
+      OTEL_HOST_GRPC_PORT: "${OTEL_HOST_GRPC_PORT}"
     volumes:
       - ./otel-configs/otel-config.yaml:/etc/otel/config.yaml
       - /var/log/otel:/var/log/otel
     command: --config /etc/otel/config.yaml
     restart: unless-stopped
     ports:
-      - "4317:4317"
-      - "4318:4318"
+      - "${OTEL_HOST_GRPC_PORT}:${OTEL_HOST_GRPC_PORT}"
     networks:
       - otelnet
     profiles:
@@ -127,7 +132,7 @@ services:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.17.0
     container_name: "${INSTANCE_NAME}_jaeger"
     ports:
-      - "16686:16686"
+      - "${OTEL_JAEGER_CLIENT_PORT}:16686"
     networks:
       - otelnet
     profiles:

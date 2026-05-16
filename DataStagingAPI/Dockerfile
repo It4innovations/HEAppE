@@ -48,8 +48,6 @@ RUN apt-get update && apt-get install -y unzip && \
 RUN chmod +x /otel-dotnet-auto/instrument.sh
 
 # set OTEL variables
-ENV OTEL_SERVICE_NAME=heappe-42-datastagingapi
-ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 ENV OTEL_TRACES_EXPORTER=otlp
 # enable Head Sampling on trace signals
