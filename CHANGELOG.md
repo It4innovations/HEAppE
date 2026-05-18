@@ -20,12 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Implemented endpoint-specific request size limits and optimized token handling for streaming endpoints to improve performance.
 - Refactored scheduler adapters to capture full SSH output for better diagnostics and error reporting.
+- Improved scheduler command execution by optimizing scheduler adapter commands with batched `xargs` operations, enhancing efficiency and reliability.
+- Improved database backup retention logic to handle 14-digit timestamps and automatically clean up obsolete directories.
+- Simplified SSH username assignment logic to ensure consistent account mapping.
 
 ### Fixed
 - Resolved parsing errors for scheduler timestamps when cluster TimeZone is unconfigured, implementing a robust fallback to system default and supporting ISO 8601 format.
 - Corrected node allocation calculations for Slurm tasks to ensure accurate resource accounting.
 - Fixed various regex and multi-line parsing issues in PBS Pro response processing.
 - Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
+- Fixed Entity Framework duplicate key violation (`DbUpdateException`) during job updates by eagerly loading `ResourceConsumed` entities in `SubmittedJobInfoRepository`.
 
 ## V6.3.1
 

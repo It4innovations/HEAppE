@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
@@ -18,6 +18,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
             .FirstOrDefault(j => j.Tasks.Any(t => t.Id == taskId));
     }
 
@@ -33,6 +34,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Specification)
@@ -73,6 +75,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
+                .ThenInclude(x => x.ResourceConsumed)
+            .Include(x => x.Tasks)
                 .ThenInclude(x => x.Specification.CommandTemplate)
             .Where(x => x.Project.Id == projectId &&
                         x.StartTime >= startTime &&
@@ -85,6 +89,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
             .Include(j => j.Project)
             .FirstOrDefault(j => j.Id == id);
@@ -95,6 +100,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .IgnoreQueryFilters()
             .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
             .Include(j => j.Project)
             .ToList();  
