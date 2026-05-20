@@ -142,15 +142,19 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
                 }
             }
         }
-        catch (TaskCanceledException ex) when (!ex.CancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException ex)
         {
-            logger.LogError($"[UserOrg API Timeout] Request to {request.RequestUri} timed out after the configured timeout.");
-            throw new AuthenticationTypeException("ExternalApiTimeout", "UserOrg") { Details = "The request to UserOrg API timed out." };
+            logger.LogError(ex, $"[UserOrg API Timeout] Request to {request.RequestUri} timed out after the configured timeout.");
+            throw new AuthenticationTypeException("ExternalApiTimeout", "UserOrg") { Details = $"The request to UserOrg API timed out. Technical details: {ex.Message}" };
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"[UserOrg API Exception] Unexpected error during request to {request.RequestUri}");
-            throw;
+            throw new AuthenticationTypeException("ExternalApiError", ex, "UserOrg")
+            {
+                ServiceName = "UserOrg",
+                Details = $"Unexpected error during request to UserOrg API. Technical details: {ex.Message}"
+            };
         }
     }
 }

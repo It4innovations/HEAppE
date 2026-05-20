@@ -16,6 +16,8 @@ using SshCaAPI;
 using SshCaAPI.Configuration;
 using HEAppE.Services.Expirio;
 using HEAppE.Exceptions.AbstractTypes;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -101,7 +103,32 @@ public static class JwtIntrospectionExtensions
                             {
                                 string serviceInfo = ex is HEAppE.Exceptions.AbstractTypes.ExternalException ee && !string.IsNullOrEmpty(ee.ServiceName) ? $" ({ee.ServiceName})" : "";
                                 log.LogError("[Introspection] Internal Authorization Failed{ServiceInfo}: {Message}", serviceInfo, ex.Message);
-                                context.Fail($"Internal authorization failed{serviceInfo}: {ex.Message}");
+
+                                var problem = new ProblemDetails
+                                {
+                                    Status = StatusCodes.Status401Unauthorized,
+                                    Title = "Unauthorized Access",
+                                    Detail = ex.Message
+                                };
+
+                                if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+                                {
+                                    problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
+                                    problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+                                }
+                                else if (ex is ExternalException externalEx)
+                                {
+                                    problem.Status = StatusCodes.Status502BadGateway;
+                                    problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem";
+                                    problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                                }
+
+                                var response = context.HttpContext.Response;
+                                response.ContentType = "application/json";
+                                response.StatusCode = problem.Status.Value;
+                                await response.WriteAsJsonAsync(problem);
+
+                                context.Fail(ex);
                                 return;
                             }
 
@@ -118,6 +145,19 @@ public static class JwtIntrospectionExtensions
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
                                 if (disco.IsError)                                {
                                     log.LogError("[Introspection] Discovery document retrieval failed (Keycloak): {Error}", disco.Error);
+
+                                    var problem = new ProblemDetails
+                                    {
+                                        Status = StatusCodes.Status502BadGateway,
+                                        Title = "External Problem (Keycloak)",
+                                        Detail = $"Token exchange failed: Keycloak discovery document retrieval error: {disco.Error}"
+                                    };
+
+                                    var response = context.HttpContext.Response;
+                                    response.ContentType = "application/json";
+                                    response.StatusCode = problem.Status.Value;
+                                    await response.WriteAsJsonAsync(problem);
+
                                     context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
                                     return;
                                 }
@@ -132,7 +172,27 @@ public static class JwtIntrospectionExtensions
                                 catch (Exception ex)
                                 {
                                     log.LogError(ex, "[Introspection] SSH CA token exchange failed: {Message}", ex.Message);
-                                    context.Fail($"SSH CA token exchange failed: {ex.Message}");
+
+                                    var problem = new ProblemDetails
+                                    {
+                                        Status = StatusCodes.Status401Unauthorized,
+                                        Title = "SSH CA Token Exchange Failed",
+                                        Detail = ex.Message
+                                    };
+
+                                    if (ex is ExternalException externalEx)
+                                    {
+                                        problem.Status = StatusCodes.Status502BadGateway;
+                                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"SSH CA Token Exchange External Problem ({externalEx.ServiceName})" : "SSH CA Token Exchange External Problem";
+                                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                                    }
+
+                                    var response = context.HttpContext.Response;
+                                    response.ContentType = "application/json";
+                                    response.StatusCode = problem.Status.Value;
+                                    await response.WriteAsJsonAsync(problem);
+
+                                    context.Fail(ex);
                                     return;
                                 }
                             }

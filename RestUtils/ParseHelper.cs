@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using HEAppE.Exceptions.AbstractTypes;
 using Newtonsoft.Json;
@@ -29,13 +29,17 @@ public static class ParseHelper
             }
             catch (JsonSerializationException serializationException)
             {
-                throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
+                var exception = (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
                     "JsonDeserializationException",
                     serializationException);
+                exception.Details = $"Failed to deserialize response from external service. Raw content: {response.Content}";
+                throw exception;
             }
 
-        throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
-            response.ErrorException?.Message,
+        var errException = (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
+            response.ErrorException?.Message ?? $"Request to external service failed with status code {response.StatusCode}.",
             response.ErrorException);
+        errException.Details = $"Status code: {response.StatusCode}. Content: {response.Content}";
+        throw errException;
     }
 }

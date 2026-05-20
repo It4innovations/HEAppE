@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -138,7 +138,8 @@ public class ExceptionMiddleware
                 break;
             case AuthenticationTypeException authEx:
                 problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
-                problem.Detail = GetExceptionMessage(exception);
+                var authMsg = GetExceptionMessage(exception);
+                problem.Detail = !string.IsNullOrEmpty(authEx.Details) ? $"{authMsg}: {authEx.Details}" : authMsg;
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
                 break;
@@ -167,6 +168,23 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case SshCommandException:
+                problem.Title = "SSH Command Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case SFTPCommandException:
+                problem.Title = "SFTP Command Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case SftpClientException:
+            case SftpClientArgumentException:
+            case SshClientArgumentException:
+                problem.Title = "SSH/SFTP Client Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case UnableToCreateTunnelException:
                 problem.Title = "Tunnel Exception";
                 problem.Detail = GetExceptionMessage(exception);
@@ -183,7 +201,8 @@ public class ExceptionMiddleware
                 break;
             case ExternalException externalEx:
                 problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem: " + exception.GetType().Name;
-                problem.Detail = GetExceptionMessage(exception);
+                var extMsg = GetExceptionMessage(exception);
+                problem.Detail = !string.IsNullOrEmpty(externalEx.Details) ? $"{extMsg}: {externalEx.Details}" : extMsg;
                 problem.Status = StatusCodes.Status502BadGateway;
                 logLevel = LogLevel.Warning;
                 break;
