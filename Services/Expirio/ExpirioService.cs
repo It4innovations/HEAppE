@@ -62,22 +62,22 @@ public class ExpirioService : IExpirioService
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
         try 
         {
-        using var response = await client.SendAsync(httpRequest, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (response.IsSuccessStatusCode)
-        {
-                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
+            if (response.IsSuccessStatusCode)
+            {
+                    logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
                 
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
 
-                return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
-        }
-        else
-        {
+                    return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
+            }
+            else
+            {
                 HandleErrorResponse(response, content, "Kerberos ticket exchange", logger);
                 return null; 
             }
@@ -126,67 +126,7 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default)
-    {
-        logger.LogInformation("[Expirio] Method: FirecrestCredentials");
-        var result = new Dictionary<string, dynamic>();
-        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
 
-        var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{firecRestOptions.ExpirioMetadata.SecretName}";
-        var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
-        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        using var response = await client.SendAsync(httpRequest, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (response.IsSuccessStatusCode)
-        {
-            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-                    
-            using var doc = JsonDocument.Parse(content);
-
-            var secretContent = firecRestOptions.ExpirioMetadata.SecretContent;
-
-            string? clientId = null, clientSecret = null, url = null, idpUrl = null;
-
-            // extract properties
-            if (doc.RootElement.TryGetProperty(secretContent.ClientId, out var contentProp))
-                clientId = contentProp.GetString();
-
-            if (doc.RootElement.TryGetProperty(secretContent.ClientSecret, out contentProp))
-                clientSecret = contentProp.GetString();
-
-            if (!String.IsNullOrEmpty(secretContent.Url) && doc.RootElement.TryGetProperty(secretContent.Url, out contentProp))
-                url = contentProp.GetString();
-
-            if (!String.IsNullOrEmpty(secretContent.IdpUrl) && doc.RootElement.TryGetProperty(secretContent.IdpUrl, out contentProp))
-                idpUrl = contentProp.GetString();
-
-            // add them to result if they exist
-            if (!String.IsNullOrEmpty(clientId))
-                result.Add("f7t_client_id", clientId);
-
-            if (!String.IsNullOrEmpty(clientSecret))
-                result.Add("f7t_client_secret", clientSecret);
-
-            if (!String.IsNullOrEmpty(url))
-                result.Add("f7t_url", url);
-
-            if (!String.IsNullOrEmpty(idpUrl))
-                result.Add("f7t_token_url", idpUrl);
-
-            return result;
-        }
-        else
-        {
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                // TODO: resolve not found
-            }
-        }
-
-        return result;
-    }
 
     private void HandleErrorResponse(HttpResponseMessage response, string content, string context, ILogger logger)
     {
@@ -234,5 +174,64 @@ public class ExpirioService : IExpirioService
             logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
             return null;
         }
+    }
+
+    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("[Expirio] Method: FirecrestCredentials");
+        var result = new Dictionary<string, dynamic>();
+        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+
+        var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{firecRestOptions.ExpirioMetadata.SecretName}";
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
+        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+
+            using var doc = JsonDocument.Parse(content);
+
+            var secretContent = firecRestOptions.ExpirioMetadata.SecretContent;
+
+            string? clientId = null, clientSecret = null, url = null, idpUrl = null;
+
+            // extract properties
+            if (doc.RootElement.TryGetProperty(secretContent.ClientId, out var contentProp))
+                clientId = contentProp.GetString();
+
+            if (doc.RootElement.TryGetProperty(secretContent.ClientSecret, out contentProp))
+                clientSecret = contentProp.GetString();
+
+            if (!String.IsNullOrEmpty(secretContent.Url) && doc.RootElement.TryGetProperty(secretContent.Url, out contentProp))
+                url = contentProp.GetString();
+
+            if (!String.IsNullOrEmpty(secretContent.IdpUrl) && doc.RootElement.TryGetProperty(secretContent.IdpUrl, out contentProp))
+                idpUrl = contentProp.GetString();
+
+            // add them to result if they exist
+            if (!String.IsNullOrEmpty(clientId))
+                result.Add("f7t_client_id", clientId);
+
+            if (!String.IsNullOrEmpty(clientSecret))
+                result.Add("f7t_client_secret", clientSecret);
+
+            if (!String.IsNullOrEmpty(url))
+                result.Add("f7t_url", url);
+
+            if (!String.IsNullOrEmpty(idpUrl))
+                result.Add("f7t_token_url", idpUrl);
+
+            return result;
+        }
+        else
+        {
+            HandleErrorResponse(response, content, "firecrest", logger);
+        }
+
+        return result;
     }
 }
