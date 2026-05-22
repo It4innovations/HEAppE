@@ -4,7 +4,7 @@
         <RootNamespace>HEAppE.Exceptions</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.2.0" />
+        <PackageReference Include="log4net" Version="3.3.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
     </ItemGroup>
     <ItemGroup>
