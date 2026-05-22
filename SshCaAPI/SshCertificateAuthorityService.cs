@@ -63,7 +63,7 @@ namespace SshCaAPI
 
             if (response.ResponseStatus == ResponseStatus.TimedOut)
             {
-                throw new SshCAServiceTypeException("SshCertificateAuthorityService-GetConfig: Request timed out.");
+                throw new SshCAServiceTypeException("SshCertificateAuthorityService-GetConfig: Request timed out.") { Details = "Connection to SSH CA service timed out." };
             }
 
             return ParseHelper.ParseJsonOrThrow<ConfigResponse, SshCAServiceTypeException>(response, HttpStatusCode.OK);
@@ -94,13 +94,13 @@ namespace SshCaAPI
             if (response.ResponseStatus == ResponseStatus.TimedOut)
             {
                 logger?.LogError($"[SignService Timeout] Request to {_basicRestClient.BuildUri(request)} timed out.");
-                throw new SshCAServiceTypeException("SshCertificateAuthorityService-Sign: Request timed out.");
+                throw new SshCAServiceTypeException("SshCertificateAuthorityService-Sign: Request timed out.") { Details = "Connection to SSH CA service timed out." };
             }
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 logger?.LogError($"[SignService Error] Unexpected status={response.StatusCode}, Content={response.Content}");
-                throw new SshCAServiceTypeException($"SshCertificateAuthorityService-Sign: Unexpected status={response.StatusCode}, Content={response.Content}");
+                throw new SshCAServiceTypeException($"SshCertificateAuthorityService-Sign: Unexpected status={response.StatusCode}.") { Details = $"HTTP status={response.StatusCode}. Content: {response.Content}" };
             }
 
             logger?.LogDebug($"[SignService Response] Success ({response.StatusCode}). Content: {response.Content}");

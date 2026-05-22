@@ -101,8 +101,29 @@ public class LexisTokenExchangeMiddleware
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
-                    context.Response.StatusCode = 401;
-                    await context.Response.WriteAsync("Token exchange failed");
+
+                    var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Title = "Token Exchange Failed",
+                        Detail = ex.Message
+                    };
+
+                    if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+                    {
+                        problem.Title = authEx.ServiceName != null ? $"Token Exchange Failed ({authEx.ServiceName})" : "Token Exchange Failed";
+                        problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+                    }
+                    else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
+                    {
+                        problem.Status = StatusCodes.Status502BadGateway;
+                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"Token Exchange External Problem ({externalEx.ServiceName})" : "Token Exchange External Problem";
+                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                    }
+
+                    context.Response.ContentType = "application/json";
+                    context.Response.StatusCode = problem.Status.Value;
+                    await context.Response.WriteAsJsonAsync(problem);
                     return;
                 }
             }

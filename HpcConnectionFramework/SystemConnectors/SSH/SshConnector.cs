@@ -390,16 +390,21 @@ public class SshConnector : IPoolableAdapter
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
+            if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(response.PosixUsername))
+            {
+                credentials.Username = response.PosixUsername;
+            }
+
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    credentials.Username,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    credentials.Username,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
             };
 
@@ -427,11 +432,16 @@ public class SshConnector : IPoolableAdapter
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
+            if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(response.PosixUsername))
+            {
+                credentials.Username = response.PosixUsername;
+            }
+
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    credentials.Username,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -441,7 +451,7 @@ public class SshConnector : IPoolableAdapter
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    credentials.Username,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,

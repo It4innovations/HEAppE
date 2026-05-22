@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -180,27 +180,34 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
-            var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
+            var grouped = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
                              .Select(f => new FileInfo(f))
-                             .OrderByDescending(f => f.CreationTime)
-                             .ToList();
-
-            var grouped = files.Select(f => new
-                {
-                    File = f,
-                    Date = ParseDateFromFileName(f.Name),
-                    RetentionCategory = GetRetentionCategory(ParseDateFromFileName(f.Name))
-                })
-                .Where(x => x.Date != null)
-                .GroupBy(x => x.RetentionCategory);
+                             .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false })
+                             .Concat(Directory.GetDirectories(folder, "confs_*backup_*")
+                                     .Select(d => new DirectoryInfo(d))
+                                     .Select(d => new { File = (FileSystemInfo)d, IsDirectory = true }))
+                             .Select(x => new
+                             {
+                                 x.File,
+                                 x.IsDirectory,
+                                 Date = ParseDateFromFileName(x.File.Name),
+                                 RetentionCategory = GetRetentionCategory(ParseDateFromFileName(x.File.Name))
+                             })
+                             .Where(x => x.Date != null)
+                             .OrderByDescending(x => x.Date)
+                             .GroupBy(x => x.RetentionCategory);
 
             foreach (var group in grouped)
             {
                 int keep = GetNumberOfFilesToKeepByRetentionCategory(group.Key);
                 foreach (var item in group.Skip(keep))
                 {
-                    try { item.File.Delete(); }
-                    catch (Exception ex) { _logger.LogWarning(ex, $"Failed to delete backup file '{item.File.FullName}'"); }
+                    try 
+                    { 
+                        if (item.IsDirectory) Directory.Delete(item.File.FullName, true);
+                        else item.File.Delete(); 
+                    }
+                    catch (Exception ex) { _logger.LogWarning(ex, $"Failed to delete backup {(item.IsDirectory ? "directory" : "file")} '{item.File.FullName}'"); }
                 }
             }
         }
@@ -216,7 +223,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         {
             var parts = fileName.Split('_');
             var datePart = parts[^1].Replace(".bak", "");
-            return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
+            if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            return null;
         }
         catch { return null; }
     }

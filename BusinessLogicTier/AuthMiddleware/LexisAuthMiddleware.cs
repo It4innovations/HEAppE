@@ -61,8 +61,36 @@ public class LexisAuthMiddleware
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"AuthMiddleware: Internal Authorize failed: {ex.Message}");
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized");
+
+                var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Title = "Internal Server Error",
+                    Detail = "An unexpected error occurred during authorization."
+                };
+
+                if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+                {
+                    problem.Status = StatusCodes.Status401Unauthorized;
+                    problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
+                    problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+                }
+                else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
+                {
+                    problem.Status = StatusCodes.Status502BadGateway;
+                    problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem";
+                    problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                }
+                else if (ex is UnauthorizedAccessException)
+                {
+                    problem.Status = StatusCodes.Status401Unauthorized;
+                    problem.Title = "Unauthorized Access";
+                    problem.Detail = ex.Message;
+                }
+
+                context.Response.ContentType = "application/json";
+                context.Response.StatusCode = problem.Status.Value;
+                await context.Response.WriteAsJsonAsync(problem);
                 return;
             }
         }

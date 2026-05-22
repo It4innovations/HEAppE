@@ -143,7 +143,7 @@ public class HttpContextKeys : IHttpContextKeys
             if (!response.IsSuccessStatusCode)
             {
                _logger.LogError($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
-               throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}");
+               throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}") { ServiceName = "KeycloakTokenExchange" };
             }
 
             _logger.LogDebug($"[SshCaExchange Response] Success: {response.StatusCode}");
@@ -171,7 +171,7 @@ public class HttpContextKeys : IHttpContextKeys
         catch (Exception ex)
         {
             _logger.LogError(ex, "[SshCaExchange] Failed to exchange SSH CA token.");
-            throw new ExternalException("Internal error during SSH CA token exchange.", ex);
+            throw new ExternalException("Internal error during SSH CA token exchange.", ex) { ServiceName = "KeycloakTokenExchange" };
         }
     }
 

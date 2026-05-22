@@ -82,10 +82,10 @@ public class ExpirioService : IExpirioService
                 return null; 
             }
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
-            logger.LogError($"[Expirio Timeout] Request to {url} timed out.");
-            throw;
+            logger.LogError(ex, $"[Expirio Timeout] Request to {url} timed out.");
+            throw new ExpirioUpstreamException("Request to Expirio timed out", ex, "Connection to Expirio service timed out.");
         }
         catch (JsonException ex)
         {
@@ -111,18 +111,26 @@ public class ExpirioService : IExpirioService
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
-        using var response = await client.SendAsync(httpRequest, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (response.IsSuccessStatusCode)
-        {
-            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-            return ParseTokenResponse(content, logger);
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+                return ParseTokenResponse(content, logger);
+            }
+            else
+            {
+                HandleErrorResponse(response, content, "data", logger);
+                return null;
+            }
         }
-        else
+        catch (TaskCanceledException ex)
         {
-            HandleErrorResponse(response, content, "data", logger);
-            return null;
+            logger.LogError(ex, $"[Expirio Timeout] Request to {url} timed out.");
+            throw new ExpirioUpstreamException("Request to Expirio timed out", ex, "Connection to Expirio service timed out.");
         }
     }
 
