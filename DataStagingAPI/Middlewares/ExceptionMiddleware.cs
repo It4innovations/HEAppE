@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using FluentValidation;
 using HEAppE.Exceptions.AbstractTypes;
@@ -107,11 +107,38 @@ public class ExceptionMiddleware
             case InputValidationException:
                 problem.Title = "Validation Problem";
                 problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case RequestedObjectDoesNotExistException:
+                problem.Title = "Resource Not Found";
+                problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status404NotFound;
                 logLevel = LogLevel.Warning;
                 break;
+            case DatabaseRestoreExternalException:
+                problem.Title = "Backup File Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case InsufficientRoleException:
+            case UnauthorizedAccessException:
+            case AdaptorUserNotAuthorizedForJobException:
+            case AdaptorUserNotReferencedForProjectException:
+                problem.Title = "Access Forbidden";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
+            case NotAllowedException:
+                problem.Title = "Not Allowed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
             case SessionCodeNotValidException:
-                problem.Title = "Authorization Problem";
+                problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
@@ -124,6 +151,42 @@ public class ExceptionMiddleware
                                  exception.Message == "NotPresent"
                     ? StatusCodes.Status401Unauthorized
                     : StatusCodes.Status500InternalServerError;
+                logLevel = LogLevel.Warning;
+                break;
+            case InvalidAuthenticationCredentialsException:
+                problem.Title = "Authentication Failed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case JwtDecodeException:
+                problem.Title = "Token Parsing Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case RequestedJobResourcesExceededUserLimitationsException:
+                problem.Title = "Resource Limit Exceeded";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case ResourceUsageException resourceUsageEx:
+                problem.Title = resourceUsageEx.Message == "ReporterNoAccessToJob" ? "Access Forbidden" : "Resource Usage Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = resourceUsageEx.Message == "ReporterNoAccessToJob" ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case FileTransferTemporaryKeyException tempKeyEx:
+                problem.Title = tempKeyEx.Message == "SshKeyGenerationLimit" ? "Too Many Requests" : "File Transfer Key Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = tempKeyEx.Message == "SshKeyGenerationLimit" ? StatusCodes.Status429TooManyRequests : StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case SshCAServiceTypeException:
+                problem.Title = "SSH CA Service Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
                 logLevel = LogLevel.Warning;
                 break;
             case InternalException:
