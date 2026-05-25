@@ -246,7 +246,7 @@ public class FileTransferController : BaseController<FileTransferController>
 
             List<Task<dynamic>> tasks = new List<Task<dynamic>>();
             foreach (var file in files)
-                tasks.Add(_service.UploadFileToJobExecutionDirAsync(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+                tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
 
             List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
             return Ok(result);

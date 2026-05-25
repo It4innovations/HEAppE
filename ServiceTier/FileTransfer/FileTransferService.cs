@@ -172,9 +172,8 @@ public class FileTransferService : IFileTransferService
         }
     }
     
-    public async Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode)
+    public Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode)
     {
-        await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
@@ -193,7 +192,7 @@ public class FileTransferService : IFileTransferService
                 throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
                     loggedUser.GetLogIdentification(), job.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return await fileTransferLogic.UploadFileToJobExecutionDirAsync(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
+            return fileTransferLogic.UploadFileToJobExecutionDirAsync(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
         }
     }
 
