@@ -74,6 +74,7 @@ builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGenera
 builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 builder.Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+DatabaseMigrationSettings.DisableSeedingAndMigration = true;
 builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
@@ -148,7 +149,7 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 });
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-builder.Services.AddBackgroundServices(builder.Configuration);
+// builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
