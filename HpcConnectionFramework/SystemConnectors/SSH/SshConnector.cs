@@ -340,8 +340,7 @@ public class SshConnector : IPoolableAdapter
         switch (CipherGeneratorConfiguration.Type)
         {
             case FileTransferCipherType.Unknown:
-                throw new SshCommandException(
-                    $"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+                throw new SshCommandException("UnknownCipherType", masterNodeName);
             case FileTransferCipherType.RSA3072:
             case FileTransferCipherType.RSA4096:
             {
@@ -371,8 +370,7 @@ public class SshConnector : IPoolableAdapter
             }
                 break;
             default:
-                throw new SshCommandException(
-                    $"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+                throw new SshCommandException("UnknownCipherType", masterNodeName);
         }
 
         return privateKeyMemoryStream;

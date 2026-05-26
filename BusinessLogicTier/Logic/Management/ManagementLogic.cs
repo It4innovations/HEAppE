@@ -193,7 +193,7 @@ public class ManagementLogic : IManagementLogic
         if (commandTemplate.CreatedFrom is not null) throw new InvalidRequestException("CommandTemplateNotStatic");
 
         var project = commandTemplate.Project ??
-                      throw new InvalidRequestException("NotPermitted");
+                      throw new InputValidationException("NotPermitted");
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
@@ -348,7 +348,7 @@ public class ManagementLogic : IManagementLogic
         AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-        if (existingProject != null) throw new InputValidationException("ProjectAlreadyExist");
+        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist");
 
         var contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
                       ?? new Contact
@@ -382,7 +382,7 @@ public class ManagementLogic : IManagementLogic
             catch (Exception ex) when (ex.InnerException is not null &&
                                        ex.InnerException.Message.Contains("IX_Project_AccountingString"))
             {
-                throw new InputValidationException("ProjectAlreadyExist");
+                throw new InvalidRequestException("ProjectAlreadyExist");
             }
             
             RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
@@ -484,9 +484,9 @@ public class ManagementLogic : IManagementLogic
     public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
     {
         var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-                                         ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+                                         ?? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, clusterId);
         return projectAssignmentToCluster.IsDeleted ?
-            throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId) :
+            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, clusterId) :
             projectAssignmentToCluster;
 
     }
@@ -631,7 +631,7 @@ public class ManagementLogic : IManagementLogic
     public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType)
     {
         var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-            ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+            ?? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, clusterId);
 
         if (clusterProject.IsDeleted)
         {
@@ -662,7 +662,7 @@ public class ManagementLogic : IManagementLogic
     public void RemoveProjectAssignmentToCluster(long projectId, long clusterId)
     {
         var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-            ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+            ?? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, clusterId);
 
         if (clusterProject.IsDeleted) return;
 
@@ -1047,7 +1047,7 @@ public class ManagementLogic : IManagementLogic
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) 
-            throw new InputValidationException("ProjectNoAssignToCluster");
+            throw new InvalidRequestException("ProjectNoAssignToCluster");
 
         SecureShellKey secureShellKey = null;
         bool isGenerated = false;
@@ -1819,7 +1819,7 @@ public class ManagementLogic : IManagementLogic
     {
         if (clusterId.HasValue)
             _ = _unitOfWork.ClusterRepository.GetById((long)clusterId) ??
-                throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
         if (fileTransferMethodId.HasValue)
             _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId) ??
                 throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
@@ -1875,7 +1875,7 @@ public class ManagementLogic : IManagementLogic
 
         if (clusterId.HasValue)
             _ = _unitOfWork.ClusterRepository.GetById((long)clusterId) ??
-                throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
         if (fileTransferMethodId.HasValue)
             _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId) ??
                 throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
@@ -2062,7 +2062,7 @@ public class ManagementLogic : IManagementLogic
         long clusterId, int? port)
     {
         _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
-            throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+            throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
         var fileTransferMethod = new FileTransferMethod
         {
@@ -2095,7 +2095,7 @@ public class ManagementLogic : IManagementLogic
                                              id);
 
         _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
-            throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+            throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
         existingFileTransferMethod.ServerHostname = serverHostname;
         existingFileTransferMethod.Protocol = protocol;
@@ -2545,7 +2545,7 @@ public class ManagementLogic : IManagementLogic
         _logger.LogInformation($"Creating SSH key for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
-        if (!clusterProjects.Any()) throw new InputValidationException("ProjectNoAssignToCluster");
+        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster");
 
         if (project.IsOneToOneMapping && adaptorUserId.HasValue && (string.IsNullOrEmpty(username) || username.StartsWith("account_")))
         {
@@ -3211,7 +3211,7 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
-                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", modelClusterNodeTypeId);
 
         var commandTemplate = new CommandTemplate
         {
@@ -3243,7 +3243,7 @@ public class ManagementLogic : IManagementLogic
                               ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelId);
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
-                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", modelClusterNodeTypeId);
 
         if (!commandTemplate.IsGeneric)
             throw new InputValidationException("CommandTemplateNotGeneric", modelId);

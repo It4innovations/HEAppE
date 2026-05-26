@@ -152,7 +152,7 @@ public class ManagementService : IManagementService
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
 
             if (commandTemplate.ProjectId == null)
-                throw new InputValidationException("The specified command template cannot be removed!");
+                throw new InputValidationException("CommandTemplateCannotBeRemoved");
 
             UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, _expirioService, true);

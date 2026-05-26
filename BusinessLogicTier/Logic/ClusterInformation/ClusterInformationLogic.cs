@@ -52,7 +52,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long projectId)
     {
         var nodeType = GetClusterNodeTypeById(clusterNodeId)
-            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", clusterNodeId);
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeId);
 
         var project = _unitOfWork.ProjectRepository.GetById(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -158,7 +158,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null)
-            throw new RequestedObjectDoesNotExistException("ProjectNotExists", projectId);
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
         if (project.IsOneToOneMapping)
         {

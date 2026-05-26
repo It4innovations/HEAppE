@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System;
 using System.Net;
 using System.Text;
@@ -100,8 +100,7 @@ public class EdDSACertGenerator : GenericCertGenerator
             bw.Write(pubRaw);
         }
         var base64 = Convert.ToBase64String(ms.ToArray());
-        string comment = $"key-temp-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
-        return $"ssh-ed25519 {base64} {comment}";
+        return $"ssh-ed25519 {base64} {_publicComment}";
     }
 
     #endregion

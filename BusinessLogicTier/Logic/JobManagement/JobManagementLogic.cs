@@ -76,7 +76,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 instanceId, _logger);
 
             var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(specification.ProjectId)
-                          ?? throw new RequestedObjectDoesNotExistException("NotExistingProject", specification.ProjectId);
+                          ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", specification.ProjectId);
 
             var cluster = project.ClusterProjects
                               .Select(cp => cp.Cluster)
@@ -86,10 +86,10 @@ internal class JobManagementLogic : IJobManagementLogic
             foreach (var commandTemplateId in specification.Tasks.Select(s => s.CommandTemplateId).Distinct())
             {
                 var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                      ?? throw new RequestedObjectDoesNotExistException("NotExistingCommandTemplate", commandTemplateId);
+                                      ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
 
                 var queue = _unitOfWork.ClusterNodeTypeRepository.GetById(commandTemplate.ClusterNodeTypeId.Value)
-                            ?? throw new RequestedObjectDoesNotExistException("NotExistingClusterNodeType", commandTemplate.ClusterNodeTypeId);
+                            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", commandTemplate.ClusterNodeTypeId);
 
                 _userOrgService.ValidatePermissions(
                     permissionsModel, 
@@ -580,9 +580,9 @@ internal class JobManagementLogic : IJobManagementLogic
         long modelWallTimeInMinutes, AdaptorUser loggedUser)
     {
         var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(modelProjectId)
-                      ?? throw new RequestedObjectDoesNotExistException("NotExistingProject", modelProjectId);
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", modelProjectId);
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
-                              ?? throw new RequestedObjectDoesNotExistException("NotExistingClusterNodeType",
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists",
                                   modelClusterNodeTypeId);
         var cluster = clusterNodeType.Cluster;
 

@@ -573,4 +573,151 @@
   <data name="SshCAServiceTypeException_UnableToRetrieveSshkey" xml:space="preserve">
     <value>Unable to retrieve private key from SSH CA.</value>
   </data>
+  <data name="AuthenticationTypeException_BadRequest" xml:space="preserve">
+    <value>Bad request for external authentication: {0}</value>
+  </data>
+  <data name="AuthenticationTypeException_ExternalApiError" xml:space="preserve">
+    <value>External authentication API error in &apos;{0}&apos;.</value>
+  </data>
+  <data name="AuthenticationTypeException_ExternalApiTimeout" xml:space="preserve">
+    <value>External authentication API timeout in &apos;{0}&apos;.</value>
+  </data>
+  <data name="AuthenticationTypeException_InvalidResponseFormat" xml:space="preserve">
+    <value>Invalid response format received from &apos;{0}&apos;.</value>
+  </data>
+  <data name="AuthenticationTypeException_MissingEmailInUserInfoFromUserOrg" xml:space="preserve">
+    <value>The user account does not have an email address set in the external AAI system.</value>
+  </data>
+  <data name="AuthenticationTypeException_NotFound" xml:space="preserve">
+    <value>User not found in external authentication provider: {0}.</value>
+  </data>
+  <data name="AuthenticationTypeException_ServerError" xml:space="preserve">
+    <value>External authentication provider encountered a server error: {0}.</value>
+  </data>
+  <data name="AuthenticationTypeException_UpstreamError" xml:space="preserve">
+    <value>External authentication upstream error: {0}.</value>
+  </data>
+  <data name="ClusterAuthenticationException_NotExistingClusterAuthenticationCredentials" xml:space="preserve">
+    <value>Cluster authentication credentials do not exist for user &apos;{0}&apos; on cluster &apos;{1}&apos;.</value>
+  </data>
+  <data name="ClusterAuthenticationException_NotExistingPrivateKey" xml:space="preserve">
+    <value>Private key &apos;{0}&apos; specified for cluster authentication does not exist.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserAlreadyAssignedToProject" xml:space="preserve">
+    <value>Adaptor user &apos;{0}&apos; is already assigned to project &apos;{1}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserAlreadyAssignedToUserGroup" xml:space="preserve">
+    <value>Adaptor user &apos;{0}&apos; is already assigned to user group &apos;{1}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserAssignmentNotFoundOrRoleMismatch" xml:space="preserve">
+    <value>Adaptor user assignment not found or role mismatch for user &apos;{0}&apos;, project &apos;{1}&apos; and role &apos;{2}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserCannotDeleteNonDefaultUser" xml:space="preserve">
+    <value>Cannot delete non-default user &apos;{0}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserCannotModifyNonDefaultUser" xml:space="preserve">
+    <value>Cannot modify non-default user &apos;{0}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserNewUsernameAlreadyExists" xml:space="preserve">
+    <value>The username &apos;{0}&apos; already exists.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserNotAssignedToUserGroup" xml:space="preserve">
+    <value>Adaptor user &apos;{0}&apos; is not assigned to user group &apos;{1}&apos;.</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserRoleMismatch" xml:space="preserve">
+    <value>Role mismatch for adaptor user &apos;{0}&apos; in user group &apos;{1}&apos; (expected role &apos;{2}&apos;).</value>
+  </data>
+  <data name="InputValidationException_AdaptorUserUsernameAlreadyExists" xml:space="preserve">
+    <value>The username &apos;{0}&apos; is already used.</value>
+  </data>
+  <data name="InputValidationException_CannotModifyDeletedAssignment" xml:space="preserve">
+    <value>Cannot modify a deleted assignment.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateCannotBeRemoved" xml:space="preserve">
+    <value>The specified command template cannot be removed!</value>
+  </data>
+  <data name="InputValidationException_FileTransferMethodMustBeSet" xml:space="preserve">
+    <value>The file transfer method has to be set.</value>
+  </data>
+  <data name="InputValidationException_NotExistingCluster" xml:space="preserve">
+    <value>The specified cluster with Id &apos;{0}&apos; does not exist.</value>
+  </data>
+  <data name="InputValidationException_ProjectAlreadyAssignedToCluster" xml:space="preserve">
+    <value>Project &apos;{0}&apos; is already assigned to cluster &apos;{1}&apos;.</value>
+  </data>
+  <data name="InputValidationException_ProjectNotOneToOneMapping" xml:space="preserve">
+    <value>Project &apos;{0}&apos; does not have a 1:1 user mapping.</value>
+  </data>
+  <data name="InputValidationException_SubProjectEndDateAfterProjectEndDate" xml:space="preserve">
+    <value>SubProject end date cannot be after project end date.</value>
+  </data>
+  <data name="InputValidationException_SubProjectStartDateBeforeProjectStartDate" xml:space="preserve">
+    <value>SubProject start date cannot be before project start date.</value>
+  </data>
+  <data name="InputValidationException_TaskDoesNotBelongToJob" xml:space="preserve">
+    <value>The task with Id &apos;{0}&apos; does not belong to the job.</value>
+  </data>
+  <data name="InputValidationException_UsernameResolutionFailed" xml:space="preserve">
+    <value>Failed to resolve the username.</value>
+  </data>
+  <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
+    <value>User does not have &apos;{0}&apos; role.</value>
+  </data>
+  <data name="InvalidRequestException_ClusterNodeNoReferenceToClusterId" xml:space="preserve">
+    <value>Cluster node &apos;{0}&apos; has no reference to the cluster.</value>
+  </data>
+  <data name="InvalidRequestException_ErrorCombiningJobInfoFromCluster" xml:space="preserve">
+    <value>Error occurred while combining job info from the cluster: {0}</value>
+  </data>
+  <data name="InvalidRequestException_HPCIdentityAlreadyExistsWithDifferentType" xml:space="preserve">
+    <value>An HPC identity already exists with a different type.</value>
+  </data>
+  <data name="InvalidRequestException_NotExistingClusterProject" xml:space="preserve">
+    <value>No active assignment between cluster &apos;{0}&apos; and project &apos;{1}&apos; was found.</value>
+  </data>
+  <data name="InvalidRequestException_UserHasNoGroups" xml:space="preserve">
+    <value>User &apos;{0}&apos; does not belong to any groups in HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_AdaptorUserGroupNotFound" xml:space="preserve">
+    <value>Requested user group with Id &apos;{0}&apos; was not found.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_AdaptorUserNotFound" xml:space="preserve">
+    <value>Requested adaptor user &apos;{0}&apos; was not found.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_AdaptorUserRoleNotFound" xml:space="preserve">
+    <value>Requested adaptor user role &apos;{0}&apos; was not found.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNotAssociatedWithProject" xml:space="preserve">
+    <value>Cluster with Id &apos;{0}&apos; is not associated with the project.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationWithoutCredentials" xml:space="preserve">
+    <value>Requested combination for cluster Id &apos;{0}&apos; with Project Id &apos;{1}&apos; has no Credentials reference in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_SubProjectNotFound" xml:space="preserve">
+    <value>Requested SubProject was not found.</value>
+  </data>
+  <data name="SchedulerException_NoOneToOneCredentials" xml:space="preserve">
+    <value>There are no credentials for 1:1 user mapping for this user.</value>
+  </data>
+  <data name="SshCAServiceTypeException_GetConfigTimeout" xml:space="preserve">
+    <value>AAI configuration retrieval timed out.</value>
+  </data>
+  <data name="SshCAServiceTypeException_SignTimeout" xml:space="preserve">
+    <value>SSH certificate signing request timed out.</value>
+  </data>
+  <data name="SshCAServiceTypeException_SignUnexpectedStatus" xml:space="preserve">
+    <value>Unexpected status received from SSH CA service: {0}.</value>
+  </data>
+  <data name="SshCommandException_UnknownCipherType" xml:space="preserve">
+    <value>Unknown cipher type for the private key that is used for the connection to &apos;{0}&apos;!</value>
+  </data>
+  <data name="UnableToCreateConnectionException_ConnectionNotFound" xml:space="preserve">
+    <value>Active connection for task &apos;{0}&apos; was not found.</value>
+  </data>
+  <data name="UnableToCreateConnectionException_CreationFailed" xml:space="preserve">
+    <value>Failed to create connection for task &apos;{0}&apos; on node &apos;{1}:{2}&apos;.</value>
+  </data>
+  <data name="UnableToCreateConnectionException_NoActiveConnectionForUser" xml:space="preserve">
+    <value>Active connection for task &apos;{0}&apos; and node &apos;{1}&apos; was not found.</value>
+  </data>
 </root>

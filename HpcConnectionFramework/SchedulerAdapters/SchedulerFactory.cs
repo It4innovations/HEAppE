@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent; // NOVÉ: Pro ConcurrentDictionary
 using System.Collections.Generic;
 using System.Linq;
@@ -90,7 +90,7 @@ public abstract class SchedulerFactory
                         .Any(cpc => currentAdaptorUserId.HasValue ? cpc.AdaptorUserId == currentAdaptorUserId : cpc.AdaptorUserId == null);
 
                     if (!hasCredentials)
-                        throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
+                        throw new SchedulerException("NoOneToOneCredentials");
                 }
                 
                 return new ConnectionPool.ConnectionPool(

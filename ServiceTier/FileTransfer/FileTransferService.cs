@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -205,7 +205,7 @@ public class FileTransferService : IFileTransferService
                 string.Empty, unitOfWork, _userOrgService, _sshCertificateAuthorityService,
                 _httpContextKeys, _logger, AdaptorUserRoleType.Submitter, modelProjectId, _expirioService);
             //check if project is configured as 1:1 user mapping
-            var project = unitOfWork.ProjectRepository.GetById(modelProjectId) ?? throw new InputValidationException("NotExistingProject", modelProjectId);
+            var project = unitOfWork.ProjectRepository.GetById(modelProjectId) ?? throw new InvalidRequestException("NotExistingProject", modelProjectId);
             if (!project.IsOneToOneMapping)
             {
                 throw new InputValidationException("ProjectNotOneToOneMapping", modelProjectId);
