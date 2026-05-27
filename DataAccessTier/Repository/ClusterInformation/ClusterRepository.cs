@@ -23,11 +23,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
                 .ThenInclude(cp => cp.Project)
-                    .ThenInclude(p => p.CommandTemplates)
             .Include(c => c.NodeTypes)
                 .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
                     .ThenInclude(pc => pc.Project)
-                        .ThenInclude(p => p.CommandTemplates)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
@@ -53,11 +51,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
-                    .ThenInclude(p => p.CommandTemplates)
             .Include(c => c.NodeTypes)
                 .ThenInclude(n => n.PossibleCommands)
                     .ThenInclude(pc => pc.Project)
-                        .ThenInclude(p => p.CommandTemplates)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }
