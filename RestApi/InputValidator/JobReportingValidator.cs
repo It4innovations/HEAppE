@@ -1,4 +1,4 @@
-﻿using HEAppE.RestApiModels.JobReporting;
+using HEAppE.RestApiModels.JobReporting;
 using HEAppE.Utils.Validation;
 
 namespace HEAppE.RestApi.InputValidator;
@@ -36,7 +36,15 @@ public class JobReportingValidator : AbstractValidator
 
     private string ValidateUserGroupResourceUsageReportModel(UserGroupResourceUsageReportModel model)
     {
-        ValidateId(model.GroupId, nameof(model.GroupId));
+        if (model.GroupId == null)
+        {
+            _messageBuilder.AppendLine("GroupId is required");
+        }
+        else
+        {
+            ValidateId(model.GroupId.Value, nameof(model.GroupId));
+        }
+
         if (model.StartTime > model.EndTime) _messageBuilder.AppendLine("StartTime must be before EndTime");
 
         var validationResult = new SessionCodeValidator(model.SessionCode).Validate();
@@ -47,7 +55,14 @@ public class JobReportingValidator : AbstractValidator
 
     private string ValidateResourceUsageReportForJobModel(ResourceUsageReportForJobModel validationObj)
     {
-        ValidateId(validationObj.JobId, nameof(validationObj.JobId));
+        if (validationObj.JobId == null)
+        {
+            _messageBuilder.AppendLine("JobId is required");
+        }
+        else
+        {
+            ValidateId(validationObj.JobId.Value, nameof(validationObj.JobId));
+        }
 
         var validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
@@ -57,7 +72,14 @@ public class JobReportingValidator : AbstractValidator
 
     private string ValidateUserResourceUsageReportModel(UserResourceUsageReportModel validationObj)
     {
-        ValidateId(validationObj.UserId, nameof(validationObj.UserId));
+        if (validationObj.UserId == null)
+        {
+            _messageBuilder.AppendLine("UserId is required");
+        }
+        else
+        {
+            ValidateId(validationObj.UserId.Value, nameof(validationObj.UserId));
+        }
 
         if (validationObj.StartTime > validationObj.EndTime)
             _messageBuilder.AppendLine("StartTime must be before EndTime");

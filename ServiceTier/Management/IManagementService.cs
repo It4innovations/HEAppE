@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -226,7 +226,7 @@ public interface IManagementService
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
-    AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode);
+    AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode);
     AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
     string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
     AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);

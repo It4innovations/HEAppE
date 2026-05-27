@@ -49,6 +49,14 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
 
     [Column(TypeName = "text")] public string AllParameters { get; set; }
 
+    /// <summary>
+    ///     Per-task HMAC secret used to verify Slurm callback webhook signatures.
+    ///     Generated at submit time, stored in DB and written to .callback_token on HPC.
+    ///     Falls back to global ScriptsConfiguration.CallbackSecret when null (legacy jobs).
+    /// </summary>
+    [StringLength(128)]
+    public string CallbackSecret { get; set; }
+
     [NotMapped] public Dictionary<string, string> ParsedParameters { get; set; }
 
     public virtual Project Project { get; set; }

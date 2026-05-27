@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement;
@@ -28,4 +28,5 @@ public interface IJobManagementLogic
     Task<DryRunJobInfo> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser);
     IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long loggedUserId);
+    Task UpdateJobStatusFromCallback(string schedulerJobId, string payload);
 }

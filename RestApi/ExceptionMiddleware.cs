@@ -273,10 +273,18 @@ public class ExceptionMiddleware
                 break;
         }
 
-        // Log exception with default 'en' culture localization
         log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
         _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
         log4net.LogicalThreadContext.Properties.Remove("requestId");
+
+        if (!string.IsNullOrEmpty(problem.Detail))
+        {
+            problem.Detail += $" (Request ID: {context.TraceIdentifier})";
+        }
+        else
+        {
+            problem.Detail = $"Request ID: {context.TraceIdentifier}";
+        }
 
         problem.Extensions["TraceId"] = context.TraceIdentifier;
 

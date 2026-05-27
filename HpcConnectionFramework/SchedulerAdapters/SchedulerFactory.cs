@@ -120,6 +120,11 @@ public abstract class SchedulerFactory
     private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =
         HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
 
+    public ISchedulerDataConvertor GetDataConvertor(ILogger logger)
+    {
+        return CreateDataConvertor(logger);
+    }
+
     #endregion
 
     #region Abstract Methods

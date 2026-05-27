@@ -383,6 +383,39 @@ public class MiddlewareContext : DbContext
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
 
+        // Seed default accounting formula 1 if not exists, and assign it to aggregations without one
+        var defaultAccounting = await Set<Accounting>().FirstOrDefaultAsync(a => a.Formula == "1" && !a.IsDeleted);
+        if (defaultAccounting == null)
+        {
+            defaultAccounting = new Accounting
+            {
+                Formula = "1",
+                CreatedAt = DateTime.UtcNow,
+                ValidityFrom = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsDeleted = false
+            };
+            Set<Accounting>().Add(defaultAccounting);
+            await SaveChangesAsync();
+        }
+
+        var aggregationsWithoutAccounting = await Set<ClusterNodeTypeAggregation>()
+            .Where(a => !a.IsDeleted && !Set<ClusterNodeTypeAggregationAccounting>().Any(cna => cna.ClusterNodeTypeAggregationId == a.Id && !cna.IsDeleted))
+            .ToListAsync();
+
+        foreach (var agg in aggregationsWithoutAccounting)
+        {
+            Set<ClusterNodeTypeAggregationAccounting>().Add(new ClusterNodeTypeAggregationAccounting
+            {
+                ClusterNodeTypeAggregationId = agg.Id,
+                AccountingId = defaultAccounting.Id,
+                IsDeleted = false
+            });
+        }
+        if (aggregationsWithoutAccounting.Any())
+        {
+            await SaveChangesAsync();
+        }
+
         ValidateSeed();
 
         await SaveChangesAsync();

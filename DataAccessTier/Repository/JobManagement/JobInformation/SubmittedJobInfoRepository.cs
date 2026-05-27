@@ -25,6 +25,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetNotFinishedForSubmitterId(long submitterId)
     {
         return _dbSet
+            .AsNoTracking()
             .Where(w => (w.Submitter.Id == submitterId && w.State < JobState.Finished) ||
                         w.State == JobState.WaitingForServiceAccount)
             .ToList();
@@ -51,6 +52,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId)
     {
         return _dbSet
+            .AsNoTracking()
             .Where(w => w.Submitter.Id == submitterId)
             .ToList();
     }
@@ -77,6 +79,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
         return _dbSet
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
@@ -117,5 +120,22 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters()
     {
         return _dbSet.IgnoreQueryFilters();
+    }
+
+    public SubmittedJobInfo GetByScheduledJobId(string scheduledJobId)
+    {
+        return _dbSet
+            .AsSplitQuery()
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
+            .Include(j => j.Project)
+            .Include(j => j.Submitter)
+            .FirstOrDefault(j => j.Tasks.Any(t => t.ScheduledJobId == scheduledJobId));
     }
 }

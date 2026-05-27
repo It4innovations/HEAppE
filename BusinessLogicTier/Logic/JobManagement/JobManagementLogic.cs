@@ -447,6 +447,33 @@ internal class JobManagementLogic : IJobManagementLogic
             .GroupBy(g => new { g.Specification.Cluster, g.Project })
             .ToList();
 
+        // Pre-fetch service account credentials sequentially to avoid DbContext concurrency issues
+        var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId, long SubmitterId), ClusterAuthenticationCredentials>();
+        foreach (var jobGroup in jobsGroup)
+        {
+            var cluster = jobGroup.Key.Cluster;
+            var project = jobGroup.Key.Project;
+            if (cluster.UpdateJobStateByServiceAccount.Value)
+            {
+                foreach (var job in jobGroup)
+                {
+                    var clusterId = job.Specification.ClusterId;
+                    var projectId = job.Project.Id;
+                    var submitterId = job.Submitter.Id;
+                    var key = (clusterId, projectId, submitterId);
+                    if (!serviceAccountsCache.ContainsKey(key))
+                    {
+                        var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            clusterId, projectId, requireIsInitialized: true, adaptorUserId: submitterId, logger: _logger);
+                        if (account != null)
+                        {
+                            serviceAccountsCache[key] = account;
+                        }
+                    }
+                }
+            }
+        }
+
         // Parallelize HPC status queries across different cluster/project/user groups
         var updateTasks = jobsGroup.Select(async jobGroup =>
         {
@@ -488,15 +515,27 @@ internal class JobManagementLogic : IJobManagementLogic
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
             {
-                var states = await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true, _logger);
+                var tasksList = jobGroup.SelectMany(s => s.Tasks).ToList();
+                var firstUnfinished = tasksList.FirstOrDefault(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled));
+                ClusterAuthenticationCredentials account = null;
+                if (firstUnfinished != null)
+                {
+                    var spec = firstUnfinished.Specification.JobSpecification;
+                    serviceAccountsCache.TryGetValue((spec.ClusterId, spec.ProjectId, spec.Submitter.Id), out account);
+                }
+                var states = await GetActualTasksStateInHPCScheduler(schedulerProxy, tasksList, account, _logger);
                 groupTasksResult.AddRange(states);
             }
             else
             {
                 // Parallelize even within a cluster group if there are multiple users
                 var userTasks = await Task.WhenAll(userJobsGroups.Select(userJobGroup => 
-                    GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, userJobGroup.SelectMany(s => s.Tasks), false, _logger)
-                ));
+                {
+                    var tasksList = userJobGroup.SelectMany(s => s.Tasks).ToList();
+                    var firstUnfinished = tasksList.FirstOrDefault(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled));
+                    ClusterAuthenticationCredentials account = firstUnfinished?.Specification.JobSpecification.ClusterUser;
+                    return GetActualTasksStateInHPCScheduler(schedulerProxy, tasksList, account, _logger);
+                }));
                 foreach (var states in userTasks) groupTasksResult.AddRange(states);
             }
 
@@ -555,6 +594,66 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         _unitOfWork.Save();
+    }
+
+    public async Task UpdateJobStatusFromCallback(string schedulerJobId, string payload)
+    {
+        _logger.LogInformation($"UpdateJobStatusFromCallback called for scheduledJobId: '{schedulerJobId}'");
+
+        var submittedJob = _unitOfWork.SubmittedJobInfoRepository.GetByScheduledJobId(schedulerJobId);
+        if (submittedJob == null)
+        {
+            throw new RequestedObjectDoesNotExistException("SubmittedJobInfoNotFoundForScheduledJobId", schedulerJobId);
+        }
+
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(submittedJob.Id);
+            if (submittedJob.Submitter != null)
+            {
+                LoggingUtils.AddUserPropertiesToLogThreadContext(submittedJob.Submitter.Id, submittedJob.Submitter.Username, submittedJob.Submitter.Email);
+            }
+
+            var cluster = submittedJob.Specification.Cluster;
+            var converter = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
+
+            var actualUnfinishedSchedulerTasksInfo = converter.ReadParametersFromResponse(cluster, payload).ToList();
+
+            bool isNeedUpdateJobState = false;
+            foreach (var submittedTask in submittedJob.Tasks)
+            {
+                var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
+                if (actualUnfinishedSchedulerTaskInfo is null)
+                {
+                    continue;
+                }
+                else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
+                {
+                    CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo, _logger);
+                    isNeedUpdateJobState = true;
+                }
+            }
+
+            if (isNeedUpdateJobState)
+            {
+                UpdateJobStateByTasks(submittedJob);
+                _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
+                _unitOfWork.Save();
+                _logger.LogInformation($"Job {submittedJob.Id} state updated successfully via callback.");
+            }
+            else
+            {
+                _logger.LogInformation($"Job {submittedJob.Id} state is already up to date.");
+            }
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+            if (submittedJob.Submitter != null)
+            {
+                LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+            }
+        }
     }
 
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
@@ -924,23 +1023,29 @@ internal class JobManagementLogic : IJobManagementLogic
         return dbJobInfo;
     }
 
-    private static async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork,
-        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount, ILogger logger)
+    private static async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksStateInHPCScheduler(
+        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, ClusterAuthenticationCredentials account, ILogger logger)
     {
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
             .ToList();
 
+        if (!unfinishedTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
         var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
 
-        var account = useServiceAccount
-            ? await unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id, logger: logger)
-            : jobSpecification.ClusterUser;
+        if (account == null)
+        {
+            account = jobSpecification.ClusterUser;
+        }
+
         try
         {
             HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobSpecification.Id);
-            logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
+            logger.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account?.Username}");
             return await scheduler(jobSpecification.Submitter.Id).GetActualTasksInfoAsync(unfinishedTasks, account, null, null);
         }
         finally

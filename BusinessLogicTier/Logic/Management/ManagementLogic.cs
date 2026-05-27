@@ -2188,6 +2188,29 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.ClusterNodeTypeAggregationRepository.Insert(clusterNodeTypeAggregation);
         _unitOfWork.Save();
 
+        var defaultAccounting = _unitOfWork.AccountingRepository.GetByFormula("1");
+        if (defaultAccounting == null)
+        {
+            defaultAccounting = new Accounting
+            {
+                Formula = "1",
+                CreatedAt = DateTime.UtcNow,
+                ValidityFrom = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsDeleted = false
+            };
+            _unitOfWork.AccountingRepository.Insert(defaultAccounting);
+            _unitOfWork.Save();
+        }
+
+        var mapping = new ClusterNodeTypeAggregationAccounting
+        {
+            ClusterNodeTypeAggregationId = clusterNodeTypeAggregation.Id,
+            AccountingId = defaultAccounting.Id,
+            IsDeleted = false
+        };
+        _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.Insert(mapping);
+        _unitOfWork.Save();
+
         return clusterNodeTypeAggregation;
     }
 
@@ -2914,6 +2937,29 @@ public class ManagementLogic : IManagementLogic
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository
             .GetAllActiveClusterProjectCredentialsUntracked()
             .ToList();
+
+        // Auto-initialize uninitialized credentials sequentially first to avoid DbContext concurrency issues
+        if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
+        {
+            var uninitializedCredentials = clusterProjectCredentials.Where(c => !c.IsInitialized).ToList();
+            if (uninitializedCredentials.Any())
+            {
+                _logger.LogInformation($"Auto-initializing {uninitializedCredentials.Count} credentials sequentially.");
+                var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+                foreach (var credential in uninitializedCredentials)
+                {
+                    try
+                    {
+                        var project = credential.ClusterProject.Project;
+                        await clusterInformationLogic.InitializeCredentialInBackgroundTask(credential.ClusterAuthenticationCredentials, project.Id, null);
+                    }
+                    catch (Exception ex)
+                    {
+                         _logger.LogError(ex, $"Auto-initialization failed for credential ID {credential.ClusterAuthenticationCredentialsId}, UserName {credential.ClusterAuthenticationCredentials.Username}", ex);
+                    }
+                }
+            }
+        }
         
         const int batchSize = 20;
 
@@ -2955,19 +3001,6 @@ public class ManagementLogic : IManagementLogic
             var clusterProject = credential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
-
-            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse && !credential.IsInitialized)
-            {
-                try
-                {
-                    var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-                    await clusterInformationLogic.InitializeCredentialInBackgroundTask(credential.ClusterAuthenticationCredentials, project.Id, null);
-                }
-                catch (Exception ex)
-                {
-                     _logger.LogError(ex, $"Auto-initialization failed for credential ID {credential.ClusterAuthenticationCredentialsId}, UserName {credential.ClusterAuthenticationCredentials.Username}", ex);
-                }
-            }
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);

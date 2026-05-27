@@ -23,4 +23,5 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
 
     public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters();
     IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters();
+    SubmittedJobInfo GetByScheduledJobId(string scheduledJobId);
 }

@@ -1597,12 +1597,12 @@ public class ManagementService : IManagementService
         }
     }
 
-    public AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode)
+    public AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
