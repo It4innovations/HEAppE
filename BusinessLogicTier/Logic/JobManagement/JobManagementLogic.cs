@@ -437,120 +437,123 @@ internal class JobManagementLogic : IJobManagementLogic
         return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w => taskIds.Contains(w.Id))
             .ToList();
     }
-
+    
     /// <summary>
-    ///     Updates jobs in db with received info from HPC schedulers
+    ///     Updates jobs in db with received info from HPC schedulers in bulk batches per Cluster/User.
     /// </summary>
     public async Task UpdateCurrentStateOfUnfinishedJobs()
     {
-        var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
-            .GroupBy(g => new { g.Specification.Cluster, g.Project })
-            .ToList();
+        var allUnfinishedJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished().ToList();
 
         // Pre-fetch service account credentials sequentially to avoid DbContext concurrency issues
-        var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId, long SubmitterId), ClusterAuthenticationCredentials>();
-        foreach (var jobGroup in jobsGroup)
+        var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
+        foreach (var job in allUnfinishedJobs)
         {
-            var cluster = jobGroup.Key.Cluster;
-            var project = jobGroup.Key.Project;
+            var cluster = job.Specification.Cluster;
             if (cluster.UpdateJobStateByServiceAccount.Value)
             {
-                foreach (var job in jobGroup)
+                var key = (job.Specification.ClusterId, job.Specification.ProjectId);
+                if (!serviceAccountsCache.ContainsKey(key))
                 {
-                    var clusterId = job.Specification.ClusterId;
-                    var projectId = job.Project.Id;
-                    var submitterId = job.Submitter.Id;
-                    var key = (clusterId, projectId, submitterId);
-                    if (!serviceAccountsCache.ContainsKey(key))
+                    var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        key.ClusterId, key.ProjectId, requireIsInitialized: true, adaptorUserId: null, logger: _logger);
+                    if (account != null)
                     {
-                        var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                            clusterId, projectId, requireIsInitialized: true, adaptorUserId: submitterId, logger: _logger);
-                        if (account != null)
-                        {
-                            serviceAccountsCache[key] = account;
-                        }
+                        serviceAccountsCache[key] = account;
                     }
                 }
             }
         }
 
-        // Parallelize HPC status queries across different cluster/project/user groups
-        var updateTasks = jobsGroup.Select(async jobGroup =>
-        {
-            var cluster = jobGroup.Key.Cluster;
-            var project = jobGroup.Key.Project;
-            var userJobsGroups = jobGroup.GroupBy(g => g.Specification.ClusterUser).ToList();
-
-            if (userJobsGroups.Any())
+        // Aggregate by Cluster (+ ClusterUser if not using a shared service account) to bundle requests into large batches
+        var hpcQueryGroups = allUnfinishedJobs
+            .GroupBy(j => new
             {
-                _logger.LogInformation($"Checking unfinished jobs for cluster {cluster.Name} and project {project.Name}...");
+                j.Specification.Cluster,
+                ClusterUser = j.Specification.Cluster.UpdateJobStateByServiceAccount.Value ? null : j.Specification.ClusterUser
+            })
+            .ToList();
 
-                // Handle waiting limit cancellation
-                foreach (var userJobGroup in userJobsGroups)
+        var updateTasks = hpcQueryGroups.Select(async group =>
+        {
+            var cluster = group.Key.Cluster;
+            var clusterUser = group.Key.ClusterUser;
+            var jobsInGroup = group.ToList();
+
+            var groupTasksResult = new List<SubmittedTaskInfo>();
+            var tasksList = jobsInGroup.SelectMany(s => s.Tasks)
+                .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
+                .ToList();
+
+            if (!tasksList.Any())
+            {
+                return new { Jobs = jobsInGroup, Results = groupTasksResult };
+            }
+
+            var jobsExceedWaitLimit = jobsInGroup.Where(w => IsWaitingLimitExceeded(w)).ToList();
+            foreach (var job in jobsExceedWaitLimit)
+            {
+                var tasksToCancel = job.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList();
+                if (tasksToCancel.Any())
                 {
-                    var jobsExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w)).ToList();
-                    foreach (var job in jobsExceedWaitLimit)
+                    _logger.LogWarning($"Job {job.Id} exceeded waiting limit. Cancelling...");
+                    try
                     {
-                        var tasks = job.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList();
-                        if (tasks.Any())
-                        {
-                            _logger.LogWarning($"Job {job.Id} exceeded waiting limit. Cancelling...");
-                            await SchedulerFactory.GetInstance(cluster.SchedulerType)
-                                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id, _expirioService, _logger)
-                                .CancelJobAsync(tasks, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-                        }
+                        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                            .CreateScheduler(cluster, job.Project, _sshCertificateAuthorityService, adaptorUserId: job.Submitter.Id, _expirioService, _logger);
+                        await scheduler.CancelJobAsync(tasksToCancel, "Job cancelled automatically by exceeding waiting limit.", job.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Failed to auto-cancel job {job.Id} after exceeding wait limit.");
                     }
                 }
             }
 
-            var groupTasksResult = new List<SubmittedTaskInfo>();
-            
-            IRexScheduler scheduler = !project.IsOneToOneMapping ?
-                SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, null, _expirioService, _logger) : null;
-
-            Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null ? scheduler : SchedulerFactory
-                .GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId, _expirioService, _logger);
+            ClusterAuthenticationCredentials account = clusterUser;
+            var firstTask = tasksList.First();
+            var spec = firstTask.Specification.JobSpecification;
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
             {
-                var tasksList = jobGroup.SelectMany(s => s.Tasks).ToList();
-                var firstUnfinished = tasksList.FirstOrDefault(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled));
-                ClusterAuthenticationCredentials account = null;
-                if (firstUnfinished != null)
-                {
-                    var spec = firstUnfinished.Specification.JobSpecification;
-                    serviceAccountsCache.TryGetValue((spec.ClusterId, spec.ProjectId, spec.Submitter.Id), out account);
-                }
-                var states = await GetActualTasksStateInHPCScheduler(schedulerProxy, tasksList, account, _logger);
-                groupTasksResult.AddRange(states);
-            }
-            else
-            {
-                // Parallelize even within a cluster group if there are multiple users
-                var userTasks = await Task.WhenAll(userJobsGroups.Select(userJobGroup => 
-                {
-                    var tasksList = userJobGroup.SelectMany(s => s.Tasks).ToList();
-                    var firstUnfinished = tasksList.FirstOrDefault(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled));
-                    ClusterAuthenticationCredentials account = firstUnfinished?.Specification.JobSpecification.ClusterUser;
-                    return GetActualTasksStateInHPCScheduler(schedulerProxy, tasksList, account, _logger);
-                }));
-                foreach (var states in userTasks) groupTasksResult.AddRange(states);
+                serviceAccountsCache.TryGetValue((spec.ClusterId, spec.ProjectId), out account);
             }
 
-            return new { JobGroup = jobGroup, Results = groupTasksResult };
+            if (account == null)
+            {
+                account = spec.ClusterUser;
+            }
+
+            try
+            {
+                var project = firstTask.Project;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, cluster.UpdateJobStateByServiceAccount.Value ? null : spec.Submitter.Id, _expirioService, _logger);
+
+                _logger.LogInformation($"Requesting state for a bulk batch of {tasksList.Count} tasks on cluster {cluster.Name} using account {account?.Username}");
+                
+                var states = await scheduler.GetActualTasksInfoAsync(tasksList, account, null, null);
+                if (states != null)
+                {
+                    groupTasksResult.AddRange(states);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve statuses for a batch of tasks on cluster {cluster.Name}");
+            }
+
+            return new { Jobs = jobsInGroup, Results = groupTasksResult };
         });
 
         var allResults = await Task.WhenAll(updateTasks);
 
-        // Process results sequentially to ensure thread-safety for the UnitOfWork and Database
         foreach (var resultGroup in allResults)
         {
-            var jobGroup = resultGroup.JobGroup;
+            var jobs = resultGroup.Jobs;
             var actualUnfinishedSchedulerTasksInfo = resultGroup.Results;
 
-            foreach (var submittedJob in jobGroup)
+            foreach (var submittedJob in jobs)
             {
                 try
                 {
@@ -566,8 +569,11 @@ internal class JobManagementLogic : IJobManagementLogic
                         var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
                         if (actualUnfinishedSchedulerTaskInfo is null)
                         {
-                            submittedTask.State = TaskState.Failed;
-                            isNeedUpdateJobState = true;
+                            if (submittedTask.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
+                            {
+                                submittedTask.State = TaskState.Failed;
+                                isNeedUpdateJobState = true;
+                            }
                         }
                         else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
                         {
