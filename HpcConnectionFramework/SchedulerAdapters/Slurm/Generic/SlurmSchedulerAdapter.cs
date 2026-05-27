@@ -43,28 +43,58 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     #region Private Methods
 
     /// <summary>
-    ///     Get actual tasks (HPC jobs) information
+    ///     Maximum number of jobs per single SSH status query batch.
+    ///     Prevents excessively long SSH commands when monitoring many jobs simultaneously.
+    /// </summary>
+    private const int MaxJobStatusBatchSize = 20;
+
+    /// <summary>
+    ///     Get actual tasks (HPC jobs) information - executes in chunks to avoid
+    ///     overly long SSH commands when many jobs are queried simultaneously.
     /// </summary>
     /// <param name="connectorClient">Connector</param>
-    /// <param name="cluster">Cluster"</param>
+    /// <param name="cluster">Cluster</param>
     /// <param name="schedulerJobIdClusterAllocationNamePairs">Scheduler job id´s pair</param>
     /// <returns></returns>
     /// <exception cref="SlurmException"></exception>
     private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
     {
+        var allPairs = schedulerJobIdClusterAllocationNamePairs.ToList();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", allPairs.Select(s => s.ScheduledJobId))}\"");
+
+        // Split into chunks to avoid excessively long SSH command lines
+        var chunks = allPairs
+            .Select((pair, index) => (pair, index))
+            .GroupBy(x => x.index / MaxJobStatusBatchSize)
+            .Select(g => g.Select(x => x.pair).ToList())
+            .ToList();
+
+        var allResults = new List<SubmittedTaskInfo>();
+
+        foreach (var chunk in chunks)
+        {
+            var chunkResult = await ExecuteStatusBatchAsync(connectorClient, cluster, chunk);
+            allResults.AddRange(chunkResult);
+        }
+
+        return allResults;
+    }
+
+    /// <summary>
+    ///     Execute a single batch of scontrol status queries over one SSH command.
+    /// </summary>
+    private async Task<IEnumerable<SubmittedTaskInfo>> ExecuteStatusBatchAsync(object connectorClient, Cluster cluster,
+        IList<(string ScheduledJobId, string ClusterAllocationName)> batch)
+    {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
-        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}\"");
 
-        foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
+        foreach (var (ScheduledJobId, ClusterAllocationName) in batch)
         {
             var allocationCluster = string.Empty;
-
             if (!string.IsNullOrEmpty(ClusterAllocationName)) allocationCluster = $"-M {ClusterAllocationName} ";
-
-            cmdBuilder.Append(
-                $"{_commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
+            cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
         }
 
         var sshCommand = cmdBuilder.ToString();
@@ -72,17 +102,17 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         try
         {
             command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
-            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}: {command.Result}");
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", batch.Select(s => s.ScheduledJobId))}: {command.Result}");
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
-            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks in batch of {batch.Count}.");
             return submittedTasksInfo;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", batch.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
             throw new SlurmException(
                 "GetActualTasksInfo", ex,
-                string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
+                string.Join(", ", batch.Select(s => s.ScheduledJobId).ToList()),
                 command?.Result ?? string.Empty,
                 command?.Error ?? ex.Message)
             {
