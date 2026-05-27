@@ -18,7 +18,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
@@ -54,7 +54,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IQueryable<Cluster> AsQueryable()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
