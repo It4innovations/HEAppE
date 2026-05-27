@@ -38,6 +38,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Tasks)
             .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
+            .ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks)
             .ThenInclude(t => t.Specification)
             .ThenInclude(ts => ts.ClusterNodeType)
             .Include(j => j.Tasks)
