@@ -21,7 +21,6 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
         return _dbSet
-            .AsNoTracking()
             .AsSplitQuery()
             // 1. Větev: Načtení uživatele -> role -> typu role
             .Include(s => s.User)
