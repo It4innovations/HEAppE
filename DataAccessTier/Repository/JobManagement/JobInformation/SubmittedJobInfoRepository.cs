@@ -35,6 +35,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
             .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
