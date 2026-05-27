@@ -167,6 +167,30 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .FirstOrDefault(j => j.Id == id);
     }
 
+    /// <summary>
+    /// Lightweight status query - only loads what ConvertIntToExt needs.
+    /// Does NOT load SSH/scheduler navigation properties.
+    /// </summary>
+    public SubmittedJobInfo GetByIdForStatus(long id)
+    {
+        return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(j => j.Project)
+            .FirstOrDefault(j => j.Id == id);
+    }
+
     public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters()
     {
         return _dbSet

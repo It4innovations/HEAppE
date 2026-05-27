@@ -181,6 +181,22 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
+    /// <summary>
+    /// Lightweight status read using minimal DB query (no SSH navigation properties).
+    /// Use for read-only status polling when SSH is not needed.
+    /// </summary>
+    public SubmittedJobInfo GetSubmittedJobInfoByIdForStatus(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
+    {
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdForStatus(submittedJobInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+                 .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedJobInfoId);
+        return jobInfo;
+    }
+
     static Tuple<string, string> CreatePathTuple(string localBasePath, string jobLogArchivePath, TaskSpecification task, string fileName)
     {
         var localPath = Path.Join(localBasePath,
