@@ -438,7 +438,14 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     #region Private Methods
 
     /// <summary>
-    ///     Get actual tasks (HPC jobs) informations
+    ///     Maximum number of jobs per single SSH status query batch.
+    ///     Prevents excessively long SSH commands when monitoring many jobs simultaneously.
+    /// </summary>
+    private const int MaxJobStatusBatchSize = 20;
+
+    /// <summary>
+    ///     Get actual tasks (HPC jobs) informations - executes in chunks to avoid
+    ///     overly long qstat command lines when many jobs are queried simultaneously.
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="cluster">Cluster</param>
@@ -448,28 +455,51 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<string> scheduledJobIds)
     {
-        SshCommandWrapper command = null;
-        StringBuilder cmdBuilder = new();
-        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", scheduledJobIds)}\"");
+        var allIds = scheduledJobIds.ToList();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", allIds)}\"");
 
-        cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}'");
-        var sshCommand = cmdBuilder.ToString();
+        // Split into chunks to avoid excessively long qstat command lines
+        var chunks = allIds
+            .Select((id, index) => (id, index))
+            .GroupBy(x => x.index / MaxJobStatusBatchSize)
+            .Select(g => g.Select(x => x.id).ToList())
+            .ToList();
+
+        var allResults = new List<SubmittedTaskInfo>();
+
+        foreach (var chunk in chunks)
+        {
+            var chunkResult = await ExecuteStatusBatchAsync(connectorClient, cluster, chunk);
+            allResults.AddRange(chunkResult);
+        }
+
+        return allResults;
+    }
+
+    /// <summary>
+    ///     Execute a single batch of qstat status queries over one SSH command.
+    /// </summary>
+    private async Task<IEnumerable<SubmittedTaskInfo>> ExecuteStatusBatchAsync(object connectorClient, Cluster cluster,
+        IList<string> batchIds)
+    {
+        SshCommandWrapper command = null;
+        var sshCommand = $"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", batchIds)}'";
 
         try
         {
             command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
-            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", scheduledJobIds)}: {command.Result}");
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", batchIds)}: {command.Result}");
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
-            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks in batch of {batchIds.Count}.");
             return submittedTasksInfo;
         }
         catch (PbsException ex)
         {
-            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", scheduledJobIds)}. Result: {command?.Result}, Error: {command?.Error}");
-            throw new PbsException("GetActualTasksInfo", ex, string.Join(", ", scheduledJobIds), command.Result,
-                command.Error, sshCommand)
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", batchIds)}. Result: {command?.Result}, Error: {command?.Error}");
+            throw new PbsException("GetActualTasksInfo", ex, string.Join(", ", batchIds), command?.Result ?? string.Empty,
+                command?.Error ?? ex.Message, sshCommand)
             {
-                CommandError = command.Error
+                CommandError = command?.Error
             };
         }
     }
