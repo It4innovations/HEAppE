@@ -26,7 +26,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .Where(w => (w.Submitter.Id == submitterId && w.State < JobState.Finished) ||
+            .Where(w => (EF.Property<long>(w, "SubmitterId") == submitterId && w.State < JobState.Finished) ||
                         w.State == JobState.WaitingForServiceAccount)
             .ToList();
     }
@@ -34,6 +34,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
         return _dbSet
+            .AsNoTracking()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -45,7 +46,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Project)
             .Include(j => j.Submitter)
             .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
-            .AsSplitQuery()
             .ToList();
     }
 
@@ -53,14 +53,14 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .Where(w => w.Submitter.Id == submitterId)
+            .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
             .ToList();
     }
     
     public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId)
     {
         return _dbSet
-            .Where(j => j.Submitter.Id == submitterId);
+            .Where(j => EF.Property<long>(j, "SubmitterId") == submitterId);
     }
 
     public IQueryable<SubmittedJobInfo> GetJobsQuery()
@@ -80,24 +80,22 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
                 .ThenInclude(x => x.ResourceConsumed)
             .Include(x => x.Tasks)
                 .ThenInclude(x => x.Specification.CommandTemplate)
-            .Where(x => x.Project.Id == projectId &&
+            .Where(x => EF.Property<long>(x, "ProjectId") == projectId &&
                         x.StartTime >= startTime &&
                         (x.EndTime == null || x.EndTime <= endTime) &&
-                        x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
+                        x.Tasks.Any(y => EF.Property<long>(y, "NodeTypeId") == nodeTypeId))
             .ToList();
     }
 
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -109,7 +107,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .IgnoreQueryFilters()
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -125,7 +122,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByScheduledJobId(string scheduledJobId)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)

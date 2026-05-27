@@ -127,7 +127,23 @@ public class MiddlewareContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseLazyLoadingProxies();
-        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString ?? "Server=localhost;Database=dummy;TrustServerCertificate=true");
+
+        var connectionString = MiddlewareContextSettings.ConnectionString;
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            if (!builder.MultipleActiveResultSets)
+            {
+                builder.MultipleActiveResultSets = true;
+            }
+            if (!builder.TrustServerCertificate)
+            {
+                builder.TrustServerCertificate = true;
+            }
+            connectionString = builder.ConnectionString;
+        }
+
+        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;");
         optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
@@ -294,7 +310,10 @@ public class MiddlewareContext : DbContext
                 parameter);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
-            modelBuilder.Entity(entityType.ClrType).HasIndex([nameof(ISoftDeletableEntity.IsDeleted)]);
+            
+            modelBuilder.Entity(entityType.ClrType)
+                .HasIndex([nameof(ISoftDeletableEntity.IsDeleted)])
+                .HasFilter("[IsDeleted] = 0");
         }
         
         modelBuilder.Entity<SessionCode>()
@@ -395,7 +414,7 @@ public class MiddlewareContext : DbContext
                 IsDeleted = false
             };
             Set<Accounting>().Add(defaultAccounting);
-            await SaveChangesAsync();
+            SaveChanges();
         }
 
         var aggregationsWithoutAccounting = await Set<ClusterNodeTypeAggregation>()
@@ -413,12 +432,12 @@ public class MiddlewareContext : DbContext
         }
         if (aggregationsWithoutAccounting.Any())
         {
-            await SaveChangesAsync();
+            SaveChanges();
         }
 
         ValidateSeed();
 
-        await SaveChangesAsync();
+        SaveChanges();
 
         var entries = ChangeTracker.Entries();
         //Prevents duplicit entries in memory when items updated
@@ -442,7 +461,7 @@ public class MiddlewareContext : DbContext
                     ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
                         clusterAuthenticationCredential, clusters.First());
         }
-        await SaveChangesAsync();
+        SaveChanges();
         _logger.LogInformation("Seed data into the database completed.");
     }
 
@@ -545,7 +564,7 @@ public class MiddlewareContext : DbContext
     //sqlserver specific because of identity
     private async Task InsertOrUpdateSeedDataAsync<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
     {
-        if (items == null || items.Count() == 0) return;
+        if (items == null || !items.Any()) return;
 
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
         _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
@@ -583,7 +602,7 @@ public class MiddlewareContext : DbContext
             }
             else
             {
-                await SaveChangesAsync();
+                SaveChanges();
             }
         }
         catch (Exception e)
