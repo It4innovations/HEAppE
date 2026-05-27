@@ -10,25 +10,16 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation;
 
 internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepository
 {
-    #region Constructors
 
     internal ClusterRepository(MiddlewareContext context)
         : base(context)
     {
     }
 
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    ///     Get all clusters with cluster nodes and defined command templates only with active project
-    /// </summary>
-    /// <returns></returns>
     public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
                 .ThenInclude(cp => cp.Project)
@@ -42,13 +33,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .ToList();
     }
 
-
-
-    /// <summary>
-    ///     Get all clusters with Cluster Proxy Connection id
-    /// </summary>
-    /// <param name="clusterProxyConnectionId"></param>
-    /// <returns></returns>
     public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
     {
         return _dbSet
@@ -65,7 +49,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IQueryable<Cluster> AsQueryable()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
@@ -77,10 +61,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }
-
-    #endregion
-
-    #region Private Methods
 
     private Cluster GetCluster(Cluster cluster)
     {
@@ -126,6 +106,4 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
                 .Where(p => p.ProjectId == null || (p.Project != null && p.Project.EndDate >= DateTime.UtcNow)).ToList()
         };
     }
-
-    #endregion
 }
