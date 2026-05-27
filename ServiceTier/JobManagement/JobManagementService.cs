@@ -417,7 +417,7 @@ public class JobManagementService : IJobManagementService
             }
 
             var result = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
-            _cache.Set(cacheKey, result, TimeSpan.FromSeconds(5));
+            _cache.Set(cacheKey, result, TimeSpan.FromSeconds(15));
             return result;
         }
         finally
