@@ -18,15 +18,17 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
         return _dbSet
-            .AsTracking() // Vyřeší chybu s cyklem
+            .AsTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
                 .ThenInclude(cp => cp.Project)
-                    .ThenInclude(p => p.CommandTemplates) // Načte potřebná data
+                    .ThenInclude(p => p.CommandTemplates)
+                        .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.NodeTypes)
                 .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
                     .ThenInclude(pc => pc.Project)
-                        .ThenInclude(p => p.CommandTemplates) // Načte potřebná data
+                        .ThenInclude(p => p.CommandTemplates)
+                            .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
@@ -53,10 +55,12 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
                     .ThenInclude(p => p.CommandTemplates)
+                        .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.NodeTypes)
                 .ThenInclude(n => n.PossibleCommands)
                     .ThenInclude(pc => pc.Project)
                         .ThenInclude(p => p.CommandTemplates)
+                            .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }
