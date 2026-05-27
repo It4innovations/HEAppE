@@ -18,5 +18,4 @@ public interface IJobManagementService
     Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode);
     Task<DryRunJobInfoExt> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode, long modelWallTimeInMinutes, string modelSessionCode);
-    Task UpdateJobStatusFromCallback(string schedulerJobId, string payload);
 }

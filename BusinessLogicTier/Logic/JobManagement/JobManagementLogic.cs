@@ -596,66 +596,6 @@ internal class JobManagementLogic : IJobManagementLogic
         _unitOfWork.Save();
     }
 
-    public async Task UpdateJobStatusFromCallback(string schedulerJobId, string payload)
-    {
-        _logger.LogInformation($"UpdateJobStatusFromCallback called for scheduledJobId: '{schedulerJobId}'");
-
-        var submittedJob = _unitOfWork.SubmittedJobInfoRepository.GetByScheduledJobId(schedulerJobId);
-        if (submittedJob == null)
-        {
-            throw new RequestedObjectDoesNotExistException("SubmittedJobInfoNotFoundForScheduledJobId", schedulerJobId);
-        }
-
-        try
-        {
-            LoggingUtils.AddJobIdToLogThreadContext(submittedJob.Id);
-            if (submittedJob.Submitter != null)
-            {
-                LoggingUtils.AddUserPropertiesToLogThreadContext(submittedJob.Submitter.Id, submittedJob.Submitter.Username, submittedJob.Submitter.Email);
-            }
-
-            var cluster = submittedJob.Specification.Cluster;
-            var converter = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
-
-            var actualUnfinishedSchedulerTasksInfo = converter.ReadParametersFromResponse(cluster, payload).ToList();
-
-            bool isNeedUpdateJobState = false;
-            foreach (var submittedTask in submittedJob.Tasks)
-            {
-                var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
-                if (actualUnfinishedSchedulerTaskInfo is null)
-                {
-                    continue;
-                }
-                else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
-                {
-                    CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo, _logger);
-                    isNeedUpdateJobState = true;
-                }
-            }
-
-            if (isNeedUpdateJobState)
-            {
-                UpdateJobStateByTasks(submittedJob);
-                _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
-                _unitOfWork.Save();
-                _logger.LogInformation($"Job {submittedJob.Id} state updated successfully via callback.");
-            }
-            else
-            {
-                _logger.LogInformation($"Job {submittedJob.Id} state is already up to date.");
-            }
-        }
-        finally
-        {
-            LoggingUtils.RemoveJobIdFromLogThreadContext();
-            if (submittedJob.Submitter != null)
-            {
-                LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
-            }
-        }
-    }
-
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
         _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",

@@ -292,50 +292,5 @@ public class JobManagementController : BaseController<JobManagementController>
         return Ok(await _service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
     }
 
-    /// <summary>
-    ///     Notify job status callback webhook
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPost("NotifyJobStatus")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> NotifyJobStatus([FromBody] NotifyJobStatusModel model)
-    {
-        if (model == null || string.IsNullOrEmpty(model.SchedulerJobId) || string.IsNullOrEmpty(model.Payload))
-        {
-            return BadRequest("Invalid model.");
-        }
-
-        if (!Request.Headers.TryGetValue("X-HEAppE-Callback-Secret", out var headerSecret))
-        {
-            _logger.LogWarning($"Callback unauthorized: missing X-HEAppE-Callback-Secret header for job {model.SchedulerJobId}");
-            return Unauthorized("Missing callback signature header.");
-        }
-
-        // Look up the task by SchedulerJobId to get its per-task CallbackSecret stored in DB.
-        // Falls back to the global ScriptsConfiguration.CallbackSecret for legacy jobs
-        // that were submitted before per-task secrets were introduced.
-        using var unitOfWork = HEAppE.DataAccessTier.Factory.UnitOfWork.UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedJob = unitOfWork.SubmittedJobInfoRepository.GetByScheduledJobId(model.SchedulerJobId);
-        var secret = submittedJob?.Tasks
-            .FirstOrDefault(t => t.ScheduledJobId == model.SchedulerJobId)
-            ?.CallbackSecret;
-
-        var expectedSignature = RexSchedulerWrapper.ComputeCallbackSignature(model.SchedulerJobId, secret);
-
-        if (!string.Equals(headerSecret.ToString(), expectedSignature, System.StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning($"Callback unauthorized: invalid X-HEAppE-Callback-Secret header for job {model.SchedulerJobId}");
-            return Unauthorized("Invalid callback signature.");
-        }
-
-        await _service.UpdateJobStatusFromCallback(model.SchedulerJobId, model.Payload);
-        return Ok();
-    }
-
     #endregion
 }

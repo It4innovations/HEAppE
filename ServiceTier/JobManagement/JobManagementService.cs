@@ -307,15 +307,7 @@ public class JobManagementService : IJobManagementService
             return dryRunResult;
         }
     }
-
-    public async Task UpdateJobStatusFromCallback(string schedulerJobId, string payload)
-    {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-        {
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            await jobLogic.UpdateJobStatusFromCallback(schedulerJobId, payload);
-        }
-    }
+    
 
     #endregion
 }

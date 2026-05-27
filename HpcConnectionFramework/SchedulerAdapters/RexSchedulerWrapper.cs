@@ -60,21 +60,7 @@ public class RexSchedulerWrapper : IRexScheduler
     #endregion
 
     #region IRexScheduler Members
-
-    /// <summary>
-    ///     Submit job to scheduler
-    /// </summary>
-    /// <param name="jobSpecification">Job specification</param>
-    /// <param name="credentials">Credentials</param>
-    /// <returns></returns>
-    public static string ComputeCallbackSignature(string scheduledJobId, string secret)
-    {
-        var keyBytes = Encoding.UTF8.GetBytes(secret);
-        using var hmac = new HMACSHA256(keyBytes);
-        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(scheduledJobId));
-        return string.Concat(hashBytes.Select(b => b.ToString("x2")));
-    }
-
+    
     public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
@@ -82,41 +68,6 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             var tasks = await _adapter.SubmitJobAsync(schedulerConnection.Connection, jobSpecification, credentials);
-
-            if (jobSpecification.Cluster.SchedulerType == SchedulerType.Slurm)
-            {
-                foreach (var task in tasks)
-                {
-                    if (!string.IsNullOrEmpty(task.ScheduledJobId))
-                    {
-                        var scheduledJobId = task.ScheduledJobId;
-
-                        // Generate a unique per-task secret and store it in the DB entity.
-                        // This replaces the shared global CallbackSecret from appsettings.json
-                        // so each task has an independent, revokable webhook secret.
-                        var perTaskSecret = Guid.NewGuid().ToString("N");
-                        task.CallbackSecret = perTaskSecret;
-
-                        var signature = ComputeCallbackSignature(scheduledJobId, perTaskSecret);
-
-                        var localBasePath = jobSpecification.Cluster.ClusterProjects?.FirstOrDefault(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath;
-                        if (!string.IsNullOrEmpty(localBasePath))
-                        {
-                            var scriptsSettings = HPCConnectionFrameworkConfiguration.ScriptsSettings;
-                            var jobDir = $"{localBasePath.TrimEnd('/')}/{scriptsSettings.InstanceIdentifierPath}/{scriptsSettings.SubExecutionsPath}/{jobSpecification.ClusterUser.Username}/{jobSpecification.Id}";
-                            
-                            var writeTokenCmd = $"echo \"{signature}\" > \"{jobDir}/.callback_token\" && chmod 600 \"{jobDir}/.callback_token\"";
-                            _logger.LogInformation($"Writing callback token to {jobDir}/.callback_token");
-                            await SshCommandUtils.RunSshCommandAsync(schedulerConnection.Connection, writeTokenCmd, _logger);
-
-                            var striggerCmd = $"strigger --set --jobid={scheduledJobId} --fini --program=\"$HOME/.key_scripts/notify-heappe.sh\"";
-                            _logger.LogInformation($"Setting Slurm trigger for job {scheduledJobId}: {striggerCmd}");
-                            await SshCommandUtils.RunSshCommandAsync(schedulerConnection.Connection, striggerCmd, _logger);
-                        }
-                    }
-                }
-            }
-
             return tasks;
         }
         finally
