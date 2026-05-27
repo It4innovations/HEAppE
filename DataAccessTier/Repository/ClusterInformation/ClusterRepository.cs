@@ -31,10 +31,10 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(cp => cp.Project)
+                .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(pc => pc.Project)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.Project)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
@@ -66,8 +66,10 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
+                .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.PossibleCommands)
+                .ThenInclude(n => n.PossibleCommands)
+                    .ThenInclude(pc => pc.Project)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }
@@ -117,7 +119,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             RequestedNodeGroups = n.RequestedNodeGroups,
             ClusterNodeTypeAggregation = n.ClusterNodeTypeAggregation,
             PossibleCommands = n.PossibleCommands
-                .Where(p => p.ProjectId == null || p.Project?.EndDate >= DateTime.UtcNow).ToList()
+                .Where(p => p.ProjectId == null || (p.Project != null && p.Project.EndDate >= DateTime.UtcNow)).ToList()
         };
     }
 
