@@ -34,7 +34,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     public SubmittedTaskInfo GetByIdWithJobSpecification(long id)
     {
         return _dbSet
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)

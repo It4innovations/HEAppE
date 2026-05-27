@@ -35,7 +35,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(j => j.Tasks)
             .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
@@ -121,7 +121,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         return _dbSet
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
@@ -175,7 +175,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(j => j.Submitter)
             .Include(j => j.Tasks)
             .ThenInclude(t => t.ResourceConsumed)

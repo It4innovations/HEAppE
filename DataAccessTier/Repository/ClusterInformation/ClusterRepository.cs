@@ -19,7 +19,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsTracking()
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
             .ThenInclude(p => p.CommandTemplates)
@@ -55,7 +55,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsTracking()
-            .AsSplitQuery()
+            //.AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
             .ThenInclude(p => p.CommandTemplates)
