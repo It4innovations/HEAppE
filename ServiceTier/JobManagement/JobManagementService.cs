@@ -21,6 +21,12 @@ using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using SshCaAPI;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.BusinessLogicTier.Logic.JobManagement;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
@@ -53,9 +59,14 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CreateJob(JobSpecificationExt specification, string sessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        JobSpecification js;
+        AdaptorUser loggedUser;
+        ClusterProject clusterProject;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             SubProject subProject = null;
@@ -67,69 +78,196 @@ public class JobManagementService : IJobManagementService
                     managementLogic.CreateSubProject(specification.SubProjectIdentifier, specification.ProjectId);
             }
 
-            var js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
-            var jobInfo = await jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
-            return jobInfo.ConvertIntToExt();
+            js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
+            jobInfo = await jobLogic.CreateJobDbRecord(js, loggedUser, specification.IsExtraLong);
+            
+            clusterProject = unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
+                jobInfo.Specification.ClusterId, jobInfo.Project.Id)
+                ?? throw new InvalidRequestException("NotExistingProject");
+        } // unitOfWork is disposed here, connection is released!
+
+        try
+        {
+            // SSH call: Create job directory
+            await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
+                    adaptorUserId: loggedUser.Id, _expirioService, _logger)
+                .CreateJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath,
+                    BusinessLogicConfiguration.SharedAccountsPoolMode,
+                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to create job directory for job {jobInfo.Id}. Cleaning up job specification and submitted job info.");
+            try
+            {
+                using (var unitOfWorkCleanup = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+                {
+                    var jobLogicCleanup = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWorkCleanup, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+                    await jobLogicCleanup.DeleteJobDbRecord(jobInfo.Id, js.Id);
+                }
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogError(cleanupEx, $"Failed to clean up job specification and submitted job info for job {jobInfo.Id} after directory creation failure.");
+            }
+            throw;
+        }
+
+        return jobInfo.ConvertIntToExt();
     }
 
     public async Task<SubmittedJobInfoExt> SubmitJobAsync(long createdJobInfoId, string sessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        AdaptorUser loggedUser;
+        bool isWaiting = false;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
-            var jobInfo = await jobLogic.SubmitJobAsync(createdJobInfoId, loggedUser);
-            return jobInfo.ConvertIntToExt();
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            (jobInfo, isWaiting) = await jobLogic.PrepareJobForSubmitAsync(createdJobInfoId, loggedUser);
+            if (isWaiting)
+            {
+                return jobInfo.ConvertIntToExt();
+            }
+        } // unitOfWork is disposed here!
+
+        // SSH call: submit job
+        var submittedTasks = await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .SubmitJobAsync(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        // Save submitted state to DB
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var updatedJob = await jobLogic.CompleteJobSubmitAsync(createdJobInfoId, loggedUser, submittedTasks);
+            return updatedJob.ConvertIntToExt();
         }
     }
 
     public async Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        ClusterAuthenticationCredentials credentials;
+        AdaptorUser loggedUser;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var jobInfo =  await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
-            return jobInfo.ConvertIntToExt();
+            (jobInfo, credentials) = await jobLogic.PrepareGetActualTasksInfoAsync(submittedJobInfoId, loggedUser);
+        } // unitOfWork disposed!
+
+        // SSH call: get actual tasks info
+        var cluster = jobInfo.Specification.Cluster;
+        var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        // Update DB
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var updatedJob = await jobLogic.CompleteGetActualTasksInfoAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
+            return updatedJob.ConvertIntToExt();
         }
     }
 
     public async Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        ClusterAuthenticationCredentials credentials;
+        AdaptorUser loggedUser;
+        bool cancelledLocally = false;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var jobInfo = await jobLogic.CancelJob(submittedJobInfoId, loggedUser);
-            return jobInfo.ConvertIntToExt();
+            (jobInfo, credentials, cancelledLocally) = await jobLogic.PrepareCancelJobAsync(submittedJobInfoId, loggedUser);
+            if (cancelledLocally)
+            {
+                return jobInfo.ConvertIntToExt();
+            }
+        } // unitOfWork is disposed here!
+
+        // SSH calls: Cancel and then GetActualTasks
+        var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger);
+        
+        var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList();
+        await scheduler.CancelJobAsync(submittedTask, "Job cancelled manually by the client.",
+            jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        var actualUnfinishedSchedulerTasksInfo = await scheduler.GetActualTasksInfoAsync(submittedTask, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        // Update DB
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var updatedJob = await jobLogic.CompleteCancelJobAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
+            return updatedJob.ConvertIntToExt();
         }
     }
 
     public async Task<bool> DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        ClusterProject clusterProject;
+        AdaptorUser loggedUser;
+
+        // 1. Prepare/Check delete and archive
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
+
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            if (archiveLogs)
+            (jobInfo, clusterProject) = await jobLogic.PrepareDeleteJobAsync(submittedJobInfoId, loggedUser);
+        } // unitOfWork disposed!
+
+        // 2. Perform SSH archive if requested
+        if (archiveLogs)
+        {
+            _logger.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
+            
+            SubmittedJobInfo archJobInfo;
+            IEnumerable<Tuple<string, string>> sourceDestinations;
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
-                _logger.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
-                await jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
+                var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+                (archJobInfo, _, _, sourceDestinations) = await jobLogic.PrepareArchiveJobAsync(submittedJobInfoId, loggedUser);
             }
-            return await jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
+            
+            await SchedulerFactory.GetInstance(archJobInfo.Specification.Cluster.SchedulerType)
+                .CreateScheduler(archJobInfo.Specification.Cluster, archJobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+                .MoveJobFilesAsync(archJobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        }
+
+        // 3. Perform SSH delete
+        var isDeleted = await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .DeleteJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        // 4. Update DB state on success
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            return await jobLogic.CompleteDeleteJobAsync(submittedJobInfoId, loggedUser, isDeleted);
         }
     }
 
@@ -227,85 +365,121 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
+        SubmittedJobInfo job;
+        AdaptorUser loggedUser;
+        bool isAdmin;
+        bool isJobOwner;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
 
             long projectId = job.Project?.Id ?? 0;
-            //check if user is Admin
-            bool isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
-            bool isJobOwner = job.Submitter.Id == loggedUser.Id;
+            isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
+            isJobOwner = job.Submitter.Id == loggedUser.Id;
             
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            if (JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued))
+            if (!(JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued)))
             {
-                var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
-                return jobInfoFromHPC.ConvertIntToExt();
+                var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+                var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser, isAdmin);
+                return jobInfo.ConvertIntToExt();
             }
-            var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser, isAdmin);
-            return jobInfo.ConvertIntToExt();
-        }
+        } // unitOfWork disposed!
+
+        return await GetActualTasksInfo(submittedJobInfoId, sessionCode);
     }
 
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, string sessionCode, string path)
     {
+        SubmittedJobInfo jobInfo;
+        ClusterProject clusterProject;
+        AdaptorUser loggedUser;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataToTempAsync(createdJobInfoId, loggedUser);
+        } // unitOfWork is disposed here!
 
-            await jobLogic.CopyJobDataToTempAsync(createdJobInfoId, loggedUser, sessionCode, path);
-        }
+        await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .CopyJobDataToTempAsync(jobInfo, clusterProject.ScratchStoragePath, sessionCode, path, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
     public async Task CopyJobDataFromTempAsync(long createdJobInfoId, string sessionCode, string tempSessionCode)
     {
+        SubmittedJobInfo jobInfo;
+        ClusterProject clusterProject;
+        AdaptorUser loggedUser;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataFromTempAsync(createdJobInfoId, loggedUser);
+        } // unitOfWork is disposed here!
 
-            await jobLogic.CopyJobDataFromTempAsync(createdJobInfoId, loggedUser, tempSessionCode);
-        }
+        await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .CopyJobDataFromTempAsync(jobInfo, clusterProject.ScratchStoragePath, tempSessionCode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
     public async Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode)
     {
+        SubmittedTaskInfo taskInfo;
+        AdaptorUser loggedUser;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var task = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
             if (task is null) throw new InputValidationException("NotExistingTask", submittedTaskInfoId);
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, task.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var nodesIPs = await jobLogic.GetAllocatedNodesIPsAsync(submittedTaskInfoId, loggedUser);
+            taskInfo = await jobLogic.PrepareGetAllocatedNodesIPsAsync(submittedTaskInfoId, loggedUser);
+        } // unitOfWork is disposed!
 
-            return nodesIPs.ToArray();
-        }
+        var cluster = taskInfo.Specification.JobSpecification.Cluster;
+        var stringIPs = await SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .GetAllocatedNodesAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        return stringIPs.ToArray();
     }
 
     public async Task<DryRunJobInfoExt> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode,
         long modelWallTimeInMinutes, string modelSessionCode)
     {
+        DryRunJobSpecification dryRunJobSpecification;
+        Cluster cluster;
+        Project project;
+        AdaptorUser loggedUser;
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+            loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, modelProjectId, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var dryRunResult = (await jobLogic.DryRunJob(modelProjectId, modelClusterNodeTypeId, modelNodes,
-                modelTasksPerNode, modelWallTimeInMinutes, loggedUser)).ConvertIntToExt();
-            return dryRunResult;
-        }
+            (dryRunJobSpecification, cluster, project) = await jobLogic.PrepareDryRunJobAsync(modelProjectId, modelClusterNodeTypeId, modelNodes,
+                modelTasksPerNode, modelWallTimeInMinutes, loggedUser);
+        } // unitOfWork is disposed!
+
+        var dryRunResult = await SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+            .DryRunJobAsync(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        return dryRunResult.ConvertIntToExt();
     }
     
 
