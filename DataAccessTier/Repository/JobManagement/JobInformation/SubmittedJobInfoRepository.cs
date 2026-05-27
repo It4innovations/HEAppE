@@ -123,8 +123,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
             .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+                    .ThenInclude(c => c.ClusterProjects)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
             .FirstOrDefault(j => j.Id == id);
     }
 

@@ -81,6 +81,9 @@ public class JobManagementService : IJobManagementService
             js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
             jobInfo = await jobLogic.CreateJobDbRecord(js, loggedUser, specification.IsExtraLong);
             
+            // Reload jobInfo with eager loading to prevent LazyLoadOnDisposedContextWarning when accessed outside unitOfWork
+            jobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobInfo.Id) ?? jobInfo;
+            
             clusterProject = unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
                 jobInfo.Specification.ClusterId, jobInfo.Project.Id)
                 ?? throw new InvalidRequestException("NotExistingProject");

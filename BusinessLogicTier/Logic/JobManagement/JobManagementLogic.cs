@@ -171,11 +171,11 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
     {
-        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
-                .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+                 .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
             throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
                 loggedUser.GetLogIdentification(), submittedJobInfoId);
         return jobInfo;
@@ -201,7 +201,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser,
         bool checkSharedJobInfoAccess)
     {
-        var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId)
+        var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetByIdWithJobSpecification(submittedTaskInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
 
       if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
@@ -214,7 +214,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
-        var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId)
+        var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetByIdWithJobSpecification(submittedTaskInfoId)
                        ?? throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
@@ -914,9 +914,16 @@ internal class JobManagementLogic : IJobManagementLogic
                    new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
                    TransactionScopeAsyncFlowOption.Enabled))
         {
-            var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(jobInfoId);
+            var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobInfoId);
             if (jobInfo != null)
             {
+                if (jobInfo.Tasks != null)
+                {
+                    foreach (var task in jobInfo.Tasks.ToList())
+                    {
+                        _unitOfWork.SubmittedTaskInfoRepository.Delete(task);
+                    }
+                }
                 _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
             }
             
