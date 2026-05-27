@@ -186,6 +186,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Tasks)
             .ThenInclude(t => t.Specification)
             .ThenInclude(ts => ts.CommandTemplate)
+            .Include(j => j.Tasks)
+            .ThenInclude(t => t.Project) 
             .Include(j => j.Specification)
             .ThenInclude(s => s.SubProject)
             .Include(j => j.Project)
