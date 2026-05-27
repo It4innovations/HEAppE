@@ -147,6 +147,8 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="jobStates">
     ///     Job states separated by coma; eg.: "1,2,8,16,32"
     /// </param>
+    /// <param name="limit">Max number of jobs to return</param>
+    /// <param name="offset">Number of jobs to skip</param>
     /// <returns></returns>
     [HttpGet("ListJobsForCurrentUser")]
     [RequestSizeLimit(60)]
@@ -156,7 +158,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListJobsForCurrentUser(string sessionCode, string jobStates = null)
+    public IActionResult ListJobsForCurrentUser(string sessionCode, string jobStates = null, int? limit = null, int? offset = null, long? userId = null, long? clusterId = null, long? subProjectId = null, long? projectId = null)
     {
         var model = new ListJobsForCurrentUserModel
         {
@@ -165,7 +167,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.ListJobsForCurrentUser(model.SessionCode, jobStates));
+        return Ok(_service.ListJobsForCurrentUser(model.SessionCode, jobStates, limit, offset, userId, clusterId, subProjectId, projectId));
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -118,9 +118,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             );
 
-        session.LastAccessTime = DateTime.UtcNow;
-        _unitOfWork.SessionCodeRepository.Update(session);
-        _unitOfWork.Save();
+        var now = DateTime.UtcNow;
+        if (session.LastAccessTime < now.AddSeconds(-30))
+        {
+            session.LastAccessTime = now;
+            _unitOfWork.SessionCodeRepository.Update(session);
+            _unitOfWork.Save();
+        }
 
         return session.User;
     }
@@ -612,14 +616,30 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         // Verify digital signature
-        using RSACryptoServiceProvider rsa = new(2048);
-        // TODO: Verify
-        rsa.FromXmlString(user.PublicKey);
-        RSAPKCS1SignatureDeformatter rsaDeformatter = new(rsa);
-        rsaDeformatter.SetHashAlgorithm("SHA256");
-        return rsaDeformatter.VerifySignature(hash, credentials.DigitalSignature)
+        using var rsa = RSA.Create();
+        ImportXmlPublicKey(rsa, user.PublicKey);
+        
+        return rsa.VerifyHash(hash, credentials.DigitalSignature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
             ? CreateSessionCode(user).UniqueCode
             : throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
+    }
+
+    private static void ImportXmlPublicKey(RSA rsa, string xmlString)
+    {
+        var parameters = new RSAParameters();
+        
+        var modulusMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Modulus>(.*?)</Modulus>");
+        var exponentMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Exponent>(.*?)</Exponent>");
+        
+        if (!modulusMatch.Success || !exponentMatch.Success)
+        {
+            throw new InvalidOperationException("Invalid XML RSA public key format.");
+        }
+        
+        parameters.Modulus = Convert.FromBase64String(modulusMatch.Groups[1].Value);
+        parameters.Exponent = Convert.FromBase64String(exponentMatch.Groups[1].Value);
+        
+        rsa.ImportParameters(parameters);
     }
 
     private AdaptorUser GetActiveUser(string username)

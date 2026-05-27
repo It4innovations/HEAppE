@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -173,9 +173,36 @@ namespace HEAppE.ConnectionPool
                         return slot.ConnectionInfo;
                     }
 
+                    if (slot.ConnectionInfo != null)
+                    {
+                        var oldConnection = slot.ConnectionInfo;
+                        slot.ConnectionInfo = null;
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _adapter.DisconnectAsync(oldConnection.Connection);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Id} during replacement", ex);
+                            }
+                            finally
+                            {
+                                if (oldConnection.Connection is IDisposable disposable)
+                                {
+                                    try { disposable.Dispose(); } catch { /* ignore */ }
+                                }
+                            }
+                        });
+                        Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
+                        userContext.UserSemaphore.Release();
+                    }
+
                     _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
                     var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken);
                     slot.ConnectionInfo = newConnection;
+                    slot.ReferenceCount = 0;
 
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
                     if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)

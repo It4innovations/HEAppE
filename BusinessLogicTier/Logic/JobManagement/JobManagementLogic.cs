@@ -138,12 +138,16 @@ internal class JobManagementLogic : IJobManagementLogic
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
 
                 await _unitOfWork.SaveAsync();
+                transactionScope.Complete();
+            }
 
-                var clusterProject =
-                    _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
-                        jobInfo.Specification.ClusterId, jobInfo.Project.Id)
-                    ?? throw new InvalidRequestException("NotExistingProject");
+            var clusterProject =
+                _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(
+                    jobInfo.Specification.ClusterId, jobInfo.Project.Id)
+                ?? throw new InvalidRequestException("NotExistingProject");
 
+            try
+            {
                 //Create job directory
                 await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
@@ -151,10 +155,31 @@ internal class JobManagementLogic : IJobManagementLogic
                     .CreateJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath,
                         BusinessLogicConfiguration.SharedAccountsPoolMode,
                         _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-                        
-                transactionScope.Complete();
-                return jobInfo;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to create job directory for job {jobInfo.Id}. Cleaning up job specification and submitted job info.");
+                try
+                {
+                    using (var cleanupTransaction = new TransactionScope(
+                               TransactionScopeOption.Required,
+                               new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
+                               TransactionScopeAsyncFlowOption.Enabled))
+                    {
+                        _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
+                        _unitOfWork.JobSpecificationRepository.Delete(specification);
+                        await _unitOfWork.SaveAsync();
+                        cleanupTransaction.Complete();
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.LogError(cleanupEx, $"Failed to clean up job specification and submitted job info for job {jobInfo.Id} after directory creation failure.");
+                }
+                throw;
+            }
+
+            return jobInfo;
         }
     }
 

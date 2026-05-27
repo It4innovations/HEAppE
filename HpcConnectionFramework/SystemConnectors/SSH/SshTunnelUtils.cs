@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -40,7 +40,9 @@ public sealed class SshTunnelUtils
             var localPort = GetFirstFreePort();
             var forwPort = new ForwardedPortLocal(TunnelConfiguration.LocalhostName, (uint)localPort, nodeHost, (uint)nodePort);
             sshClient.AddForwardedPort(forwPort);
-            forwPort.Exception += (sender, e) => throw new UnableToCreateTunnelException("ExceptionOccurs", e.Exception);
+            forwPort.Exception += (sender, e) => {
+                System.Diagnostics.Trace.TraceError($"[SshTunnelUtils] SSH Port Forwarding Exception on local port {localPort} (Task {taskId}, Node {nodeHost}:{nodePort}): {e.Exception}");
+            };
             
             sshTunnelInfo = new TunnelInfo(localPort, nodePort, nodeHost, forwPort);
             _usedLocalPorts.Add(localPort);
@@ -87,12 +89,10 @@ public sealed class SshTunnelUtils
             {
                 try
                 {
-                    await Task.Run(() => {
-                        s.ForwardedPort.Stop();
-                        sshClient.RemoveForwardedPort(s.ForwardedPort);
-                    });
+                    await Task.Run(() => s.ForwardedPort.Stop());
                     lock (_lock)
                     {
+                        sshClient.RemoveForwardedPort(s.ForwardedPort);
                         _usedLocalPorts.Remove(s.LocalPort);
                     }
                 }

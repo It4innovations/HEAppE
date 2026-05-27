@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -17,6 +17,7 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
         long nodeTypeId);
 
     public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId);
+    public IQueryable<SubmittedJobInfo> GetJobsQuery();
 
     public SubmittedJobInfo GetByIdWithTasks(long id);
 

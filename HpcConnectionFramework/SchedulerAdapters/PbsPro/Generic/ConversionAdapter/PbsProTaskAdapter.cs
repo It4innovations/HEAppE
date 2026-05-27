@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -134,13 +134,17 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set { }
     }
 
-    /// <summary>
-    ///     Task cluster allocation name
-    ///     Note: Not supported
-    /// </summary>
     public string ClusterAllocationName
     {
         set { }
+    }
+
+    /// <summary>
+    ///     Reservation
+    /// </summary>
+    public string Reservation
+    {
+        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -U {value}" : string.Empty);
     }
 
     /// <summary>

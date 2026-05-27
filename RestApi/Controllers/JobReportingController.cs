@@ -86,7 +86,7 @@ public class JobReportingController : BaseController<JobReportingController>
     /// <param name="sessionCode">SessionCode</param>
     /// <returns></returns>
     [HttpGet("UserResourceUsageReport")]
-    [RequestSizeLimit(166)]
+    [RequestSizeLimit(200)]
     [ProducesResponseType(typeof(IEnumerable<ProjectReportExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -94,7 +94,7 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult UserResourceUsageReport(long userId, DateTime? startTime, DateTime? endTime,
-        [FromQuery] string[] subProjects, string sessionCode)
+        [FromQuery] string[] subProjects, string sessionCode, int? limit = null, int? offset = null, long? clusterId = null)
     {
         var model = new UserResourceUsageReportModel
         {
@@ -107,7 +107,7 @@ public class JobReportingController : BaseController<JobReportingController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, subProjects,
-            model.SessionCode));
+            model.SessionCode, limit, offset, clusterId));
     }
 
     /// <summary>
@@ -120,7 +120,7 @@ public class JobReportingController : BaseController<JobReportingController>
     /// <param name="sessionCode">SessionCode</param>
     /// <returns></returns>
     [HttpGet("UserGroupResourceUsageReport")]
-    [RequestSizeLimit(168)]
+    [RequestSizeLimit(200)]
     [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -128,7 +128,7 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult UserGroupResourceUsageReport(long groupId, DateTime? startTime, DateTime? endTime,
-        [FromQuery] string[] subProjects, string sessionCode)
+        [FromQuery] string[] subProjects, string sessionCode, int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var model = new UserGroupResourceUsageReportModel
         {
@@ -141,7 +141,7 @@ public class JobReportingController : BaseController<JobReportingController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, subProjects,
-            model.SessionCode));
+            model.SessionCode, limit, offset, clusterId, userId));
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ public class JobReportingController : BaseController<JobReportingController>
     /// <returns></returns>
     [HttpGet("AggregatedUserGroupResourceUsageReport")]
     [ApiExplorerSettings(GroupName = "DetailedJobReporting")]
-    [RequestSizeLimit(168)]
+    [RequestSizeLimit(200)]
     [ProducesResponseType(typeof(IEnumerable<ProjectAggregatedReportExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -161,7 +161,7 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult AggregatedUserGroupResourceUsageReport(DateTime? startTime, DateTime? endTime,
-        string sessionCode)
+        string sessionCode, int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var model = new GetAggredatedUserGroupResourceUsageReportModel
         {
@@ -172,7 +172,7 @@ public class JobReportingController : BaseController<JobReportingController>
         var validationResult = new JobReportingValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.AggregatedUserGroupResourceUsageReport(model.StartTime, model.EndTime, model.SessionCode));
+        return Ok(_service.AggregatedUserGroupResourceUsageReport(model.StartTime, model.EndTime, model.SessionCode, limit, offset, clusterId, userId));
     }
 
     /// <summary>
@@ -234,19 +234,20 @@ public class JobReportingController : BaseController<JobReportingController>
     /// <exception cref="InputValidationException"></exception>
     [HttpGet("JobsDetailedReport")]
     [ApiExplorerSettings(GroupName = "DetailedJobReporting")]
-    [RequestSizeLimit(90)]
+    [RequestSizeLimit(120)]
     [ProducesResponseType(typeof(IEnumerable<ProjectDetailedReportExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.JobsDetailedReport(subProjects, timeFrom, timeTo, sessionCode));
+        return Ok(_service.JobsDetailedReport(subProjects, timeFrom, timeTo, sessionCode, limit, offset, clusterId, userId));
     }
 
     #endregion

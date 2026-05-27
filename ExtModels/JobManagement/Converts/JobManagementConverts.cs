@@ -58,6 +58,7 @@ public static class JobManagementConverts
                 .ToList(),
             FileTransferMethodId = jobSpecification.FileTransferMethodId,
             ClusterId = jobSpecification.ClusterId ?? 0,
+            Reservation = jobSpecification.Reservation,
         };
 
         //Same Reference for DependOn tasks

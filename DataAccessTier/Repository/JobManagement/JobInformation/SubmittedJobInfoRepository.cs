@@ -61,6 +61,11 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Where(j => j.Submitter.Id == submitterId);
     }
 
+    public IQueryable<SubmittedJobInfo> GetJobsQuery()
+    {
+        return _dbSet;
+    }
+
     public IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount()
     {
         return _dbSet
@@ -72,6 +77,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
@@ -88,6 +94,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -99,6 +106,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .IgnoreQueryFilters()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)

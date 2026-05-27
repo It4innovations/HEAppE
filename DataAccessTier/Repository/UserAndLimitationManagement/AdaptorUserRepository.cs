@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -22,6 +22,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByName(string username)
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             // 1. Větev: Načtení rolí (bez ContainedRoleTypes, ty se načtou automaticky s rolí)
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
@@ -39,6 +41,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByApiKey(string apiKey)
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Include(u => u.AdaptorUserUserGroupRoles)
@@ -53,6 +57,8 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public override AdaptorUser GetById(long id)
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Include(u => u.AdaptorUserUserGroupRoles)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 
@@ -20,7 +20,7 @@ namespace SshCaAPITests
                 throw new ArgumentException("Property Token in SshCaSettings cannot be null");
 
             // initialize service
-            _sshCaService = null;
+            _sshCaService = new SshCertificateAuthorityService(SshCaSettings.BaseUri, SshCaSettings.CAName, SshCaSettings.ConnectionTimeoutInSeconds);
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace SshCaAPITests
             var configResult = await _sshCaService.GetConfigAsync();
 
             // Act
-            var signResult = await _sshCaService.SignAsync(configResult.PublicKey, SshCaSettings.Token!);
+            var signResult = await _sshCaService.SignAsync(configResult.PublicKey, SshCaSettings.Token!, "localhost", null);
 
             // Assert
             Assert.NotNull(signResult);

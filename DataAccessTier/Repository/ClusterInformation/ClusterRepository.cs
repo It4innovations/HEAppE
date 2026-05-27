@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
@@ -29,6 +29,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
@@ -61,6 +62,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands)

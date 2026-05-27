@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -133,7 +133,15 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null)
+    public SubmittedJobInfoExt[] ListJobsForCurrentUser(
+        string sessionCode,
+        string jobStates = null,
+        int? limit = null,
+        int? offset = null,
+        long? userId = null,
+        long? clusterId = null,
+        long? subProjectId = null,
+        long? projectId = null)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
 
@@ -143,9 +151,28 @@ public class JobManagementService : IJobManagementService
         var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
             unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
+        bool isPrivileged = loggedUser.AdaptorUserUserGroupRoles.Any(r =>
+            r.AdaptorUserRole != null &&
+            r.AdaptorUserRole.ContainedRoleTypes != null &&
+            (r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Administrator) ||
+             r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Manager)));
 
-        IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
-            .AsNoTracking()
+        IQueryable<SubmittedJobInfo> query;
+        if (isPrivileged)
+        {
+            query = unitOfWork.SubmittedJobInfoRepository.GetJobsQuery();
+            if (userId.HasValue)
+            {
+                query = query.Where(x => x.Submitter.Id == userId.Value);
+            }
+        }
+        else
+        {
+            query = jobLogic.GetJobsForUserQuery(loggedUser.Id);
+        }
+
+        query = query.AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.Specification) // This is for the Job
             .Include(x => x.Project)       // This is for the Job
             .Include(x => x.Tasks)
@@ -154,7 +181,22 @@ public class JobManagementService : IJobManagementService
             .ThenInclude(t => t.Project)
             .Include(x => x.Tasks)        
             .ThenInclude(t => t.Specification); // Load Specification for each Task
-        
+
+        if (clusterId.HasValue)
+        {
+            query = query.Where(x => x.Specification.ClusterId == clusterId.Value);
+        }
+
+        if (subProjectId.HasValue)
+        {
+            query = query.Where(x => x.Specification.SubProjectId == subProjectId.Value);
+        }
+
+        if (projectId.HasValue)
+        {
+            query = query.Where(x => x.Project.Id == projectId.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
             var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -162,6 +204,18 @@ public class JobManagementService : IJobManagementService
                 .ToList();
             
             query = query.Where(x => stateInts.Contains((int)x.State));
+        }
+
+        query = query.OrderByDescending(x => x.Id);
+
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
         }
 
         return query

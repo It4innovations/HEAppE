@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +21,12 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             // 1. Větev: Načtení uživatele -> role -> typu role
             .Include(s => s.User)
             .ThenInclude(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole) 
-            // ZDE BYL PROBLÉM: Řádek s ContainedRoleTypes jsem smazal.
         
             // 2. Větev: Načtení uživatele -> role -> skupiny -> projektu
             .Include(s => s.User)
