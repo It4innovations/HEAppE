@@ -30,6 +30,7 @@ using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Configuration;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
@@ -391,7 +392,7 @@ public class JobManagementService : IJobManagementService
             isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
             isJobOwner = job.Submitter.Id == loggedUser.Id;
             
-            if (!(JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued)))
+            if (!(JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && isJobOwner && (job.State == JobState.Running || job.State == JobState.Queued)))
             {
                 var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
                 var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser, isAdmin);
