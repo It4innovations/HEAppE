@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
@@ -18,6 +20,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using SshCaAPI;
@@ -39,17 +42,21 @@ public class JobManagementService : IJobManagementService
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
+    private readonly IMemoryCache _cache;
+    
+    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _jobSemaphores = new();
 
     #endregion
 
     #region Constructors
 
-    public JobManagementService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
+    public JobManagementService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, IMemoryCache cache, ILogger logger)
     {
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _expirioService = expirioService;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -392,7 +399,31 @@ public class JobManagementService : IJobManagementService
             }
         } // unitOfWork disposed!
 
-        return await GetActualTasksInfo(submittedJobInfoId, sessionCode);
+        string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}";
+        if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
+        {
+            _logger.LogInformation($"Returning cached job info for job {submittedJobInfoId}");
+            return cachedJobInfo;
+        }
+
+        var semaphore = _jobSemaphores.GetOrAdd(submittedJobInfoId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync();
+        try
+        {
+            if (_cache.TryGetValue(cacheKey, out cachedJobInfo))
+            {
+                _logger.LogInformation($"Returning cached job info for job {submittedJobInfoId} after acquiring lock");
+                return cachedJobInfo;
+            }
+
+            var result = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
+            _cache.Set(cacheKey, result, TimeSpan.FromSeconds(5));
+            return result;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
     }
 
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, string sessionCode, string path)

@@ -51,7 +51,7 @@ public class JobManagementController : BaseController<JobManagementController>
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService, _logger);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService, memoryCache, _logger);
     }
 
     #endregion
