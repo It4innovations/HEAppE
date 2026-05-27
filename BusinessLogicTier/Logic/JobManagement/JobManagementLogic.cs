@@ -349,6 +349,21 @@ internal class JobManagementLogic : IJobManagementLogic
                 {
                     groupTasksResult.AddRange(states);
                 }
+
+                var missingTasks = tasksList
+                    .Where(t => !groupTasksResult.Any(g => g.ScheduledJobId == t.ScheduledJobId))
+                    .ToList();
+
+                if (missingTasks.Any())
+                {
+                    _logger.LogInformation($"Bulk checking history/accounting for {missingTasks.Count} missing tasks on cluster {cluster.Name}");
+                    
+                    var historicalStates = await scheduler.GetHistoricalTasksInfoAsync(missingTasks, account, null, null);
+                    if (historicalStates != null)
+                    {
+                        groupTasksResult.AddRange(historicalStates);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -401,9 +416,8 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
     }
-
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
         _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",

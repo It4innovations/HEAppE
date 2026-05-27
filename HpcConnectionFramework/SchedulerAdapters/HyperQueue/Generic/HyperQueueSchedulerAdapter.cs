@@ -289,5 +289,95 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         throw new NotSupportedException("DryRunJob is not supported for HyperQueue");
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => !string.IsNullOrEmpty(t.ScheduledJobId))
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+
+        var jobIds = validTasks.Select(t => t.ScheduledJobId).Distinct().ToList();
+        
+        string joinedJobIds = string.Join(",", jobIds);
+
+        var sshCommand = $"ml HyperQueue && hq job info {joinedJobIds} --output-mode=json";
+        _logger.LogInformation($"Bulk querying HyperQueue historical tasks via hq job info for jobs: {joinedJobIds}");
+
+        SshCommandWrapper command = null;
+        try
+        {
+            command = await SshCommandUtils.RunSshCommandAsync(schedulerConnectionConnection, sshCommand, _logger);
+            _logger.LogDebug($"Raw HyperQueue bulk response: {command.Result}");
+
+            if (string.IsNullOrWhiteSpace(command.Result))
+            {
+                foreach (var task in validTasks)
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+                return allHistoricalTasks;
+            }
+
+            var historicalTasksFromCluster = _convertor.ReadParametersFromResponse(validTasks.First().Specification.JobSpecification.Cluster, command.Result).ToList();
+
+            foreach (var task in validTasks)
+            {
+                var matchedClusterTask = historicalTasksFromCluster.FirstOrDefault(t => t.ScheduledJobId == task.ScheduledJobId);
+                if (matchedClusterTask != null)
+                {
+                    matchedClusterTask.Id = task.Id;
+                    matchedClusterTask.Specification = task.Specification;
+                    allHistoricalTasks.Add(matchedClusterTask);
+                }
+                else
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to bulk retrieve HyperQueue historical tasks info for jobs: {joinedJobIds}.");
+            foreach (var task in validTasks)
+            {
+                allHistoricalTasks.Add(new SubmittedTaskInfo
+                {
+                    Id = task.Id,
+                    ScheduledJobId = task.ScheduledJobId,
+                    State = TaskState.Failed,
+                    Specification = task.Specification
+                });
+            }
+        }
+
+        return allHistoricalTasks;
+    }
+
     #endregion
 }

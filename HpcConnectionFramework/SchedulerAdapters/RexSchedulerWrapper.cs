@@ -518,5 +518,35 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(
+        List<SubmittedTaskInfo> missingTasks, 
+        ClusterAuthenticationCredentials account, 
+        string sshCaToken, 
+        string lexisToken)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var cluster = missingTasks.FirstOrDefault()?.Specification?.JobSpecification?.Cluster;
+        if (cluster == null)
+        {
+            _logger.LogWarning("Cannot retrieve historical tasks info: Cluster context is missing in task specifications.");
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var schedulerConnection = await _connectionPool.GetConnectionForUserAsync(account, cluster, sshCaToken, lexisToken);
+        try
+        {
+            var historicalTasks = await _adapter.GetHistoricalTasksInfoAsync(schedulerConnection.Connection, missingTasks, account);
+            return historicalTasks;
+        }
+        finally
+        {
+            await _connectionPool.ReturnConnectionAsync(schedulerConnection);
+        }
+    }
+
     #endregion
 }

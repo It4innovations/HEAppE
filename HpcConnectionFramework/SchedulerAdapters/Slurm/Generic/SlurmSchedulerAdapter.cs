@@ -601,5 +601,127 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => !string.IsNullOrEmpty(t.ScheduledJobId))
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+
+        var groupedByAllocation = validTasks
+            .GroupBy(t => t.Specification?.ClusterNodeType?.ClusterAllocationName ?? string.Empty);
+
+        foreach (var allocationGroup in groupedByAllocation)
+        {
+            var clusterAllocationName = allocationGroup.Key;
+            var tasksInGroup = allocationGroup.ToList();
+            
+            var jobIds = tasksInGroup.Select(t => t.ScheduledJobId).Distinct().ToList();
+            string joinedJobIds = string.Join(",", jobIds);
+
+            var allocationClusterFlag = string.Empty;
+            if (!string.IsNullOrEmpty(clusterAllocationName))
+            {
+                allocationClusterFlag = $"-M {clusterAllocationName} ";
+            }
+
+            var sacctCmd = $"{_commands.InterpreterCommand} 'sacct -j {joinedJobIds} {allocationClusterFlag}--parsable2 --noheader --format=JobID,State'";
+            _logger.LogInformation($"Bulk querying historical tasks via sacct for jobs: {joinedJobIds}");
+
+            SshCommandWrapper command = null;
+            try
+            {
+                command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), sacctCmd, _logger);
+                _logger.LogDebug($"Raw sacct response: {command.Result}");
+
+                if (string.IsNullOrWhiteSpace(command.Result))
+                {
+                    continue;
+                }
+
+                var lines = command.Result.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                var slurmStates = new Dictionary<string, string>();
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split('|');
+                    if (parts.Length >= 2)
+                    {
+                        string rawJobId = parts[0].Trim();
+                        string state = parts[1].Trim();
+
+                        var cleanJobId = rawJobId.Split('.')[0];
+
+                        if (!slurmStates.ContainsKey(cleanJobId))
+                        {
+                            slurmStates[cleanJobId] = state;
+                        }
+                    }
+                }
+
+                foreach (var task in tasksInGroup)
+                {
+                    if (slurmStates.TryGetValue(task.ScheduledJobId, out string slurmState))
+                    {
+                        var updatedTask = new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = MapSlurmStateToTaskState(slurmState),
+                            Specification = task.Specification
+                        };
+                        allHistoricalTasks.Add(updatedTask);
+                    }
+                    else
+                    {
+                        var failedTask = new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = TaskState.Failed,
+                            Specification = task.Specification
+                        };
+                        allHistoricalTasks.Add(failedTask);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to bulk retrieve historical tasks info via sacct for jobs: {joinedJobIds}. Error: {command?.Error}");
+            }
+        }
+
+        return allHistoricalTasks;
+    }
+
+    private TaskState MapSlurmStateToTaskState(string slurmState)
+    {
+        if (string.IsNullOrEmpty(slurmState)) return TaskState.Failed;
+
+        if (slurmState.StartsWith("COMPLETED")) return TaskState.Finished;
+        if (slurmState.StartsWith("FAILED")) return TaskState.Failed;
+        if (slurmState.StartsWith("CANCELLED") || slurmState.StartsWith("REVOKED")) return TaskState.Canceled;
+        if (slurmState.StartsWith("TIMEOUT")) return TaskState.Failed;
+        if (slurmState.StartsWith("NODE_FAIL")) return TaskState.Failed;
+        if (slurmState.StartsWith("PREEMPTED")) return TaskState.Failed;
+        if (slurmState.StartsWith("OUT_OF_MEMORY")) return TaskState.Failed;
+
+        return TaskState.Failed;
+    }
+
     #endregion
 }

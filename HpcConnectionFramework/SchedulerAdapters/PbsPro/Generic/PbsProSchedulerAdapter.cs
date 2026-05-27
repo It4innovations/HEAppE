@@ -597,5 +597,146 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         throw new NotSupportedException("Dry run job is not supported for PBS Pro scheduler.");
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => !string.IsNullOrEmpty(t.ScheduledJobId))
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+
+        var jobIds = validTasks.Select(t => t.ScheduledJobId).Distinct().ToList();
+        string joinedJobIds = string.Join(" ", jobIds);
+
+        var pbsCmd = $"{_commands.InterpreterCommand} 'qstat -f -x {joinedJobIds}'";
+        _logger.LogInformation($"Bulk querying PBS historical tasks via qstat for jobs: {joinedJobIds}");
+
+        SshCommandWrapper command = null;
+        try
+        {
+            command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), pbsCmd, _logger);
+            _logger.LogDebug($"Raw PBS historical response: {command.Result}");
+
+            if (string.IsNullOrWhiteSpace(command.Result))
+            {
+                foreach (var task in validTasks)
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+                return allHistoricalTasks;
+            }
+
+            var historicalTasksFromCluster = _convertor.ReadParametersFromResponse(validTasks.First().Specification.JobSpecification.Cluster, command.Result).ToList();
+
+            foreach (var task in validTasks)
+            {
+                var matchedClusterTask = historicalTasksFromCluster.FirstOrDefault(t => t.ScheduledJobId == task.ScheduledJobId);
+                if (matchedClusterTask != null)
+                {
+                    matchedClusterTask.Id = task.Id;
+                    matchedClusterTask.Specification = task.Specification;
+                    
+                    if (matchedClusterTask.State == TaskState.Configuring)
+                    {
+                        matchedClusterTask.State = TaskState.Submitted;
+                    }
+                    
+                    allHistoricalTasks.Add(matchedClusterTask);
+                }
+                else
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+            }
+        }
+        catch (SshCommandException ce) when (ce.Message != null && ce.Message.Contains("qstat: Unknown Job Id"))
+        {
+            _logger.LogWarning($"Some jobs in the batch were completely purged from PBS historical database. Marking remaining untracked jobs as Failed.");
+            
+            var matchedJobIds = new HashSet<string>();
+            try
+            {
+                if (command != null && !string.IsNullOrWhiteSpace(command.Result))
+                {
+                    var partialTasks = _convertor.ReadParametersFromResponse(validTasks.First().Specification.JobSpecification.Cluster, command.Result).ToList();
+                    foreach (var pt in partialTasks)
+                    {
+                        var origTask = validTasks.FirstOrDefault(t => t.ScheduledJobId == pt.ScheduledJobId);
+                        if (origTask != null)
+                        {
+                            pt.Id = origTask.Id;
+                            pt.Specification = origTask.Specification;
+                            allHistoricalTasks.Add(pt);
+                            matchedJobIds.Add(pt.ScheduledJobId);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            foreach (var task in validTasks)
+            {
+                if (!matchedJobIds.Contains(task.ScheduledJobId))
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to bulk retrieve PBS historical tasks info for jobs: {joinedJobIds}.");
+            foreach (var task in validTasks)
+            {
+                allHistoricalTasks.Add(new SubmittedTaskInfo
+                {
+                    Id = task.Id,
+                    ScheduledJobId = task.ScheduledJobId,
+                    State = TaskState.Failed,
+                    Specification = task.Specification
+                });
+            }
+        }
+
+        if (allHistoricalTasks.Any())
+        {
+            EnforceMetadataAndLog(allHistoricalTasks, validTasks, "HistoricalRefresh");
+        }
+
+        return allHistoricalTasks;
+    }
+
     #endregion
 }
