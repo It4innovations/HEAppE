@@ -280,16 +280,22 @@ internal class JobManagementLogic : IJobManagementLogic
         var hpcQueryGroups = jobTaskDataList
             .GroupBy(j => new
             {
-                j.Job.Specification.Cluster,
-                ClusterUser = j.Job.Specification.Cluster.UpdateJobStateByServiceAccount.Value ? null : j.Job.Specification.ClusterUser
+                ClusterId = j.Job.Specification.ClusterId,
+                ClusterUsername = j.Job.Specification.Cluster.UpdateJobStateByServiceAccount.Value 
+                    ? string.Empty 
+                    : j.Job.Specification.ClusterUser.Username
             })
             .ToList();
 
         foreach (var group in hpcQueryGroups)
         {
-            var cluster = group.Key.Cluster;
-            var clusterUser = group.Key.ClusterUser;
             var itemsInGroup = group.ToList();
+            var firstItem = itemsInGroup.First();
+
+            var cluster = firstItem.Job.Specification.Cluster;
+            var clusterUser = cluster.UpdateJobStateByServiceAccount.Value 
+                ? null 
+                : firstItem.Job.Specification.ClusterUser;
 
             var groupTasksResult = new List<SubmittedTaskInfo>();
             var tasksList = itemsInGroup.SelectMany(s => s.UnfinishedTasks).ToList();
