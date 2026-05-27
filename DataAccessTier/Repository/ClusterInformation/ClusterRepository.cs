@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
@@ -31,8 +31,10 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(pc => pc.Project)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
