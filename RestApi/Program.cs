@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -28,18 +30,21 @@ public class Program
         IWebHostBuilder builder;
         var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
         if (localRunEnv == "Docker")
-            // Docker run
             builder = WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:80") //For docker
+                .UseUrls("http://*:80")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, true);
                     config.AddNotJson("/opt/heappe/confs/seed.njson");
                 })
-                .UseKestrel()
+                .UseKestrel(options =>
+                {
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
+                    options.Limits.MinRequestBodyDataRate = null;
+                    options.Limits.MinResponseDataRate = null;
+                })
                 .UseStartup<Startup>();
         else
-            // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
                 .UseUrls("http://*:5005")
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -58,6 +63,12 @@ public class Program
                         addNotJson: confPath => config.AddNotJson(confPath))
                     )
                         throw new Exception("Configuration files not found!");
+                })
+                .UseKestrel(options =>
+                {
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
+                    options.Limits.MinRequestBodyDataRate = null;
+                    options.Limits.MinResponseDataRate = null;
                 })
                 .UseStartup<Startup>();
         return builder;

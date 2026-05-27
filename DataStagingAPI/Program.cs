@@ -85,7 +85,6 @@ builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
 
-
 var globalRetryPolicy = HttpPolicyExtensions
     .HandleTransientHttpError()
     .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
@@ -149,7 +148,6 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 });
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-// builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
@@ -308,9 +306,12 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseCors("HEAppEDefaultOrigins");
-app.UseMiddleware<RequestSizeMiddleware>();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
+app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseSwagger(swagger =>
 {
@@ -332,7 +333,6 @@ app.UseMiddleware<LogUserContextMiddleware>();
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.RegisterApiRoutes();
