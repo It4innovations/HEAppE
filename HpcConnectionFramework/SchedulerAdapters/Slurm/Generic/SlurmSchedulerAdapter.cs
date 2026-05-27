@@ -245,6 +245,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 {
                     _logger.LogWarning(
                         $"Scheduled Job id: \"{task.ScheduledJobId}\" is not in Slurm scheduler database (Invalid job id specified). This job will be skipped in active query result (and marked as Failed).");
+                    task.State = TaskState.Failed;
+                    validTasks.Add(task);
+                    
                 }
             }
             return validTasks;
