@@ -32,6 +32,7 @@ using HEAppE.OpenStackAPI.DTO;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using HEAppE.Utils;
 using SshCaAPI;
 
@@ -121,9 +122,27 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         var now = DateTime.UtcNow;
         if (session.LastAccessTime < now.AddSeconds(-30))
         {
-            session.LastAccessTime = now;
-            _unitOfWork.SessionCodeRepository.Update(session);
-            _unitOfWork.Save();
+            bool shouldUpdate = true;
+            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            if (cache != null)
+            {
+                string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
+                if (cache.TryGetValue(updateCacheKey, out _))
+                {
+                    shouldUpdate = false;
+                }
+                else
+                {
+                    cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                }
+            }
+
+            if (shouldUpdate)
+            {
+                session.LastAccessTime = now;
+                _unitOfWork.SessionCodeRepository.Update(session);
+                _unitOfWork.Save();
+            }
         }
 
         return session.User;

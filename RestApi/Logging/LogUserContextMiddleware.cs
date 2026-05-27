@@ -7,6 +7,7 @@ using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using SshCaAPI;
 using System;
 using System.IO;
@@ -22,13 +23,15 @@ namespace HEAppE.RestApi.Logging
         private readonly RequestDelegate _next;
         private readonly ILogger<LogUserContextMiddleware> _logger;
         private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+        private readonly IMemoryCache _cache;
 
         public LogUserContextMiddleware(RequestDelegate next, ILogger<LogUserContextMiddleware> logger,
-            ISshCertificateAuthorityService sshCertificateAuthorityService)
+            ISshCertificateAuthorityService sshCertificateAuthorityService, IMemoryCache cache)
         {
             _next = next;
             _logger = logger;
             _sshCertificateAuthorityService = sshCertificateAuthorityService;
+            _cache = cache;
         }
 
         public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
@@ -119,7 +122,13 @@ namespace HEAppE.RestApi.Logging
             }
             else
             {
-                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg, expirioService));
+                string cacheKey = $"SessionUserInfo_{sessionCode}";
+                if (!_cache.TryGetValue(cacheKey, out (long userId, string userName, string email) userInfo))
+                {
+                    userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg, expirioService));
+                    var cacheDuration = userInfo.userId > 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(30);
+                    _cache.Set(cacheKey, userInfo, cacheDuration);
+                }
                 userId = userInfo.userId;
                 userName = userInfo.userName;
                 email = userInfo.email;
