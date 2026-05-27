@@ -285,7 +285,7 @@ internal class JobManagementLogic : IJobManagementLogic
             })
             .ToList();
 
-        var updateTasks = hpcQueryGroups.Select(async group =>
+        foreach (var group in hpcQueryGroups)
         {
             var cluster = group.Key.Cluster;
             var clusterUser = group.Key.ClusterUser;
@@ -296,7 +296,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             if (!tasksList.Any())
             {
-                return new { Items = itemsInGroup, Results = groupTasksResult };
+                continue;
             }
 
             foreach (var item in itemsInGroup)
@@ -355,17 +355,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 _logger.LogError(ex, $"Failed to retrieve statuses for a batch of tasks on cluster {cluster.Name}");
             }
 
-            return new { Items = itemsInGroup, Results = groupTasksResult };
-        });
-
-        var allResults = await Task.WhenAll(updateTasks);
-
-        foreach (var resultGroup in allResults)
-        {
-            var items = resultGroup.Items;
-            var actualUnfinishedSchedulerTasksInfo = resultGroup.Results;
-
-            foreach (var item in items)
+            foreach (var item in itemsInGroup)
             {
                 var submittedJob = item.Job;
                 try
@@ -379,7 +369,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     bool isNeedUpdateJobState = false;
                     foreach (var submittedTask in submittedJob.Tasks)
                     {
-                        var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
+                        var actualUnfinishedSchedulerTaskInfo = groupTasksResult.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
                         if (actualUnfinishedSchedulerTaskInfo is null)
                         {
                             if (submittedTask.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))

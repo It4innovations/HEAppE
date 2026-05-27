@@ -197,11 +197,27 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 submitedTasksInfoList.Select(s =>
                     (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
         }
-        catch (SlurmException ex) when (ex.CommandError != null && ex.CommandError.Contains("Invalid job id specified"))
+        catch (SlurmException ex) when ((ex.CommandError != null && ex.CommandError.Contains("Invalid job id specified")) || (ex.Message != null && ex.Message.Contains("Invalid job id specified")))
         {
             _logger.LogWarning(
-                $"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
-            return Enumerable.Empty<SubmittedTaskInfo>();
+                $"At least one job in the batch is not in Slurm database. Querying tasks individually to isolate the invalid jobs.");
+            
+            var validTasks = new List<SubmittedTaskInfo>();
+            foreach (var task in submitedTasksInfoList)
+            {
+                try
+                {
+                    var taskInfo = await GetActualTasksInfoAsync(connectorClient, cluster,
+                        new[] { (task.ScheduledJobId, task.Specification.ClusterNodeType.ClusterAllocationName) });
+                    validTasks.AddRange(taskInfo);
+                }
+                catch (SlurmException taskEx) when ((taskEx.CommandError != null && taskEx.CommandError.Contains("Invalid job id specified")) || (taskEx.Message != null && taskEx.Message.Contains("Invalid job id specified")))
+                {
+                    _logger.LogWarning(
+                        $"Scheduled Job id: \"{task.ScheduledJobId}\" is not in Slurm scheduler database (Invalid job id specified). This job will be skipped in active query result (and marked as Failed).");
+                }
+            }
+            return validTasks;
         }
     }
 
