@@ -651,6 +651,23 @@ internal class JobManagementLogic : IJobManagementLogic
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
             if (specification.SubProjectId.HasValue)
                 specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+
+            // Prevent EF Core change tracking identity conflicts by clearing Project navigation properties
+            // on the untracked Submitter (loggedUser) and SubmitterGroup entities.
+            if (loggedUser != null && loggedUser.AdaptorUserUserGroupRoles != null)
+            {
+                foreach (var role in loggedUser.AdaptorUserUserGroupRoles)
+                {
+                    if (role.AdaptorUserGroup != null)
+                    {
+                        role.AdaptorUserGroup.Project = null;
+                    }
+                }
+            }
+            if (specification.SubmitterGroup != null)
+            {
+                specification.SubmitterGroup.Project = null;
+            }
         } catch (Exception ex)
         {
             _logger.LogError(ex, "A problem occured during preparation of job specification values.");
