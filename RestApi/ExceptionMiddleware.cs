@@ -274,7 +274,11 @@ public class ExceptionMiddleware
         }
 
         // Log exception with default 'en' culture localization
+        log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
         _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
+        log4net.LogicalThreadContext.Properties.Remove("requestId");
+
+        problem.Extensions["TraceId"] = context.TraceIdentifier;
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = problem.Status.Value;

@@ -33,6 +33,8 @@ namespace HEAppE.RestApi.Logging
 
         public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
         {
+            log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
+
             ApplyRequestSizeLimit(context);
 
             var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
@@ -60,6 +62,7 @@ namespace HEAppE.RestApi.Logging
                 LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
                 LoggingUtils.RemoveJobIdFromLogThreadContext();
                 log4net.LogicalThreadContext.Properties.Remove("isUserAction");
+                log4net.LogicalThreadContext.Properties.Remove("requestId");
             }
         }
 
