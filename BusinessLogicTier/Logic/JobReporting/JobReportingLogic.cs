@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -34,7 +34,7 @@ internal class JobReportingLogic : IJobReportingLogic
         
         var groupsRaw = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
             .Include(x => x.AdaptorUserUserGroupRoles).ThenInclude(r => r.AdaptorUserRole)
             .Where(x => x.ProjectId.HasValue && projectIds.Contains(x.ProjectId.Value))
@@ -134,7 +134,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var groups = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
             .Where(g => ids.Contains(g.Id))
             .ToList();
@@ -173,7 +173,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
     {
         var group = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.SubProjects)
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
             .FirstOrDefault(g => g.Id == groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
@@ -233,7 +233,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var query = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(j => j.Submitter)
             .Include(j => j.Project)
             .Include(j => j.Specification).ThenInclude(s => s.SubProject)

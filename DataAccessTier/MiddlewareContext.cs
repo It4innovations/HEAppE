@@ -126,7 +126,7 @@ public class MiddlewareContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseLazyLoadingProxies();
+        //optionsBuilder.UseLazyLoadingProxies();
 
         var connectionString = MiddlewareContextSettings.ConnectionString;
         if (!string.IsNullOrEmpty(connectionString))

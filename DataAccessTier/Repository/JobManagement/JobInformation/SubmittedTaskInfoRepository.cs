@@ -33,8 +33,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
 
     public SubmittedTaskInfo GetByIdWithJobSpecification(long id)
     {
-        return _dbSet
-            //.AsSplitQuery()
+        var task = _dbSet
             .Include(t => t.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)
@@ -59,10 +58,6 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Cluster)
-                        .ThenInclude(c => c.ClusterProjects)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.JobSpecification)
-                    .ThenInclude(js => js.Cluster)
                         .ThenInclude(c => c.ProxyConnection)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
@@ -70,7 +65,26 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Project)
+            .AsSplitQuery()
             .FirstOrDefault(t => t.Id == id);
+
+        if (task == null) return null;
+
+        if (task.Specification?.JobSpecification?.Cluster != null)
+        {
+            _context.Entry(task.Specification.JobSpecification.Cluster)
+                .Collection(c => c.ClusterProjects)
+                .Load();
+        }
+
+        if (task.Project != null)
+        {
+            _context.Entry(task.Project)
+                .Collection(p => p.ClusterProjects)
+                .Load();
+        }
+
+        return task;
     }
 
     #endregion

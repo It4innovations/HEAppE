@@ -35,7 +35,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
             .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
@@ -120,41 +120,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
-        return _dbSet
-            //.AsSplitQuery()
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.ResourceConsumed)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.CommandTemplate)
-                        .ThenInclude(ct => ct.TemplateParameters)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.CommandParameterValues)
-                        .ThenInclude(cpv => cpv.TemplateParameter)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.DependsOn)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.EnvironmentVariables)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.RequiredNodes)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.TaskParalizationSpecifications)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.ClusterNodeType)
-                        .ThenInclude(cnt => cnt.RequestedNodeGroups)
-            .Include(j => j.Tasks)
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.ClusterNodeType)
-                        .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
-            .Include(j => j.Specification)
-                .ThenInclude(s => s.Cluster)
-                    .ThenInclude(c => c.ClusterProjects)
+        var job = _dbSet
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
                     .ThenInclude(c => c.ProxyConnection)
@@ -163,8 +129,56 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Project)
             .Include(j => j.Project)
-                .ThenInclude(p => p.ClusterProjects)
+            .Include(j => j.Submitter)
             .FirstOrDefault(j => j.Id == id);
+
+        if (job == null) return null;
+
+        if (job.Specification?.Cluster != null)
+        {
+            _context.Entry(job.Specification.Cluster)
+                .Collection(c => c.ClusterProjects)
+                .Load();
+        }
+
+        if (job.Project != null)
+        {
+            _context.Entry(job.Project)
+                .Collection(p => p.ClusterProjects)
+                .Load();
+        }
+
+        _context.Entry(job)
+            .Collection(j => j.Tasks)
+            .Query()
+            .Include(t => t.ResourceConsumed)
+            .Include(t => t.TaskAllocationNodes)
+            .Include(t => t.Project)
+            .Include(t => t.NodeType)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.CommandTemplate)
+                    .ThenInclude(ct => ct.TemplateParameters)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.CommandParameterValues)
+                    .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.DependsOn)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.EnvironmentVariables)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.RequiredNodes)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.RequestedNodeGroups)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+            .AsSplitQuery()
+            .Load();
+
+        return job;
     }
 
     /// <summary>

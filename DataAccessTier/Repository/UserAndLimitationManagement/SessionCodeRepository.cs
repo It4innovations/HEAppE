@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +21,7 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
         return _dbSet
-            //.AsSplitQuery()
+            .AsSplitQuery()
             .Include(s => s.User)
             .ThenInclude(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole) 

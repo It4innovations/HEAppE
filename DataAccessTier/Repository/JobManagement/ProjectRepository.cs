@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -23,6 +23,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public IEnumerable<Project> GetAllActiveProjects()
     {
         return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
+            .AsSplitQuery()
             .Include(x => x.ProjectContacts)
             .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
@@ -46,6 +47,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public Project GetByIdWithClusterProjects(long projectId)
     {
         return _context.Projects
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -93,6 +93,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     public List<ClusterProjectCredential> GetAllActiveClusterProjectCredentialsUntracked()
     {
         var result = _context.ClusterProjectCredentials
+            .AsSplitQuery()
             .Include(cpc => cpc.ClusterProject)
             .Include(cpc => cpc.ClusterProject.Cluster)
             .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
