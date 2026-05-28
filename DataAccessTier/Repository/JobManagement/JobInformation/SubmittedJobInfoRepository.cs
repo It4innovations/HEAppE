@@ -17,6 +17,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetBySubmittedTaskId(long taskId)
     {
         return _dbSet
+            .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .FirstOrDefault(j => j.Tasks.Any(t => t.Id == taskId));
@@ -36,8 +38,19 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
-        return _dbSet
+        var unfinishedJobIds = _dbSet
             .AsNoTracking()
+            .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+            .Select(j => j.Id)
+            .ToList();
+
+        if (!unfinishedJobIds.Any())
+        {
+            return Enumerable.Empty<SubmittedJobInfo>();
+        }
+
+        return _dbSet
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
@@ -79,7 +92,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
-            .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+            .Where(j => unfinishedJobIds.Contains(j.Id))
             .ToList();
     }
 
@@ -97,17 +110,20 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId)
     {
         return _dbSet
+            .AsNoTracking()
             .Where(j => EF.Property<long>(j, "SubmitterId") == submitterId);
     }
 
     public IQueryable<SubmittedJobInfo> GetJobsQuery()
     {
-        return _dbSet;
+        return _dbSet
+            .AsNoTracking();
     }
 
     public IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount()
     {
         return _dbSet
+            .AsNoTracking()
             .Where(w => w.State == JobState.WaitingForServiceAccount)
             .OrderBy(w => w.Id)
             .ToList();
@@ -116,7 +132,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
@@ -133,75 +149,69 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
-        var job = _dbSet
+        return _dbSet
+            .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
                     .ThenInclude(c => c.ProxyConnection)
             .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+                    .ThenInclude(c => c.ClusterProjects)
+                        .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(j => j.Specification)
                 .ThenInclude(s => s.ClusterUser)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ClusterProjects)
+                        .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.ResourceConsumed)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.DependsOn)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.RequiredNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.RequestedNodeGroups)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
             .FirstOrDefault(j => j.Id == id);
-
-        if (job == null) return null;
-
-        if (job.Specification?.Cluster != null)
-        {
-            _context.Entry(job.Specification.Cluster)
-                .Collection(c => c.ClusterProjects)
-                .Query()
-                .Include(cp => cp.ClusterProjectCredentials)
-                .Load();
-        }
-
-        if (job.Project != null)
-        {
-            _context.Entry(job.Project)
-                .Collection(p => p.ClusterProjects)
-                .Query()
-                .Include(cp => cp.ClusterProjectCredentials)
-                .Load();
-        }
-
-        _context.Entry(job)
-            .Collection(j => j.Tasks)
-            .Query()
-            .Include(t => t.ResourceConsumed)
-            .Include(t => t.TaskAllocationNodes)
-            .Include(t => t.Project)
-            .Include(t => t.NodeType)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.CommandTemplate)
-                    .ThenInclude(ct => ct.TemplateParameters)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.CommandParameterValues)
-                    .ThenInclude(cpv => cpv.TemplateParameter)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.DependsOn)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.EnvironmentVariables)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.RequiredNodes)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.TaskParalizationSpecifications)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.ClusterNodeType)
-                    .ThenInclude(cnt => cnt.RequestedNodeGroups)
-            .Include(t => t.Specification)
-                .ThenInclude(ts => ts.ClusterNodeType)
-                    .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
-            .AsSplitQuery()
-            .Load();
-
-        return job;
     }
 
     public SubmittedJobInfo GetByIdForStatus(long id)
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Submitter)
             .Include(j => j.Tasks)
@@ -225,7 +235,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .IgnoreQueryFilters()
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
@@ -236,12 +246,15 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters()
     {
-        return _dbSet.IgnoreQueryFilters();
+        return _dbSet
+            .IgnoreQueryFilters()
+            .AsNoTracking();
     }
 
     public SubmittedJobInfo GetByScheduledJobId(string scheduledJobId)
     {
         return _dbSet
+            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
@@ -259,6 +272,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithProject(long id)
     {
         return _dbSet
+            .AsNoTracking()
             .Include(j => j.Project)
             .FirstOrDefault(j => j.Id == id);
     }
