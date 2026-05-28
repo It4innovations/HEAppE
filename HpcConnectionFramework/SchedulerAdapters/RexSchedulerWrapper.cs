@@ -224,6 +224,14 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    // In-flight deduplication for InitializeClusterScriptDirectory SSH calls.
+    // Key: (credentialId, clusterProjectPath). Value: the currently running SSH init Task.
+    // If multiple concurrent CreateJob calls arrive for the same (user, path), they all
+    // await the same single SSH operation — eliminating N-1 redundant git pulls per burst.
+    // Once the Task completes it is removed, so the next burst always runs a fresh git pull.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(long, string), Task<bool>> _scriptInitInFlight
+        = new();
+
     /// <summary>
     ///     Create job directory
     /// </summary>
@@ -238,18 +246,34 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
                 ?.ScratchStoragePath;
-            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
+            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
 
-            bool isUpdated = await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection, path, true, localBasepath,
-                jobInfo.Specification.ClusterUser.Username, false);
+            var cacheKey = (jobInfo.Specification.ClusterUser.Id, path);
+
+            // Deduplicate concurrent InitializeClusterScriptDirectory calls:
+            // GetOrAdd returns the same Task for all concurrent callers with the same key.
+            // ContinueWith removes the entry when done so the next burst triggers a fresh call.
+            var initTask = _scriptInitInFlight.GetOrAdd(cacheKey, _ =>
+            {
+                _logger.LogDebug($"Starting InitializeClusterScriptDirectory SSH call for project {jobInfo.Specification.Project.Id}.");
+                var t = _adapter.InitializeClusterScriptDirectoryAsync(
+                    schedulerConnection.Connection, path, true, localBasepath,
+                    jobInfo.Specification.ClusterUser.Username, false);
+                t.ContinueWith(_ => _scriptInitInFlight.TryRemove(cacheKey, out _),
+                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously);
+                return t;
+            });
+
+            bool isUpdated = await initTask;
             if (!isUpdated)
             {
-                _logger.LogWarning($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+                _logger.LogWarning($"Cluster script directory update failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
             else
             {
                 _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
             }
+
             await _adapter.CreateJobDirectoryAsync(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
         finally
