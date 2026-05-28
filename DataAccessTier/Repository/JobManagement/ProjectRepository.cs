@@ -65,5 +65,12 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .ToList();
     }
 
+    public Project GetByIdWithSubProjects(long id)
+    {
+        return _dbSet
+            .Include(p => p.SubProjects)
+            .FirstOrDefault(p => p.Id == id);
+    }
+
     #endregion
 }

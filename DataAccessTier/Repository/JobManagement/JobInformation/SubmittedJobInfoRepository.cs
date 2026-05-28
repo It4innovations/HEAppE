@@ -253,4 +253,11 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Submitter)
             .FirstOrDefault(j => j.Tasks.Any(t => t.ScheduledJobId == scheduledJobId));
     }
+
+    public SubmittedJobInfo GetByIdWithProject(long id)
+    {
+        return _dbSet
+            .Include(j => j.Project)
+            .FirstOrDefault(j => j.Id == id);
+    }
 }

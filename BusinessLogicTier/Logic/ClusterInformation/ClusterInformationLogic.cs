@@ -336,7 +336,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId)
     {
-        var nodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(clusterNodeTypeId);
+        var nodeType = _unitOfWork.ClusterNodeTypeRepository.GetByIdWithClusterAndProjects(clusterNodeTypeId);
 
         if (nodeType == null)
             throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeTypeId);

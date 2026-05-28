@@ -27,7 +27,15 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
 
     public IEnumerable<SubmittedTaskInfo> GetAllFinished()
     {
-        return GetAll().Where(w => w.State >= TaskState.Finished)
+        return _dbSet
+            .Include(t => t.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Where(w => w.State >= TaskState.Finished)
             .ToList();
     }
 
@@ -65,6 +73,9 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
             .AsSplitQuery()
             .FirstOrDefault(t => t.Id == id);
 
@@ -89,6 +100,13 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         }
 
         return task;
+    }
+
+    public SubmittedTaskInfo GetByIdWithProject(long id)
+    {
+        return _dbSet
+            .Include(t => t.Project)
+            .FirstOrDefault(t => t.Id == id);
     }
 
     #endregion

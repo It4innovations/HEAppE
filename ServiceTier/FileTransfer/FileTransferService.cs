@@ -44,7 +44,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -60,7 +60,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -76,7 +76,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -92,7 +92,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -113,7 +113,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -129,7 +129,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+            var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
@@ -176,7 +176,7 @@ public class FileTransferService : IFileTransferService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
+            var job = unitOfWork.JobSpecificationRepository.GetByIdWithTasksAndSubmitter(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             // Validate that the task belongs to the job
             if(createdTaskInfoId.HasValue)

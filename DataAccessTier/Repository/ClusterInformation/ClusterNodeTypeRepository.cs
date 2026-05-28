@@ -39,5 +39,13 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
             .ToList();
     }
 
+    public ClusterNodeType GetByIdWithClusterAndProjects(long id)
+    {
+        return _dbSet
+            .Include(i => i.Cluster)
+                .ThenInclude(c => c.ClusterProjects)
+            .FirstOrDefault(i => i.Id == id);
+    }
+
     #endregion
 }

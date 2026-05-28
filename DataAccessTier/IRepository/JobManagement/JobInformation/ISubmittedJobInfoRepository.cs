@@ -20,6 +20,7 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
     public IQueryable<SubmittedJobInfo> GetJobsQuery();
 
     public SubmittedJobInfo GetByIdWithTasks(long id);
+    public SubmittedJobInfo GetByIdWithProject(long id);
 
     /// <summary>
     /// Lightweight query loading only fields needed for status API response.

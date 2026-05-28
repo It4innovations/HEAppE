@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -39,7 +39,7 @@ public class DataTransferService : IDataTransferService
         string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetByIdWithProject(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -53,7 +53,7 @@ public class DataTransferService : IDataTransferService
     public async Task CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
+        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetByIdWithProject(usedTransferMethod.SubmittedTaskId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -66,7 +66,7 @@ public class DataTransferService : IDataTransferService
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetByIdWithProject(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -80,7 +80,7 @@ public class DataTransferService : IDataTransferService
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetByIdWithProject(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -95,7 +95,7 @@ public class DataTransferService : IDataTransferService
         Stream responseStream, CancellationToken cancellationToken)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+        var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetByIdWithProject(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
     

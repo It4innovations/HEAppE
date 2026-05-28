@@ -819,7 +819,7 @@ public class ManagementService : IManagementService
         _logger.LogInformation($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetByIdWithCommandTemplate(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
@@ -845,7 +845,7 @@ public class ManagementService : IManagementService
         _logger.LogInformation($"RemoveCommandTemplateParameter: Id: {id}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetByIdWithCommandTemplate(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
@@ -909,7 +909,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var project = unitOfWork.ProjectRepository.GetById(projectId)
+            var project = unitOfWork.ProjectRepository.GetByIdWithSubProjects(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, projectId, _expirioService, true);
             var subProjects = project.SubProjects.ToList();
