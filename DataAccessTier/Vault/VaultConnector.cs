@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Formats.Tar;
 using System.IO;
 using System.IO.Compression;
@@ -24,6 +24,9 @@ public class VaultConnector : IVaultConnector
         Timeout = TimeSpan.FromSeconds(VaultConnectorSettings.ConnectionTimeoutInSeconds)
     };
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _credentialsCache =
+        new System.Collections.Concurrent.ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
+
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
     private readonly ILogger _logger;
 
@@ -34,7 +37,23 @@ public class VaultConnector : IVaultConnector
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
         _logger.LogDebug($"Fetching credentials for ID: {id} from Vault.");
-        return await GetClusterAuthenticationCredentialsInternal(id);
+        
+        var vaultTask = _credentialsCache.GetOrAdd(id, async key =>
+        {
+            _logger.LogDebug($"Cache miss. Fetching vault data from service for ID: {key}");
+            return await GetClusterAuthenticationCredentialsInternal(key);
+        });
+
+        try
+        {
+            return await vaultTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to fetch credentials for ID {id} from Vault: {ex.Message}");
+            _credentialsCache.TryRemove(id, out _);
+            throw;
+        }
     }
 
     /// <summary>
@@ -74,6 +93,7 @@ public class VaultConnector : IVaultConnector
         if (result.IsSuccessStatusCode)
         {
             _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
+            _credentialsCache[data.Id] = Task.FromResult(data);
             return true;
         }
 
@@ -94,6 +114,7 @@ public class VaultConnector : IVaultConnector
         if (result.IsSuccessStatusCode)
         {
             _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
+            _credentialsCache.TryRemove(id, out _);
         }
         else
         {
