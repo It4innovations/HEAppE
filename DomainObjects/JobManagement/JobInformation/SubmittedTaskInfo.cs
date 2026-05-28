@@ -47,7 +47,7 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
     [StringLength(255)]
     public string Reason { get; set; }
 
-    [Column(TypeName = "text")] public string AllParameters { get; set; }
+    [Column(TypeName = "nvarchar(max)")] public string AllParameters { get; set; }
 
     /// <summary>
     ///     Per-task HMAC secret used to verify Slurm callback webhook signatures.

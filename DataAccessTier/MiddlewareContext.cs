@@ -55,6 +55,21 @@ public class MiddlewareContext : DbContext
                             {
                                 _logger.LogInformation("Starting migration and seeding into the new database.");
                                 Database.Migrate();
+                                
+                                try
+                                {
+                                    var dbName = Database.GetDbConnection().Database;
+                                    if (!string.IsNullOrEmpty(dbName))
+                                    {
+                                        Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+                                        _logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
+                                }
+
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
@@ -143,7 +158,7 @@ public class MiddlewareContext : DbContext
         optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
