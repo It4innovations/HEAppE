@@ -41,6 +41,22 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .ToList();
     }
 
+    public IEnumerable<SubmittedTaskInfo> GetFinishedByIds(IEnumerable<long> ids)
+    {
+        return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(t => t.Project)
+            .Include(t => t.Specification)
+            .ThenInclude(ts => ts.JobSpecification)
+            .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+            .ThenInclude(ts => ts.JobSpecification)
+            .ThenInclude(js => js.Submitter)
+            .Where(w => w.State >= TaskState.Finished && ids.Contains(w.Id))
+            .ToList();
+    }
+
     public SubmittedTaskInfo GetByIdWithJobSpecification(long id)
     {
         var task = _dbSet

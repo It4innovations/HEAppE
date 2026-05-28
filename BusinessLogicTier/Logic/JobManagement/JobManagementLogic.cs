@@ -257,8 +257,11 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
     {
-        return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w => taskIds.Contains(w.Id))
-            .ToList();
+        if (taskIds == null || !taskIds.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+        return _unitOfWork.SubmittedTaskInfoRepository.GetFinishedByIds(taskIds);
     }
     
     public async Task UpdateCurrentStateOfUnfinishedJobs()

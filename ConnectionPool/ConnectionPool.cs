@@ -147,6 +147,47 @@ namespace HEAppE.ConnectionPool
                     }
                 }
 
+                // Pre-clean any dead/disconnected connections to free up UserSemaphore permits before waiting on it
+                for (int i = 0; i < userContext.Slots.Length; i++)
+                {
+                    var s = userContext.Slots[i];
+                    if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                    {
+                        await s.SlotSemaphore.WaitAsync();
+                        try
+                        {
+                            // Double check under lock
+                            if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                            {
+                                var oldConnection = s.ConnectionInfo;
+                                s.ConnectionInfo = null;
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await _adapter.DisconnectAsync(oldConnection.Connection);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Id} during pre-cleanup", ex);
+                                    }
+                                    finally
+                                    {
+                                        if (oldConnection.Connection is IDisposable disposable)
+                                        {
+                                            try { disposable.Dispose(); } catch { /* ignore */ }
+                                        }
+                                    }
+                                });
+                                Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
+                                userContext.UserSemaphore.Release();
+                                _logger.LogDebug($"[User:{credentials.Id}] Pre-cleaned dead connection in slot {i}. Released UserSemaphore permit.");
+                            }
+                        }
+                        finally { s.SlotSemaphore.Release(); }
+                    }
+                }
+
                 _logger.LogDebug($"[User:{credentials.Id}] No idle connection found under session limit. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
                 
                 await EnsureVaultDataLoadedAsync(credentials);

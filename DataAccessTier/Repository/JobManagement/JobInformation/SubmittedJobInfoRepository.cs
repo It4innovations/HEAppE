@@ -54,6 +54,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
