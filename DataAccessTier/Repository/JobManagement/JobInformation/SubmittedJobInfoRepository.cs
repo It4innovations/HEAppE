@@ -26,6 +26,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Specification)
             .Where(w => (EF.Property<long>(w, "SubmitterId") == submitterId && w.State < JobState.Finished) ||
@@ -39,37 +40,37 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .AsNoTracking()
             .AsSplitQuery()
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.ResourceConsumed)
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.NodeType)
+                .ThenInclude(t => t.NodeType)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.ClusterNodeType)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.ClusterUser)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.JobSpecification)
+                        .ThenInclude(js => js.ClusterUser)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Cluster)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.JobSpecification)
+                        .ThenInclude(js => js.Cluster)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Submitter)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.JobSpecification)
+                        .ThenInclude(js => js.Submitter)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.SubmitterGroup)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.JobSpecification)
+                        .ThenInclude(js => js.SubmitterGroup)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.CommandTemplate)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
                     .ThenInclude(c => c.ClusterProjects)
                         .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Specification)
-            .ThenInclude(s => s.ClusterUser)
+                .ThenInclude(s => s.ClusterUser)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Project)
                     .ThenInclude(p => p.ClusterProjects)
@@ -86,6 +87,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.NodeType)
             .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
@@ -115,6 +117,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
@@ -195,10 +198,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return job;
     }
 
-    /// <summary>
-    /// Lightweight status query - only loads what ConvertIntToExt needs.
-    /// Does NOT load SSH/scheduler navigation properties.
-    /// </summary>
     public SubmittedJobInfo GetByIdForStatus(long id)
     {
         return _dbSet
@@ -206,18 +205,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .AsSplitQuery()
             .Include(j => j.Submitter)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.ResourceConsumed)
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.TaskAllocationNodes)
+                .ThenInclude(t => t.TaskAllocationNodes)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.NodeType)
+                .ThenInclude(t => t.NodeType)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Specification)
-            .ThenInclude(ts => ts.CommandTemplate)
+                .ThenInclude(t => t.Specification)
+                .ThenInclude(ts => ts.CommandTemplate)
             .Include(j => j.Tasks)
-            .ThenInclude(t => t.Project) 
+                .ThenInclude(t => t.Project) 
             .Include(j => j.Specification)
-            .ThenInclude(s => s.SubProject)
+                .ThenInclude(s => s.SubProject)
             .Include(j => j.Project)
             .FirstOrDefault(j => j.Id == id);
     }
@@ -226,6 +225,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -241,6 +242,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByScheduledJobId(string scheduledJobId)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
