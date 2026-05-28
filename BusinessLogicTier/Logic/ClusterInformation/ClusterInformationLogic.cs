@@ -359,11 +359,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)
     {
-        var allRunningJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished().ToList();
-        var userRunningJobs = allRunningJobs.Where(w =>
-            w.Specification.ClusterUser == user && w.State > JobState.Configuring && w.State <= JobState.Running);
-
-        return !userRunningJobs.Any();
+        return !_unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Any(w => w.Specification.ClusterUser.Id == user.Id 
+                      && w.State > JobState.Configuring 
+                      && w.State <= JobState.Running);
     }
 
     private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
