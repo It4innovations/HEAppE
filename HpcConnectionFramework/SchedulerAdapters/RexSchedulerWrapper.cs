@@ -226,11 +226,26 @@ public class RexSchedulerWrapper : IRexScheduler
 
     // In-flight deduplication for InitializeClusterScriptDirectory SSH calls.
     // Key: (credentialId, clusterProjectPath). Value: the currently running SSH init Task.
-    // If multiple concurrent CreateJob calls arrive for the same (user, path), they all
-    // await the same single SSH operation — eliminating N-1 redundant git pulls per burst.
-    // Once the Task completes it is removed, so the next burst always runs a fresh git pull.
+    // IMPORTANT: callers await this BEFORE acquiring a connection from the pool, so only
+    // the "winner" holds a connection during the git pull. All others wait connection-free.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<(long, string), Task<bool>> _scriptInitInFlight
         = new();
+
+    private async Task<bool> RunScriptInitOnDedicatedConnectionAsync(
+        ClusterAuthenticationCredentials credentials, Cluster cluster,
+        string path, string localBasepath, string sshCaToken, string lexisToken)
+    {
+        var conn = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        try
+        {
+            return await _adapter.InitializeClusterScriptDirectoryAsync(
+                conn.Connection, path, true, localBasepath, credentials.Username, false);
+        }
+        finally
+        {
+            await _connectionPool.ReturnConnectionAsync(conn);
+        }
+    }
 
     /// <summary>
     ///     Create job directory
@@ -240,40 +255,38 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="sharedAccountsPoolMode"></param>
     public async Task CreateJobDirectoryAsync(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode, string sshCaToken, string lexisToken)
     {
-        var schedulerConnection =
-            await _connectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
+        var localBasepath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+        string path = Path.Combine(jobInfo.Specification.Project.AccountingString,
+            HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+
+        var cacheKey = (jobInfo.Specification.ClusterUser.Id, path);
+
+        // Step 1: Await script init WITHOUT holding a connection.
+        // Only the "winner" VU acquires a connection for git pull; the rest wait for free.
+        // ContinueWith removes the entry so the next logical burst always runs a fresh git pull.
+        var initTask = _scriptInitInFlight.GetOrAdd(cacheKey, _ =>
+        {
+            _logger.LogDebug($"Starting InitializeClusterScriptDirectory for project {jobInfo.Specification.Project.Id}.");
+            var t = RunScriptInitOnDedicatedConnectionAsync(
+                jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster,
+                path, localBasepath, sshCaToken, lexisToken);
+            t.ContinueWith(_ => _scriptInitInFlight.TryRemove(cacheKey, out _),
+                System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously);
+            return t;
+        });
+
+        bool isUpdated = await initTask;
+        if (!isUpdated)
+            _logger.LogWarning($"Cluster script directory update failed for project {jobInfo.Specification.Project.Id} user {jobInfo.Specification.ClusterUser.Username}.");
+        else
+            _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} user {jobInfo.Specification.ClusterUser.Username}.");
+
+        // Step 2: NOW acquire a connection — only for the fast CreateJobDirectory mkdir.
+        var schedulerConnection = await _connectionPool.GetConnectionForUserAsync(
+            jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
-                ?.ScratchStoragePath;
-            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
-
-            var cacheKey = (jobInfo.Specification.ClusterUser.Id, path);
-
-            // Deduplicate concurrent InitializeClusterScriptDirectory calls:
-            // GetOrAdd returns the same Task for all concurrent callers with the same key.
-            // ContinueWith removes the entry when done so the next burst triggers a fresh call.
-            var initTask = _scriptInitInFlight.GetOrAdd(cacheKey, _ =>
-            {
-                _logger.LogDebug($"Starting InitializeClusterScriptDirectory SSH call for project {jobInfo.Specification.Project.Id}.");
-                var t = _adapter.InitializeClusterScriptDirectoryAsync(
-                    schedulerConnection.Connection, path, true, localBasepath,
-                    jobInfo.Specification.ClusterUser.Username, false);
-                t.ContinueWith(_ => _scriptInitInFlight.TryRemove(cacheKey, out _),
-                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously);
-                return t;
-            });
-
-            bool isUpdated = await initTask;
-            if (!isUpdated)
-            {
-                _logger.LogWarning($"Cluster script directory update failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
-            else
-            {
-                _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
-
             await _adapter.CreateJobDirectoryAsync(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
         finally

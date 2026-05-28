@@ -58,11 +58,18 @@ namespace HEAppE.ConnectionPool
         private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
             = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
         private readonly int _connectionRetryAttempts = 3;
-        private readonly int _connectionTimeoutMs =  30000;
+        private readonly int _connectionTimeoutMs = 30000;
+        
+        /// <summary>
+        /// Maximum time (ms) to wait for a connection slot before throwing.
+        /// Prevents zombie threads when the pool is saturated under high load.
+        /// Callers should catch <see cref="ConnectionPoolExhaustedException"/> and return 429.
+        /// </summary>
+        private readonly int _acquireTimeoutMs = 10000;
             
         private readonly Timer poolCleanTimer;
 
-        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int maxSessionsPerConnection, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger)
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int maxSessionsPerConnection, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int retryAttempts, int timeoutMs, int? port, ILogger logger, int acquireTimeoutMs = 10000)
         {
             _logger = logger;
             _masterNodeName = masterNodeName;
@@ -74,6 +81,7 @@ namespace HEAppE.ConnectionPool
             _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
             _connectionRetryAttempts = retryAttempts;
             _connectionTimeoutMs = timeoutMs;
+            _acquireTimeoutMs = acquireTimeoutMs;
 
             if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
@@ -81,7 +89,7 @@ namespace HEAppE.ConnectionPool
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
                 poolCleanTimer.AutoReset = false;
-                _logger.LogDebug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
+                _logger.LogDebug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s, AcquireTimeout: {acquireTimeoutMs}ms");
             }
         }
 
@@ -98,8 +106,14 @@ namespace HEAppE.ConnectionPool
                 return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
             });
 
-            // Restrict maximum concurrent active SSH commands globally per user connection pool
-            await userContext.ActiveSessionsSemaphore.WaitAsync();
+            // Restrict maximum concurrent active SSH commands globally per user connection pool.
+            // Use a timeout so that saturated-pool callers fail fast instead of becoming zombie threads.
+            if (!await userContext.ActiveSessionsSemaphore.WaitAsync(_acquireTimeoutMs))
+            {
+                throw new ConnectionPoolExhaustedException(
+                    $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire active-session permit within {_acquireTimeoutMs}ms. " +
+                    $"Current pool: {_maxConnectionsPerUser} connections × {_maxSessionsPerConnection} sessions.");
+            }
             try
             {
                 // Fast path: reuse existing active connection by finding the one with minimum load
@@ -191,7 +205,12 @@ namespace HEAppE.ConnectionPool
                 _logger.LogDebug($"[User:{credentials.Id}] No idle connection found under session limit. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
                 
                 await EnsureVaultDataLoadedAsync(credentials);
-                await userContext.UserSemaphore.WaitAsync();
+                if (!await userContext.UserSemaphore.WaitAsync(_acquireTimeoutMs))
+                {
+                    throw new ConnectionPoolExhaustedException(
+                        $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire connection slot within {_acquireTimeoutMs}ms. " +
+                        $"Pool limit: {_maxConnectionsPerUser} physical connections.");
+                }
 
                 try
                 {
