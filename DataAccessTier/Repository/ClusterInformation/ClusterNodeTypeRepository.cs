@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -21,8 +21,15 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
 
     public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
     {
-        return _dbSet.Include(i => i.PossibleCommands)
-            .ThenInclude(i => i.TemplateParameters)
+        return _dbSet
+            .Include(i => i.Cluster)
+                .ThenInclude(c => c.ClusterProjects)
+                    .ThenInclude(cp => cp.Project)
+            .Include(i => i.ClusterNodeTypeAggregation)
+                .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                    .ThenInclude(acc => acc.Accounting)
+            .Include(i => i.PossibleCommands)
+                .ThenInclude(i => i.TemplateParameters)
             .ToList();
     }
 

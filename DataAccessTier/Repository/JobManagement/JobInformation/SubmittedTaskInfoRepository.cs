@@ -74,6 +74,8 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         {
             _context.Entry(task.Specification.JobSpecification.Cluster)
                 .Collection(c => c.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
                 .Load();
         }
 
@@ -81,6 +83,8 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         {
             _context.Entry(task.Project)
                 .Collection(p => p.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
                 .Load();
         }
 

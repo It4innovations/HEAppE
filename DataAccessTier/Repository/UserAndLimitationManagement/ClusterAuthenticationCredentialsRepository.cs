@@ -146,7 +146,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
-            _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
+            _context.ClusterProjects
+                .Include(cp => cp.ClusterProjectCredentials)
+                    .ThenInclude(cpc => cpc.ClusterAuthenticationCredentials)
+                .FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
         
         var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();

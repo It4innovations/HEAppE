@@ -26,6 +26,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
             .Where(w => (EF.Property<long>(w, "SubmitterId") == submitterId && w.State < JobState.Finished) ||
                         w.State == JobState.WaitingForServiceAccount)
             .ToList();
@@ -63,12 +65,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .ThenInclude(t => t.Specification)
             .ThenInclude(ts => ts.CommandTemplate)
             .Include(j => j.Specification)
-            .ThenInclude(s => s.Cluster)
+                .ThenInclude(s => s.Cluster)
+                    .ThenInclude(c => c.ClusterProjects)
+                        .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Specification)
             .ThenInclude(s => s.ClusterUser)
             .Include(j => j.Specification)
-            .ThenInclude(s => s.Project)
+                .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ClusterProjects)
+                        .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
@@ -78,6 +86,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.NodeType)
             .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
             .ToList();
     }
@@ -138,6 +148,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         {
             _context.Entry(job.Specification.Cluster)
                 .Collection(c => c.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
                 .Load();
         }
 
@@ -145,6 +157,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         {
             _context.Entry(job.Project)
                 .Collection(p => p.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
                 .Load();
         }
 

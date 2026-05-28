@@ -25,9 +25,11 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
             .AsSplitQuery()
             .Include(x => x.ProjectContacts)
-            .ThenInclude(x => x.Contact)
+                .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
-            .ThenInclude(x => x.Cluster)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .ToList();
     }
 
