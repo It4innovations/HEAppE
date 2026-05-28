@@ -41,19 +41,22 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
+        // Only load what the background state-update loop actually needs:
+        //   - Specification.Cluster (SchedulerType, UpdateJobStateByServiceAccount, Name)
+        //   - Specification.ClusterUser (credentials fallback)
+        //   - Specification.WaitingLimit (IsWaitingLimitExceeded – scalar, loaded with Specification)
+        //   - Project (passed to CreateScheduler)
+        //   - Submitter (logging + adaptorUserId)
+        //   - Active Tasks with Specification.DependsOn (waiting-limit cancel check)
+        //   - Tasks.Specification.JobSpecification.{Cluster,ClusterUser,Submitter,ClusterId,ProjectId}
+        // NOT loaded (not needed for state update): ClusterProjects, ClusterProjectCredentials,
+        //   ResourceConsumed, NodeType, CommandTemplate, SubmitterGroup.
         return _dbSet
             .AsSplitQuery()
-            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
-                .ThenInclude(t => t.ResourceConsumed)
-            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
-                .ThenInclude(t => t.NodeType)
+            // Active tasks and their task-level specification
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.ClusterNodeType)
-            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.JobSpecification)
-                        .ThenInclude(js => js.ClusterUser)
+                    .ThenInclude(ts => ts.DependsOn)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.JobSpecification)
@@ -61,27 +64,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.JobSpecification)
-                        .ThenInclude(js => js.Submitter)
+                        .ThenInclude(js => js.ClusterUser)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.JobSpecification)
-                        .ThenInclude(js => js.SubmitterGroup)
-            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
-                .ThenInclude(t => t.Specification)
-                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(js => js.Submitter)
+            // Job-level specification (Cluster, ClusterUser, WaitingLimit scalar)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
-                    .ThenInclude(c => c.ClusterProjects)
-                        .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Specification)
-                    .ThenInclude(s => s.ClusterUser)
-            .Include(j => j.Specification)
-                .ThenInclude(s => s.Project)
-                    .ThenInclude(p => p.ClusterProjects)
-                        .ThenInclude(cp => cp.ClusterProjectCredentials)
+                .ThenInclude(s => s.ClusterUser)
+            // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
-                .ThenInclude(p => p.ClusterProjects)
-                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
@@ -210,7 +204,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
+            .AsSingleQuery()
             .Include(j => j.Submitter)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
