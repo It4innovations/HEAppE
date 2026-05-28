@@ -8,8 +8,10 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SshCaAPI;
@@ -21,6 +23,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     private readonly ISshCertificateAuthorityService _sshCaService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly ILogger _logger;
+    private readonly IMemoryCache _cache;
 
     public LocalAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -28,12 +31,14 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         UrlEncoder encoder,
         ISystemClock clock,
         ISshCertificateAuthorityService sshCaService,
-        IHttpContextKeys httpContextKeys)
+        IHttpContextKeys httpContextKeys,
+        IMemoryCache cache)
         : base(options, logger, encoder, clock)
     {
         _sshCaService = sshCaService;
         _httpContextKeys = httpContextKeys;
         _logger = this.Logger;
+        _cache = cache;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -79,7 +84,16 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 string rawApiKey = match.Groups[2].Value;
 
                 _logger.LogDebug($"[LocalAuth] Looking up user: {username}");
-                var user = unitOfWork.AdaptorUserRepository.GetByName(username);
+                
+                string userCacheKey = $"UserByName_{username}";
+                if (!_cache.TryGetValue(userCacheKey, out AdaptorUser user))
+                {
+                    user = unitOfWork.AdaptorUserRepository.GetByName(username);
+                    if (user != null)
+                    {
+                        _cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                    }
+                }
                 
                 if (user == null)
                 {

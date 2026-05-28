@@ -41,19 +41,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
     {
-        var unfinishedJobIds = _dbSet
-            .AsNoTracking()
-            .Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
-            .Select(j => j.Id)
-            .ToList();
-
-        if (!unfinishedJobIds.Any())
-        {
-            return Enumerable.Empty<SubmittedJobInfo>();
-        }
-
         return _dbSet
-            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.ResourceConsumed)
@@ -95,7 +83,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
-            .Where(j => unfinishedJobIds.Contains(j.Id))
+            .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
     }
 
@@ -161,7 +149,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         return _dbSet
-            .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)

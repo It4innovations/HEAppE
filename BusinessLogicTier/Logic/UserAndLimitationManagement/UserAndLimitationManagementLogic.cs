@@ -100,7 +100,25 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            if (cache != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                {
+                    _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
+                    return cachedUser;
+                }
+            }
+
+            var user = _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+
+            if (cache != null && user != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+            }
+            return user;
         }
 
         return AuthenticateLocalSession(sessionCode);
@@ -108,6 +126,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
+        var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        if (cache != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
+            {
+                if (cached.ExpirationTime > DateTime.UtcNow)
+                {
+                    return cached.User;
+                }
+            }
+        }
+
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null)
             throw new UnauthorizedAccessException("Unauthorized");
@@ -123,7 +154,6 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         if (session.LastAccessTime < now.AddSeconds(-30))
         {
             bool shouldUpdate = true;
-            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
             if (cache != null)
             {
                 string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
@@ -145,7 +175,17 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             }
         }
 
-        return session.User;
+        var user = session.User;
+        if (cache != null && user != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
+            var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
+            var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
+            cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+        }
+
+        return user;
     }
     
     public AdaptorUser GetUserById(long id)
