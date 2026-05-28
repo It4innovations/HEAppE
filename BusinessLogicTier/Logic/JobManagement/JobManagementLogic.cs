@@ -504,8 +504,12 @@ internal class JobManagementLogic : IJobManagementLogic
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
             specification.ClusterUser = credentials;
-            specification.Submitter = loggedUser;
-            specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
+            specification.Submitter = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id);
+            var defaultGroup = specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(specification.Submitter, specification.ProjectId);
+            if (defaultGroup != null)
+            {
+                specification.SubmitterGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(defaultGroup.Id);
+            }
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
             if (specification.SubProjectId.HasValue)
                 specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);

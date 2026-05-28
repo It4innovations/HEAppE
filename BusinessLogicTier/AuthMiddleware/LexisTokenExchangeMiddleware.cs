@@ -158,6 +158,11 @@ public class LexisTokenExchangeMiddleware
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
+        catch (Exception)
+        {
+            context.Response.Body = originalBodyStream;
+            throw;
+        }
 
         responseBody.Seek(0, SeekOrigin.Begin);
 
