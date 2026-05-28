@@ -321,7 +321,7 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<SubmittedTaskInfo>()
             .HasIndex(t => t.State)
             .HasFilter("[State] >= 16")
-            .IncludeProperties("ProjectId", "SpecificationId");
+            .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId");
 
         modelBuilder.Entity<SubmittedJobInfo>()
             .HasIndex("SpecificationId", "ProjectId")

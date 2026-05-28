@@ -28,13 +28,15 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     public IEnumerable<SubmittedTaskInfo> GetAllFinished()
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
-                .ThenInclude(ts => ts.JobSpecification)
-                    .ThenInclude(js => js.Cluster)
+            .ThenInclude(ts => ts.JobSpecification)
+            .ThenInclude(js => js.Cluster)
             .Include(t => t.Specification)
-                .ThenInclude(ts => ts.JobSpecification)
-                    .ThenInclude(js => js.Submitter)
+            .ThenInclude(ts => ts.JobSpecification)
+            .ThenInclude(js => js.Submitter)
             .Where(w => w.State >= TaskState.Finished)
             .ToList();
     }
