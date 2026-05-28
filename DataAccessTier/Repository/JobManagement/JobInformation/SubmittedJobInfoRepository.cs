@@ -29,6 +29,9 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .AsNoTracking()
             .AsSplitQuery()
+            .Include(j => j.Project)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Specification)
             .Where(w => (EF.Property<long>(w, "SubmitterId") == submitterId && w.State < JobState.Finished) ||
@@ -123,6 +126,11 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
+            .Include(j => j.Project)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Submitter)
             .Where(w => w.State == JobState.WaitingForServiceAccount)
             .OrderBy(w => w.Id)
             .ToList();
@@ -130,7 +138,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
-        var recentThreshold = DateTime.UtcNow.AddDays(-1);
+        var recentThreshold = endTime;
 
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
@@ -276,6 +284,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .AsNoTracking()
             .Include(j => j.Project)
+            .Include(j => j.Submitter)
             .FirstOrDefault(j => j.Id == id);
     }
 }
