@@ -51,7 +51,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
@@ -95,6 +94,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Where(j => unfinishedJobIds.Contains(j.Id))
             .ToList();
     }
+
     public IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId)
     {
         return _dbSet
@@ -130,6 +130,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
     {
+        var recentThreshold = DateTime.UtcNow.AddDays(-1);
+
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
@@ -142,7 +144,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Where(x => EF.Property<long>(x, "ProjectId") == projectId &&
                         x.StartTime >= startTime &&
                         (x.EndTime == null || x.EndTime <= endTime) &&
-                        x.Tasks.Any(y => EF.Property<long>(y, "NodeTypeId") == nodeTypeId))
+                        x.Tasks.Any(y => EF.Property<long>(y, "NodeTypeId") == nodeTypeId) &&
+                        (x.State < JobState.Finished || x.EndTime >= recentThreshold))
             .ToList();
     }
 
