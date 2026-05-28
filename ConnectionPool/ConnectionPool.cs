@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Timer = System.Timers.Timer;
+using HEAppE.Exceptions.Internal;
 
 namespace HEAppE.ConnectionPool
 {
