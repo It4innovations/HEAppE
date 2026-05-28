@@ -317,7 +317,11 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<SubmittedTaskInfo>()
             .HasIndex(t => t.State)
             .HasFilter("[State] >= 16")
-            .IncludeProperties("ProjectId", "SpecificationId");
+            .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId", "NodeTypeId");
+
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex("SubmittedJobInfoId")
+            .IncludeProperties(nameof(SubmittedTaskInfo.State), "SpecificationId", "NodeTypeId", "ProjectId");
 
         modelBuilder.Entity<SubmittedJobInfo>()
             .HasIndex("SpecificationId", "ProjectId")
@@ -352,6 +356,21 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<SessionCode>()
             .HasIndex(s => s.UniqueCode)
             .IsUnique();
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex("ClusterId")
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties("ProjectId", "PreferredAuthType");
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex("ProjectId")
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties("ClusterId", "PreferredAuthType");
+
+        modelBuilder.Entity<ClusterProjectCredential>()
+            .HasIndex("ClusterProjectId")
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties("ClusterAuthenticationCredentialsId");
     }
 
     #endregion
