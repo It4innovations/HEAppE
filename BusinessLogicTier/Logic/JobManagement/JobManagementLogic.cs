@@ -981,7 +981,6 @@ internal class JobManagementLogic : IJobManagementLogic
             if (!isJobUserAvailable)
             {
                 jobInfo.State = JobState.WaitingForServiceAccount;
-                _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                 await _unitOfWork.SaveAsync();
                 return (jobInfo, true);
             }
@@ -995,7 +994,6 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
         jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks, _logger);
-        _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
@@ -1023,7 +1021,6 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         UpdateJobStateByTasks(jobInfo);
-        _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
@@ -1042,7 +1039,6 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             jobInfo.State = JobState.Canceled;
             jobInfo.Tasks.ForEach(f => f.State = TaskState.Canceled);
-            _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             await _unitOfWork.SaveAsync();
             return (jobInfo, null, true);
         }
@@ -1062,7 +1058,6 @@ internal class JobManagementLogic : IJobManagementLogic
             CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
 
         UpdateJobStateByTasks(jobInfo);
-        _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
@@ -1090,7 +1085,6 @@ internal class JobManagementLogic : IJobManagementLogic
             var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             jobInfo.State = JobState.Deleted;
             jobInfo.Tasks.ForEach(f => f.State = TaskState.Deleted);
-            _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             await _unitOfWork.SaveAsync();
         }
         return isDeleted;

@@ -35,8 +35,8 @@ public class ClusterInformationService : IClusterInformationService
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
 
-    /// <summary>Per-user semaphore to serialize concurrent forceRefresh calls.</summary>
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _refreshSemaphores = new();
+    /// <summary>Active database refresh tasks for raw clusters list, used to coalesce concurrent DB queries globally.</summary>
+    private static readonly ConcurrentDictionary<string, Task<List<HEAppE.DomainObjects.ClusterInformation.Cluster>>> _globalDbRefreshes = new();
 
     public ClusterInformationService(IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
@@ -86,74 +86,111 @@ public class ClusterInformationService : IClusterInformationService
             }
         } // DB connection released
 
-        // forceRefresh=true: serialize concurrent requests with a per-user semaphore.
-        // Only ONE request loads fresh data at a time; others wait and then load their own fresh data.
-        // No result is cached here - forceRefresh always returns live DB data.
-        var sem = _refreshSemaphores.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
-        await sem.WaitAsync();
-        try
+        // Retrieve raw clusters list globally (coalesced database queries)
+        string globalCacheKey = $"GlobalRawClusters_{clusterName ?? "All"}";
+        List<HEAppE.DomainObjects.ClusterInformation.Cluster> clusters;
+
+        if (forceRefresh)
         {
-            CommandTemplatePermissionsModel lexisPermissions = null;
-            if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
-            {
-                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
-                    _httpContextKeys.Context.LEXISToken,
-                    HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
-                    instanceId, _logger);
-            }
-
-            HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
-            List<HEAppE.DomainObjects.ClusterInformation.Cluster> clusters;
-
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-            {
-                clusters = unitOfWork.ClusterRepository.AsQueryable()
-                    .Where(c => clusterName == null || c.Name == clusterName)
-                    .ToList();
-            }
-
-            var clustersExt = clusters
-                .Select(c => c.ConvertIntToExt(projects, true))
-                .ToArray();
-
-            clustersExt = clustersExt
-                .Select(cl =>
+            var dbTask = _globalDbRefreshes.GetOrAdd(globalCacheKey, key =>
+                Task.Run(() =>
                 {
-                    cl.NodeTypes = cl.NodeTypes
-                        .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
-                        .Select(nt =>
+                    try
+                    {
+                        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
                         {
-                            nt.Projects = nt.Projects
-                                .Where(p => (projectName == null || p.Name == projectName) && (accountingSet == null || accountingSet.Contains(p.AccountingString)))
-                                .Select(p =>
-                                {
-                                    p.CommandTemplates = p.CommandTemplates
-                                        .Where(ct => (commandTemplateName == null || string.Equals(ct.Name, commandTemplateName, StringComparison.OrdinalIgnoreCase)) &&
-                                                     (lexisPermissions == null || _userOrgService.IsTemplateEnabledInLexis(lexisPermissions, cl.Name, nt.Name, p.AccountingString, ct.Name)))
-                                        .ToArray();
-                                    return p;
-                                })
-                                .Where(p => p.CommandTemplates.Length > 0)
-                                .ToArray();
-                            return nt;
-                        })
-                        .Where(nt => nt.Projects.Length > 0)
-                        .ToArray();
-                    return cl;
+                            return unitOfWork.ClusterRepository.AsQueryable()
+                                .Where(c => clusterName == null || c.Name == clusterName)
+                                .ToList();
+                        }
+                    }
+                    finally
+                    {
+                        _globalDbRefreshes.TryRemove(key, out _);
+                    }
                 })
-                .Where(cl => cl.NodeTypes.Length > 0)
-                .ToArray();
+            );
 
-            // Update the long-lived cache so non-forceRefresh requests get fresh data
-            SetCacheWithGlobalToken(memoryCacheKey, clustersExt, _cacheLimitForListAvailableClusters);
-
-            return clustersExt;
+            clusters = await dbTask;
+            SetCacheWithGlobalToken(globalCacheKey, clusters, _cacheLimitForListAvailableClusters);
         }
-        finally
+        else
         {
-            sem.Release();
+            if (!_cacheProvider.TryGetValue(globalCacheKey, out clusters))
+            {
+                var dbTask = _globalDbRefreshes.GetOrAdd(globalCacheKey, key =>
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+                            {
+                                return unitOfWork.ClusterRepository.AsQueryable()
+                                    .Where(c => clusterName == null || c.Name == clusterName)
+                                    .ToList();
+                            }
+                        }
+                        finally
+                        {
+                            _globalDbRefreshes.TryRemove(key, out _);
+                        }
+                    })
+                );
+
+                clusters = await dbTask;
+                SetCacheWithGlobalToken(globalCacheKey, clusters, _cacheLimitForListAvailableClusters);
+            }
         }
+
+        // Get Lexis permission rules if enabled
+        CommandTemplatePermissionsModel lexisPermissions = null;
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        {
+            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+            lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
+                _httpContextKeys.Context.LEXISToken,
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
+                instanceId, _logger);
+        }
+
+        HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
+
+        var clustersExt = clusters
+            .Select(c => c.ConvertIntToExt(projects, true))
+            .ToArray();
+
+        clustersExt = clustersExt
+            .Select(cl =>
+            {
+                cl.NodeTypes = cl.NodeTypes
+                    .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
+                    .Select(nt =>
+                    {
+                        nt.Projects = nt.Projects
+                            .Where(p => (projectName == null || p.Name == projectName) && (accountingSet == null || accountingSet.Contains(p.AccountingString)))
+                            .Select(p =>
+                            {
+                                p.CommandTemplates = p.CommandTemplates
+                                    .Where(ct => (commandTemplateName == null || string.Equals(ct.Name, commandTemplateName, StringComparison.OrdinalIgnoreCase)) &&
+                                                 (lexisPermissions == null || _userOrgService.IsTemplateEnabledInLexis(lexisPermissions, cl.Name, nt.Name, p.AccountingString, ct.Name)))
+                                    .ToArray();
+                                return p;
+                            })
+                            .Where(p => p.CommandTemplates.Length > 0)
+                            .ToArray();
+                        return nt;
+                    })
+                    .Where(nt => nt.Projects.Length > 0)
+                    .ToArray();
+                return cl;
+            })
+            .Where(cl => cl.NodeTypes.Length > 0)
+            .ToArray();
+
+        // Update the long-lived cache so non-forceRefresh requests get fresh data
+        SetCacheWithGlobalToken(memoryCacheKey, clustersExt, _cacheLimitForListAvailableClusters);
+
+        return clustersExt;
     }
     
 
