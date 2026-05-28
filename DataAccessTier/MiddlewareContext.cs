@@ -315,13 +315,13 @@ public class MiddlewareContext : DbContext
             .IncludeProperties("SpecificationId", "NodeTypeId", "ProjectId");
 
         modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex("SubmittedJobInfoId")
+            .IncludeProperties(nameof(SubmittedTaskInfo.State), "NodeTypeId", "SpecificationId");
+        
+        modelBuilder.Entity<SubmittedTaskInfo>()
             .HasIndex(t => t.State)
             .HasFilter("[State] >= 16")
-            .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId", "NodeTypeId");
-
-        modelBuilder.Entity<SubmittedTaskInfo>()
-            .HasIndex("SubmittedJobInfoId")
-            .IncludeProperties(nameof(SubmittedTaskInfo.State), "SpecificationId", "NodeTypeId", "ProjectId");
+            .IncludeProperties("ProjectId", "SpecificationId");
 
         modelBuilder.Entity<SubmittedJobInfo>()
             .HasIndex("SpecificationId", "ProjectId")
@@ -352,27 +352,26 @@ public class MiddlewareContext : DbContext
             .HasIndex("ClusterNodeTypeAggregationId")
             .HasFilter("[IsDeleted] = 0")
             .IncludeProperties("AccountingId");
+
+        modelBuilder.Entity<ClusterProjectCredential>()
+            .HasIndex(cpc => cpc.ClusterProjectId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cpc => cpc.ClusterAuthenticationCredentialsId);
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex(cp => cp.ClusterId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cp => cp.ProjectId);
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex(cp => cp.ProjectId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cp => cp.ClusterId);
         
         modelBuilder.Entity<SessionCode>()
             .HasIndex(s => s.UniqueCode)
             .IsUnique();
-
-        modelBuilder.Entity<ClusterProject>()
-            .HasIndex("ClusterId")
-            .HasFilter("[IsDeleted] = 0")
-            .IncludeProperties("ProjectId", "PreferredAuthType");
-
-        modelBuilder.Entity<ClusterProject>()
-            .HasIndex("ProjectId")
-            .HasFilter("[IsDeleted] = 0")
-            .IncludeProperties("ClusterId", "PreferredAuthType");
-
-        modelBuilder.Entity<ClusterProjectCredential>()
-            .HasIndex("ClusterProjectId")
-            .HasFilter("[IsDeleted] = 0")
-            .IncludeProperties("ClusterAuthenticationCredentialsId");
     }
-
     #endregion
 
     #region Seeding methods
