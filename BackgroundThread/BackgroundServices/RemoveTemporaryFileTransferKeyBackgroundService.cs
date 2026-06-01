@@ -58,7 +58,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
 
                     await LogicFactory.GetLogicFactory()
                         .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
-                        .RemoveJobsTemporaryFileTransferKeys();
+                        .RemoveJobsTemporaryFileTransferKeysAsync();
                 }
                 catch (Exception ex)
                 {

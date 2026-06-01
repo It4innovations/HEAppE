@@ -1026,8 +1026,7 @@ public class ManagementService : IManagementService
 
     public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -1038,16 +1037,14 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName,
-                proxyConnectionId);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
 
     public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -1058,8 +1055,7 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName,
-                proxyConnectionId);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }

@@ -217,7 +217,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #endregion
 
-    public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJob(object connectorClient, JobSpecification jobSpecification,
+    public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         try
@@ -326,7 +326,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             if (tasksToQuery.Any())
             {
                 _logger.LogDebug($"[SubmitJob] Querying actual status for {tasksToQuery.Count} tasks...");
-                var queriedTasks = await GetActualTasksInfo(connectorClient, jobSpecification.Cluster, tasksToQuery, null);
+                var queriedTasks = await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, tasksToQuery, null);
                 finalSubmittedTasks.AddRange(queriedTasks);
             }
 
@@ -339,7 +339,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string key)
     {
 
@@ -408,7 +408,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         return submittedTasksInfo;
     }
 
-    public async Task CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
+    public async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
     {
         await Task.Delay(1);
 
@@ -481,7 +481,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
         try
@@ -515,7 +515,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<bool> DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
         try
         {
@@ -555,58 +555,58 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType)
     {
         await Task.Delay(1);
         throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<string>> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
+    public async Task<IEnumerable<string>> GetAllocatedNodesAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
         await Task.Delay(1);
         throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<string>> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath) =>
+    public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath) =>
         await _commands?.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
 
-    public async Task AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo) =>
         await _commands?.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
 
-    public async Task RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) =>
+    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) =>
         await _commands?.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
 
-    public async Task CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) =>
+    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) =>
         await _commands?.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
 
-    public async Task CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
+    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
         await _commands?.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
 
-    public Task CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
+    public Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
         throw new NotSupportedException();
 
-    public Task RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo) =>
+    public Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo) =>
         throw new NotSupportedException();
 
     public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost) =>
         throw new NotSupportedException();
 
-    public async Task<bool> InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         string account, bool isServiceAccount) => await _commands?.InitializeClusterScriptDirectoryAsync(
             schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
             localBasepath, account, isServiceAccount);
 
-    public async Task<bool> MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
+    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
         await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotSupportedException();
 
-    public Task<DryRunJobInfo> DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
+    public Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
         throw new NotSupportedException();
 
-    public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
+    public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
         throw new NotSupportedException();
 }

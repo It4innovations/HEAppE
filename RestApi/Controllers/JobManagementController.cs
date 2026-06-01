@@ -99,7 +99,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+        return Ok(await _service.SubmitJobAsync(model.CreatedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        await _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
+        await _service.CopyJobDataToTempAsync(model.CreatedJobInfoId, model.SessionCode, model.Path);
         return Ok("Data were copied to Temp");
     }
 
@@ -244,7 +244,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        await _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
+        await _service.CopyJobDataFromTempAsync(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
         return Ok("Data were copied from Temp");
     }
 
@@ -272,7 +272,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
+        return Ok(await _service.AllocatedNodesIPsAsync(model.SubmittedTaskInfoId, model.SessionCode));
     }
     
     /// <summary>

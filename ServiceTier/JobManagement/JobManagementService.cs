@@ -128,7 +128,7 @@ public class JobManagementService : IJobManagementService
         return jobInfo.ConvertIntToExt();
     }
 
-    public async Task<SubmittedJobInfoExt> SubmitJob(long createdJobInfoId, string sessionCode)
+    public async Task<SubmittedJobInfoExt> SubmitJobAsync(long createdJobInfoId, string sessionCode)
     {
         SubmittedJobInfo jobInfo;
         AdaptorUser loggedUser;
@@ -419,7 +419,7 @@ public class JobManagementService : IJobManagementService
                 
                 if (!needSshRefresh)
                 {
-                    // F7T: check
+                    // solution for FirecREST
                     bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken);
                     bool isFirecRestJob() => job.Project.ClusterProjects.Any(cp => cp.Cluster.ConnectionProtocol == DomainObjects.ClusterInformation.ClusterConnectionProtocol.FirecRestApi);
                     needSshRefresh = hasToken() && isFirecRestJob();
@@ -448,7 +448,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public async Task CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path)
+    public async Task CopyJobDataToTempAsync(long createdJobInfoId, string sessionCode, string path)
     {
         SubmittedJobInfo jobInfo;
         ClusterProject clusterProject;
@@ -461,7 +461,7 @@ public class JobManagementService : IJobManagementService
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataToTemp(createdJobInfoId, loggedUser);
+            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataToTempAsync(createdJobInfoId, loggedUser);
         } // unitOfWork is disposed here!
 
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
@@ -469,7 +469,7 @@ public class JobManagementService : IJobManagementService
             .CopyJobDataToTempAsync(jobInfo, clusterProject.ScratchStoragePath, sessionCode, path, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
-    public async Task CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode)
+    public async Task CopyJobDataFromTempAsync(long createdJobInfoId, string sessionCode, string tempSessionCode)
     {
         SubmittedJobInfo jobInfo;
         ClusterProject clusterProject;
@@ -482,7 +482,7 @@ public class JobManagementService : IJobManagementService
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataFromTemp(createdJobInfoId, loggedUser);
+            (jobInfo, clusterProject) = await jobLogic.PrepareCopyJobDataFromTempAsync(createdJobInfoId, loggedUser);
         } // unitOfWork is disposed here!
 
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
@@ -490,7 +490,7 @@ public class JobManagementService : IJobManagementService
             .CopyJobDataFromTempAsync(jobInfo, clusterProject.ScratchStoragePath, tempSessionCode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
-    public async Task<IEnumerable<string>> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
+    public async Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode)
     {
         SubmittedTaskInfo taskInfo;
         AdaptorUser loggedUser;

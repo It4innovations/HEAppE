@@ -122,7 +122,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
-    public virtual async Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<SubmittedJobInfo> SubmitJobAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var (jobInfo, isWaiting) = await PrepareJobForSubmitAsync(createdJobInfoId, loggedUser);
@@ -417,8 +417,8 @@ internal class JobManagementLogic : IJobManagementLogic
                 if (missingTasks.Any())
                 {
                     _logger.LogInformation($"Bulk checking history/accounting for {missingTasks.Count} missing tasks on cluster {cluster.Name}");
-
-                    var historicalStates = await scheduler.GetHistoricalTasksInfo(missingTasks, account, null, null);
+                    
+                    var historicalStates = await scheduler.GetHistoricalTasksInfoAsync(missingTasks, account, null, null);
                     if (historicalStates != null)
                     {
                         groupTasksResult.AddRange(historicalStates);
@@ -487,11 +487,11 @@ internal class JobManagementLogic : IJobManagementLogic
         await _unitOfWork.SaveAsync();
     }
 
-    public async Task CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
+    public async Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
         _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
-        var (jobInfo, clusterProject) = await PrepareCopyJobDataToTemp(createdJobInfoId, loggedUser);
+        var (jobInfo, clusterProject) = await PrepareCopyJobDataToTempAsync(createdJobInfoId, loggedUser);
 
         var schedulerOptions = await GetSchedulerOptions(jobInfo.Specification.Cluster);
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
@@ -500,11 +500,11 @@ internal class JobManagementLogic : IJobManagementLogic
             .CopyJobDataToTempAsync(jobInfo, clusterProject.ScratchStoragePath, hash, path, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
-    public async Task CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash)
+    public async Task CopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash)
     {
         _logger.LogInformation(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
-        var (jobInfo, clusterProject) = await PrepareCopyJobDataFromTemp(createdJobInfoId, loggedUser);
+        var (jobInfo, clusterProject) = await PrepareCopyJobDataFromTempAsync(createdJobInfoId, loggedUser);
 
         var schedulerOptions = await GetSchedulerOptions(jobInfo.Specification.Cluster);
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
@@ -513,7 +513,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .CopyJobDataFromTempAsync(jobInfo, clusterProject.ScratchStoragePath, hash, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
-    public async Task<IEnumerable<string>> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
+    public async Task<IEnumerable<string>> GetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
         var taskInfo = await PrepareGetAllocatedNodesIPsAsync(submittedTaskInfoId, loggedUser);
 
@@ -775,7 +775,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return result;
     }
 
-    public static bool UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
+    protected static bool UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
     {
         // TODO: review this method
         dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
@@ -1212,7 +1212,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return (dryRunJobSpecification, cluster, project);
     }
 
-    public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser)
+    public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
@@ -1221,7 +1221,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return (jobInfo, clusterProject);
     }
 
-    public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser)
+    public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =

@@ -15,7 +15,7 @@ public interface IJobManagementLogic
     Task<SubmittedJobInfo> CreateJobDbRecord(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong);
     Task DeleteJobDbRecord(long jobInfoId, long specificationId);
 
-    Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
+    Task<SubmittedJobInfo> SubmitJobAsync(long createdJobInfoId, AdaptorUser loggedUser);
     Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CompleteJobSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> submittedTasks);
 
@@ -44,13 +44,13 @@ public interface IJobManagementLogic
     IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds);
     Task UpdateCurrentStateOfUnfinishedJobs();
 
-    Task CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
-    Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser);
+    Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
+    Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser);
 
-    Task CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
-    Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser);
+    Task CopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash);
+    Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser);
 
-    Task<IEnumerable<string>> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
+    Task<IEnumerable<string>> GetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser);
     Task<SubmittedTaskInfo> PrepareGetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser);
 
     Task<DryRunJobInfo> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,

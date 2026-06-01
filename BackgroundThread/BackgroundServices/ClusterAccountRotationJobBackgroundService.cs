@@ -75,7 +75,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                                 _logger.LogInformation($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                                 await LogicFactory.GetLogicFactory()
                                     .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
-                                    .SubmitJob(job.Id, job.Submitter);
+                                    .SubmitJobAsync(job.Id, job.Submitter);
                             }
                             catch (Exception jobEx)
                             {

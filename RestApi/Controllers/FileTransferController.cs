@@ -97,7 +97,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-            await _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
+            await _service.CloseFileTransferAsync(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
         return Ok("File transfer closed");
     }
 
@@ -119,7 +119,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-            return Ok(await _service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets,
+            return Ok(await _service.DownloadPartsOfJobFilesFromClusterAsync(model.SubmittedJobInfoId, model.TaskFileOffsets,
             model.SessionCode));
     }
 
@@ -148,7 +148,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-            return Ok(await _service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
+            return Ok(await _service.ListChangedFilesForJobAsync(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-            return Ok(await _service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath,
+            return Ok(await _service.DownloadFileFromClusterAsync(model.SubmittedJobInfoId, model.RelativeFilePath,
             model.SessionCode));
     }
 

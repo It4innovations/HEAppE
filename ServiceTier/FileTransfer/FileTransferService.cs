@@ -72,7 +72,7 @@ public class FileTransferService : IFileTransferService
         }
     }
 
-    public async Task CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
+    public async Task CloseFileTransferAsync(long submittedJobInfoId, string publicKey, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -83,11 +83,11 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id, _expirioService);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            await fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
+            await fileTransferLogic.EndFileTransferAsync(submittedJobInfoId, publicKey, loggedUser);
         }
     }
 
-    public async Task<JobFileContentExt[]> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId,
+    public async Task<JobFileContentExt[]> DownloadPartsOfJobFilesFromClusterAsync(long submittedJobInfoId,
         TaskFileOffsetExt[] taskFileOffsets, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -99,7 +99,7 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id, _expirioService);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var downloadedFileParts = await fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
+            var downloadedFileParts = await fileTransferLogic.DownloadPartsOfJobFilesFromClusterAsync(
                 submittedJobInfoId,
                 (from taskFileOffset in new List<TaskFileOffsetExt>(taskFileOffsets).ToList()
                     select FileTransferConverts.ConvertTaskFileOffsetExtToInt(taskFileOffset)).ToArray(),
@@ -109,7 +109,7 @@ public class FileTransferService : IFileTransferService
         }
     }
 
-    public async Task<FileInformationExt[]> ListChangedFilesForJob(long submittedJobInfoId, string sessionCode)
+    public async Task<FileInformationExt[]> ListChangedFilesForJobAsync(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -120,12 +120,12 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id, _expirioService);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var result = await fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
+            var result = await fileTransferLogic.ListChangedFilesForJobAsync(submittedJobInfoId, loggedUser);
             return result?.Select(s => s.ConvertIntToExt()).ToArray();
         }
     }
 
-    public async Task<byte[]> DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, string sessionCode)
+    public async Task<byte[]> DownloadFileFromClusterAsync(long submittedJobInfoId, string relativeFilePath, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -136,11 +136,11 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id, _expirioService);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return await fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
+            return await fileTransferLogic.DownloadFileFromClusterAsync(submittedJobInfoId, relativeFilePath, loggedUser);
         }
     }
     
-    public async Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
+    public async Task<dynamic> UploadFileToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
         await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -156,7 +156,7 @@ public class FileTransferService : IFileTransferService
         }
     }
     
-    public async Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
+    public async Task<dynamic> UploadJobScriptToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
         await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -192,11 +192,11 @@ public class FileTransferService : IFileTransferService
                 throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
                     loggedUser.GetLogIdentification(), job.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return fileTransferLogic.UploadFileToJobExecutionDir(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
+            return fileTransferLogic.UploadFileToJobExecutionDirAsync(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
         }
     }
 
-    public async Task<FileTransferMethodExt> ProvideCredentials(long modelProjectId, long modelClusterId)
+    public async Task<FileTransferMethodExt> ProvideCredentialsAsync(long modelProjectId, long modelClusterId)
     {
         //test if user is authorized with Bearer token and project is configured as 1:1 user mapping
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))

@@ -97,7 +97,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     #region Methods
 
-    public async Task RemoveJobsTemporaryFileTransferKeys()
+    public async Task RemoveJobsTemporaryFileTransferKeysAsync()
     {
         var activeTemporaryKeys = _unitOfWork.FileTransferTemporaryKeyRepository.GetAllActiveTemporaryKey()
             .Where(w => w.AddedAt.AddHours(BusinessLogicConfiguration.ValidityOfTemporaryTransferKeysInHours) <=
@@ -295,7 +295,7 @@ public class FileTransferLogic : IFileTransferLogic
         return transferMethod;
     }
 
-    public async System.Threading.Tasks.Task EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser)
+    public async System.Threading.Tasks.Task EndFileTransferAsync(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser)
     {
         _logger.LogInformation(
             $"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
@@ -319,7 +319,7 @@ public class FileTransferLogic : IFileTransferLogic
         await _unitOfWork.SaveAsync();
     }
 
-    public async Task<IList<JobFileContent>> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId,
+    public async Task<IList<JobFileContent>> DownloadPartsOfJobFilesFromClusterAsync(long submittedJobInfoId,
         TaskFileOffset[] taskFileOffsets, AdaptorUser loggedUser)
     {
         _logger.LogInformation(
@@ -366,7 +366,7 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public async Task<IList<SynchronizedJobFiles>> SynchronizeAllUnfinishedJobFiles()
+    public async Task<IList<SynchronizedJobFiles>> SynchronizeAllUnfinishedJobFilesAsync()
     {
         var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetNotFinishedJobInfos().ToList();
@@ -402,7 +402,7 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public async Task<ICollection<FileInformation>> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public async Task<ICollection<FileInformation>> ListChangedFilesForJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -420,7 +420,7 @@ public class FileTransferLogic : IFileTransferLogic
        
         return await fileManager.ListChangedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
-    public async Task<byte[]> DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
+    public async Task<byte[]> DownloadFileFromClusterAsync(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -564,7 +564,7 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public async Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser)
+    public async Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
         

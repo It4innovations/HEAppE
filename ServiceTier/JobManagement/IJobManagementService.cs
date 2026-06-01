@@ -7,15 +7,15 @@ namespace HEAppE.ServiceTier.JobManagement;
 public interface IJobManagementService
 {
     Task<SubmittedJobInfoExt> CreateJob(JobSpecificationExt specification, string sessionCode);
-    Task<SubmittedJobInfoExt> SubmitJob(long createdJobInfoId, string sessionCode);
+    Task<SubmittedJobInfoExt> SubmitJobAsync(long createdJobInfoId, string sessionCode);
     Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode);
     Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode);
     Task<bool> DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);
     SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null, int? limit = null, int? offset = null, long? userId = null, long? clusterId = null, long? subProjectId = null, long? projectId = null);
     Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode);
-    Task CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path);
-    Task CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);
-    Task<IEnumerable<string>> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode);
+    Task CopyJobDataToTempAsync(long createdJobInfoId, string sessionCode, string path);
+    Task CopyJobDataFromTempAsync(long createdJobInfoId, string sessionCode, string tempSessionCode);
+    Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode);
     Task<DryRunJobInfoExt> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode, long modelWallTimeInMinutes, string modelSessionCode);
 }
