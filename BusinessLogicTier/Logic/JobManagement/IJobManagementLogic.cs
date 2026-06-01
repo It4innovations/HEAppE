@@ -18,6 +18,7 @@ public interface IJobManagementLogic
     Task<SubmittedJobInfo> SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
     Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CompleteJobSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> submittedTasks);
+
     Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials)> PrepareGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CompleteGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> actualTasksInfo);
@@ -42,16 +43,16 @@ public interface IJobManagementLogic
     IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos();
     IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds);
     Task UpdateCurrentStateOfUnfinishedJobs();
-    
+
     Task CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
     Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser);
-    
+
     Task CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
     Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser);
-    
+
     Task<IEnumerable<string>> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
     Task<SubmittedTaskInfo> PrepareGetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser);
-    
+
     Task<DryRunJobInfo> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser);
     Task<(DryRunJobSpecification Specification, Cluster Cluster, Project Project)> PrepareDryRunJobAsync(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser);

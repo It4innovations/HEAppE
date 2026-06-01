@@ -313,7 +313,7 @@ public class MiddlewareContext : DbContext
                 .HasIndex([nameof(ISoftDeletableEntity.IsDeleted)])
                 .HasFilter("[IsDeleted] = 0");
         }
-        
+
         modelBuilder.Entity<SubmittedTaskInfo>()
             .HasIndex("SubmittedJobInfoId", nameof(SubmittedTaskInfo.State))
             .IncludeProperties("SpecificationId", "NodeTypeId", "ProjectId");
@@ -381,7 +381,6 @@ public class MiddlewareContext : DbContext
             .HasIndex(s => s.UniqueCode)
             .IsUnique();
     }
-
     #endregion
 
     #region Seeding methods
@@ -433,7 +432,6 @@ public class MiddlewareContext : DbContext
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Accountings);
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregations);
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
-
 
         await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypes);
 

@@ -33,8 +33,6 @@ using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
-// TODO: finish this conflicting merge file manually!!!
-
 internal class JobManagementLogic : IJobManagementLogic
 {
     private readonly ILogger _logger;
@@ -431,7 +429,7 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 _logger.LogError(ex, $"Failed to retrieve statuses for a batch of tasks on cluster {cluster.Name}");
             }
-            
+
             foreach (var item in itemsInGroup)
             {
                 var submittedJob = item.Job;
@@ -471,7 +469,8 @@ internal class JobManagementLogic : IJobManagementLogic
                     var jobStateChanged = UpdateJobStateByTasks(submittedJob);
                     if (isNeedUpdateJobState || jobStateChanged)
                     {
-                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
+                        // UpdateJobStateByTasks(submittedJob);
+                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob); // TODO: check
                     }
                 }
                 finally
@@ -800,21 +799,9 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
 
-        JobState newState;
-        if ((JobState)minTaskState < JobState.Finished)
-        {
-            newState = (JobState)minTaskState;
-        }
-        else
-        {
-            newState = continuousJobState;
-        }
-
-        var stateChanged = dbJobInfo.State != newState;
-
+        JobState newState = (JobState)minTaskState < JobState.Finished ? (JobState)minTaskState : continuousJobState;
         dbJobInfo.State = newState;
-
-        return stateChanged;
+        return dbJobInfo.State != newState;
     }
 
     protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,

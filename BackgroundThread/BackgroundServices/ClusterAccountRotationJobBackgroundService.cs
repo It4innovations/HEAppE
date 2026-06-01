@@ -65,7 +65,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                         {
                             try
                             {
-                               HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(job.Id);
+                                HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(job.Id);
                                 if (job.Submitter != null)
                                 {
                                     HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(

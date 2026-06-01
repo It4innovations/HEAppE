@@ -161,7 +161,7 @@ public class HttpContextKeys : IHttpContextKeys
             catch (System.Text.Json.JsonException ex)
             {
                 _logger.LogError(ex, $"[SshCaExchange] Failed to deserialize token response. Content: {content}");
-                throw new ExternalException($"Token exchange service returned invalid JSON format: {ex.Message}");
+                throw new ExternalException($"Token exchange service returned invalid JSON format: {ex.Message}") { ServiceName = "KeycloakTokenExchange" };
             }
         }
         catch (ExternalException)

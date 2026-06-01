@@ -53,8 +53,9 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     [ForeignKey("ClusterProxyConnection")] 
     public long? ProxyConnectionId { get; set; }
+
     public virtual ClusterProxyConnection ProxyConnection { get; set; }
     public virtual List<ClusterProject> ClusterProjects { get; set; } = new();
-    
+
     #endregion
 }

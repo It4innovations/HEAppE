@@ -148,7 +148,7 @@ public interface IManagementService
     List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode);
 
     ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type, FirecRestOptions fircRestOptions, string sessionCode);
+        ProxyType type, FirecRestOptions firecRestOptions, string sessionCode);
 
     ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username,
         string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode);

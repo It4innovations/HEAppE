@@ -55,7 +55,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
-                    
+
                     await LogicFactory.GetLogicFactory()
                         .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
                         .UpdateCurrentStateOfUnfinishedJobs();
