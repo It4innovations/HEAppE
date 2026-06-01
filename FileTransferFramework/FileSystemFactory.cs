@@ -1,5 +1,6 @@
 #pragma warning disable CS1030
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -32,7 +33,7 @@ public abstract class FileSystemFactory
 
     protected static readonly ILogger _logger;
     protected static readonly IExpirioService _expirio;
-    private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
+    private readonly ConcurrentDictionary<long, IConnectionPool> _schedulerConnPoolSingletons = new();
     private static FileSystemFactory _windowsSharedFactorySingleton;
     private static FileSystemFactory _sftpFactorySingleton;
 
@@ -65,27 +66,34 @@ public abstract class FileSystemFactory
 
     protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
-        if (!_schedulerConnPoolSingletons.TryGetValue(configuration, out var connection))
+        if (_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out var connection))
         {
-            var poolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
-            
-            connection = new ConnectionPool.ConnectionPool(configuration.Cluster.MasterNodeName,
-                configuration.Cluster.TimeZone,
-                0, // MinSize
-                poolSettings.MaxConnectionsPerUser,
-                poolSettings.MaxSessionsPerConnection,
-                poolSettings.ConnectionPoolCleaningInterval,
-                poolSettings.ConnectionPoolMaxUnusedInterval,
-                CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
-                HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
-                HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
-                configuration.Cluster.Port,
-                logger);
-
-            _schedulerConnPoolSingletons.Add(configuration, connection);
+            return connection;
         }
 
-        return connection;
+        lock (_schedulerConnPoolSingletons)
+        {
+            if (!_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out connection))
+            {
+                var poolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
+                
+                connection = new ConnectionPool.ConnectionPool(configuration.Cluster.MasterNodeName,
+                    configuration.Cluster.TimeZone,
+                    0, // MinSize
+                    poolSettings.MaxConnectionsPerUser,
+                    poolSettings.MaxSessionsPerConnection,
+                    poolSettings.ConnectionPoolCleaningInterval,
+                    poolSettings.ConnectionPoolMaxUnusedInterval,
+                    CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
+                    configuration.Cluster.Port,
+                    logger);
+
+                _schedulerConnPoolSingletons.TryAdd(configuration.Id, connection);
+            }
+            return connection;
+        }
     }
 
     #endregion

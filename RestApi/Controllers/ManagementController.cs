@@ -1087,8 +1087,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var cluster = _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType, model.ConnectionProtocol,
-            model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName,
-            model.ProxyConnectionId,
+            model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(cluster);
@@ -1114,8 +1113,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var cluster = _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType, model.ConnectionProtocol,
-            model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName,
-            model.ProxyConnectionId,
+            model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(cluster);

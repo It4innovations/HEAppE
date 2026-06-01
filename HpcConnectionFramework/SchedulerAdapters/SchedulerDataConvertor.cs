@@ -134,6 +134,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
         taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
+        taskAdapter.Reservation = jobSpecification.Reservation;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
         taskAdapter.Memory = taskSpecification.Memory;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -59,6 +59,13 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
 
     public string QualityOfService { get; set; }
     public string ClusterAllocationName { get; set; }
+    public string Reservation
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value)) _hqAutoAllocParametersBuilder.Append($" --reservation={value}");
+        }
+    }
     public bool CpuHyperThreading { get; set; }
 
     public string JobArrays

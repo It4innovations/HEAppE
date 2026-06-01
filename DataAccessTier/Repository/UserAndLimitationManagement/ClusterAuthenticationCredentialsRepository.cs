@@ -146,7 +146,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
-            _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
+            _context.ClusterProjects
+                .Include(cp => cp.ClusterProjectCredentials)
+                    .ThenInclude(cpc => cpc.ClusterAuthenticationCredentials)
+                .FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
         
         var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
@@ -244,52 +247,6 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         return await WithVaultData(credentials, logger);
     }
-
-    /*
-    public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(
-        long clusterId,
-        long projectId,
-        bool requireIsInitialized,
-        long? adaptorUserId)
-    {
-        var project = await _context.Projects
-            .AsNoTracking()
-            .Where(p => p.Id == projectId)
-            .Select(p => new { p.IsOneToOneMapping })
-            .SingleOrDefaultAsync();
-
-        if (project == null)
-            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
-
-        // V této metodě MUSÍME trackovat entity, protože v cyklu pak měníte .IsInitialized = true
-        var cred = await _context.ClusterAuthenticationCredentials
-            .AsSplitQuery()
-            .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
-            .ThenInclude(cp => cp.Cluster)
-            .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
-            .ThenInclude(cp => cp.Project)
-            .Where(cac => cac.ClusterProjectCredentials.Any(cpc => 
-                cpc.ClusterProject.ClusterId == clusterId && 
-                cpc.ClusterProject.ProjectId == projectId &&
-                cpc.IsServiceAccount &&
-                (!requireIsInitialized || cpc.IsInitialized) &&
-                (project.IsOneToOneMapping
-                    ? cpc.AdaptorUserId == adaptorUserId
-                    : cpc.AdaptorUserId == null)))
-            .FirstOrDefaultAsync();
-
-        if (requireIsInitialized && cred == null)
-        {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
-            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
-        }
-
-        // WithVaultData pravděpodobně vrací stejný objekt, zachováme await
-        return await WithVaultData(cred);
-    }
-    */
     
     public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(
         long clusterId,

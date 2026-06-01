@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -126,7 +126,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .ToList();
     }
 
-    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo)
+    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var ids = groupIds?.ToList();
         if (ids == null || !ids.Any()) return Enumerable.Empty<ProjectReport>();
@@ -139,13 +140,14 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .ToList();
 
         var pIds = groups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
-        var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects);
+        var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects, limit, offset, clusterId, userId);
 
         return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()))
                      .Where(r => r != null).ToList();
     }
 
-    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime, string[] subProjects)
+    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null)
     {
         var userGroupIds = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
@@ -157,15 +159,17 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var targetGroupIds = (reporterGroupIds ?? Enumerable.Empty<long>()).Intersect(userGroupIds).ToList();
 
-        return JobsDetailedReport(targetGroupIds, subProjects, startTime, endTime);
+        return JobsDetailedReport(targetGroupIds, subProjects, startTime, endTime, limit, offset, clusterId, userId);
     }
 
-    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string[] subProjects)
+    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
-        return JobsDetailedReport(new[] { groupId }, subProjects, startTime, endTime).FirstOrDefault();
+        return JobsDetailedReport(new[] { groupId }, subProjects, startTime, endTime, limit, offset, clusterId, userId).FirstOrDefault();
     }
 
-    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime)
+    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var group = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
@@ -176,7 +180,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         if (group.Project == null) return null;
 
-        var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null)[group.Project.Id].ToList();
+        var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null, limit, offset, clusterId, userId)[group.Project.Id].ToList();
 
         var subProjectsReports = group.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
             SubProject = sp,
@@ -202,7 +206,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         };
     }
 
-    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var groupIdsList = groupIds?.ToList() ?? new List<long>();
         if (!groupIdsList.Any()) return Enumerable.Empty<ProjectAggregatedReport>();
@@ -216,11 +221,12 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         return groups
             .Where(g => g.ProjectId.HasValue)
             .DistinctBy(g => g.ProjectId.Value)
-            .Select(g => UserGroupResourceAggregatedUsageReport(g.Id, startTime, endTime))
+            .Select(g => UserGroupResourceAggregatedUsageReport(g.Id, startTime, endTime, limit, offset, clusterId, userId))
             .Where(r => r != null).ToList();
     }
 
-    private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects)
+    private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var pIds = projectIds?.ToList();
         if (pIds == null || !pIds.Any()) return Enumerable.Empty<SubmittedJobInfo>().ToLookup(x => 0L);
@@ -239,6 +245,20 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         if (subProjects?.Any() == true)
             query = query.Where(j => j.Specification != null && j.Specification.SubProject != null && subProjects.Contains(j.Specification.SubProject.Identifier));
+
+        if (userId.HasValue)
+            query = query.Where(j => j.Submitter != null && j.Submitter.Id == userId.Value);
+
+        if (clusterId.HasValue)
+            query = query.Where(j => j.Tasks.Any(t => t.NodeType != null && t.NodeType.Cluster != null && t.NodeType.Cluster.Id == clusterId.Value));
+
+        query = query.OrderByDescending(j => j.Id);
+
+        if (offset.HasValue)
+            query = query.Skip(offset.Value);
+
+        if (limit.HasValue)
+            query = query.Take(limit.Value);
 
         return query.ToList().ToLookup(j => j.Project.Id);
     }

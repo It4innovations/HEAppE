@@ -74,6 +74,7 @@ builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGenera
 builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 builder.Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+DatabaseMigrationSettings.DisableSeedingAndMigration = true;
 builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
@@ -83,7 +84,6 @@ builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
-
 
 var globalRetryPolicy = HttpPolicyExtensions
     .HandleTransientHttpError()
@@ -148,7 +148,6 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
 });
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
@@ -307,9 +306,12 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseCors("HEAppEDefaultOrigins");
-app.UseMiddleware<RequestSizeMiddleware>();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
+app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseSwagger(swagger =>
 {
@@ -331,7 +333,6 @@ app.UseMiddleware<LogUserContextMiddleware>();
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.RegisterApiRoutes();

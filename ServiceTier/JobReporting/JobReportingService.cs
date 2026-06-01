@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -66,7 +66,7 @@ public class JobReportingService : IJobReportingService
     }
 
     public IEnumerable<ProjectReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime,
-        string[] subProjects, string sessionCode)
+        string[] subProjects, string sessionCode, int? limit = null, int? offset = null, long? clusterId = null)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -80,14 +80,14 @@ public class JobReportingService : IJobReportingService
                 .Select(g => g.Id)
                 .Distinct()
                 .ToList();
-            return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime, subProjects)
+            return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime, subProjects, limit, offset, clusterId)
                 .Where(s => s != null)
                 .Select(g => g.ConvertIntToExt());
         }
     }
 
     public ProjectReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
-        string[] subProjects, string sessionCode)
+        string[] subProjects, string sessionCode, int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -99,13 +99,13 @@ public class JobReportingService : IJobReportingService
 
             if (!projects.Any(x => x.Id == group.ProjectId)) throw new NotAllowedException("NotAllowedToRequestReport");
             var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
-            return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)
+            return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects, limit, offset, clusterId, userId)
                 .ConvertIntToExt();
         }
     }
 
     public IEnumerable<ProjectAggregatedReportExt> AggregatedUserGroupResourceUsageReport(DateTime startTime,
-        DateTime endTime, string sessionCode)
+        DateTime endTime, string sessionCode, int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -127,7 +127,7 @@ public class JobReportingService : IJobReportingService
                 return projects.Any(p => p.Id == userGroup.ProjectId);
             }).ToList();
 
-            return jobReportingLogic.AggregatedUserGroupResourceUsageReport(reportAllowedGroupIds, startTime, endTime)
+            return jobReportingLogic.AggregatedUserGroupResourceUsageReport(reportAllowedGroupIds, startTime, endTime, limit, offset, clusterId, userId)
                 .Where(s => s != null)
                 .Select(x => x.ConvertIntToExt()).ToList();
         }
@@ -162,7 +162,8 @@ public class JobReportingService : IJobReportingService
         }
     }
 
-    public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -184,7 +185,7 @@ public class JobReportingService : IJobReportingService
                     .ToList()
                 : new List<long>();
 
-            var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo);
+            var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo, limit, offset, clusterId, userId);
 
             if (reports == null)
                 return Enumerable.Empty<ProjectDetailedReportExt>();

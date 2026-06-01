@@ -52,7 +52,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long projectId)
     {
         var nodeType = GetClusterNodeTypeById(clusterNodeId)
-            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", clusterNodeId);
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeId);
 
         var project = _unitOfWork.ProjectRepository.GetById(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -158,7 +158,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null)
-            throw new RequestedObjectDoesNotExistException("ProjectNotExists", projectId);
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
         if (project.IsOneToOneMapping)
         {
@@ -336,7 +336,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId)
     {
-        var nodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(clusterNodeTypeId);
+        var nodeType = _unitOfWork.ClusterNodeTypeRepository.GetByIdWithClusterAndProjects(clusterNodeTypeId);
 
         if (nodeType == null)
             throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeTypeId);
@@ -359,11 +359,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)
     {
-        var allRunningJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished().ToList();
-        var userRunningJobs = allRunningJobs.Where(w =>
-            w.Specification.ClusterUser == user && w.State > JobState.Configuring && w.State <= JobState.Running);
-
-        return !userRunningJobs.Any();
+        return !_unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Any(w => w.Specification.ClusterUser.Id == user.Id 
+                      && w.State > JobState.Configuring 
+                      && w.State <= JobState.Running);
     }
 
     private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)

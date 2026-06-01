@@ -94,5 +94,4 @@ public class ModifyClusterModel : SessionCodeModel
     [DataMember(Name = "ProxyConnectionId", IsRequired = true)]
     [Description("Proxy connection id")]
     public long? ProxyConnectionId { get; set; }
-
 }

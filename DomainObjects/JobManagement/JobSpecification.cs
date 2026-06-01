@@ -42,6 +42,10 @@ public class JobSpecification : CommonJobProperties
     [ForeignKey("SubProject")] public long? SubProjectId { get; set; }
 
     public virtual SubProject SubProject { get; set; }
+
+    [StringLength(1000)]
+    public string Reservation { get; set; }
+
     public virtual List<TaskSpecification> Tasks { get; set; } = new();
 
     public virtual ClusterAuthenticationCredentials ClusterUser { get; set; }

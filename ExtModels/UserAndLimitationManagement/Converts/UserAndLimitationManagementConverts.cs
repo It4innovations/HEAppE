@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -146,7 +146,7 @@ public static class UserAndLimitationManagementConverts
     private static FileTransferCipherType ConvertFileTransferMethodExtToInt(
         FileTransferCipherTypeExt? fileTransferMethod)
     {
-        if (!fileTransferMethod.HasValue) throw new InputValidationException("The file transfer method has to be set.");
+        if (!fileTransferMethod.HasValue) throw new InputValidationException("FileTransferMethodMustBeSet");
 
         return fileTransferMethod switch
         {

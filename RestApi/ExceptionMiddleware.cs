@@ -115,32 +115,79 @@ public class ExceptionMiddleware
         var logLevel = LogLevel.Error;
         switch (exception)
         {
-            case InsufficientRoleException:
-            case UnauthorizedAccessException:
-                problem.Title = "Unauthorized Access";
+            case InputValidationException:
+                problem.Title = "Validation Problem";
                 problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status401Unauthorized;
+                problem.Status = StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
-            case InputValidationException:
             case RequestedObjectDoesNotExistException:
-                problem.Title = "Validation Problem";
+                problem.Title = "Resource Not Found";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status404NotFound;
                 logLevel = LogLevel.Warning;
                 break;
-            case SessionCodeNotValidException:
+            case DatabaseRestoreExternalException:
+                problem.Title = "Backup File Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case InsufficientRoleException:
+            case UnauthorizedAccessException:
             case AdaptorUserNotAuthorizedForJobException:
-                problem.Title = "Authorization Problem";
+            case AdaptorUserNotReferencedForProjectException:
+                problem.Title = "Access Forbidden";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
+            case NotAllowedException:
+                problem.Title = "Not Allowed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
+            case SessionCodeNotValidException:
+                problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
                 logLevel = LogLevel.Warning;
                 break;
-            case AuthenticationTypeException authEx:
-                problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
-                var authMsg = GetExceptionMessage(exception);
-                problem.Detail = !string.IsNullOrEmpty(authEx.Details) ? $"{authMsg}: {authEx.Details}" : authMsg;
+            case AuthenticationTypeException:
+                problem.Title = "UserOrg Authentication Problem";
+                problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case InvalidAuthenticationCredentialsException:
+                problem.Title = "Authentication Failed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case JwtDecodeException:
+                problem.Title = "Token Parsing Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case RequestedJobResourcesExceededUserLimitationsException:
+                problem.Title = "Resource Limit Exceeded";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case ResourceUsageException resourceUsageEx:
+                problem.Title = resourceUsageEx.Message == "ReporterNoAccessToJob" ? "Access Forbidden" : "Resource Usage Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = resourceUsageEx.Message == "ReporterNoAccessToJob" ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case FileTransferTemporaryKeyException tempKeyEx:
+                problem.Title = tempKeyEx.Message == "SshKeyGenerationLimit" ? "Too Many Requests" : "File Transfer Key Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = tempKeyEx.Message == "SshKeyGenerationLimit" ? StatusCodes.Status429TooManyRequests : StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
             case SlurmException slurmException:
@@ -190,19 +237,19 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case SshCAServiceTypeException:
+                problem.Title = "SSH CA Service Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                logLevel = LogLevel.Warning;
+                break;
             case InternalException:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
                 break;
-            case NotAllowedException:
-                problem.Title = "Not Allowed";
+            case ExternalException:
+                problem.Title = "External Service Error";
                 problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status403Forbidden;
-                break;
-            case ExternalException externalEx:
-                problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem: " + exception.GetType().Name;
-                var extMsg = GetExceptionMessage(exception);
-                problem.Detail = !string.IsNullOrEmpty(externalEx.Details) ? $"{extMsg}: {externalEx.Details}" : extMsg;
                 problem.Status = StatusCodes.Status502BadGateway;
                 logLevel = LogLevel.Warning;
                 break;
@@ -226,8 +273,20 @@ public class ExceptionMiddleware
                 break;
         }
 
-        // Log exception with default 'en' culture localization
+        log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
         _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
+        log4net.LogicalThreadContext.Properties.Remove("requestId");
+
+        if (!string.IsNullOrEmpty(problem.Detail))
+        {
+            problem.Detail += $" (Request ID: {context.TraceIdentifier})";
+        }
+        else
+        {
+            problem.Detail = $"Request ID: {context.TraceIdentifier}";
+        }
+
+        problem.Extensions["TraceId"] = context.TraceIdentifier;
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = problem.Status.Value;

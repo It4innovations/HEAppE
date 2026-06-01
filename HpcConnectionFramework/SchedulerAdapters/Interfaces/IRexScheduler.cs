@@ -56,4 +56,7 @@ public interface IRexScheduler
 
     Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential);
     Task<DryRunJobInfo> DryRunJobAsync(DryRunJobSpecification dryRunJobSpecification, string contextSshCaToken, string lexisToken);
+
+    Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account, string sshCaToken, string lexisToken);
 }

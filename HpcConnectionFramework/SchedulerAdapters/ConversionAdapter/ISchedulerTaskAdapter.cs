@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
@@ -44,6 +44,8 @@ public interface ISchedulerTaskAdapter
     string WorkDirectory { set; }
 
     string ExtendedAllocationCommand { set; }
+
+    string Reservation { set; }
 
     public long? Memory { set; }
 

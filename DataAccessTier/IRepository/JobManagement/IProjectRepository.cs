@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -11,6 +11,5 @@ public interface IProjectRepository : IRepository<Project>
     Project GetByIdWithClusterProjects(long projectId);
     Project GetByAccountingStringWithClusterProjects(string accountingString);
     IEnumerable<Project> GetAllWithClusterProjects();
-    
-    
+    Project GetByIdWithSubProjects(long id);
 }

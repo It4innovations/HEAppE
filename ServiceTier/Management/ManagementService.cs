@@ -152,7 +152,7 @@ public class ManagementService : IManagementService
                                   ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
 
             if (commandTemplate.ProjectId == null)
-                throw new InputValidationException("The specified command template cannot be removed!");
+                throw new InputValidationException("CommandTemplateCannotBeRemoved");
 
             UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, _expirioService, true);
@@ -819,7 +819,7 @@ public class ManagementService : IManagementService
         _logger.LogInformation($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetByIdWithCommandTemplate(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
@@ -845,7 +845,7 @@ public class ManagementService : IManagementService
         _logger.LogInformation($"RemoveCommandTemplateParameter: Id: {id}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+            var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetByIdWithCommandTemplate(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
@@ -909,7 +909,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var project = unitOfWork.ProjectRepository.GetById(projectId)
+            var project = unitOfWork.ProjectRepository.GetByIdWithSubProjects(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager, projectId, _expirioService, true);
             var subProjects = project.SubProjects.ToList();
@@ -1601,12 +1601,12 @@ public class ManagementService : IManagementService
         }
     }
 
-    public AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode)
+    public AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 

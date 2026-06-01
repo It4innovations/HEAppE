@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -58,12 +58,10 @@ public class FileSystemUtils
     public static string ReadStreamContentFromSpecifiedOffset(Stream stream, long offset)
     {
         stream.Seek(offset, SeekOrigin.Begin);
-        var synchronizedContent = new StringBuilder();
-        var buffer = new byte[1024];
-        int bytesRead;
-        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
-            synchronizedContent.Append(Encoding.Default.GetString(buffer, 0, bytesRead));
-        return synchronizedContent.ToString();
+        using (var reader = new StreamReader(stream, Encoding.Default, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true))
+        {
+            return reader.ReadToEnd();
+        }
     }
 
     public static string WriteStreamToLocalFile(Stream stream, string destinationPath)
@@ -71,17 +69,17 @@ public class FileSystemUtils
         EnsureThatDestinationPathExists(destinationPath);
         using (Stream destinationStream =
                new FileStream(destinationPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+        using (var ms = new MemoryStream())
         {
-            var synchronizedContent = new StringBuilder();
-            var buffer = new byte[1024];
+            var buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
             {
                 destinationStream.Write(buffer, 0, bytesRead);
-                synchronizedContent.Append(Encoding.Default.GetString(buffer, 0, bytesRead));
+                ms.Write(buffer, 0, bytesRead);
             }
 
-            return synchronizedContent.ToString();
+            return Encoding.Default.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         }
     }
 

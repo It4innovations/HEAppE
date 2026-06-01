@@ -1,18 +1,18 @@
 #pragma warning disable CS8602, CS8604, CS8603
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.Services.Expirio.Configuration;
-using HEAppE.Services.Expirio.Exceptions;
-using HEAppE.Services.Expirio.Models;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using System.Reflection;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Services.Expirio.Configuration;
+using HEAppE.Services.Expirio.Exceptions;
+using HEAppE.Services.Expirio.Models;
 
 namespace HEAppE.Services.Expirio;
 
@@ -67,14 +67,14 @@ public class ExpirioService : IExpirioService
 
             if (response.IsSuccessStatusCode)
             {
-                    logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
                 
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    };
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
 
-                    return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
+                return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
             }
             else
             {
@@ -90,7 +90,7 @@ public class ExpirioService : IExpirioService
         catch (JsonException ex)
         {
             logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
-            return null; 
+            return null;
         }
     }
 
@@ -133,8 +133,6 @@ public class ExpirioService : IExpirioService
             throw new ExpirioUpstreamException("Request to Expirio timed out", ex, "Connection to Expirio service timed out.");
         }
     }
-
-
 
     private void HandleErrorResponse(HttpResponseMessage response, string content, string context, ILogger logger)
     {

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.ExtModels.JobManagement.Models;
 
@@ -11,7 +11,7 @@ public interface IJobManagementService
     Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode);
     Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode);
     Task<bool> DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);
-    SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null);
+    SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null, int? limit = null, int? offset = null, long? userId = null, long? clusterId = null, long? subProjectId = null, long? projectId = null);
     Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode);
     Task CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path);
     Task CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);

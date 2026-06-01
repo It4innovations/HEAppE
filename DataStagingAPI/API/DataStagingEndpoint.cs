@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;

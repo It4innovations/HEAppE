@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -99,6 +99,14 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public string ClusterAllocationName
     {
         set => DoAppend(!string.IsNullOrEmpty(value) ? $" --clusters={value}" : string.Empty);
+    }
+
+    /// <summary>
+    ///     Reservation
+    /// </summary>
+    public string Reservation
+    {
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" --reservation={value}" : string.Empty);
     }
 
 

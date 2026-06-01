@@ -43,28 +43,58 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     #region Private Methods
 
     /// <summary>
-    ///     Get actual tasks (HPC jobs) information
+    ///     Maximum number of jobs per single SSH status query batch.
+    ///     Prevents excessively long SSH commands when monitoring many jobs simultaneously.
+    /// </summary>
+    private const int MaxJobStatusBatchSize = 20;
+
+    /// <summary>
+    ///     Get actual tasks (HPC jobs) information - executes in chunks to avoid
+    ///     overly long SSH commands when many jobs are queried simultaneously.
     /// </summary>
     /// <param name="connectorClient">Connector</param>
-    /// <param name="cluster">Cluster"</param>
+    /// <param name="cluster">Cluster</param>
     /// <param name="schedulerJobIdClusterAllocationNamePairs">Scheduler job id´s pair</param>
     /// <returns></returns>
     /// <exception cref="SlurmException"></exception>
     private async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
     {
+        var allPairs = schedulerJobIdClusterAllocationNamePairs.ToList();
+        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", allPairs.Select(s => s.ScheduledJobId))}\"");
+
+        // Split into chunks to avoid excessively long SSH command lines
+        var chunks = allPairs
+            .Select((pair, index) => (pair, index))
+            .GroupBy(x => x.index / MaxJobStatusBatchSize)
+            .Select(g => g.Select(x => x.pair).ToList())
+            .ToList();
+
+        var allResults = new List<SubmittedTaskInfo>();
+
+        foreach (var chunk in chunks)
+        {
+            var chunkResult = await ExecuteStatusBatchAsync(connectorClient, cluster, chunk);
+            allResults.AddRange(chunkResult);
+        }
+
+        return allResults;
+    }
+
+    /// <summary>
+    ///     Execute a single batch of scontrol status queries over one SSH command.
+    /// </summary>
+    private async Task<IEnumerable<SubmittedTaskInfo>> ExecuteStatusBatchAsync(object connectorClient, Cluster cluster,
+        IList<(string ScheduledJobId, string ClusterAllocationName)> batch)
+    {
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
-        _logger.LogInformation($"Getting actual tasks information for jobs: \"{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}\"");
 
-        foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
+        foreach (var (ScheduledJobId, ClusterAllocationName) in batch)
         {
             var allocationCluster = string.Empty;
-
             if (!string.IsNullOrEmpty(ClusterAllocationName)) allocationCluster = $"-M {ClusterAllocationName} ";
-
-            cmdBuilder.Append(
-                $"{_commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
+            cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
         }
 
         var sshCommand = cmdBuilder.ToString();
@@ -72,17 +102,17 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         try
         {
             command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
-            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}: {command.Result}");
+            _logger.LogDebug($"Raw scheduler response for jobs {string.Join(", ", batch.Select(s => s.ScheduledJobId))}: {command.Result}");
             var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result).ToList();
-            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks.");
+            _logger.LogInformation($"Successfully retrieved information for {submittedTasksInfo.Count} tasks in batch of {batch.Count}.");
             return submittedTasksInfo;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
+            _logger.LogError(ex, $"Failed to get actual tasks info for jobs: {string.Join(", ", batch.Select(s => s.ScheduledJobId))}. Result: {command?.Result}, Error: {command?.Error}");
             throw new SlurmException(
                 "GetActualTasksInfo", ex,
-                string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
+                string.Join(", ", batch.Select(s => s.ScheduledJobId).ToList()),
                 command?.Result ?? string.Empty,
                 command?.Error ?? ex.Message)
             {
@@ -197,11 +227,30 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 submitedTasksInfoList.Select(s =>
                     (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
         }
-        catch (SlurmException ex) when (ex.CommandError != null && ex.CommandError.Contains("Invalid job id specified"))
+        catch (SlurmException ex) when ((ex.CommandError != null && ex.CommandError.Contains("Invalid job id specified")) || (ex.Message != null && ex.Message.Contains("Invalid job id specified")))
         {
             _logger.LogWarning(
-                $"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
-            return Enumerable.Empty<SubmittedTaskInfo>();
+                $"At least one job in the batch is not in Slurm database. Querying tasks individually to isolate the invalid jobs.");
+            
+            var validTasks = new List<SubmittedTaskInfo>();
+            foreach (var task in submitedTasksInfoList)
+            {
+                try
+                {
+                    var taskInfo = await GetActualTasksInfoAsync(connectorClient, cluster,
+                        new[] { (task.ScheduledJobId, task.Specification.ClusterNodeType.ClusterAllocationName) });
+                    validTasks.AddRange(taskInfo);
+                }
+                catch (SlurmException taskEx) when ((taskEx.CommandError != null && taskEx.CommandError.Contains("Invalid job id specified")) || (taskEx.Message != null && taskEx.Message.Contains("Invalid job id specified")))
+                {
+                    _logger.LogWarning(
+                        $"Scheduled Job id: \"{task.ScheduledJobId}\" is not in Slurm scheduler database (Invalid job id specified). This job will be skipped in active query result (and marked as Failed).");
+                    task.State = TaskState.Failed;
+                    validTasks.Add(task);
+                    
+                }
+            }
+            return validTasks;
         }
     }
 
@@ -583,6 +632,128 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
             return info;
         }
+    }
+
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => !string.IsNullOrEmpty(t.ScheduledJobId))
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+
+        var groupedByAllocation = validTasks
+            .GroupBy(t => t.Specification?.ClusterNodeType?.ClusterAllocationName ?? string.Empty);
+
+        foreach (var allocationGroup in groupedByAllocation)
+        {
+            var clusterAllocationName = allocationGroup.Key;
+            var tasksInGroup = allocationGroup.ToList();
+            
+            var jobIds = tasksInGroup.Select(t => t.ScheduledJobId).Distinct().ToList();
+            string joinedJobIds = string.Join(",", jobIds);
+
+            var allocationClusterFlag = string.Empty;
+            if (!string.IsNullOrEmpty(clusterAllocationName))
+            {
+                allocationClusterFlag = $"-M {clusterAllocationName} ";
+            }
+
+            var sacctCmd = $"{_commands.InterpreterCommand} 'sacct -j {joinedJobIds} {allocationClusterFlag}--parsable2 --noheader --format=JobID,State'";
+            _logger.LogInformation($"Bulk querying historical tasks via sacct for jobs: {joinedJobIds}");
+
+            SshCommandWrapper command = null;
+            try
+            {
+                command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), sacctCmd, _logger);
+                _logger.LogDebug($"Raw sacct response: {command.Result}");
+
+                if (string.IsNullOrWhiteSpace(command.Result))
+                {
+                    continue;
+                }
+
+                var lines = command.Result.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                var slurmStates = new Dictionary<string, string>();
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split('|');
+                    if (parts.Length >= 2)
+                    {
+                        string rawJobId = parts[0].Trim();
+                        string state = parts[1].Trim();
+
+                        var cleanJobId = rawJobId.Split('.')[0];
+
+                        if (!slurmStates.ContainsKey(cleanJobId))
+                        {
+                            slurmStates[cleanJobId] = state;
+                        }
+                    }
+                }
+
+                foreach (var task in tasksInGroup)
+                {
+                    if (slurmStates.TryGetValue(task.ScheduledJobId, out string slurmState))
+                    {
+                        var updatedTask = new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = MapSlurmStateToTaskState(slurmState),
+                            Specification = task.Specification
+                        };
+                        allHistoricalTasks.Add(updatedTask);
+                    }
+                    else
+                    {
+                        var failedTask = new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = TaskState.Failed,
+                            Specification = task.Specification
+                        };
+                        allHistoricalTasks.Add(failedTask);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to bulk retrieve historical tasks info via sacct for jobs: {joinedJobIds}. Error: {command?.Error}");
+            }
+        }
+
+        return allHistoricalTasks;
+    }
+
+    private TaskState MapSlurmStateToTaskState(string slurmState)
+    {
+        if (string.IsNullOrEmpty(slurmState)) return TaskState.Failed;
+
+        if (slurmState.StartsWith("COMPLETED")) return TaskState.Finished;
+        if (slurmState.StartsWith("FAILED")) return TaskState.Failed;
+        if (slurmState.StartsWith("CANCELLED") || slurmState.StartsWith("REVOKED")) return TaskState.Canceled;
+        if (slurmState.StartsWith("TIMEOUT")) return TaskState.Failed;
+        if (slurmState.StartsWith("NODE_FAIL")) return TaskState.Failed;
+        if (slurmState.StartsWith("PREEMPTED")) return TaskState.Failed;
+        if (slurmState.StartsWith("OUT_OF_MEMORY")) return TaskState.Failed;
+
+        return TaskState.Failed;
     }
 
     #endregion

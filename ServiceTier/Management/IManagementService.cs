@@ -1,17 +1,17 @@
-﻿#nullable enable
+#nullable enable
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -229,7 +229,7 @@ public interface IManagementService
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
-    AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode);
+    AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode);
     AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
     string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
     AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);

@@ -30,11 +30,21 @@ public class LexisTokenExchangeMiddleware
     {
         ApplyRequestSizeLimit(context);
         context.Request.EnableBuffering();
-        using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
+
+        try
         {
-            var body = await reader.ReadToEndAsync();
-            context.Request.Body.Position = 0;
-            _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
+            {
+                var body = await reader.ReadToEndAsync();
+                context.Request.Body.Position = 0;
+                _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+            }
+        }
+        catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Client disconnected prematurely while sending request body.");
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
         }
 
 #if DEBUG
@@ -142,15 +152,37 @@ public class LexisTokenExchangeMiddleware
         using var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
 
-        await _next(context);
+        try
+        {
+            await _next(context);
+        }
+        catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Client disconnected prematurely during request processing.");
+            context.Response.Body = originalBodyStream;
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+        catch (Exception)
+        {
+            context.Response.Body = originalBodyStream;
+            throw;
+        }
 
         responseBody.Seek(0, SeekOrigin.Begin);
 
-        using (var reader = new StreamReader(responseBody, leaveOpen: true))
+        try
         {
-            var responseText = await reader.ReadToEndAsync();
-            _logger.LogDebug(
-                $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+            using (var reader = new StreamReader(responseBody, leaveOpen: true))
+            {
+                var responseText = await reader.ReadToEndAsync();
+                _logger.LogDebug(
+                    $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read response body log context, connection might be aborted.");
         }
 
         responseBody.Seek(0, SeekOrigin.Begin);
@@ -162,7 +194,6 @@ public class LexisTokenExchangeMiddleware
         var endpoint = context.GetEndpoint();
         if (endpoint == null) return;
 
-        // Use reflection to avoid compile-time dependency on Metadata/Features interfaces in this library
         var metadata = endpoint.Metadata;
         var sizeLimitMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IRequestSizeLimitMetadata") != null);
         var allowLargeBodyMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IAllowLargeRequestBodyMetadata") != null);

@@ -451,5 +451,87 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         });
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => t.Specification?.JobSpecification != null)
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+        string username = account.Username;
+
+        foreach (var task in validTasks)
+        {
+            string jobId = task.Specification.JobSpecification.Id.ToString();
+            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, username, jobId)
+                .Replace('\\', '/');
+            
+            var cliCommand = $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+
+            try
+            {
+                var command = await SshCommandUtils.RunSshCommandAsync(schedulerConnectionConnection, cliCommand, _logger);
+                
+                if (string.IsNullOrWhiteSpace(command.Result) || command.ExitStatus != 0)
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+                else
+                {
+                    var taskInfosFromScript = _convertor.ReadParametersFromResponse(task.Specification.JobSpecification.Cluster, command.Result);
+                    if (taskInfosFromScript != null && taskInfosFromScript.Any())
+                    {
+                        var updatedTask = taskInfosFromScript.First();
+                        updatedTask.Id = task.Id;
+                        updatedTask.Specification = task.Specification;
+                        allHistoricalTasks.Add(updatedTask);
+                    }
+                    else
+                    {
+                        allHistoricalTasks.Add(new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = TaskState.Failed,
+                            Specification = task.Specification
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve historical linux local task info for jobId: {jobId}");
+                allHistoricalTasks.Add(new SubmittedTaskInfo
+                {
+                    Id = task.Id,
+                    ScheduledJobId = task.ScheduledJobId,
+                    State = TaskState.Failed,
+                    Specification = task.Specification
+                });
+            }
+        }
+
+        return allHistoricalTasks;
+    }
+
     #endregion
 }

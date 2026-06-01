@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
@@ -33,6 +35,9 @@ public class ClusterInformationService : IClusterInformationService
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
 
+    /// <summary>Active database refresh tasks for raw clusters list, used to coalesce concurrent DB queries globally.</summary>
+    private static readonly ConcurrentDictionary<string, Task<List<HEAppE.DomainObjects.ClusterInformation.Cluster>>> _globalDbRefreshes = new();
+
     public ClusterInformationService(IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
         _userOrgService = userOrgService;
@@ -60,20 +65,84 @@ public class ClusterInformationService : IClusterInformationService
         string commandTemplateName,
         bool forceRefresh)
     {
-        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
+        long userId;
+        List<HEAppE.DomainObjects.JobManagement.Project> projects;
+        string memoryCacheKey;
 
-        var roles = new List<AdaptorUserRoleType> { AdaptorUserRoleType.Reporter, AdaptorUserRoleType.ManagementAdmin, AdaptorUserRoleType.Manager };
-
-        var (loggedUser, projects) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, roles, _expirioService);
-
-        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Id}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
-
-        if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            return cachedClusters;
+            var roles = new List<AdaptorUserRoleType> { AdaptorUserRoleType.Reporter, AdaptorUserRoleType.ManagementAdmin, AdaptorUserRoleType.Manager };
+            var (loggedUser, userProjects) = UserAndLimitationManagementService
+                .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, roles, _expirioService);
+
+            userId = loggedUser.Id;
+            projects = userProjects.ToList();
+            memoryCacheKey = $"{nameof(ListAvailableClusters)}_{userId}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
+
+            // Fast cache path (no forceRefresh)
+            if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
+            {
+                return cachedClusters;
+            }
+        } // DB connection released
+
+        // Retrieve raw clusters list globally (coalesced database queries)
+        string globalCacheKey = $"GlobalRawClusters_{clusterName ?? "All"}";
+        List<HEAppE.DomainObjects.ClusterInformation.Cluster> clusters;
+
+        if (forceRefresh)
+        {
+            var dbTask = _globalDbRefreshes.GetOrAdd(globalCacheKey, key =>
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+                        {
+                            return unitOfWork.ClusterRepository.AsQueryable()
+                                .Where(c => clusterName == null || c.Name == clusterName)
+                                .ToList();
+                        }
+                    }
+                    finally
+                    {
+                        _globalDbRefreshes.TryRemove(key, out _);
+                    }
+                })
+            );
+
+            clusters = await dbTask;
+            SetCacheWithGlobalToken(globalCacheKey, clusters, _cacheLimitForListAvailableClusters);
+        }
+        else
+        {
+            if (!_cacheProvider.TryGetValue(globalCacheKey, out clusters))
+            {
+                var dbTask = _globalDbRefreshes.GetOrAdd(globalCacheKey, key =>
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+                            {
+                                return unitOfWork.ClusterRepository.AsQueryable()
+                                    .Where(c => clusterName == null || c.Name == clusterName)
+                                    .ToList();
+                            }
+                        }
+                        finally
+                        {
+                            _globalDbRefreshes.TryRemove(key, out _);
+                        }
+                    })
+                );
+
+                clusters = await dbTask;
+                SetCacheWithGlobalToken(globalCacheKey, clusters, _cacheLimitForListAvailableClusters);
+            }
         }
 
+        // Get Lexis permission rules if enabled
         CommandTemplatePermissionsModel lexisPermissions = null;
         if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
         {
@@ -85,10 +154,6 @@ public class ClusterInformationService : IClusterInformationService
         }
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
-
-        var clusters = unitOfWork.ClusterRepository.AsQueryable()
-            .Where(c => clusterName == null || c.Name == clusterName)
-            .ToList();
 
         var clustersExt = clusters
             .Select(c => c.ConvertIntToExt(projects, true))
@@ -121,7 +186,8 @@ public class ClusterInformationService : IClusterInformationService
             })
             .Where(cl => cl.NodeTypes.Length > 0)
             .ToArray();
-        
+
+        // Update the long-lived cache so non-forceRefresh requests get fresh data
         SetCacheWithGlobalToken(memoryCacheKey, clustersExt, _cacheLimitForListAvailableClusters);
 
         return clustersExt;

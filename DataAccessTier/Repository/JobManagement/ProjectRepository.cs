@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -23,10 +23,13 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public IEnumerable<Project> GetAllActiveProjects()
     {
         return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
+            .AsSplitQuery()
             .Include(x => x.ProjectContacts)
-            .ThenInclude(x => x.Contact)
+                .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
-            .ThenInclude(x => x.Cluster)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .ToList();
     }
 
@@ -46,6 +49,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public Project GetByIdWithClusterProjects(long projectId)
     {
         return _context.Projects
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -59,6 +63,13 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .ToList();
+    }
+
+    public Project GetByIdWithSubProjects(long id)
+    {
+        return _dbSet
+            .Include(p => p.SubProjects)
+            .FirstOrDefault(p => p.Id == id);
     }
 
     #endregion

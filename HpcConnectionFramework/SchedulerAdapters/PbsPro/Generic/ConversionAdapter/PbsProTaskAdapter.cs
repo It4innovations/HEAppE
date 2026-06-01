@@ -1,11 +1,11 @@
-﻿using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
 
@@ -163,6 +163,14 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     public string ClusterAllocationName
     {
         set { }
+    }
+
+    /// <summary>
+    ///     Reservation
+    /// </summary>
+    public string Reservation
+    {
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -U {value}" : string.Empty);
     }
 
     /// <summary>

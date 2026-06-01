@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -9,6 +11,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet.Common;
@@ -58,12 +61,6 @@ public class RexSchedulerWrapper : IRexScheduler
 
     #region IRexScheduler Members
 
-    /// <summary>
-    ///     Submit job to scheduler
-    /// </summary>
-    /// <param name="jobSpecification">Job specification</param>
-    /// <param name="credentials">Credentials</param>
-    /// <returns></returns>
     public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
@@ -104,7 +101,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             foreach (var groupedTasksByUsername in groupedTasksByUser)
             {
-                    var tasks = await _adapter.GetActualTasksInfo(schedulerConnection?.Connection, cluster,
+                var tasks = await _adapter.GetActualTasksInfo(schedulerConnection?.Connection, cluster,
                         groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
                 allTasks.AddRange(tasks);
             }
@@ -235,6 +232,29 @@ public class RexSchedulerWrapper : IRexScheduler
             await ReturnConnection(schedulerConnection);
         }
     }
+    
+    // In-flight deduplication for InitializeClusterScriptDirectory SSH calls.
+    // Key: (credentialId, clusterProjectPath). Value: the currently running SSH init Task.
+    // IMPORTANT: callers await this BEFORE acquiring a connection from the pool, so only
+    // the "winner" holds a connection during the git pull. All others wait connection-free.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(long, string), Task<bool>> _scriptInitInFlight
+        = new();
+
+    private async Task<bool> RunScriptInitOnDedicatedConnectionAsync(
+        ClusterAuthenticationCredentials credentials, Cluster cluster,
+        string path, string localBasepath, string sshCaToken, string lexisToken)
+    {
+        var conn = await GetConnectionForUser(credentials, cluster, sshCaToken, lexisToken);
+        try
+        {
+            return await _adapter.InitializeClusterScriptDirectory(
+                conn.Connection, path, true, localBasepath, credentials.Username, false);
+        }
+        finally
+        {
+            await ReturnConnection(conn);
+        }
+    }
 
     /// <summary>
     ///     Create job directory
@@ -244,31 +264,38 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="sharedAccountsPoolMode"></param>
     public async Task CreateJobDirectoryAsync(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode, string sshCaToken, string lexisToken)
     {
-        var cluster = jobInfo.Specification.Cluster;
+        var localBasepath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+        string path = Path.Combine(jobInfo.Specification.Project.AccountingString,
+            HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
 
-        if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
+        var cacheKey = (jobInfo.Specification.ClusterUser.Id, path);
+
+        // Step 1: Await script init WITHOUT holding a connection.
+        // Only the "winner" VU acquires a connection for git pull; the rest wait for free.
+        // ContinueWith removes the entry so the next logical burst always runs a fresh git pull.
+        var initTask = _scriptInitInFlight.GetOrAdd(cacheKey, _ =>
         {
-            await _adapter.CreateJobDirectory(null, jobInfo, localBasePath, sharedAccountsPoolMode);
-            return;
-        }
-        
-        var schedulerConnection = await GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
+            _logger.LogDebug($"Starting InitializeClusterScriptDirectory for project {jobInfo.Specification.Project.Id}.");
+            var t = RunScriptInitOnDedicatedConnectionAsync(
+                jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster,
+                path, localBasepath, sshCaToken, lexisToken);
+            t.ContinueWith(_ => _scriptInitInFlight.TryRemove(cacheKey, out _),
+                System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously);
+            return t;
+        });
+
+        bool isUpdated = await initTask;
+        if (!isUpdated)
+            _logger.LogWarning($"Cluster script directory update failed for project {jobInfo.Specification.Project.Id} user {jobInfo.Specification.ClusterUser.Username}.");
+        else
+            _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} user {jobInfo.Specification.ClusterUser.Username}.");
+
+        // Step 2: NOW acquire a connection — only for the fast CreateJobDirectory mkdir.
+        var schedulerConnection = await GetConnectionForUser(
+            jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
-                ?.ScratchStoragePath;
-            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
-    
-            bool isUpdated = await _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
-                jobInfo.Specification.ClusterUser.Username, false);
-            if (!isUpdated)
-            {
-                _logger.LogWarning($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
-            else
-            {
-                _logger.LogInformation($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
-            }
             await _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
         finally
@@ -538,6 +565,36 @@ public class RexSchedulerWrapper : IRexScheduler
             await ReturnConnection(schedulerConnection);
         }
     }
+    
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(
+        List<SubmittedTaskInfo> missingTasks, 
+        ClusterAuthenticationCredentials account, 
+        string sshCaToken, 
+        string lexisToken)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var cluster = missingTasks.FirstOrDefault()?.Specification?.JobSpecification?.Cluster;
+        if (cluster == null)
+        {
+            _logger.LogWarning("Cannot retrieve historical tasks info: Cluster context is missing in task specifications.");
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var schedulerConnection = await _connectionPool.GetConnectionForUserAsync(account, cluster, sshCaToken, lexisToken);
+        try
+        {
+            var historicalTasks = await _adapter.GetHistoricalTasksInfo(schedulerConnection.Connection, missingTasks, account);
+            return historicalTasks;
+        }
+        finally
+        {
+            await _connectionPool.ReturnConnectionAsync(schedulerConnection);
+        }
+    }    
 
     private async Task<ConnectionInfo> GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {

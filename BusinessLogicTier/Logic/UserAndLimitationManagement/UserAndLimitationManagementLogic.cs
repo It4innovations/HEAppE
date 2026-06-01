@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -32,6 +32,7 @@ using HEAppE.OpenStackAPI.DTO;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using HEAppE.Utils;
 using SshCaAPI;
 
@@ -99,7 +100,25 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            if (cache != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                {
+                    _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
+                    return cachedUser;
+                }
+            }
+
+            var user = _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+
+            if (cache != null && user != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+            }
+            return user;
         }
 
         return AuthenticateLocalSession(sessionCode);
@@ -107,6 +126,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
+        var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        if (cache != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
+            {
+                if (cached.ExpirationTime > DateTime.UtcNow)
+                {
+                    return cached.User;
+                }
+            }
+        }
+
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null)
             throw new UnauthorizedAccessException("Unauthorized");
@@ -118,11 +150,42 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             );
 
-        session.LastAccessTime = DateTime.UtcNow;
-        _unitOfWork.SessionCodeRepository.Update(session);
-        _unitOfWork.Save();
+        var now = DateTime.UtcNow;
+        if (session.LastAccessTime < now.AddSeconds(-30))
+        {
+            bool shouldUpdate = true;
+            if (cache != null)
+            {
+                string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
+                if (cache.TryGetValue(updateCacheKey, out _))
+                {
+                    shouldUpdate = false;
+                }
+                else
+                {
+                    cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                }
+            }
 
-        return session.User;
+            if (shouldUpdate)
+            {
+                session.LastAccessTime = now;
+                _unitOfWork.SessionCodeRepository.Update(session);
+                _unitOfWork.Save();
+            }
+        }
+
+        var user = session.User;
+        if (cache != null && user != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
+            var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
+            var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
+            cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+        }
+
+        return user;
     }
     
     public AdaptorUser GetUserById(long id)
@@ -612,14 +675,30 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         // Verify digital signature
-        using RSACryptoServiceProvider rsa = new(2048);
-        // TODO: Verify
-        rsa.FromXmlString(user.PublicKey);
-        RSAPKCS1SignatureDeformatter rsaDeformatter = new(rsa);
-        rsaDeformatter.SetHashAlgorithm("SHA256");
-        return rsaDeformatter.VerifySignature(hash, credentials.DigitalSignature)
+        using var rsa = RSA.Create();
+        ImportXmlPublicKey(rsa, user.PublicKey);
+        
+        return rsa.VerifyHash(hash, credentials.DigitalSignature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
             ? CreateSessionCode(user).UniqueCode
             : throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
+    }
+
+    private static void ImportXmlPublicKey(RSA rsa, string xmlString)
+    {
+        var parameters = new RSAParameters();
+        
+        var modulusMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Modulus>(.*?)</Modulus>");
+        var exponentMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Exponent>(.*?)</Exponent>");
+        
+        if (!modulusMatch.Success || !exponentMatch.Success)
+        {
+            throw new InvalidOperationException("Invalid XML RSA public key format.");
+        }
+        
+        parameters.Modulus = Convert.FromBase64String(modulusMatch.Groups[1].Value);
+        parameters.Exponent = Convert.FromBase64String(exponentMatch.Groups[1].Value);
+        
+        rsa.ImportParameters(parameters);
     }
 
     private AdaptorUser GetActiveUser(string username)

@@ -18,9 +18,6 @@ namespace HEAppE.DataAccessTier.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.8")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -77,7 +74,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("ProxyConnectionId");
 
@@ -119,7 +117,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterAuthenticationCredentials");
                 });
@@ -189,7 +188,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("FileTransferMethodId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterNodeType");
                 });
@@ -251,7 +251,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterProxyConnection");
                 });
@@ -309,7 +310,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("ClusterId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("FileTransferMethod");
                 });
@@ -373,7 +375,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Accounting");
                 });
@@ -415,7 +418,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterNodeTypeAggregation");
                 });
@@ -435,7 +439,13 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("AccountingId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("ClusterNodeTypeAggregationId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ClusterNodeTypeAggregationId"), new[] { "AccountingId" });
+
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterNodeTypeAggregationAccounting");
                 });
@@ -479,7 +489,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ClusterId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ClusterId"), new[] { "ProjectId" });
+
+                    b.HasIndex("ProjectId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProjectId"), new[] { "ClusterId" });
 
                     b.HasIndex("ClusterId", "ProjectId")
                         .IsUnique();
@@ -519,7 +537,13 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("ClusterAuthenticationCredentialsId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("ClusterProjectId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ClusterProjectId"), new[] { "ClusterAuthenticationCredentialsId" });
+
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ClusterProjectCredentials");
                 });
@@ -558,6 +582,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClusterAuthenticationCredentialsId");
 
                     b.HasIndex("ClusterProjectId", "CheckTimestamp");
 
@@ -733,7 +759,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Contact");
                 });
@@ -875,11 +902,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("SpecificationId");
-
                     b.HasIndex("SubmitterId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubmitterId"), new[] { "State" });
+
+                    b.HasIndex("SpecificationId", "ProjectId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SpecificationId", "ProjectId"), new[] { "State", "SubmitterId" });
+
+                    b.HasIndex("ProjectId", "StartTime", "EndTime");
 
                     b.ToTable("SubmittedJobInfo");
                 });
@@ -916,7 +947,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AllParameters")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("AllocatedCores")
                         .HasColumnType("int");
@@ -926,6 +957,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<double?>("AllocatedTime")
                         .HasColumnType("float");
+
+                    b.Property<string>("CallbackSecret")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
@@ -956,7 +991,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ScheduledJobId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<long?>("SpecificationId")
                         .HasColumnType("bigint");
@@ -976,9 +1011,24 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("ProjectId");
 
+                    b.HasIndex("ScheduledJobId")
+                        .HasFilter("[ScheduledJobId] IS NOT NULL");
+
                     b.HasIndex("SpecificationId");
 
+                    b.HasIndex("State")
+                        .HasFilter("[State] >= 16");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("State"), new[] { "ProjectId", "SpecificationId", "SubmittedJobInfoId" });
+
                     b.HasIndex("SubmittedJobInfoId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubmittedJobInfoId"), new[] { "State", "NodeTypeId", "SpecificationId" });
+
+                    b.HasIndex("SubmittedJobInfoId", "State")
+                        .HasFilter("[State] > 1 AND [State] < 16");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubmittedJobInfoId", "State"), new[] { "NodeTypeId", "SpecificationId", "ProjectId" });
 
                     b.ToTable("SubmittedTaskInfo");
                 });
@@ -1024,6 +1074,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Reservation")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<long?>("SubProjectId")
                         .HasColumnType("bigint");
@@ -1113,7 +1167,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("EndDate");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Project");
                 });
@@ -1142,7 +1197,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("ClusterNodeTypeAggregationId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ProjectClusterNodeTypeAggregation");
                 });
@@ -1202,7 +1258,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("ProjectId");
 
@@ -1357,6 +1414,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("CommandTemplateId");
 
                     b.HasIndex("JobSpecificationId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobSpecificationId"), new[] { "CommandTemplateId", "ClusterNodeTypeId" });
 
                     b.HasIndex("LogFileId");
 
@@ -1600,7 +1659,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("AdaptorUser");
                 });
@@ -1684,7 +1744,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("AdaptorUserRoleId");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("AdaptorUserUserGroupRole");
                 });

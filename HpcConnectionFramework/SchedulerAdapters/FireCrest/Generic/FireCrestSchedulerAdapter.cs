@@ -606,4 +606,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public Task<DryRunJobInfo> DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification) =>
         throw new NotSupportedException();
+
+    public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfo(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
+        throw new NotSupportedException();
 }

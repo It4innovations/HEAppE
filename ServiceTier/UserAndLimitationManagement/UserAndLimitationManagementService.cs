@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -249,7 +249,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         //check that at least one project is available
         if (!groups.Any())
         {
-            throw new InsufficientRoleException($"MissingRole:{allowedRole.ToString()}");
+            throw new InsufficientRoleException("MissingRole", allowedRole.ToString());
         }
         var projects = groups
             .Select(r => r.AdaptorUserGroup.Project)
@@ -316,7 +316,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-            throw new InsufficientRoleException($"MissingRole:{requiredUserRole.ToString()}_ForProject:{projectId}");
+            throw new InsufficientRoleException("MissingRoleForProject", requiredUserRole.ToString(), projectId);
         }
     }
     
