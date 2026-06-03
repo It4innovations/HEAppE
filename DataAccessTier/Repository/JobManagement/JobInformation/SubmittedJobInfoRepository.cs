@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using Microsoft.EntityFrameworkCore;
 
@@ -123,7 +124,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         var recentThreshold = endTime;
 
-        return _dbSet
+        var jobs = _dbSet
             .AsNoTrackingWithIdentityResolution()
             .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
@@ -131,18 +132,21 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(x => x.Tasks)
                 .ThenInclude(x => x.ResourceConsumed)
             .Include(x => x.Tasks)
-                .ThenInclude(x => x.Specification.CommandTemplate)
+                .ThenInclude(x => x.Specification)
             .Where(x => EF.Property<long>(x, "ProjectId") == projectId &&
                         x.StartTime >= startTime &&
                         (x.EndTime == null || x.EndTime <= endTime) &&
                         x.Tasks.Any(y => EF.Property<long>(y, "NodeTypeId") == nodeTypeId) &&
                         (x.State < JobState.Finished || x.EndTime >= recentThreshold))
             .ToList();
+
+        AttachCommandTemplatesIncludingDeleted(jobs.SelectMany(j => j.Tasks ?? Enumerable.Empty<SubmittedTaskInfo>()));
+        return jobs;
     }
 
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
-        return _dbSet
+        var job = _dbSet
             .AsSplitQuery()
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
@@ -198,11 +202,16 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                     .ThenInclude(ts => ts.ClusterNodeType)
                         .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
             .FirstOrDefault(j => j.Id == id);
+
+        if (job != null)
+            AttachCommandTemplatesIncludingDeleted(job.Tasks);
+
+        return job;
     }
 
     public SubmittedJobInfo GetByIdForStatus(long id)
     {
-        return _dbSet
+        var job = _dbSet
             .AsNoTrackingWithIdentityResolution()
             .AsSingleQuery()
             .Include(j => j.Submitter)
@@ -214,13 +223,17 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(t => t.NodeType)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Specification)
-                .ThenInclude(ts => ts.CommandTemplate)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Project) 
             .Include(j => j.Specification)
                 .ThenInclude(s => s.SubProject)
             .Include(j => j.Project)
             .FirstOrDefault(j => j.Id == id);
+
+        if (job != null)
+            AttachCommandTemplatesIncludingDeleted(job.Tasks);
+
+        return job;
     }
 
     public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters()
@@ -268,5 +281,37 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Project)
             .Include(j => j.Submitter)
             .FirstOrDefault(j => j.Id == id);
+    }
+
+    /// <summary>
+    /// After EF loads tasks, the global soft-delete query filter hides deleted CommandTemplates
+    /// (navigation property is null). This method fetches those missing templates directly,
+    /// bypassing the filter, so historical job data always shows the correct template info.
+    /// </summary>
+    private void AttachCommandTemplatesIncludingDeleted(IEnumerable<SubmittedTaskInfo> tasks)
+    {
+        var taskList = tasks?.ToList();
+        if (taskList == null || !taskList.Any()) return;
+
+        var missingIds = taskList
+            .Where(t => t.Specification?.CommandTemplate == null && t.Specification?.CommandTemplateId > 0)
+            .Select(t => t.Specification.CommandTemplateId)
+            .Distinct()
+            .ToList();
+
+        if (!missingIds.Any()) return;
+
+        var templates = _context.Set<CommandTemplate>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(ct => missingIds.Contains(ct.Id))
+            .ToDictionary(ct => ct.Id);
+
+        foreach (var task in taskList)
+        {
+            if (task.Specification?.CommandTemplate == null && task.Specification?.CommandTemplateId > 0)
+                if (templates.TryGetValue(task.Specification.CommandTemplateId, out var template))
+                    task.Specification.CommandTemplate = template;
+        }
     }
 }

@@ -27,4 +27,16 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .Include(i => i.TemplateParameters)
             .ToList();
     }
+
+    /// <inheritdoc />
+    public IList<CommandTemplate> GetByIdsIncludingDeleted(IEnumerable<long> ids)
+    {
+        var idList = ids?.ToList();
+        if (idList == null || !idList.Any()) return new List<CommandTemplate>();
+        return _dbSet
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(ct => idList.Contains(ct.Id))
+            .ToList();
+    }
 }
