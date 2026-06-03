@@ -51,7 +51,7 @@ internal class JobReportingLogic : IJobReportingLogic
         
         var pIds = filteredGroups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
         var subProjects = enumerable.Where(p => p.SubProjects != null).SelectMany(p => p.SubProjects).Select(sp => sp.Identifier).ToArray();
-        var jobsLookup = GetJobsLookup(pIds, DateTime.MinValue, DateTime.UtcNow, subProjects);
+        var jobsLookup = GetJobsLookup(pIds, DateTime.UtcNow.AddDays(-90), DateTime.UtcNow, subProjects);
 
         return filteredGroups.Select(g => new UserGroupListReport
         {
