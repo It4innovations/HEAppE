@@ -84,19 +84,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         long? adaptorUserId,
         IExpirioService expirio,
         string token,
-        ILogger logger,
-        Dictionary<string, dynamic> options = null)
+        ILogger logger)
     {
         string url, idpUrl, clientId = "", clientSecret = "";
         dynamic value;
 
-        options = null;
-
-        if (options == null)
-        {
-            //options = await GetSchedulerOptions(cluster, httpContextKeys: "", expirio, logger);
-            options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
-        }
+        Dictionary<string, dynamic> options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
 
         if (cluster.ProxyConnection?.FirecRestOptions != null)
         {

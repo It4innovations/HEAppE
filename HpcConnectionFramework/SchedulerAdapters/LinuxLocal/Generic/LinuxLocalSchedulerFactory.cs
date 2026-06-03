@@ -55,8 +55,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
         long? adaptorUserId,
         IExpirioService expirio,
         string token,
-        ILogger logger,
-        Dictionary<string, dynamic> options)
+        ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))

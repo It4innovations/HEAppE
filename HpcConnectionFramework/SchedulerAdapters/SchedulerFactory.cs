@@ -144,8 +144,7 @@ public abstract class SchedulerFactory
         long? adaptorUserId,
         IExpirioService expirio,
         string token,
-        ILogger logger,
-        Dictionary<string, dynamic> options = null);
+        ILogger logger);
 
     /// <summary>
     ///     Create scheduler adapter
