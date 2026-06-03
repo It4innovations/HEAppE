@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -25,6 +25,10 @@ namespace HEAppE.DataAccessTier.UnitOfWork;
 public class DatabaseUnitOfWork : IUnitOfWork
 {
     #region Constructors
+
+    public DatabaseUnitOfWork() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<DatabaseUnitOfWork>.Instance)
+    {
+    }
 
     public DatabaseUnitOfWork(ILogger logger)
     {

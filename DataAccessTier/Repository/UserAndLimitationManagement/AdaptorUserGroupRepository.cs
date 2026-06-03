@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
@@ -50,12 +50,12 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
 
     public AdaptorUserGroup GetDefaultSubmitterGroup()
     {
-        return GetAll().FirstOrDefault(w => w.Name == _defaultGroupName);
+        return _dbSet.FirstOrDefault(w => w.Name == _defaultGroupName);
     }
 
     public AdaptorUserGroup GetGroupByUniqueName(string groupName)
     {
-        return GetAll().SingleOrDefault(g => g.Name == groupName);
+        return _dbSet.SingleOrDefault(g => g.Name == groupName);
     }
 
     public IEnumerable<AdaptorUserGroup> GetGroupsWithProjects(IEnumerable<long> groupIds)

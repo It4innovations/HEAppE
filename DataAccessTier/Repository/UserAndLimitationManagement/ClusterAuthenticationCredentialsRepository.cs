@@ -76,10 +76,11 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
 
+        var activeLogger = logger ?? _logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         var result = new List<ClusterAuthenticationCredentials>();
         foreach (var item in credentials.Where(c => c != null))
         {
-            logger.LogDebug($"Importing VaultInfo for id:{item.Id}");
+            activeLogger.LogDebug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
             result.Add(item);
@@ -142,8 +143,9 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
+        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
+        var activeLogger = logger ?? _logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
             _context.ClusterProjects
@@ -155,7 +157,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            activeLogger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
             
         }
@@ -163,7 +165,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForUsernameAndProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
@@ -174,8 +176,9 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
-        bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false)
+        bool requireIsInitialized, long? adaptorUserId, ILogger logger = null, bool isAdministrator = false)
     {
+        var activeLogger = logger ?? _logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         var project = _context.Projects.Find(projectId);
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -204,7 +207,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         
         if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            activeLogger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -212,8 +215,9 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger, bool isAdministrator = false)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null, bool isAdministrator = false)
     {
+        var activeLogger = logger ?? _logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         var project = _context.Projects.Find(projectId);
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
@@ -241,7 +245,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         _logger.LogDebug($"Found credentials for project {projectId} with adaptorUserId {adaptorUserId} and username {username}: {string.Join(", ", credentialIds ?? new List<long>())}");
         if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            activeLogger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -253,8 +257,9 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         long projectId,
         bool requireIsInitialized,
         long? adaptorUserId,
-        ILogger logger)
+        ILogger logger = null)
     {
+        var activeLogger = logger ?? _logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         // 1. Get mapping type (this is fast)
         var project = await _context.Projects
             .AsNoTracking()
@@ -288,7 +293,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         if (requireIsInitialized && cred == null)
         {
-            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
+            activeLogger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -297,7 +302,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
-        long projectId, ILogger logger)
+        long projectId, ILogger logger = null)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.PublicKeyFingerprint == fingerprint &&
@@ -306,7 +311,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId, ILogger logger)
+    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId, ILogger logger = null)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
@@ -314,7 +319,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger)
+    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger = null)
     {
         //with all
         var credentials = _dbSet

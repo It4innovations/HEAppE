@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DomainObjects.JobManagement;
@@ -20,9 +20,23 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
     public IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId)
     {
         return _dbSet.Where(w => w.ProjectId == projectId || w.ProjectId == null)
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
             .Include(i => i.TemplateParameters)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public IList<CommandTemplate> GetByIdsIncludingDeleted(IEnumerable<long> ids)
+    {
+        var idList = ids?.ToList();
+        if (idList == null || !idList.Any()) return new List<CommandTemplate>();
+        return _dbSet
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(ct => idList.Contains(ct.Id))
             .ToList();
     }
 }

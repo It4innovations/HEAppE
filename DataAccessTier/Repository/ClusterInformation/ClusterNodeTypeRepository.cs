@@ -22,6 +22,8 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
     public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
     {
         return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
                     .ThenInclude(cp => cp.Project)

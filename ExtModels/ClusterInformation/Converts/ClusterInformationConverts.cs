@@ -243,6 +243,8 @@ public static class ClusterInformationConverts
 
     public static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
     {
+        if (commandTemplate == null) return null;
+
         var convert = new CommandTemplateExt
         {
             Id = commandTemplate.Id,
@@ -261,6 +263,8 @@ public static class ClusterInformationConverts
 
     public static ExtendedCommandTemplateExt ConvertIntToExtendedExt(this CommandTemplate commandTemplate)
     {
+        if (commandTemplate == null) return null;
+
         var convert = new ExtendedCommandTemplateExt
         {
             Id = commandTemplate.Id,

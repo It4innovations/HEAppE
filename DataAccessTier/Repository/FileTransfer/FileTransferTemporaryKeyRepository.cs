@@ -40,7 +40,7 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
 
     public bool ContainsActiveTemporaryKey(string publicKey)
     {
-        return GetAll().Any(w => w.PublicKey == publicKey);
+        return _dbSet.Any(w => w.PublicKey == publicKey);
     }
 
     #endregion

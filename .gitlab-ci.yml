@@ -95,13 +95,11 @@ sshagent_build:
 semgrep-sast:
   stage: test
   variables:
-    SAST_EXIT_CODES: "1"  # Nastavení, které způsobí selhání jobu při zjištění zranitelností
+    SAST_EXIT_CODES: "1" 
   before_script:
-    # Instalace jq
     - apk add jq
   script:
     - /analyzer run
-    # Kontrola, zda jsou v reportu nějaké zranitelnosti
     - |
       if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
         echo "Vulnerabilities found, failing the job."
@@ -119,14 +117,16 @@ release_job:
   needs:
     - job: release_msg_job
       artifacts: true                     
+  before_script:
+    - curl --location --output /tmp/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
+    - chmod +x /tmp/release-cli
+    - export PATH=$PATH:/tmp
   script:
     - echo "Creating RELEASE \"$TAG_NAME"\"
     - git config --global user.name "HEAppE Pipeline"
     - git config --global user.email "support.heappe@it4i.cz" 
     - git checkout master
     - git status
-  before_script:
-    - apk add git
   release:
     name: '${TAG_NAME}'
     description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
@@ -171,4 +171,4 @@ push_to_github_job:
     - Centos9
     - IT4I_Network
   only:
-    - master 
+    - master

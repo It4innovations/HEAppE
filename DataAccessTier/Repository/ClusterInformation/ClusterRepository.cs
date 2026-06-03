@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
@@ -22,17 +22,14 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
-            .ThenInclude(p => p.CommandTemplates)
-            .ThenInclude(ct => ct.TemplateParameters)
+
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.ClusterNodeTypeAggregation)
             .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
             .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(pc => pc.Project)
-            .ThenInclude(p => p.CommandTemplates)
-            .ThenInclude(ct => ct.TemplateParameters)
+            .ThenInclude(pc => pc.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
@@ -48,7 +45,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     
     public Cluster GetByIdWithProxyConnection(long id)
     {
-        return _dbSet.Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
+        return _dbSet.AsNoTracking().Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
     }
 
     public IQueryable<Cluster> AsQueryable()
@@ -58,17 +55,14 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
-            .ThenInclude(p => p.CommandTemplates)
-            .ThenInclude(ct => ct.TemplateParameters)
+
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.ClusterNodeTypeAggregation)
             .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
             .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands)
-            .ThenInclude(pc => pc.Project)
-            .ThenInclude(p => p.CommandTemplates)
-            .ThenInclude(ct => ct.TemplateParameters)
+            .ThenInclude(pc => pc.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }

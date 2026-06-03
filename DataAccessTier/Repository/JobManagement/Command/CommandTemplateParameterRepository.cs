@@ -17,7 +17,7 @@ internal class CommandTemplateParameterRepository : GenericRepository<CommandTem
 
     public CommandTemplateParameter GetByCommandTemplateIdAndCommandParamId(long commandTemplateId, string identifier)
     {
-        return GetAll().SingleOrDefault(w => w.CommandTemplateId == commandTemplateId && w.Identifier == identifier);
+        return _dbSet.SingleOrDefault(w => w.CommandTemplateId == commandTemplateId && w.Identifier == identifier);
     }
 
     public CommandTemplateParameter GetByIdWithCommandTemplate(long id)

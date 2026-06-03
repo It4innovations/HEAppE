@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -6,7 +6,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 namespace HEAppE.DomainObjects.FileTransfer;
 
 [Table("FileTransferTemporaryKey")]
-public class FileTransferTemporaryKey : IdentifiableDbEntity
+public class FileTransferTemporaryKey : IdentifiableDbEntity, ISoftDeletableEntity
 {
     [Required] [StringLength(1500)] public string PublicKey { get; set; }
 
