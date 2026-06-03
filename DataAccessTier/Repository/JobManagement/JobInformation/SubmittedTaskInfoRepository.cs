@@ -21,7 +21,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
 
     public IEnumerable<SubmittedTaskInfo> GetAllUnFinished()
     {
-        return GetAll().Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
+        return _dbSet.Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
             .ToList();
     }
 

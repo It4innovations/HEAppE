@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
@@ -21,7 +21,7 @@ internal class OpenStackSessionRepository : GenericRepository<OpenStackSession>,
 
     public OpenStackSession GetByUser(AdaptorUser user)
     {
-        return GetAll().Where(s => s.UserId == user.Id)
+        return _dbSet.Where(s => s.UserId == user.Id)
             .OrderByDescending(s => s.AuthenticationTime)
             .FirstOrDefault();
     }
@@ -29,7 +29,7 @@ internal class OpenStackSessionRepository : GenericRepository<OpenStackSession>,
     public IList<OpenStackSession> GetAllActive()
     {
         var currentTime = DateTime.UtcNow;
-        return GetAll().Where(s => s.ExpirationTime < currentTime)
+        return _dbSet.Where(s => s.ExpirationTime < currentTime)
             .ToList();
     }
 

@@ -98,8 +98,7 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
 
     public AdaptorUser GetByEmail(string email)
     {
-        return GetAll().Where(w => w.Email == email)
-            .FirstOrDefault();
+        return _dbSet.FirstOrDefault(w => w.Email == email);
     }
     
     

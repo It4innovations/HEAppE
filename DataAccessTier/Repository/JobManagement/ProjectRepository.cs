@@ -23,6 +23,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public IEnumerable<Project> GetAllActiveProjects()
     {
         return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.ProjectContacts)
                 .ThenInclude(x => x.Contact)
@@ -35,12 +36,16 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
 
     public Project GetByAccountingString(string accountingString)
     {
-        return _context.Projects.FirstOrDefault(p => p.AccountingString == accountingString);
+        return _context.Projects
+            .AsNoTracking()
+            .FirstOrDefault(p => p.AccountingString == accountingString);
     }
 
     public Project GetByAccountingStringWithClusterProjects(string accountingString)
     {
         return _context.Projects
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .FirstOrDefault(p => p.AccountingString == accountingString);
@@ -49,6 +54,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public Project GetByIdWithClusterProjects(long projectId)
     {
         return _context.Projects
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
@@ -60,6 +66,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public IEnumerable<Project> GetAllWithClusterProjects()
     {
         return _context.Projects
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .ToList();
@@ -68,6 +76,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public Project GetByIdWithSubProjects(long id)
     {
         return _dbSet
+            .AsNoTracking()
             .Include(p => p.SubProjects)
             .FirstOrDefault(p => p.Id == id);
     }

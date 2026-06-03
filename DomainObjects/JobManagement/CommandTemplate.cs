@@ -7,7 +7,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 namespace HEAppE.DomainObjects.JobManagement;
 
 [Table("CommandTemplate")]
-public class CommandTemplate : IdentifiableDbEntity
+public class CommandTemplate : IdentifiableDbEntity, ISoftDeletableEntity
 {
     [Required] [StringLength(1000)] public string Name { get; set; }
 

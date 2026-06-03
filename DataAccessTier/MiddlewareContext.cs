@@ -54,6 +54,21 @@ public class MiddlewareContext : DbContext
                             {
                                 _log.Info("Starting migration and seeding into the new database.");
                                 Database.Migrate();
+                                try
+                                {
+                                    var dbName = Database.GetDbConnection().Database;
+                                    if (!string.IsNullOrEmpty(dbName))
+                                    {
+#pragma warning disable EF1002
+                                        Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+#pragma warning restore EF1002
+                                        _log.Info($"RCSI isolation level has been successfully enabled for database: {dbName}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _log.Warn($"Could not automatically set RCSI on database creation: {ex.Message}");
+                                }
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
@@ -294,7 +309,7 @@ public class MiddlewareContext : DbContext
             .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId");
         
         modelBuilder.Entity<SubmittedTaskInfo>()
-            .HasIndex("SubmittedJobInfoId", nameof(SubmittedTaskInfo.State))
+            .HasIndex(nameof(SubmittedTaskInfo.State), "SubmittedJobInfoId")
             .HasFilter("[State] > 1 AND [State] < 16")
             .IncludeProperties("NodeTypeId", "SpecificationId", "ProjectId");
 
