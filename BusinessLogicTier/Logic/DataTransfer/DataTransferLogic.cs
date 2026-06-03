@@ -274,7 +274,6 @@ public class DataTransferLogic : IDataTransferLogic
 
 #pragma warning disable IDE1006
     private string _expirioToken
-
     {
         get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
     }
