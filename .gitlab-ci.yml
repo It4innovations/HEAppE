@@ -117,6 +117,10 @@ release_job:
   needs:
     - job: release_msg_job
       artifacts: true                     
+  before_script:
+    - curl --location --output /tmp/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
+    - chmod +x /tmp/release-cli
+    - export PATH=$PATH:/tmp
   script:
     - echo "Creating RELEASE \"$TAG_NAME"\"
     - git config --global user.name "HEAppE Pipeline"
@@ -167,4 +171,4 @@ push_to_github_job:
     - Centos9
     - IT4I_Network
   only:
-    - master 
+    - master
