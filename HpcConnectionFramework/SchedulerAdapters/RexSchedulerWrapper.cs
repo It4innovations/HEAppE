@@ -68,7 +68,7 @@ public class RexSchedulerWrapper : IRexScheduler
             credentials, jobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
-            var tasks = await _adapter.SubmitJobAsync(schedulerConnection?.Connection, jobSpecification, credentials);
+            var tasks = await _adapter.SubmitJobAsync(schedulerConnection.Connection, jobSpecification, credentials);
             return tasks;
         }
         finally
@@ -101,7 +101,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             foreach (var groupedTasksByUsername in groupedTasksByUser)
             {
-                var tasks = await _adapter.GetActualTasksInfoAsync(schedulerConnection?.Connection, cluster,
+                var tasks = await _adapter.GetActualTasksInfoAsync(schedulerConnection.Connection, cluster,
                         groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
                 allTasks.AddRange(tasks);
             }
@@ -127,7 +127,7 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.CancelJobAsync(schedulerConnection?.Connection, submitedTasksInfo, message);
+            await _adapter.CancelJobAsync(schedulerConnection.Connection, submitedTasksInfo, message);
         }
         finally
         {
@@ -165,7 +165,7 @@ public class RexSchedulerWrapper : IRexScheduler
             taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
-            return await _adapter.GetAllocatedNodesAsync(schedulerConnection?.Connection, taskInfo);
+            return await _adapter.GetAllocatedNodesAsync(schedulerConnection.Connection, taskInfo);
         }
         finally
         {
@@ -185,7 +185,7 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = await GetConnectionForUserAsync(serviceCredentials, cluster, sshCaToken, lexisToken);
         try
         {
-            return await _adapter.GetParametersFromGenericUserScriptAsync(schedulerConnection?.Connection, userScriptPath);
+            return await _adapter.GetParametersFromGenericUserScriptAsync(schedulerConnection.Connection, userScriptPath);
         }
         finally
         {
@@ -205,7 +205,7 @@ public class RexSchedulerWrapper : IRexScheduler
             await GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.AllowDirectFileTransferAccessForUserToJobAsync(schedulerConnection?.Connection, publicKey, jobInfo);
+            await _adapter.AllowDirectFileTransferAccessForUserToJobAsync(schedulerConnection.Connection, publicKey, jobInfo);
         }
         finally
         {
@@ -224,7 +224,7 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.RemoveDirectFileTransferAccessForUserAsync(schedulerConnection?.Connection, publicKeys,
+            await _adapter.RemoveDirectFileTransferAccessForUserAsync(schedulerConnection.Connection, publicKeys,
                 project.AccountingString);
         }
         finally
@@ -314,7 +314,7 @@ public class RexSchedulerWrapper : IRexScheduler
             jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            return await _adapter.DeleteJobDirectoryAsync(schedulerConnection?.Connection, jobInfo, localBasePath);
+            return await _adapter.DeleteJobDirectoryAsync(schedulerConnection.Connection, jobInfo, localBasePath);
         }
         catch (HEAppE.Exceptions.AbstractTypes.BaseException)
         {
@@ -348,7 +348,7 @@ public class RexSchedulerWrapper : IRexScheduler
             await GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.CopyJobDataToTempAsync(schedulerConnection?.Connection, jobInfo, localBasePath, hash, path);
+            await _adapter.CopyJobDataToTempAsync(schedulerConnection.Connection, jobInfo, localBasePath, hash, path);
         }
         finally
         {
@@ -368,7 +368,7 @@ public class RexSchedulerWrapper : IRexScheduler
             jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.CopyJobDataFromTempAsync(schedulerConnection?.Connection, jobInfo, localBasePath, hash);
+            await _adapter.CopyJobDataFromTempAsync(schedulerConnection.Connection, jobInfo, localBasePath, hash);
         }
         finally
         {
@@ -389,7 +389,7 @@ public class RexSchedulerWrapper : IRexScheduler
             taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.CreateTunnelAsync(schedulerConnection?.Connection, taskInfo, nodeHost, nodePort);
+            await _adapter.CreateTunnelAsync(schedulerConnection.Connection, taskInfo, nodeHost, nodePort);
         }
         finally
         {
@@ -408,7 +408,7 @@ public class RexSchedulerWrapper : IRexScheduler
             taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
-            await _adapter.RemoveTunnelAsync(schedulerConnection?.Connection, taskInfo);
+            await _adapter.RemoveTunnelAsync(schedulerConnection.Connection, taskInfo);
         }
         finally
         {
@@ -442,7 +442,7 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             schedulerConnection = await GetConnectionForUserAsync(clusterAuthCredentials, cluster, sshCaToken, lexisToken);
-            return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection?.Connection,
+            return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
                 clusterAuthCredentials.Username, isServiceAccount);
         }
@@ -496,7 +496,7 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = await GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
-            return await _adapter.MoveJobFilesAsync(schedulerConnection?.Connection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
+            return await _adapter.MoveJobFilesAsync(schedulerConnection.Connection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
         }
         finally
         {
@@ -528,7 +528,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = await GetConnectionForUserAsync(clusterAuthCredentials, cluster, null, null);
             checkLog.ClusterConnectionOk = true;
-            await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection?.Connection, clusterProjectCredential, checkLog);
+            await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
         }
         catch (HEAppE.Exceptions.AbstractTypes.BaseException)
         {
@@ -594,18 +594,20 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             await ReturnConnectionAsync(schedulerConnection);
         }
-    }    
+    }
+
+    private readonly ConnectionInfo DummyConnectionInfo = new ConnectionInfo { Connection = new object(), AuthCredentials = null, LastUsed = DateTime.Now };
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
-        if (_connectionPool != null && !cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
-            return await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
-        return null;
+        if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
+            return DummyConnectionInfo;
+        return await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
     }
 
     private Task ReturnConnectionAsync(ConnectionInfo schedulerConnection)
     {
-        if (_connectionPool == null || schedulerConnection == null)
+        if (_connectionPool == null || schedulerConnection == null || schedulerConnection == DummyConnectionInfo)
             return Task.Delay(1);
         return _connectionPool.ReturnConnectionAsync(schedulerConnection);
     }

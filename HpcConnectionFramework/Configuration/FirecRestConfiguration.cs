@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.ClusterInformation;
+using Microsoft.Extensions.Options;
 
 namespace HEAppE.HpcConnectionFramework.Configuration;
 
@@ -23,7 +24,12 @@ public class FirecRestConfiguration
     public class FirecRestOptionsGetter(FirecRestConfiguration _that)
     {
         public FirecRestOptions this[string masterNodeName] {
-            get => _that.Endpoints.FirstOrDefault(p => p.MasterNodeName == masterNodeName)?.Options;
+            get {
+                var result = _that.Endpoints.FirstOrDefault(p => p.MasterNodeName == masterNodeName)?.Options;
+                if (string.IsNullOrEmpty(result.Url))
+                    result.Url = masterNodeName;
+                return result;
+            }
         }
     }
 

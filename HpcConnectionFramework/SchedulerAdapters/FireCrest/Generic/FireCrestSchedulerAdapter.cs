@@ -54,7 +54,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         _logger = logger;
         _convertor = convertor;
-        _commands = null;
+        _commands = new FirecRestCommands();
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
     }
 
@@ -350,6 +350,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             return Enumerable.Empty<SubmittedTaskInfo>();
         }
 
+        // if called by some service, just echo already existing tasks state for now
+        if (string.IsNullOrEmpty(ClientId) || string.IsNullOrEmpty(ClientSecret))
+        {
+            return submittedTasksInfo;
+        }
+
         Task.Run(async () =>
         {
             var token = GetAuthToken();
@@ -568,20 +574,20 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     }
 
     public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath) =>
-        await _commands?.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
+        await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
 
     public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo) =>
-        await _commands?.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
+        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
 
     public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) =>
-        await _commands?.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
+        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
 
     public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) =>
-        await _commands?.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
+        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
 
     public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) =>
-        await _commands?.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
+        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
 
     public Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
         throw new NotSupportedException();
@@ -594,12 +600,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        string account, bool isServiceAccount) => await _commands?.InitializeClusterScriptDirectoryAsync(
+        string account, bool isServiceAccount) => await _commands.InitializeClusterScriptDirectoryAsync(
             schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
             localBasepath, account, isServiceAccount);
 
     public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
-        await _commands?.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
+        await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotSupportedException();
@@ -609,4 +615,59 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
         throw new NotSupportedException();
+}
+
+// fortress of lies
+class FirecRestCommands : ICommands
+{
+    public string InterpreterCommand => "";
+
+    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+    {
+        await Task.Delay(1);
+    }
+
+    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
+    {
+        await Task.Delay(1);
+    }
+
+    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
+    {
+        await Task.Delay(1);
+    }
+
+    public async Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
+    {
+        await Task.Delay(1);
+        return true;
+    }
+
+    public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
+    {
+        await Task.Delay(1);
+    }
+
+    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    {
+        await Task.Delay(1);
+        return true;
+    }
+
+    public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath)
+    {
+        await Task.Delay(1);
+        return [];
+    }
+
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+    {
+        await Task.Delay(1);
+        return true;
+    }
+
+    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    {
+        await Task.Delay(1);
+    }
 }

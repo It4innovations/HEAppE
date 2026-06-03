@@ -60,8 +60,8 @@ else
             "P:\\source\\localHEAppE\\confs"
         ],
         confFiles: [
-            "appsettings.json",
-            "appsettings-data.json",
+            ("appsettings.json", false),
+            ("appsettings-data.json", false),
         ],
         addJsonFile: confPath => builder.Configuration.AddJsonFile(confPath, false, false))
     )

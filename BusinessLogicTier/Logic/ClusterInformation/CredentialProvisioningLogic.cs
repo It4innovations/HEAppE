@@ -118,7 +118,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
 
             var scheduler = SchedulerFactory
                 .GetInstance(initCluster.SchedulerType)
-                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger);
+                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
 
             string path = Path.Combine(initProject.AccountingString,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
@@ -148,4 +148,12 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
 
         return initializedCredentials;
     }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+    }
+#pragma warning restore IDE1006
 }

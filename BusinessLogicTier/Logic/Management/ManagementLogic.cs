@@ -101,7 +101,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
             .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
@@ -257,7 +257,7 @@ public class ManagementLogic : IManagementLogic
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
             .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
@@ -1362,7 +1362,7 @@ public class ManagementLogic : IManagementLogic
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
                 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger);
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
                 
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
@@ -1433,7 +1433,7 @@ public class ManagementLogic : IManagementLogic
                 var project = clusterProjectCredential.ClusterProject.Project;
 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
                 
                 var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
                     _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
@@ -3078,7 +3078,7 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProject.Project;
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
             
             return await scheduler.CheckClusterProjectCredentialStatus(credential);
         }
@@ -3849,6 +3849,14 @@ public class ManagementLogic : IManagementLogic
         }
         return firecRestProxy;
     }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+    }
+#pragma warning restore IDE1006
 
     #endregion
 }

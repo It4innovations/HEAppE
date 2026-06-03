@@ -1,18 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.FileTransferFramework;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.Services.Expirio;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SshCaAPI;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
@@ -51,7 +54,9 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler type
     /// </summary>
-    SchedulerType _schedulerType;
+    private SchedulerType _schedulerType;
+
+    private readonly IOptionsMonitor<FirecRestConfiguration> _firecRestConfiguration;
 
     #endregion
 
@@ -59,7 +64,10 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
 
     public FirecRestSchedulerFactory(SchedulerType schedulerType)
     {
+        using var serviceScope = ServiceActivator.GetScope();
+
         _schedulerType = schedulerType;
+        _firecRestConfiguration = (IOptionsMonitor<FirecRestConfiguration>)serviceScope.ServiceProvider.GetService(typeof(IOptionsMonitor<FirecRestConfiguration>));
     }
 
     /// <summary>
@@ -75,11 +83,20 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         ISshCertificateAuthorityService sshCertificateAuthorityService,
         long? adaptorUserId,
         IExpirioService expirio,
+        string token,
         ILogger logger,
         Dictionary<string, dynamic> options = null)
     {
         string url, idpUrl, clientId = "", clientSecret = "";
         dynamic value;
+
+        options = null;
+
+        if (options == null)
+        {
+            //options = await GetSchedulerOptions(cluster, httpContextKeys: "", expirio, logger);
+            options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
+        }
 
         if (cluster.ProxyConnection?.FirecRestOptions != null)
         {
@@ -189,6 +206,26 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger)
     {
         throw new NotImplementedException("CreateSchedulerConnector not implemented in FirecRestSchedulerFactory");
+    }
+
+    protected async Task<Dictionary<string, dynamic>> GetSchedulerOptions(Cluster cluster, string token, IExpirioService expirioService, ILogger logger)
+    {
+        Dictionary<string, dynamic> result = [];
+        if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
+        {
+            // get firecrest options
+            FirecRestOptions firecRestOptions = (cluster?.ProxyConnection?.FirecRestOptions) ?? _firecRestConfiguration.CurrentValue.FirecRestOptions[cluster.MasterNodeName];
+            if (firecRestOptions != null)
+                result.Add("FirecRestOptions", firecRestOptions);
+
+            // get expirio credentials
+            //var token = !string.IsNullOrEmpty(httpContextKeys.Context.FIPToken) ? httpContextKeys.Context.FIPToken : httpContextKeys.Context.LEXISToken;
+            if (!String.IsNullOrEmpty(token) && firecRestOptions != null)
+            {
+                result = result.Concat(await expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, logger)).ToDictionary();
+            }
+        }
+        return result;
     }
 
     #endregion

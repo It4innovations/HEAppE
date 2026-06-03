@@ -55,6 +55,7 @@ public class PbsProSchedulerFactory : SchedulerFactory
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         long? adaptorUserId,
         IExpirioService expirio,
+        string token,
         ILogger logger,
         Dictionary<string, dynamic> options)
     {
