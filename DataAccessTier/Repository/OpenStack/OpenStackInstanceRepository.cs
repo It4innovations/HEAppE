@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DomainObjects.OpenStack;
 
@@ -19,7 +19,7 @@ internal class OpenStackInstanceRepository : GenericRepository<OpenStackInstance
 
     public OpenStackInstance GetByName(string instanceName)
     {
-        return GetAll().SingleOrDefault(instance => instance.Name == instanceName);
+        return _dbSet.SingleOrDefault(instance => instance.Name == instanceName);
     }
 
     #endregion

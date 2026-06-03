@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +9,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using log4net;
@@ -51,7 +52,7 @@ internal class JobReportingLogic : IJobReportingLogic
         
         var pIds = filteredGroups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
         var subProjects = enumerable.Where(p => p.SubProjects != null).SelectMany(p => p.SubProjects).Select(sp => sp.Identifier).ToArray();
-        var jobsLookup = GetJobsLookup(pIds, DateTime.MinValue, DateTime.UtcNow, subProjects);
+        var jobsLookup = GetJobsLookup(pIds, DateTime.UtcNow.AddDays(-90), DateTime.UtcNow, subProjects);
 
         return filteredGroups.Select(g => new UserGroupListReport
         {
@@ -68,7 +69,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .Include(j => j.Specification).ThenInclude(s => s.SubProject)
             .Include(j => j.Tasks).ThenInclude(t => t.NodeType).ThenInclude(nt => nt.Cluster)
             .Include(j => j.Tasks).ThenInclude(t => t.ResourceConsumed)
-            .Include(j => j.Tasks).ThenInclude(t => t.Specification).ThenInclude(s => s.CommandTemplate)
+            .Include(j => j.Tasks).ThenInclude(t => t.Specification)
             .AsNoTracking()
             .Where(j => j.Id == jobId)
             .Select(j => new {
@@ -82,8 +83,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
                     nt = t.NodeType,
                     c = t.NodeType != null ? t.NodeType.Cluster : null,
                     rc = t.ResourceConsumed,
-                    tspec = t.Specification,
-                    tmpl = t.Specification != null ? t.Specification.CommandTemplate : null
+                    tspec = t.Specification
                 }).ToList()
             })
             .FirstOrDefault() ?? throw new ResourceUsageException("JobNotSpecified", jobId);
@@ -107,9 +107,11 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             if (x.t.NodeType != null) x.t.NodeType.Cluster = x.c;
             x.t.ResourceConsumed = x.rc;
             x.t.Specification = x.tspec;
-            if (x.t.Specification != null) x.t.Specification.CommandTemplate = x.tmpl;
             return x.t;
         }).ToList();
+
+        // Re-attach CommandTemplates including soft-deleted ones so historical data is always visible
+        AttachCommandTemplatesIncludingDeleted(job.Tasks);
 
         return new ProjectReport { Clusters = GetClusterReportsForJob(job), Project = job.Project };
     }
@@ -210,15 +212,49 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var groups = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
+            .AsSplitQuery()
+            .Include(g => g.Project).ThenInclude(p => p.SubProjects)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
             .Where(g => groupIdsList.Contains(g.Id))
             .ToList();
 
         // Group by project ID to avoid duplicates in the response
-        return groups
-            .Where(g => g.ProjectId.HasValue)
+        var uniqueProjects = groups
+            .Where(g => g.ProjectId.HasValue && g.Project != null)
             .DistinctBy(g => g.ProjectId.Value)
-            .Select(g => UserGroupResourceAggregatedUsageReport(g.Id, startTime, endTime))
-            .Where(r => r != null).ToList();
+            .ToList();
+
+        if (!uniqueProjects.Any()) return Enumerable.Empty<ProjectAggregatedReport>();
+
+        var pIds = uniqueProjects.Select(g => g.Project.Id).ToList();
+        var jobsLookup = GetJobsLookup(pIds, startTime, endTime, null);
+
+        return uniqueProjects.Select(g => {
+            var jobs = jobsLookup.Contains(g.Project.Id) ? jobsLookup[g.Project.Id].ToList() : new List<SubmittedJobInfo>();
+
+            var subProjectsReports = g.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
+                SubProject = sp,
+                Clusters = BuildClusterAggregatedReports(g.Project, jobs.Where(j => j.Specification?.SubProjectId == sp.Id))
+            }).ToList() ?? new List<SubProjectAggregatedReport>();
+
+            // Check if there are jobs without subproject and non-zero usage
+            var jobsWithoutSubProject = jobs.Where(j => j.Specification?.SubProjectId == null).ToList();
+            var unassignedClusters = BuildClusterAggregatedReports(g.Project, jobsWithoutSubProject);
+            if (unassignedClusters.Any(c => c.TotalUsage > 0))
+            {
+                subProjectsReports.Add(new SubProjectAggregatedReport {
+                    SubProject = new SubProject { Identifier = null },
+                    Clusters = unassignedClusters
+                });
+            }
+
+            return new ProjectAggregatedReport
+            {
+                Project = g.Project,
+                SubProjects = subProjectsReports,
+                Clusters = BuildClusterAggregatedReports(g.Project, jobs)
+            };
+        }).ToList();
     }
 
     private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects)
@@ -228,20 +264,114 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var query = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(j => j.Submitter)
-            .Include(j => j.Project)
-            .Include(j => j.Specification).ThenInclude(s => s.SubProject)
-            .Include(j => j.Tasks).ThenInclude(t => t.NodeType)
-            .Include(j => j.Tasks).ThenInclude(t => t.ResourceConsumed)
-            .Include(j => j.Tasks).ThenInclude(t => t.Specification).ThenInclude(s => s.CommandTemplate)
             .Where(j => j.Project != null && pIds.Contains(j.Project.Id))
             .Where(j => j.StartTime >= start && j.EndTime <= end);
 
         if (subProjects?.Any() == true)
             query = query.Where(j => j.Specification != null && j.Specification.SubProject != null && subProjects.Contains(j.Specification.SubProject.Identifier));
 
-        return query.ToList().ToLookup(j => j.Project.Id);
+        var jobsData = query.Select(j => new {
+            j.Id,
+            j.Name,
+            j.State,
+            j.CreationTime,
+            j.StartTime,
+            j.SubmitTime,
+            j.EndTime,
+            ProjectId = j.Project != null ? (long?)j.Project.Id : null,
+            SubmitterUsername = j.Submitter != null ? j.Submitter.Username : null,
+            SpecificationSubProjectId = j.Specification != null ? j.Specification.SubProjectId : null,
+            SpecificationSubProjectIdentifier = (j.Specification != null && j.Specification.SubProject != null) ? j.Specification.SubProject.Identifier : null,
+            Tasks = j.Tasks.Select(t => new {
+                t.Id,
+                t.ScheduledJobId,
+                t.Name,
+                t.StartTime,
+                t.EndTime,
+                t.State,
+                NodeTypeId = t.NodeType != null ? (long?)t.NodeType.Id : null,
+                NodeTypeName = t.NodeType != null ? t.NodeType.Name : null,
+                ResourceConsumedValue = t.ResourceConsumed != null ? t.ResourceConsumed.Value : null,
+                CommandTemplateId = t.Specification != null ? (long?)t.Specification.CommandTemplateId : null,
+                CommandTemplateName = (t.Specification != null && t.Specification.CommandTemplate != null) ? t.Specification.CommandTemplate.Name : null
+            }).ToList()
+        }).ToList();
+
+        var jobs = jobsData.Select(d => {
+            var job = new SubmittedJobInfo
+            {
+                Id = d.Id,
+                Name = d.Name,
+                State = d.State,
+                CreationTime = d.CreationTime,
+                StartTime = d.StartTime,
+                SubmitTime = d.SubmitTime,
+                EndTime = d.EndTime,
+                Project = d.ProjectId.HasValue ? new Project { Id = d.ProjectId.Value } : null,
+                Submitter = d.SubmitterUsername != null ? new AdaptorUser { Username = d.SubmitterUsername } : null,
+                Specification = new JobSpecification
+                {
+                    SubProjectId = d.SpecificationSubProjectId,
+                    SubProject = d.SpecificationSubProjectIdentifier != null ? new SubProject
+                    {
+                        Id = d.SpecificationSubProjectId ?? 0,
+                        Identifier = d.SpecificationSubProjectIdentifier
+                    } : null
+                }
+            };
+            job.Tasks = d.Tasks.Select(t => new SubmittedTaskInfo
+            {
+                Id = t.Id,
+                ScheduledJobId = t.ScheduledJobId,
+                Name = t.Name,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                State = t.State,
+                NodeType = t.NodeTypeId.HasValue ? new ClusterNodeType { Id = t.NodeTypeId.Value, Name = t.NodeTypeName } : null,
+                ResourceConsumed = t.ResourceConsumedValue.HasValue ? new ResourceConsumed { Value = t.ResourceConsumedValue.Value } : null,
+                Specification = t.CommandTemplateId.HasValue ? new TaskSpecification
+                {
+                    CommandTemplateId = t.CommandTemplateId.Value,
+                    CommandTemplate = t.CommandTemplateName != null ? new CommandTemplate { Id = t.CommandTemplateId.Value, Name = t.CommandTemplateName } : null
+                } : null
+            }).ToList();
+            return job;
+        }).ToList();
+
+        // Re-attach CommandTemplates including soft-deleted ones so historical job data
+        // always shows the template info even if the template was deleted after the job ran.
+        AttachCommandTemplatesIncludingDeleted(jobs.SelectMany(j => j.Tasks ?? Enumerable.Empty<SubmittedTaskInfo>()));
+
+        return jobs.ToLookup(j => j.Project?.Id ?? 0L);
+    }
+
+    /// <summary>
+    /// After loading tasks from EF (where global soft-delete filter blanks out deleted CommandTemplates),
+    /// fetch any missing templates directly bypassing the filter and assign them back.
+    /// </summary>
+    private void AttachCommandTemplatesIncludingDeleted(IEnumerable<SubmittedTaskInfo> tasks)
+    {
+        var taskList = tasks?.ToList();
+        if (taskList == null || !taskList.Any()) return;
+
+        var missingTemplateIds = taskList
+            .Where(t => t.Specification != null && t.Specification.CommandTemplate == null && t.Specification.CommandTemplateId > 0)
+            .Select(t => t.Specification.CommandTemplateId)
+            .Distinct()
+            .ToList();
+
+        if (!missingTemplateIds.Any()) return;
+
+        var templates = _unitOfWork.CommandTemplateRepository
+            .GetByIdsIncludingDeleted(missingTemplateIds)
+            .ToDictionary(ct => ct.Id);
+
+        foreach (var task in taskList)
+        {
+            if (task.Specification != null && task.Specification.CommandTemplate == null && task.Specification.CommandTemplateId > 0)
+                if (templates.TryGetValue(task.Specification.CommandTemplateId, out var template))
+                    task.Specification.CommandTemplate = template;
+        }
     }
 
     private ProjectReport BuildProjectReport(Project project, IEnumerable<SubmittedJobInfo> jobs)

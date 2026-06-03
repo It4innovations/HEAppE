@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -65,6 +65,19 @@ public class JobReportingService : IJobReportingService
     public IEnumerable<ProjectReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime,
         string[] subProjects, string sessionCode)
     {
+        if (startTime == DateTime.MinValue)
+        {
+            startTime = endTime.AddDays(-90);
+        }
+        if (startTime > endTime)
+        {
+            throw new InputValidationException("StartTime must be before EndTime.");
+        }
+        if ((endTime - startTime).TotalDays > 90)
+        {
+            throw new InputValidationException("Reporting interval cannot exceed 90 days.");
+        }
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
@@ -86,6 +99,19 @@ public class JobReportingService : IJobReportingService
     public ProjectReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
         string[] subProjects, string sessionCode)
     {
+        if (startTime == DateTime.MinValue)
+        {
+            startTime = endTime.AddDays(-90);
+        }
+        if (startTime > endTime)
+        {
+            throw new InputValidationException("StartTime must be before EndTime.");
+        }
+        if ((endTime - startTime).TotalDays > 90)
+        {
+            throw new InputValidationException("Reporting interval cannot exceed 90 days.");
+        }
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
@@ -104,6 +130,19 @@ public class JobReportingService : IJobReportingService
     public IEnumerable<ProjectAggregatedReportExt> AggregatedUserGroupResourceUsageReport(DateTime startTime,
         DateTime endTime, string sessionCode)
     {
+        if (startTime == DateTime.MinValue)
+        {
+            startTime = endTime.AddDays(-90);
+        }
+        if (startTime > endTime)
+        {
+            throw new InputValidationException("StartTime must be before EndTime.");
+        }
+        if ((endTime - startTime).TotalDays > 90)
+        {
+            throw new InputValidationException("Reporting interval cannot exceed 90 days.");
+        }
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
@@ -161,6 +200,17 @@ public class JobReportingService : IJobReportingService
 
     public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
+        var end = timeTo ?? DateTime.UtcNow;
+        var start = timeFrom ?? end.AddDays(-90);
+        if (start > end)
+        {
+            throw new InputValidationException("timeFrom must be before timeTo.");
+        }
+        if ((end - start).TotalDays > 90)
+        {
+            throw new InputValidationException("Reporting interval cannot exceed 90 days.");
+        }
+
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
@@ -181,7 +231,7 @@ public class JobReportingService : IJobReportingService
                     .ToList()
                 : new List<long>();
 
-            var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo);
+            var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, start, end);
 
             if (reports == null)
                 return Enumerable.Empty<ProjectDetailedReportExt>();

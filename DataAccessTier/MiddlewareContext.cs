@@ -23,12 +23,20 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.DataAccessTier;
 
-internal class MiddlewareContext : DbContext
+public class MiddlewareContext : DbContext
 {
     #region Constructors
+
+    private readonly ILogger _logger;
+
+    public MiddlewareContext(ILogger logger) : this()
+    {
+        _logger = logger;
+    }
 
     public MiddlewareContext()
     {
@@ -46,6 +54,21 @@ internal class MiddlewareContext : DbContext
                             {
                                 _log.Info("Starting migration and seeding into the new database.");
                                 Database.Migrate();
+                                try
+                                {
+                                    var dbName = Database.GetDbConnection().Database;
+                                    if (!string.IsNullOrEmpty(dbName))
+                                    {
+#pragma warning disable EF1002
+                                        Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+#pragma warning restore EF1002
+                                        _log.Info($"RCSI isolation level has been successfully enabled for database: {dbName}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _log.Warn($"Could not automatically set RCSI on database creation: {ex.Message}");
+                                }
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
@@ -266,8 +289,74 @@ internal class MiddlewareContext : DbContext
                 parameter);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
-            modelBuilder.Entity(entityType.ClrType).HasIndex([nameof(ISoftDeletableEntity.IsDeleted)]);
+            
+            modelBuilder.Entity(entityType.ClrType)
+                .HasIndex([nameof(ISoftDeletableEntity.IsDeleted)])
+                .HasFilter("[IsDeleted] = 0");
         }
+
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex("SubmittedJobInfoId", nameof(SubmittedTaskInfo.State))
+            .IncludeProperties("SpecificationId", "NodeTypeId", "ProjectId");
+
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex("SubmittedJobInfoId")
+            .IncludeProperties(nameof(SubmittedTaskInfo.State), "NodeTypeId", "SpecificationId");
+        
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex(t => t.State)
+            .HasFilter("[State] >= 16")
+            .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId");
+        
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex(nameof(SubmittedTaskInfo.State), "SubmittedJobInfoId")
+            .HasFilter("[State] > 1 AND [State] < 16")
+            .IncludeProperties("NodeTypeId", "SpecificationId", "ProjectId");
+
+        modelBuilder.Entity<SubmittedJobInfo>()
+            .HasIndex("SpecificationId", "ProjectId")
+            .IncludeProperties(nameof(SubmittedJobInfo.State), "SubmitterId");
+
+        modelBuilder.Entity<TaskSpecification>()
+            .HasIndex("JobSpecificationId")
+            .IncludeProperties("CommandTemplateId", "ClusterNodeTypeId");
+
+        modelBuilder.Entity<SubmittedTaskAllocationNodeInfo>()
+            .HasIndex(nameof(SubmittedTaskAllocationNodeInfo.SubmittedTaskInfoId));
+
+        modelBuilder.Entity<SubmittedJobInfo>()
+            .HasIndex("ProjectId", nameof(SubmittedJobInfo.StartTime), nameof(SubmittedJobInfo.EndTime));
+
+        modelBuilder.Entity<SubmittedJobInfo>()
+            .HasIndex("SubmitterId")
+            .IncludeProperties(nameof(SubmittedJobInfo.State));
+
+        modelBuilder.Entity<SubmittedTaskInfo>()
+            .HasIndex(t => t.ScheduledJobId)
+            .HasFilter("[ScheduledJobId] IS NOT NULL");
+
+        modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
+            .HasIndex("ClusterAuthenticationCredentialsId");
+
+        modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
+            .HasIndex("ClusterNodeTypeAggregationId")
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties("AccountingId");
+
+        modelBuilder.Entity<ClusterProjectCredential>()
+            .HasIndex(cpc => cpc.ClusterProjectId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cpc => cpc.ClusterAuthenticationCredentialsId);
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex(cp => cp.ClusterId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cp => cp.ProjectId);
+
+        modelBuilder.Entity<ClusterProject>()
+            .HasIndex(cp => cp.ProjectId)
+            .HasFilter("[IsDeleted] = 0")
+            .IncludeProperties(cp => cp.ClusterId);
         
         modelBuilder.Entity<SessionCode>()
             .HasIndex(s => s.UniqueCode)

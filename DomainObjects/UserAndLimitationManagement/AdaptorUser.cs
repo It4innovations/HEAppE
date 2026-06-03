@@ -60,7 +60,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         {
             long roleId = (long)roleType;
             AdaptorUserUserGroupRole existingRole = AdaptorUserUserGroupRoles
-                .FirstOrDefault(f => f.AdaptorUserGroup == group && f.AdaptorUserRoleId == roleId);
+                .FirstOrDefault(f => f.AdaptorUserGroupId == group.Id && f.AdaptorUserRoleId == roleId);
 
             if (existingRole is null)
             {
