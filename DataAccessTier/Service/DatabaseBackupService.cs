@@ -1,15 +1,15 @@
-﻿using HEAppE.DataAccessTier.Configuration;
-using HEAppE.DomainObjects.Management;
-using HEAppE.Exceptions.External;
-using HEAppE.Exceptions.Internal;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using log4net;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DomainObjects.Management;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 
 namespace HEAppE.DataAccessTier.Service;
 
@@ -18,11 +18,15 @@ internal class DatabaseBackupService : IDatabaseBackupService
     #region Constructors
 
     internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector)
+        : this(context, vaultConnector, Microsoft.Extensions.Logging.Abstractions.NullLogger<DatabaseBackupService>.Instance)
+    {
+    }
+
+    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector, ILogger logger)
     {
         _context = context;
         _vaultConnector = vaultConnector;
-        _log = LogManager.GetLogger(nameof(DatabaseBackupService));
-        
+        _logger = logger;
     }
 
     #endregion
@@ -30,7 +34,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
     #region Instances
 
     protected readonly MiddlewareContext _context;
-    private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IVaultConnector _vaultConnector;
 
     #endregion
@@ -101,13 +105,13 @@ internal class DatabaseBackupService : IDatabaseBackupService
             }
             else
             {
-                _log.Warn($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
+                _logger.LogWarning($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
             }
             #endregion
             
             #region HashiCorp Vault backup
 
-            _log.Info("Starting HashiCorp Vault snapshot as part of full backup.");
+            _logger.LogInformation("Starting HashiCorp Vault snapshot as part of full backup.");
             try
             {
                 byte[] vaultSnapshot = await _vaultConnector.CreateSnapshot();
@@ -124,12 +128,12 @@ internal class DatabaseBackupService : IDatabaseBackupService
                         string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, vaultBackupFileName);
                         await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
                     }
-                    _log.Debug("Vault snapshot included in backup successfully.");
+                    _logger.LogDebug("Vault snapshot included in backup successfully.");
                 }
             }
             catch (Exception ex)
             {
-                _log.Error($"Vault backup failed, but continuing with DB backup: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed, but continuing with DB backup: {ex.Message}");
             }
 
             #endregion

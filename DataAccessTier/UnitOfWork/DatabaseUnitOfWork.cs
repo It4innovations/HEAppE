@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -25,9 +26,15 @@ public class DatabaseUnitOfWork : IUnitOfWork
 {
     #region Constructors
 
-    public DatabaseUnitOfWork()
+    public DatabaseUnitOfWork() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<DatabaseUnitOfWork>.Instance)
     {
-        _context = new MiddlewareContext();
+    }
+
+    public DatabaseUnitOfWork(ILogger logger)
+    {
+        _logger = logger;
+        _context = new MiddlewareContext(logger);
+        _vaultConnector = new VaultConnector(_logger);
     }
 
     #endregion
@@ -60,9 +67,9 @@ public class DatabaseUnitOfWork : IUnitOfWork
 
     #region Instances
 
+    private readonly ILogger _logger;
     private readonly MiddlewareContext _context;
-
-    private IVaultConnector _vaultConnector { get; } = new VaultConnector();
+    private readonly IVaultConnector _vaultConnector;
 
     private IAdaptorUserGroupRepository _adaptorUserGroupRepository;
     private IAdaptorUserRoleRepository _adaptorUserRoleRepository;
@@ -192,7 +199,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _clusterAuthenticationCredentialsRepository = _clusterAuthenticationCredentialsRepository
                                                                  ?? new ClusterAuthenticationCredentialsRepository(
-                                                                     _context, _vaultConnector);
+                                                                     _context, _vaultConnector, _logger);
         }
     }
 
@@ -404,7 +411,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         get
         {
             return _databaseBackupService =
-                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector());
+                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(_logger), _logger);
         }
     }
 

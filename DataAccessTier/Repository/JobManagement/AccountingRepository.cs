@@ -1,4 +1,5 @@
-﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
+using System.Linq;
+using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement;
@@ -13,4 +14,9 @@ internal class AccountingRepository : GenericRepository<Accounting>, IAccounting
     }
 
     #endregion
+
+    public Accounting GetByFormula(string formula)
+    {
+        return _dbSet.FirstOrDefault(x => x.Formula == formula);
+    }
 }

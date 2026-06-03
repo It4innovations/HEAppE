@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -25,7 +25,9 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
 
     public ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId)
     {
-        return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
+        return _context.ClusterProjects
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
             .FirstOrDefault();
     }
     
@@ -38,19 +40,26 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     }
     public List<ClusterProject> GetClusterProjectForProject(long projectId)
     {
-        return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)
+        return _context.ClusterProjects
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId)
             .ToList();
     }
     
     public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId)
     {
-        return _context.ClusterProjects.IgnoreQueryFilters().Where(cp => cp.ProjectId == projectId)
+        return _context.ClusterProjects
+            .IgnoreQueryFilters()
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId)
             .ToList();
     }
     
-        public IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId)
+    public IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId)
     {
-        return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId);
+        return _context.ClusterProjects
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId);
     }
 
     public IQueryable<ClusterProjectCredentialCheckLog> GetAllClusterProjectCredentialsCheckLogForProject(long projectId, DateTime? timeFrom, DateTime? timeTo)
@@ -84,6 +93,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     public List<ClusterProjectCredential> GetAllActiveClusterProjectCredentialsUntracked()
     {
         var result = _context.ClusterProjectCredentials
+            .AsSplitQuery()
             .Include(cpc => cpc.ClusterProject)
             .Include(cpc => cpc.ClusterProject.Cluster)
             .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
