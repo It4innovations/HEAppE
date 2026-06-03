@@ -10,40 +10,34 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation;
 
 internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepository
 {
-    #region Constructors
-
     internal ClusterRepository(MiddlewareContext context)
         : base(context)
     {
     }
 
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    ///     Get all clusters with cluster nodes and defined command templates only with active project
-    /// </summary>
-    /// <returns></returns>
     public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(cp => cp.Project)
+            .ThenInclude(p => p.CommandTemplates)
+            .ThenInclude(ct => ct.TemplateParameters)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.ClusterNodeTypeAggregation)
+            .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+            .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(pc => pc.Project)
+            .ThenInclude(p => p.CommandTemplates)
+            .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
     }
 
-
-
-    /// <summary>
-    ///     Get all clusters with Cluster Proxy Connection id
-    /// </summary>
-    /// <param name="clusterProxyConnectionId"></param>
-    /// <returns></returns>
     public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
     {
         return _dbSet
@@ -60,17 +54,24 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IQueryable<Cluster> AsQueryable()
     {
         return _dbSet
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
+            .ThenInclude(cp => cp.Project)
+            .ThenInclude(p => p.CommandTemplates)
+            .ThenInclude(ct => ct.TemplateParameters)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.ClusterNodeTypeAggregation)
+            .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+            .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands)
+            .ThenInclude(pc => pc.Project)
+            .ThenInclude(p => p.CommandTemplates)
+            .ThenInclude(ct => ct.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
     }
-
-    #endregion
-
-    #region Private Methods
 
     private Cluster GetCluster(Cluster cluster)
     {
@@ -113,9 +114,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             RequestedNodeGroups = n.RequestedNodeGroups,
             ClusterNodeTypeAggregation = n.ClusterNodeTypeAggregation,
             PossibleCommands = n.PossibleCommands
-                .Where(p => p.ProjectId == null || p.Project?.EndDate >= DateTime.UtcNow).ToList()
+                .Where(p => p.ProjectId == null || (p.Project != null && p.Project.EndDate >= DateTime.UtcNow)).ToList()
         };
     }
-
-    #endregion
 }

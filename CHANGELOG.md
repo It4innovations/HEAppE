@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.3.3
+
+### Performance
+- Optimized EF Core query efficiency by utilizing `AsSplitQuery()`, `AsNoTracking()`, and eager loading `.Include()` paths across repositories to avoid lazy-loading overhead.
+- Introduced database performance indexes for tables `SubmittedTaskInfo`, `SubmittedJobInfo`, `TaskSpecification`, `SubmittedTaskAllocationNodeInfo`, `ClusterProjectCredentialCheckLog`, `ClusterNodeTypeAggregationAccounting`, `ClusterProjectCredential`, and `ClusterProject` to accelerate query retrieval times.
+- Optimized soft-deletion index structure by applying filtered indexes (`[IsDeleted] = 0`).
+
 ## V6.3.2
 
 ### Added

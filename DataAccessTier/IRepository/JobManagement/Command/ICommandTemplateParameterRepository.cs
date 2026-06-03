@@ -1,8 +1,9 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 
 public interface ICommandTemplateParameterRepository : IRepository<CommandTemplateParameter>
 {
     CommandTemplateParameter GetByCommandTemplateIdAndCommandParamId(long commandTemplateId, string identifier);
+    CommandTemplateParameter GetByIdWithCommandTemplate(long id);
 }

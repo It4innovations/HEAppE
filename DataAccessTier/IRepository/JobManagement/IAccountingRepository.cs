@@ -1,7 +1,8 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement;
 
 public interface IAccountingRepository : IRepository<Accounting>
 {
+    Accounting GetByFormula(string formula);
 }
