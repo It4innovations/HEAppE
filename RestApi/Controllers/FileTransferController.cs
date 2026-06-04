@@ -51,7 +51,7 @@ public class FileTransferController : BaseController<FileTransferController>
         memoryCache)
     {
         _userOrgService = userOrgService;
-        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, _logger);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion
@@ -73,11 +73,11 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RequestFileTransfer(GetFileTransferMethodModel model)
     {
-            var validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var validationResult = new FileTransferValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-            return Ok(await _service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
-        }
+        return Ok(await _service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
+    }
 
     /// <summary>
     ///     Close file transfer tunnel
@@ -94,12 +94,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CloseFileTransfer(EndFileTransferModel model)
     {
-            var validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var validationResult = new FileTransferValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             await _service.CloseFileTransferAsync(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
-            return Ok("File transfer closed");
-        }
+        return Ok("File transfer closed");
+    }
 
     /// <summary>
     ///     Download part of job files from Cluster
@@ -116,12 +116,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
     {
-            var validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var validationResult = new FileTransferValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.DownloadPartsOfJobFilesFromClusterAsync(model.SubmittedJobInfoId, model.TaskFileOffsets,
-                model.SessionCode));
-        }
+            model.SessionCode));
+    }
 
     /// <summary>
     ///     Get all changes files during job execution
@@ -140,16 +140,16 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
     {
-            var model = new ListChangedFilesForJobModel
-            {
-                SessionCode = sessionCode,
-                SubmittedJobInfoId = submittedJobInfoId
-            };
-            var validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var model = new ListChangedFilesForJobModel
+        {
+            SessionCode = sessionCode,
+            SubmittedJobInfoId = submittedJobInfoId
+        };
+        var validationResult = new FileTransferValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.ListChangedFilesForJobAsync(model.SubmittedJobInfoId, model.SessionCode));
-        }
+    }
 
     /// <summary>
     ///     Download specific file from Cluster
@@ -166,12 +166,12 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DownloadFileFromCluster(DownloadFileFromClusterModel model)
     {
-            var validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var validationResult = new FileTransferValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
             return Ok(await _service.DownloadFileFromClusterAsync(model.SubmittedJobInfoId, model.RelativeFilePath,
-                model.SessionCode));
-        }
+            model.SessionCode));
+    }
 
     static async Task<List<FileUploadResultExt>> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
     {
@@ -222,35 +222,35 @@ public class FileTransferController : BaseController<FileTransferController>
         [FromServices] IExpirioService expirioService
     )
     {
-            var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
-            var validator = new UploadFileToClusterModelValidator();
-            validator.ValidateAndThrow(model);
-            long jobSpecificationId;
-            long? taskSpecificationId = null;
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
+        var validator = new UploadFileToClusterModelValidator();
+        validator.ValidateAndThrow(model);
+        long jobSpecificationId;
+        long? taskSpecificationId = null;
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
+                      throw new Exception("NotExistingJob");
+            jobSpecificationId = job.Specification.Id;
+            //check if task belongs to job
+            if (taskId.HasValue)
             {
-                var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
-                          throw new Exception("NotExistingJob");
-                jobSpecificationId = job.Specification.Id;
-                //check if task belongs to job
-                if (taskId.HasValue)
-                {
-                    taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ??
-                                          throw new Exception("TaskDoesNotBelongToJob");
-                }
-                var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
-                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
-                if (job.Submitter.Id != loggedUser.Id)
-                    throw new Exception("LoggedUserIsNotSubmitterOfJob");
+                taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ??
+                                      throw new Exception("TaskDoesNotBelongToJob");
             }
-
-            List<Task<dynamic>> tasks = new List<Task<dynamic>>();
-            foreach (var file in files)
-                tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
-
-            List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
-            return Ok(result);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
+                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
+            if (job.Submitter.Id != loggedUser.Id)
+                throw new Exception("LoggedUserIsNotSubmitterOfJob");
         }
+
+        List<Task<dynamic>> tasks = new List<Task<dynamic>>();
+        foreach (var file in files)
+            tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+
+        List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
+        return Ok(result);
+    }
 
     #endregion
 }

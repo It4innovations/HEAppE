@@ -116,7 +116,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
                 }
                 catch (JsonException ex)
                 {
-                    logger.LogError($"[UserOrg API] Failed to deserialize JSON response. Content: {content}", ex);
+                    logger.LogError(ex, $"[UserOrg API] Failed to deserialize JSON response. Content: {content}");
                     throw new AuthenticationTypeException("InvalidResponseFormat", "UserOrg") { Details = $"Expected JSON but received invalid format: {ex.Message}" };
                 }
             }

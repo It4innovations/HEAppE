@@ -15,11 +15,11 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
-using HEAppE.Services.Expirio;
 
 namespace HEAppE.ServiceTier.FileTransfer;
 
@@ -31,7 +31,7 @@ public class FileTransferService : IFileTransferService
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
     
-    public FileTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger? logger)
+    public FileTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
         _userOrgService = userOrgService;
         _expirioService = expirioService;
@@ -117,7 +117,7 @@ public class FileTransferService : IFileTransferService
                                    throw new InputValidationException("NotExistingSubmittedJobInfo",
                                        submittedJobInfoId);
 
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id, _expirioService);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var result = await fileTransferLogic.ListChangedFilesForJobAsync(submittedJobInfoId, loggedUser);

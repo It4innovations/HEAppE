@@ -29,7 +29,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     public CloseConnectionToFinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory, 
+        IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory,
         BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)

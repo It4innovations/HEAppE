@@ -28,7 +28,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
     public RemoveTemporaryFileTransferKeyBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory, 
+        IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory,
         BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)

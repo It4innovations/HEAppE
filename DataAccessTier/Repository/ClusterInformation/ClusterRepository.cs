@@ -48,7 +48,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     
     public Cluster GetByIdWithProxyConnection(long id)
     {
-        return _dbSet.Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
+        return _dbSet
+            .Include(c => c.ProxyConnection)
+            .FirstOrDefault(c => c.Id == id);
     }
 
     public IQueryable<Cluster> AsQueryable()

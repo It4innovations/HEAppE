@@ -35,7 +35,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Specification)
             .Where(w => (EF.Property<long>(w, "SubmitterId") == submitterId && w.State < JobState.Finished) ||
-                        w.State == JobState.WaitingForServiceAccount)
+                w.State == JobState.WaitingForServiceAccount)
             .ToList();
     }
 
