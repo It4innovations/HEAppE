@@ -602,7 +602,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
             return DummyConnectionInfo;
-        return await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        return await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
     }
 
     private Task ReturnConnectionAsync(ConnectionInfo schedulerConnection)
