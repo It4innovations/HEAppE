@@ -101,15 +101,8 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
     }
 
 
-    public override object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification,
-        object schedulerAllocationCmd)
-    {
-        var scriptBuilder = new StringBuilder();
-
-        //_conversionAdapterFactory = null;
-        //_conversionAdapterFactory = new PbsProConversionAdapterFactory();
-        //_conversionAdapterFactory = new SlurmConversionAdapterFactory();
-
+    public override object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
+    {        
         if (_conversionAdapterFactory != null)
         {
             var taskScript = (string)base.ConvertTaskSpecificationToTask(jobSpecification, taskSpecification, "#!/bin/bash");
@@ -119,11 +112,10 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             }
             else if (_conversionAdapterFactory is PbsProConversionAdapterFactory)
             {
-
+                // ...
             }
             return taskScript;
         }
-
         return null;
     }
 
