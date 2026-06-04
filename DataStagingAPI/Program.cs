@@ -5,6 +5,7 @@ using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
+using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -21,9 +22,11 @@ using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using log4net;
@@ -31,14 +34,12 @@ using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
-using HEAppE.Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
-using HEAppE.BackgroundThread.Configuration;
-using HEAppE.RestApi.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -49,6 +50,7 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Doc
     builder.Logging.AddLog4Net("Logging/log4netDocker.config");
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
+    builder.Configuration.AddJsonFile("/opt/heappe/confs/firecrest.json", true, true);
 }
 else
 {
@@ -62,6 +64,7 @@ else
         confFiles: [
             ("appsettings.json", false),
             ("appsettings-data.json", false),
+            ("firecrest.json", true)
         ],
         addJsonFile: confPath => builder.Configuration.AddJsonFile(confPath, false, false))
     )
@@ -116,6 +119,10 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+
+builder.Services.Configure<FirecRestConfiguration>(builder.Configuration.GetSection("FirecRestConfiguration"));
+builder.Services.AddSingleton< // monitor changes without having to restart
+            IOptionsMonitor<FirecRestConfiguration>, OptionsMonitor<FirecRestConfiguration>>();
 
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
