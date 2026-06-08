@@ -40,7 +40,7 @@ public static class ResourceAccountingUtils
 
         logger?.LogInformation($"Accounting {accounting.Id} found for SubmittedTaskInfo: {dbTaskInfo.Id}");
 
-        if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
+        if ((submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0) && !string.IsNullOrEmpty(submittedTaskInfo.AllParameters))
         {
             submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
                 ?.Split(' ', StringSplitOptions.RemoveEmptyEntries)
@@ -60,13 +60,15 @@ public static class ResourceAccountingUtils
 
     private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILogger logger)
     {
-        if (string.IsNullOrWhiteSpace(accountingFormula)) return 0;
+        if (string.IsNullOrWhiteSpace(accountingFormula))
+            return 0;
 
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
         string originalFormula = accountingFormula;
 
         var formulaProperties = accountingFormula.Split(_operators, StringSplitOptions.RemoveEmptyEntries);
-
+        
+        parsedParameters ??= [];
         var relevantParams = parsedParameters
             .Where(w => formulaProperties.Contains(w.Key))
             .OrderByDescending(w => w.Key.Length);

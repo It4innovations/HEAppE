@@ -13,5 +13,7 @@ public enum SchedulerTypeExt
     LinuxLocal = 1,
     PbsPro = 2,
     Slurm = 4,
-    HyperQueue = 8
+    HyperQueue = 8,
+    PbsProViaFirecRest = 16 | PbsPro,
+    SlurmViaFirecRest = 16 | Slurm
 }

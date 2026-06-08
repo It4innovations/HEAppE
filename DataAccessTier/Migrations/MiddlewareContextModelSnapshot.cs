@@ -224,6 +224,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("FirecRestOptions")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Host")
                         .IsRequired()
                         .HasMaxLength(40)

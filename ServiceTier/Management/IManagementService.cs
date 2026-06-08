@@ -1,16 +1,17 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
-using System.Threading.Tasks;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -145,10 +146,10 @@ public interface IManagementService
     List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode);
 
     ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type, string sessionCode);
+        ProxyType type, FirecRestOptions firecRestOptions, string sessionCode);
 
     ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type, string sessionCode);
+        string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode);
 
     void RemoveClusterProxyConnection(long id, string sessionCode);
 

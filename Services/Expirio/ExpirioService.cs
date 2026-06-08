@@ -1,17 +1,18 @@
 #pragma warning disable CS8602, CS8604, CS8603
+using System.Reflection;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.Expirio.Exceptions;
 using HEAppE.Services.Expirio.Models;
-using Microsoft.Extensions.Configuration;
-using System.Net;
-using HEAppE.Services.Expirio.Configuration;
-using System.Net.Http.Headers;
-using System.Reflection;
-using Microsoft.Extensions.Logging;
 
 namespace HEAppE.Services.Expirio;
 
@@ -133,7 +134,6 @@ public class ExpirioService : IExpirioService
         }
     }
 
-
     private void HandleErrorResponse(HttpResponseMessage response, string content, string context, ILogger logger)
     {
         string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
@@ -159,6 +159,7 @@ public class ExpirioService : IExpirioService
     public async Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
     {
         // Placeholder implementation
+        await Task.Delay(1);
         return true;
     }
 
@@ -179,5 +180,64 @@ public class ExpirioService : IExpirioService
             logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
             return null;
         }
+    }
+
+    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("[Expirio] Method: FirecrestCredentials");
+        var result = new Dictionary<string, dynamic>();
+        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+
+        var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{firecRestOptions.ExpirioMetadata.SecretName}";
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
+        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+
+            using var doc = JsonDocument.Parse(content);
+
+            var secretContent = firecRestOptions.ExpirioMetadata.SecretContent;
+
+            string? clientId = null, clientSecret = null, url = null, idpUrl = null;
+
+            // extract properties
+            if (doc.RootElement.TryGetProperty(secretContent.ClientId, out var contentProp))
+                clientId = contentProp.GetString();
+
+            if (doc.RootElement.TryGetProperty(secretContent.ClientSecret, out contentProp))
+                clientSecret = contentProp.GetString();
+
+            if (!String.IsNullOrEmpty(secretContent.Url) && doc.RootElement.TryGetProperty(secretContent.Url, out contentProp))
+                url = contentProp.GetString();
+
+            if (!String.IsNullOrEmpty(secretContent.IdpUrl) && doc.RootElement.TryGetProperty(secretContent.IdpUrl, out contentProp))
+                idpUrl = contentProp.GetString();
+
+            // add them to result if they exist
+            if (!String.IsNullOrEmpty(clientId))
+                result.Add("f7t_client_id", clientId);
+
+            if (!String.IsNullOrEmpty(clientSecret))
+                result.Add("f7t_client_secret", clientSecret);
+
+            if (!String.IsNullOrEmpty(url))
+                result.Add("f7t_url", url);
+
+            if (!String.IsNullOrEmpty(idpUrl))
+                result.Add("f7t_token_url", idpUrl);
+
+            return result;
+        }
+        else
+        {
+            HandleErrorResponse(response, content, "firecrest", logger);
+        }
+
+        return result;
     }
 }

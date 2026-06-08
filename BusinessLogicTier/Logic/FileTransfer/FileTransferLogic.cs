@@ -150,7 +150,7 @@ public class FileTransferLogic : IFileTransferLogic
 
                     var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                         .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService,
-                            adaptorUserId: adaptorUserId, _expirioService, _logger);
+                            adaptorUserId: adaptorUserId, _expirioService, _expirioToken, _logger);
                     await scheduler.RemoveDirectFileTransferAccessForUserAsync(tempKey.Select(s => s.PublicKey),
                         tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project,
                         _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
@@ -288,7 +288,7 @@ public class FileTransferLogic : IFileTransferLogic
                 PublicKey = publicKey
             });
 
-        await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id, _expirioService, _logger)
+        await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             .AllowDirectFileTransferAccessForUserToJobAsync(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
         await _unitOfWork.SaveAsync();
@@ -310,7 +310,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (temporaryKey is null) throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
 
-        await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+        await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             .RemoveDirectFileTransferAccessForUserAsync(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
                 jobInfo.Specification.Cluster, jobInfo.Project, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
@@ -722,6 +722,13 @@ public class FileTransferLogic : IFileTransferLogic
         return _unitOfWork.FileTransferMethodRepository.GetByClusterId(clusterId)
             .ToList();
     }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+    }
+#pragma warning restore IDE1006
 
     #endregion
 }

@@ -54,7 +54,9 @@ public class PbsProSchedulerFactory : SchedulerFactory
         Project project, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         long? adaptorUserId,
-        IExpirioService expirio, ILogger logger)
+        IExpirioService expirio,
+        string token,
+        ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))

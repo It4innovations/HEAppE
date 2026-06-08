@@ -1,0 +1,34 @@
+{
+    "FirecRestConfiguration": {
+        "Endpoints": [
+            {
+                "MasterNodeName": "firecrest-demo.localhost",
+                "Options": {
+                    "Url": "http://127.0.0.1:8000/",
+                    "IdpUrl": "http://127.0.0.1:8080/auth/realms/kcrealm/protocol/openid-connect/token",
+                    "ExpirioMetadata": {
+                        "SecretName": "firecrest",
+                        "SecretContent": {
+                            "ClientId": "clientId",
+                            "ClientSecret": "clientSecret"
+                        }
+                    }
+                }
+            },
+            {
+                "MasterNodeName": "daint.alps.cscs.ch",
+                "Options": {
+                    "Url": "https://api.svc.cscs.ch/hpc/firecrest/v2",
+                    "IdpUrl": "https://auth.cscs.ch/auth/realms/firecrest-clients/protocol/openid-connect/token",
+                    "ExpirioMetadata": {
+                        "SecretName": "firecrest-cscs.ch",
+                        "SecretContent": {
+                            "ClientId": "clientId",
+                            "ClientSecret": "clientSecret"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
