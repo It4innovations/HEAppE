@@ -1708,12 +1708,6 @@ public class ManagementLogic : IManagementLogic
             port = firecRestProxy.Port;
             proxyConnectionId = firecRestProxy.Id;
         }
-        else
-        {
-            schedulerType = schedulerType & (~SchedulerType.FirecRest);
-            if (clusterConnectionProtocol == ClusterConnectionProtocol.FirecRestApi)
-                clusterConnectionProtocol = ClusterConnectionProtocol.None;
-        }
 
         var cluster = new Cluster
         {
@@ -1773,12 +1767,6 @@ public class ManagementLogic : IManagementLogic
             masterNodeName = firecRestProxy.Host;
             port = firecRestProxy.Port;
             proxyConnectionId = firecRestProxy.Id;
-        }
-        else
-        {
-            schedulerType = schedulerType & (~SchedulerType.FirecRest);
-            if (clusterConnectionProtocol == ClusterConnectionProtocol.FirecRestApi)
-                clusterConnectionProtocol = ClusterConnectionProtocol.None;
         }
 
         existingCluster.Name = name;
