@@ -27,6 +27,8 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     {
         return _context.ClusterProjects
             .Include(x => x.ClusterProjectCredentials)
+            .Include(x => x.Cluster)
+            .Include(x => x.Project)
             .Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
             .FirstOrDefault();
     }
