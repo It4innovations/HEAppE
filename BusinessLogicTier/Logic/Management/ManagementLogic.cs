@@ -1051,7 +1051,8 @@ public class ManagementLogic : IManagementLogic
 
         SecureShellKey secureShellKey = null;
         bool isGenerated = false;
-        if(authType != ClusterAuthenticationCredentialsAuthType.Kerberos)
+        if (authType != ClusterAuthenticationCredentialsAuthType.Kerberos &&
+            authType != ClusterAuthenticationCredentialsAuthType.Password)
         {
             SSHGenerator sshGenerator = new(_logger);
             if (generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey)))
