@@ -17,6 +17,13 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
 
     #endregion
 
+    public override CommandTemplate GetById(long id)
+    {
+        return _dbSet
+            .Include(i => i.TemplateParameters)
+            .FirstOrDefault(f => f.Id == id);
+    }
+
     public IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId)
     {
         return _dbSet.Where(w => w.ProjectId == projectId || w.ProjectId == null)

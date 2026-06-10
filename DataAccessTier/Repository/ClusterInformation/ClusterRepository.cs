@@ -43,10 +43,40 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .ToList();
     }
     
+    public override Cluster GetById(long id)
+    {
+        return _dbSet
+            .AsSplitQuery()
+            .Include(c => c.ClusterProjects)
+                .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.TemplateParameters)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
+            .FirstOrDefault(c => c.Id == id);
+    }
+
     public Cluster GetByIdWithProxyConnection(long id)
     {
         return _dbSet
-            .AsNoTracking().Include(c => c.ProxyConnection)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(c => c.ClusterProjects)
+                .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.TemplateParameters)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
             .FirstOrDefault(c => c.Id == id);
     }
 

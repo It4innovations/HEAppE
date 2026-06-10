@@ -81,5 +81,18 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefault(p => p.Id == id);
     }
 
+    public override Project GetById(long id)
+    {
+        return _dbSet
+            .AsSplitQuery()
+            .Include(x => x.ProjectContacts)
+                .ThenInclude(x => x.Contact)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
+            .FirstOrDefault(p => p.Id == id);
+    }
+
     #endregion
 }

@@ -1783,7 +1783,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public List<ClusterNodeType> ListClusterNodeTypes()
     {
-        return _unitOfWork.ClusterNodeTypeRepository.GetAll().ToList();
+        return _unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommands().ToList();
     }
 
     /// <summary>

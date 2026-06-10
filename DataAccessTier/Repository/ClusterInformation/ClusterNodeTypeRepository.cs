@@ -41,11 +41,31 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
             .ToList();
     }
 
+    public override ClusterNodeType GetById(long id)
+    {
+        return _dbSet
+            .Include(i => i.Cluster)
+                .ThenInclude(c => c.ClusterProjects)
+                    .ThenInclude(cp => cp.Project)
+            .Include(i => i.ClusterNodeTypeAggregation)
+                .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                    .ThenInclude(acc => acc.Accounting)
+            .Include(i => i.PossibleCommands)
+                .ThenInclude(pc => pc.TemplateParameters)
+            .FirstOrDefault(i => i.Id == id);
+    }
+
     public ClusterNodeType GetByIdWithClusterAndProjects(long id)
     {
         return _dbSet
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
+                    .ThenInclude(cp => cp.Project)
+            .Include(i => i.ClusterNodeTypeAggregation)
+                .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                    .ThenInclude(acc => acc.Accounting)
+            .Include(i => i.PossibleCommands)
+                .ThenInclude(pc => pc.TemplateParameters)
             .FirstOrDefault(i => i.Id == id);
     }
 
