@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
@@ -45,7 +45,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     
     public Cluster GetByIdWithProxyConnection(long id)
     {
-        return _dbSet.AsNoTracking().Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
+        return _dbSet
+            .AsNoTracking().Include(c => c.ProxyConnection)
+            .FirstOrDefault(c => c.Id == id);
     }
 
     public IQueryable<Cluster> AsQueryable()

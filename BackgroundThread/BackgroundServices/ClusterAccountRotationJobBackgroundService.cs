@@ -29,7 +29,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
     public ClusterAccountRotationJobBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory, 
+        IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory,
         BackGroundThreadConfiguration configuration,
         IExpirioService expirioService)

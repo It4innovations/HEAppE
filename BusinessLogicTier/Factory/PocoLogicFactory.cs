@@ -1,5 +1,4 @@
-﻿using System.Net.Http;
-using HEAppE.Authentication;
+﻿using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -10,11 +9,11 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
-using HEAppE.Services.Expirio;
 
 namespace HEAppE.BusinessLogicTier.Factory;
 
@@ -53,11 +52,7 @@ public class PocoLogicFactory : LogicFactory
 
     public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
-        using var scope = ServiceProvider.CreateScope();
-        //var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-        var rtn = new UserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
-
-        return rtn;
+        return new UserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     public override IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)

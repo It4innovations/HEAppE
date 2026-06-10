@@ -46,9 +46,9 @@ public class DataTransferController : BaseController<DataTransferController>
     /// <param name="sshCertificateAuthorityService"></param>
     /// <param name="memoryCache">Memory cache provider</param>
     public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
-                                    IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,memoryCache)
+       IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,memoryCache)
     {
-        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, _logger);
+        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion
@@ -193,7 +193,7 @@ public class DataTransferController : BaseController<DataTransferController>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during HttpPostToJobNodeStream: {Message}", ex.Message);
+            _logger.LogError(ex, $"Error during HttpPostToJobNodeStream: {ex.Message}");
             await Response.WriteAsync($"data: Error: {ex.Message}\n\n");
             await Response.Body.FlushAsync();
         }
