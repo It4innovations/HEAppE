@@ -277,6 +277,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
+        app.UseRequestLocalization();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseIpRateLimiting();
         app.UseStatusCodePages();
@@ -303,7 +304,6 @@ public class Startup
             swaggerUI.EnableTryItOutByDefault();
         });
 
-        app.UseRequestLocalization();
         app.UseRouting();
         app.UseCors(_allowSpecificOrigins);
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -163,7 +163,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
             if (string.IsNullOrEmpty(parameter.Query) &&
                 (task.CommandParameterValues == null ||
                  !task.CommandParameterValues.Any(
-                     w => w.TemplateParameter == parameter && w.TemplateParameter.IsEnabled)))
+                     w => w.TemplateParameter?.Id == parameter.Id && w.TemplateParameter.IsEnabled)))
                 _ = _messageBuilder.AppendLine(
                     $"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
 

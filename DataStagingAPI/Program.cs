@@ -307,6 +307,7 @@ if (!string.IsNullOrEmpty(pathBase))
 
 app.UseCors("HEAppEDefaultOrigins");
 
+app.UseRequestLocalization();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseStatusCodePages();
