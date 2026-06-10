@@ -22,7 +22,6 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByName(string username)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
 
@@ -38,7 +37,6 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByApiKey(string apiKey)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Include(u => u.AdaptorUserUserGroupRoles)
@@ -53,7 +51,6 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public override AdaptorUser GetById(long id)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Include(u => u.AdaptorUserUserGroupRoles)

@@ -321,7 +321,6 @@ public class JobManagementService : IJobManagementService
         }
 
         query = query.AsNoTracking()
-            .AsSplitQuery()
             .Include(x => x.Specification) // This is for the Job
             .Include(x => x.Project)       // This is for the Job
             .Include(x => x.Tasks)

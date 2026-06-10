@@ -45,7 +45,6 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .FirstOrDefault(p => p.AccountingString == accountingString);
@@ -55,7 +54,6 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -67,7 +65,6 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .ToList();

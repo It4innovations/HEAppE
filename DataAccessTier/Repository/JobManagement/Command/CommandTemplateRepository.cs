@@ -28,7 +28,6 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
     {
         return _dbSet.Where(w => w.ProjectId == projectId || w.ProjectId == null)
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
             .Include(i => i.TemplateParameters)
@@ -40,7 +39,6 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
         var projectIdList = projectIds?.ToList() ?? new List<long>();
         return _dbSet.Where(w => w.ProjectId == null || (w.ProjectId.HasValue && projectIdList.Contains(w.ProjectId.Value)))
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
             .Include(i => i.TemplateParameters)

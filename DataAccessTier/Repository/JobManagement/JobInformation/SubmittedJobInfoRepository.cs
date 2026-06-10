@@ -19,7 +19,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .FirstOrDefault(j => j.Tasks.Any(t => t.Id == taskId));
@@ -29,7 +28,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(j => j.Project)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
@@ -53,7 +51,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         // NOT loaded (not needed for state update): ClusterProjects, ClusterProjectCredentials,
         //   ResourceConsumed, NodeType, CommandTemplate, SubmitterGroup.
         return _dbSet
-            .AsSplitQuery()
             // Active tasks and their task-level specification
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
@@ -89,7 +86,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.NodeType)
             .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
@@ -113,7 +109,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(j => j.Project)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
@@ -129,7 +124,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var jobs = _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
@@ -246,7 +240,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .IgnoreQueryFilters()
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -265,7 +258,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
