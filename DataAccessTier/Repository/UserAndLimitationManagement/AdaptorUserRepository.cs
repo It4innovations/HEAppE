@@ -84,9 +84,12 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     {
         return _dbSet
             .Include(u => u.AdaptorUserUserGroupRoles)
-            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                    .ThenInclude(g => g.Project)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Where(u => u.AdaptorUserUserGroupRoles
-                .Any(ugr => ugr.AdaptorUserGroup.Id == groupId))
+                .Any(ugr => ugr.AdaptorUserGroupId == groupId))
             .ToList();
     }
 

@@ -3227,10 +3227,12 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var userGroups = project.AdaptorUserGroups;
+        _logger.LogInformation($"ListAdaptorUsersInProject: ProjectId={projectId}, AdaptorUserGroups Count={userGroups?.Count ?? -1}");
         var adaptorUsers = new List<AdaptorUser>();
         foreach (var userGroup in userGroups)
         {
             var usersInGroup = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+            _logger.LogInformation($"ListAdaptorUsersInProject: GroupId={userGroup.Id}, GroupName={userGroup.Name}, Users count={usersInGroup.Count}");
             adaptorUsers.AddRange(usersInGroup);
         }
 
