@@ -144,7 +144,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         var job = _dbSet
-            .AsSplitQuery()
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
                     .ThenInclude(c => c.ProxyConnection)

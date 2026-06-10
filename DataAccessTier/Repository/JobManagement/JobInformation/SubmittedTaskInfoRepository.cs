@@ -91,8 +91,6 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                     .ThenInclude(js => js.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
-                    .ThenInclude(js => js.Submitter)
-            .AsSplitQuery()
             .FirstOrDefault(t => t.Id == id);
 
         if (task == null) return null;

@@ -81,7 +81,6 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public override Project GetById(long id)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(x => x.ProjectContacts)
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)

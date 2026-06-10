@@ -46,7 +46,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public override Cluster GetById(long id)
     {
         return _dbSet
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
@@ -65,7 +64,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
