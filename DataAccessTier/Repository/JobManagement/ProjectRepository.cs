@@ -91,6 +91,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(x => x.Cluster)
             .Include(x => x.CommandTemplates)
                 .ThenInclude(ct => ct.TemplateParameters)
+            .Include(x => x.AdaptorUserGroups)
             .FirstOrDefault(p => p.Id == id);
     }
 
