@@ -121,6 +121,10 @@ public class MiddlewareContext : DbContext
                                 _isMigrated = true;
                             }
                         }
+                        else
+                        {
+                            _isMigrated = true;
+                        }
                     }
                     catch (SqlException ex)
                     {

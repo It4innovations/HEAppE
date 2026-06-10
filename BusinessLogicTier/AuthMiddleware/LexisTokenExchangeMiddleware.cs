@@ -29,22 +29,26 @@ public class LexisTokenExchangeMiddleware
         IExpirioService expirioService)
     {
         ApplyRequestSizeLimit(context);
-        context.Request.EnableBuffering();
 
-        try
+        bool isDebugEnabled = _logger.IsEnabled(LogLevel.Debug);
+        if (isDebugEnabled)
         {
-            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
+            context.Request.EnableBuffering();
+            try
             {
-                var body = await reader.ReadToEndAsync();
-                context.Request.Body.Position = 0;
-                _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
+                {
+                    var body = await reader.ReadToEndAsync();
+                    context.Request.Body.Position = 0;
+                    _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                }
             }
-        }
-        catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Client disconnected prematurely while sending request body.");
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
+            catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Client disconnected prematurely while sending request body.");
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
+            }
         }
 
         bool isBearer = context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
@@ -137,7 +141,7 @@ public class LexisTokenExchangeMiddleware
         bool isStreamingEndpoint = context.Request.Path.Value
             ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
 
-        if (isStreamingEndpoint)
+        if (isStreamingEndpoint || !isDebugEnabled)
         {
             await _next(context);
             return;

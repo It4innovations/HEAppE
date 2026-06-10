@@ -36,12 +36,14 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
 
     public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects()
     {
-        return _dbSet.Include(p => p.Project)
+        return _dbSet
+            .AsSplitQuery()
+            .Include(p => p.Project)
             .ThenInclude(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
-            .Include(p => p.Project)
-            .ThenInclude(i => i.CommandTemplates)
-            .ThenInclude(i => i.TemplateParameters)
+            // CommandTemplates are NOT included here — they are loaded on-demand via
+            // GetCommandTemplatesByProjectIds() in callers that actually need them.
+            // Removing them here avoids unnecessary data transfer on every auth request.
             .Include(i => i.AdaptorUserUserGroupRoles)
             .ThenInclude(i => i.AdaptorUser)
             .Where(p => p.Project.EndDate >= DateTime.UtcNow)
@@ -55,7 +57,9 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
 
     public AdaptorUserGroup GetGroupByUniqueName(string groupName)
     {
-        return _dbSet.SingleOrDefault(g => g.Name == groupName);
+        return _dbSet
+            .AsNoTracking()
+            .SingleOrDefault(g => g.Name == groupName);
     }
 
     public IEnumerable<AdaptorUserGroup> GetGroupsWithProjects(IEnumerable<long> groupIds)

@@ -323,9 +323,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         IEnumerable<Project> projects)
     {
         var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
-        foreach (var project in projects)
+        if (!projectList.Any())
+        {
+            return result;
+        }
+
+        var projectIds = projectList.Select(p => p.Id).Distinct().ToList();
+        var templatesByProject = _unitOfWork.CommandTemplateRepository
+            .GetCommandTemplatesByProjectIds(projectIds)
+            .GroupBy(t => t.ProjectId)
+            .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+        foreach (var project in projectList)
         {
             ProjectResourceUsage usage = new()
             {
@@ -341,32 +353,33 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 NodeTypes = new List<ClusterNodeTypeResourceUsage>()
             };
 
-            var projectCommandTemplates =
-                _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
-            foreach (var nodeType in nodeTypes)
+            if (templatesByProject.TryGetValue(project.Id, out var projectCommandTemplates))
             {
-                var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
-                NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).Where(n => n != null).Distinct().ToList();
+                foreach (var nodeType in nodeTypes)
                 {
-                    CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
-                    NodeType = nodeType
-                };
-                ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
-                {
-                    Id = nodeType.Id,
-                    Name = nodeType.Name,
-                    Cluster = nodeType.Cluster,
-                    ClusterAllocationName = nodeType.ClusterAllocationName,
-                    CoresPerNode = nodeType.CoresPerNode,
-                    Description = nodeType.Description,
-                    FileTransferMethod = nodeType.FileTransferMethod,
-                    MaxWalltime = nodeType.MaxWalltime,
-                    NumberOfNodes = nodeType.NumberOfNodes,
-                    Queue = nodeType.Queue,
-                    NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
-                };
-                usage.NodeTypes.Add(clusterNodeTypeUsage);
+                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType != null && x.NodeType.Id == nodeType.Id);
+                    NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                    {
+                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        NodeType = nodeType
+                    };
+                    ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
+                    {
+                        Id = nodeType.Id,
+                        Name = nodeType.Name,
+                        Cluster = nodeType.Cluster,
+                        ClusterAllocationName = nodeType.ClusterAllocationName,
+                        CoresPerNode = nodeType.CoresPerNode,
+                        Description = nodeType.Description,
+                        FileTransferMethod = nodeType.FileTransferMethod,
+                        MaxWalltime = nodeType.MaxWalltime,
+                        NumberOfNodes = nodeType.NumberOfNodes,
+                        Queue = nodeType.Queue,
+                        NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
+                    };
+                    usage.NodeTypes.Add(clusterNodeTypeUsage);
+                }
             }
 
             result.Add(usage);
@@ -752,27 +765,60 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         );
     
         var allGroupRoles = loggedUser.AdaptorUserUserGroupRoles
-            .Where(x => !x.IsDeleted);
+            .Where(x => !x.IsDeleted)
+            .ToList();
+
+        if (!allGroupRoles.Any())
+        {
+            return projectReferences;
+        }
+
+        var allActiveGroups = _unitOfWork.AdaptorUserGroupRepository
+            .GetAllWithAdaptorUserGroupsAndActiveProjects()
+            .ToDictionary(g => g.Id);
+
+        var projectsToLoad = new List<Project>();
+        var projectGroupRoles = new List<(AdaptorUserUserGroupRole GroupRole, Project Project)>();
 
         foreach (var groupRole in allGroupRoles)
         {
-            var project = _unitOfWork.AdaptorUserGroupRepository
-                .GetAllWithAdaptorUserGroupsAndActiveProjects()
-                .FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
-
-            if (project is null || !validProjectIds.Contains(project.Id)) 
+            if (allActiveGroups.TryGetValue(groupRole.AdaptorUserGroupId, out var group) && group.Project != null)
             {
-                continue;
+                var project = group.Project;
+                if (validProjectIds.Contains(project.Id))
+                {
+                    projectGroupRoles.Add((groupRole, project));
+                    projectsToLoad.Add(project);
+                }
             }
-        
-            var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            project.CommandTemplates = commandTemplates.ToList();
+        }
 
-            projectReferences.Add(new ProjectReference
+        if (projectsToLoad.Any())
+        {
+            var uniqueProjectIds = projectsToLoad.Select(p => p.Id).Distinct().ToList();
+            var templatesByProject = _unitOfWork.CommandTemplateRepository
+                .GetCommandTemplatesByProjectIds(uniqueProjectIds)
+                .GroupBy(t => t.ProjectId)
+                .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+            foreach (var item in projectGroupRoles)
             {
-                Role = groupRole.AdaptorUserRole,
-                Project = project
-            });
+                var project = item.Project;
+                if (templatesByProject.TryGetValue(project.Id, out var templates))
+                {
+                    project.CommandTemplates = templates;
+                }
+                else
+                {
+                    project.CommandTemplates = new List<CommandTemplate>();
+                }
+
+                projectReferences.Add(new ProjectReference
+                {
+                    Role = item.GroupRole.AdaptorUserRole,
+                    Project = project
+                });
+            }
         }
 
         return projectReferences;

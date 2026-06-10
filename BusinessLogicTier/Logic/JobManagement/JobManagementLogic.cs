@@ -598,11 +598,20 @@ internal class JobManagementLogic : IJobManagementLogic
         taskSpecification.CommandTemplate =
             _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
 
-        foreach (var cmdParameterValue in
-                 taskSpecification.CommandParameterValues ?? Enumerable.Empty<CommandTemplateParameterValue>())
-            cmdParameterValue.TemplateParameter =
-                _unitOfWork.CommandTemplateParameterRepository.GetByCommandTemplateIdAndCommandParamId(
-                    taskSpecification.CommandTemplateId, cmdParameterValue.CommandParameterIdentifier);
+        if (taskSpecification.CommandParameterValues?.Any() == true)
+        {
+            // Batch-load all parameters for this template in a single query, then map in-memory.
+            // Avoids N+1 pattern (previously one SQL call per CommandParameterValue).
+            var paramLookup = _unitOfWork.CommandTemplateParameterRepository
+                .GetAllByCommandTemplateId(taskSpecification.CommandTemplateId)
+                .ToDictionary(p => p.Identifier, p => p, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var cmdParameterValue in taskSpecification.CommandParameterValues)
+            {
+                paramLookup.TryGetValue(cmdParameterValue.CommandParameterIdentifier, out var param);
+                cmdParameterValue.TemplateParameter = param;
+            }
+        }
 
         //Combination parameters from template
         taskSpecification.Priority ??= default;
@@ -1060,9 +1069,17 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var actualUnfinishedSchedulerTasksInfo = actualTasksInfo.ToList();
 
+        // O(N) dictionary lookup instead of O(N²) nested foreach.
+        // Each DB task is matched to its corresponding cluster task by ScheduledJobId.
+        var schedulerTaskByJobId = actualUnfinishedSchedulerTasksInfo
+            .Where(t => t.ScheduledJobId != null)
+            .ToDictionary(t => t.ScheduledJobId!);
+
         foreach (var task in jobInfo.Tasks)
-        foreach (var actualUnfinishedSchedulerTaskInfo in actualUnfinishedSchedulerTasksInfo)
-            CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
+        {
+            if (task.ScheduledJobId != null && schedulerTaskByJobId.TryGetValue(task.ScheduledJobId, out var clusterTask))
+                CombineSubmittedTaskInfoFromCluster(task, clusterTask, _logger);
+        }
 
         UpdateJobStateByTasks(jobInfo);
         await _unitOfWork.SaveAsync();

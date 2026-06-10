@@ -28,6 +28,18 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .ToList();
     }
 
+    public IList<CommandTemplate> GetCommandTemplatesByProjectIds(IEnumerable<long> projectIds)
+    {
+        var projectIdList = projectIds?.ToList() ?? new List<long>();
+        return _dbSet.Where(w => w.ProjectId == null || (w.ProjectId.HasValue && projectIdList.Contains(w.ProjectId.Value)))
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(i => i.Project)
+            .Include(i => i.ClusterNodeType)
+            .Include(i => i.TemplateParameters)
+            .ToList();
+    }
+
     /// <inheritdoc />
     public IList<CommandTemplate> GetByIdsIncludingDeleted(IEnumerable<long> ids)
     {

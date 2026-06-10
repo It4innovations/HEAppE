@@ -431,14 +431,23 @@ public class JobManagementService : IJobManagementService
                 }
             } // unitOfWork disposed - DB connection released before SSH call
 
-            // SSH path: job is Running/Queued under introspection mode
+            // SSH path: job is Running/Queued under introspection mode.
+            // NOTE: SSH/HPC scheduler responses are NOT cached — external API results must not be cached.
+            // Concurrent requests for the same job are already serialized by the semaphore above.
             var sshResult = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
-            _cache.Set(cacheKey, sshResult, TimeSpan.FromSeconds(15));
             return sshResult;
         }
         finally
         {
             semaphore.Release();
+            // Remove the semaphore from the dictionary once no other thread is waiting on it.
+            // CurrentCount == 1 means the semaphore is now free (no concurrent waiter).
+            // Small intentional race: if another thread calls GetOrAdd between our check and
+            // TryRemove, it will simply re-add a fresh semaphore — safe and correct.
+            if (semaphore.CurrentCount == 1)
+            {
+                _jobSemaphores.TryRemove(submittedJobInfoId, out _);
+            }
         }
     }
 

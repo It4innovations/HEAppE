@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DomainObjects.JobManagement;
@@ -25,6 +26,15 @@ internal class CommandTemplateParameterRepository : GenericRepository<CommandTem
         return _dbSet
             .Include(ctp => ctp.CommandTemplate)
             .FirstOrDefault(ctp => ctp.Id == id);
+    }
+
+    /// <inheritdoc />
+    public IList<CommandTemplateParameter> GetAllByCommandTemplateId(long commandTemplateId)
+    {
+        return _dbSet
+            .AsNoTracking()
+            .Where(p => p.CommandTemplateId == commandTemplateId)
+            .ToList();
     }
 
     #endregion
