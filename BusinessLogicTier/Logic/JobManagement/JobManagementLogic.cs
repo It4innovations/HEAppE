@@ -598,12 +598,11 @@ internal class JobManagementLogic : IJobManagementLogic
         taskSpecification.CommandTemplate =
             _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
 
-        if (taskSpecification.CommandParameterValues?.Any() == true)
+        if (taskSpecification.CommandParameterValues?.Any() == true && taskSpecification.CommandTemplate?.TemplateParameters != null)
         {
-            // Batch-load all parameters for this template in a single query, then map in-memory.
-            // Avoids N+1 pattern (previously one SQL call per CommandParameterValue).
-            var paramLookup = _unitOfWork.CommandTemplateParameterRepository
-                .GetAllByCommandTemplateId(taskSpecification.CommandTemplateId)
+            // Map parameters directly from the in-memory eager-loaded collection of the CommandTemplate.
+            // This avoids an extra database query and resolves change tracking conflicts by using the same tracked instances.
+            var paramLookup = taskSpecification.CommandTemplate.TemplateParameters
                 .ToDictionary(p => p.Identifier, p => p, StringComparer.OrdinalIgnoreCase);
 
             foreach (var cmdParameterValue in taskSpecification.CommandParameterValues)
