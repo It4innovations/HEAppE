@@ -261,18 +261,21 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             else
             {
                 var templateParameterValueFromQuery = templateParameter.Query;
-                if (templateParameter.Query.StartsWith("Job."))
-                    templateParameterValueFromQuery =
-                        GetPropertyValueForQuery(jobSpecification, templateParameter.Query);
+                if (!string.IsNullOrEmpty(templateParameter.Query))
+                {
+                    if (templateParameter.Query.StartsWith("Job."))
+                        templateParameterValueFromQuery =
+                            GetPropertyValueForQuery(jobSpecification, templateParameter.Query);
 
-                if (templateParameter.Query == "Task.Workdir")
-                    templateParameterValueFromQuery =
-                        FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                    else if (templateParameter.Query == "Task.Workdir")
+                        templateParameterValueFromQuery =
+                            FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
 
-                if (templateParameter.Query.StartsWith("Task."))
-                    templateParameterValueFromQuery =
-                        GetPropertyValueForQuery(taskSpecification, templateParameter.Query);
-                finalParameters.Add(templateParameter.Identifier, templateParameterValueFromQuery);
+                    else if (templateParameter.Query.StartsWith("Task."))
+                        templateParameterValueFromQuery =
+                            GetPropertyValueForQuery(taskSpecification, templateParameter.Query);
+                }
+                finalParameters.Add(templateParameter.Identifier, templateParameterValueFromQuery ?? string.Empty);
             }
         }
 
