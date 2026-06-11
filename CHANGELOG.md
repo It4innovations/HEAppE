@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.3.4
+
+### Fixed
+- Fixed an `InvalidOperationException` where `JobSpecification.ClusterUser` was accessed on untracked entities during tunnel closure for finished tasks, which led to SSH port leaks and eventual `502 Tunnel Exception` (port exhaustion). Eagerly load `ClusterUser` in `GetFinishedByIds` and `GetAllFinished` queries of `SubmittedTaskInfoRepository`.
+- Fixed a bug in `EdDSACertGenerator.ToPuTTYPublicKey` where a hardcoded comment was used instead of the configured comment field, resolving a failing unit test.
+
 ## V6.3.3
 
 ### Performance
