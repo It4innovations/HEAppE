@@ -30,6 +30,10 @@ public class MiddlewareContext : DbContext
 {
     #region Constructors
 
+    public MiddlewareContext() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<MiddlewareContext>.Instance)
+    {
+    }
+
     public MiddlewareContext(ILogger logger)
     {
         _logger = logger;
@@ -55,13 +59,14 @@ public class MiddlewareContext : DbContext
                             {
                                 _logger.LogInformation("Starting migration and seeding into the new database.");
                                 Database.Migrate();
-                                
                                 try
                                 {
                                     var dbName = Database.GetDbConnection().Database;
                                     if (!string.IsNullOrEmpty(dbName))
                                     {
+#pragma warning disable EF1002
                                         Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+#pragma warning restore EF1002
                                         _logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
                                     }
                                 }
@@ -69,7 +74,6 @@ public class MiddlewareContext : DbContext
                                 {
                                     _logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
                                 }
-
                                 EnsureDatabaseSeeded();
                                 _isMigrated = true;
                             }
@@ -328,7 +332,7 @@ public class MiddlewareContext : DbContext
             .IncludeProperties("ProjectId", "SpecificationId", "SubmittedJobInfoId");
         
         modelBuilder.Entity<SubmittedTaskInfo>()
-            .HasIndex("SubmittedJobInfoId", nameof(SubmittedTaskInfo.State))
+            .HasIndex(nameof(SubmittedTaskInfo.State), "SubmittedJobInfoId")
             .HasFilter("[State] > 1 AND [State] < 16")
             .IncludeProperties("NodeTypeId", "SpecificationId", "ProjectId");
 
@@ -351,8 +355,8 @@ public class MiddlewareContext : DbContext
             .IncludeProperties(nameof(SubmittedJobInfo.State));
 
         modelBuilder.Entity<SubmittedTaskInfo>()
-            .HasIndex(nameof(SubmittedTaskInfo.ScheduledJobId))
-            .HasFilter($"[{nameof(SubmittedTaskInfo.ScheduledJobId)}] IS NOT NULL");
+            .HasIndex(t => t.ScheduledJobId)
+            .HasFilter("[ScheduledJobId] IS NOT NULL");
 
         modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
             .HasIndex("ClusterAuthenticationCredentialsId");

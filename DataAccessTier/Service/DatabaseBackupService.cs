@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,6 +16,11 @@ namespace HEAppE.DataAccessTier.Service;
 internal class DatabaseBackupService : IDatabaseBackupService
 {
     #region Constructors
+
+    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector)
+        : this(context, vaultConnector, Microsoft.Extensions.Logging.Abstractions.NullLogger<DatabaseBackupService>.Instance)
+    {
+    }
 
     internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector, ILogger logger)
     {

@@ -31,6 +31,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
 - Fixed Entity Framework duplicate key violation (`DbUpdateException`) during job updates by eagerly loading `ResourceConsumed` entities in `SubmittedJobInfoRepository`.
 
+## V6.3.4
+
+### Fixed
+- Fixed an `InvalidOperationException` where `JobSpecification.ClusterUser` was accessed on untracked entities during tunnel closure for finished tasks, which led to SSH port leaks and eventual `502 Tunnel Exception` (port exhaustion). Eagerly load `ClusterUser` in `GetFinishedByIds` and `GetAllFinished` queries of `SubmittedTaskInfoRepository`.
+- Fixed a bug in `EdDSACertGenerator.ToPuTTYPublicKey` where a hardcoded comment was used instead of the configured comment field, resolving a failing unit test.
+
+## V6.3.3
+
+### Performance
+- Optimized EF Core query efficiency by utilizing `AsSplitQuery()`, `AsNoTracking()`, and eager loading `.Include()` paths across repositories to avoid lazy-loading overhead.
+- Introduced database performance indexes for tables `SubmittedTaskInfo`, `SubmittedJobInfo`, `TaskSpecification`, `SubmittedTaskAllocationNodeInfo`, `ClusterProjectCredentialCheckLog`, `ClusterNodeTypeAggregationAccounting`, `ClusterProjectCredential`, and `ClusterProject` to accelerate query retrieval times.
+- Optimized soft-deletion index structure by applying filtered indexes (`[IsDeleted] = 0`).
+- Fixed severe API performance degradation (delay on `ListAvailableClusters` and management API endpoints) when a project has a large number of soft-deleted command templates.
+- Registered `CommandTemplate` and `FileTransferTemporaryKey` with the `ISoftDeletableEntity` interface, enabling EF Core global query filtering to automatically filter out soft-deleted entities from queries and relationship loads.
+
 ## V6.3.2
 
 ### Added

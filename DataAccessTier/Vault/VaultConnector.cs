@@ -13,6 +13,10 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
+    public VaultConnector() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<VaultConnector>.Instance)
+    {
+    }
+
     public VaultConnector(ILogger logger)
     {
         _logger = logger;

@@ -21,7 +21,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
 
     public IEnumerable<SubmittedTaskInfo> GetAllUnFinished()
     {
-        return GetAll().Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
+        return _dbSet.Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
             .ToList();
     }
 
@@ -32,11 +32,14 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Cluster)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
             .Include(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Submitter)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.ClusterUser)
             .Where(w => w.State >= TaskState.Finished)
             .ToList();
     }
@@ -48,11 +51,14 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Cluster)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
             .Include(t => t.Specification)
-            .ThenInclude(ts => ts.JobSpecification)
-            .ThenInclude(js => js.Submitter)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.ClusterUser)
             .Where(w => w.State >= TaskState.Finished && ids.Contains(w.Id))
             .ToList();
     }

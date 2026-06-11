@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DomainObjects.FileTransfer;
@@ -20,7 +20,7 @@ internal class FileTransferMethodRepository : GenericRepository<FileTransferMeth
 
     public IEnumerable<FileTransferMethod> GetByClusterId(long clusterId)
     {
-        return GetAll().Where(w => w.ClusterId == clusterId)
+        return _dbSet.Where(w => w.ClusterId == clusterId)
             .ToList();
     }
 
