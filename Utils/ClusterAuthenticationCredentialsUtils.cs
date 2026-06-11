@@ -46,6 +46,9 @@ public static class ClusterAuthenticationCredentialsUtils
                     case ClusterConnectionProtocol.SshInteractive:
                         return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
 
+                    case ClusterConnectionProtocol.FirecRestApi:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
                     default:
                         return ClusterAuthenticationCredentialsAuthType.Password;
                 }
@@ -83,6 +86,9 @@ public static class ClusterAuthenticationCredentialsUtils
 
                     case ClusterConnectionProtocol.SshInteractive:
                         return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
+
+                    case ClusterConnectionProtocol.FirecRestApi:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
 
                     default:
                         return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;

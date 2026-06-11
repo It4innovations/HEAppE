@@ -8,6 +8,7 @@ namespace HEAppE.ExtModels.JobManagement.Models;
 [Description("Task state types")]
 public enum TaskStateExt
 {
+    Unknown = 0,
     Configuring = 1,
     Submitted = 2,
     Queued = 4,
@@ -15,5 +16,6 @@ public enum TaskStateExt
     Finished = 16,
     Failed = 32,
     Canceled = 64,
+    Paused = 128,
     Deleted = 256
 }

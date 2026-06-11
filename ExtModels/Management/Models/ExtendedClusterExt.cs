@@ -88,7 +88,7 @@ public class ExtendedClusterExt
     [DataMember(Name = "ProxyConnection")]
     [Description("Proxy connection")]
     public virtual ClusterProxyConnectionExt ProxyConnection { get; set; }
-    
+
     /// <summary>
     /// File transfer id
     /// </summary>

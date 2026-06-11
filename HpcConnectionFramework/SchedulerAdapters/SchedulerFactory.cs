@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -32,10 +33,13 @@ public abstract class SchedulerFactory
     {
         lock (_schedulerFactoryPoolSingletons)
         {
-            if (_schedulerFactoryPoolSingletons.ContainsKey(type)) return _schedulerFactoryPoolSingletons[type];
+            if (_schedulerFactoryPoolSingletons.ContainsKey(type))
+                return _schedulerFactoryPoolSingletons[type];
 
             SchedulerFactory factoryInstance = type switch
             {
+                SchedulerType.FirecRest | SchedulerType.PbsPro => new FirecRestSchedulerFactory(type),
+                SchedulerType.FirecRest | SchedulerType.Slurm => new FirecRestSchedulerFactory(type),
                 SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
@@ -65,7 +69,8 @@ public abstract class SchedulerFactory
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
-            clusterConf.SchedulerType, adaptorUserId);
+            clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId);
+
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
             key => 
@@ -137,7 +142,9 @@ public abstract class SchedulerFactory
         Project project, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         long? adaptorUserId,
-        IExpirioService expirio, ILogger logger);
+        IExpirioService expirio,
+        string token,
+        ILogger logger);
 
     /// <summary>
     ///     Create scheduler adapter

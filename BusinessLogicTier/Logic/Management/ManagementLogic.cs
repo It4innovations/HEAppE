@@ -32,9 +32,11 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Services.Expirio;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Security;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+using Tmds.Ssh;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -99,7 +101,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
             .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
@@ -255,7 +257,7 @@ public class ManagementLogic : IManagementLogic
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
             .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
             .ToList();
 
@@ -1361,7 +1363,7 @@ public class ManagementLogic : IManagementLogic
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
                 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _logger);
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
                 
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
@@ -1432,7 +1434,7 @@ public class ManagementLogic : IManagementLogic
                 var project = clusterProjectCredential.ClusterProject.Project;
 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
                 
                 var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
                     _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
@@ -1685,11 +1687,28 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId)
     {
         if (proxyConnectionId.HasValue)
-            _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
+        {
+            var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+        }
+
+        var firecRestProxy = FindFirecRestProxy(proxyConnectionId, clusterConnectionProtocol, schedulerType, masterNodeName, port);
+        if (firecRestProxy != null)
+        {
+            // set scheduler type to FirecRest
+            schedulerType |= SchedulerType.FirecRest;
+            // default to Slurm if no other flag is set
+            if (schedulerType == SchedulerType.FirecRest)
+                schedulerType |= SchedulerType.Slurm;
+            clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
+            masterNodeName = firecRestProxy.Host;
+            port = firecRestProxy.Port;
+            proxyConnectionId = firecRestProxy.Id;
+        }
 
         var cluster = new Cluster
         {
@@ -1728,13 +1747,28 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
+        long? proxyConnectionId)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
         if (proxyConnectionId.HasValue)
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+
+        var firecRestProxy = FindFirecRestProxy(proxyConnectionId, clusterConnectionProtocol, schedulerType, masterNodeName, port);
+        if (firecRestProxy != null)
+        {
+            // set scheduler type to FirecRest
+            schedulerType |= SchedulerType.FirecRest;
+            // default to Slurm if no other flag is set
+            if (schedulerType == SchedulerType.FirecRest)
+                schedulerType |= SchedulerType.Slurm;
+            clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
+            masterNodeName = firecRestProxy.Host;
+            port = firecRestProxy.Port;
+            proxyConnectionId = firecRestProxy.Id;
+        }
 
         existingCluster.Name = name;
         existingCluster.Description = description;
@@ -1768,9 +1802,14 @@ public class ManagementLogic : IManagementLogic
         // TODO - delete job specification?
         // soft delete file transfer methods
         existingCluster.FileTransferMethods.ToList().ForEach(ftm => RemoveFileTransferMethod(ftm.Id));
-        // soft delete proxy connection
-        if (existingCluster.ProxyConnection != null)
-            RemoveClusterProxyConnection((long)existingCluster.ProxyConnectionId);
+        // soft delete proxy connection, do not delete FirecREST proxies
+        if (existingCluster.ProxyConnectionId != null && existingCluster.ProxyConnection.Type != ProxyType.FirecRest)
+        {
+            // soft delete the proxy only if it is used by this cluster that is being deleted
+            var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
+            if (clusters.Count() == 1 && clusters.First().Id == id)
+                RemoveClusterProxyConnection(existingCluster.ProxyConnectionId.Value);
+        }
         // soft delete cluster
         existingCluster.IsDeleted = true;
         _unitOfWork.ClusterRepository.Update(existingCluster);
@@ -1958,7 +1997,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="type"></param>
     /// <returns></returns>
     public ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type)
+        ProxyType type, FirecRestOptions firecRestOptions)
     {
         var clusterProxyConnection = new ClusterProxyConnection
         {
@@ -1966,8 +2005,10 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             Username = username,
             Password = password,
-            Type = type
+            Type = type,
+            FirecRestOptions = firecRestOptions
         };
+        PreprocessClusterProxyConnection(clusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Insert(clusterProxyConnection);
         _unitOfWork.Save();
 
@@ -1986,7 +2027,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type)
+        string password, ProxyType type, FirecRestOptions firecRestOptions)
     {
         var existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id) ??
                                              throw new RequestedObjectDoesNotExistException(
@@ -1997,7 +2038,24 @@ public class ManagementLogic : IManagementLogic
         existingClusterProxyConnection.Username = username;
         existingClusterProxyConnection.Password = password;
         existingClusterProxyConnection.Type = type;
+        existingClusterProxyConnection.FirecRestOptions = firecRestOptions;
+        PreprocessClusterProxyConnection(existingClusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
+
+        if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
+        {
+            var url = new Uri(existingClusterProxyConnection.FirecRestOptions.Url);
+            // update dependent clusters using this proxy
+            var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
+            foreach (var c in clusters)
+            {
+                c.MasterNodeName = url.Host;
+                c.Port = url.Port;
+                c.SchedulerType = c.SchedulerType | SchedulerType.FirecRest;
+                c.ConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
+                _unitOfWork.ClusterRepository.Update(c);
+            }
+        }
         _unitOfWork.Save();
 
         return existingClusterProxyConnection;
@@ -2019,6 +2077,11 @@ public class ManagementLogic : IManagementLogic
         foreach (var c in clusters)
         {
             c.ProxyConnection = null;
+            if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
+            {
+                c.SchedulerType = c.SchedulerType & (~SchedulerType.FirecRest);
+                c.ConnectionProtocol = ClusterConnectionProtocol.None;
+            }
             _unitOfWork.ClusterRepository.Update(c);
         }
 
@@ -3004,7 +3067,7 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProject.Project;
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _logger);
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
             
             return await scheduler.CheckClusterProjectCredentialStatus(credential);
         }
@@ -3730,6 +3793,58 @@ public class ManagementLogic : IManagementLogic
             await _unitOfWork.SaveAsync();
         }
     }
+
+    // try to setup reasonable defaults if needed
+    private void PreprocessClusterProxyConnection(ClusterProxyConnection clusterProxyConnection)
+    {
+        if (clusterProxyConnection.Type == ProxyType.FirecRest)
+        {
+            UriBuilder url;
+
+            // if url is not set in options, but is provided as host and port, derive it's value
+            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.Url))
+            {
+                url = new(clusterProxyConnection.Host);
+                if (clusterProxyConnection.Port > 0)
+                    url.Port = clusterProxyConnection.Port;
+                clusterProxyConnection.FirecRestOptions.Url = url.ToString();
+            }
+
+            // it idpUrl is not set, try to guess it from url
+            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.IdpUrl))
+            {
+                url = new(clusterProxyConnection.FirecRestOptions.Url);
+                var realm = "kcrealm"; // realm from FirecREST demo
+                url.Path = $"/auth/realms/{realm}/protocol/openid-connect/token";
+                clusterProxyConnection.FirecRestOptions.IdpUrl = url.ToString();
+            }
+
+            // synchronize proxy host and port with value in url
+            url = new(clusterProxyConnection.FirecRestOptions.Url);
+            clusterProxyConnection.Host = url.Host;
+            clusterProxyConnection.Port = url.Port;
+        }
+    }
+
+    // returns proxy only if it is FirecREST proxy
+    private ClusterProxyConnection? FindFirecRestProxy(long? proxyConnectionId, ClusterConnectionProtocol clusterConnectionProtocol, SchedulerType schedulerType, string masterNodeName, int? port)
+    {
+        ClusterProxyConnection? firecRestProxy = null;
+        if (proxyConnectionId != null)
+        {
+            var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
+            if (proxyConnection != null && proxyConnection.Type == ProxyType.FirecRest)
+                firecRestProxy = proxyConnection;
+        }
+        return firecRestProxy;
+    }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+    }
+#pragma warning restore IDE1006
 
     #endregion
 }

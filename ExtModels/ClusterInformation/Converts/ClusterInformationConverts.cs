@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -17,7 +18,6 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts;
 public static class ClusterInformationConverts
 {
     #region Private Methods
-
     private static ProxyTypeExt ConvertProxyTypeIntToExt(ProxyType? proxyType)
     {
         if (!proxyType.HasValue) throw new InputValidationException("EnumValueMustBeSet", "Proxy type");
@@ -77,7 +77,13 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+            SchedulerType.PbsPro | SchedulerType.FirecRest => SchedulerTypeExt.PbsProViaFirecRest,
+            SchedulerType.Slurm | SchedulerType.FirecRest => SchedulerTypeExt.SlurmViaFirecRest,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Scheduler type",
+                $"<{string.Join(", ", Enum.GetValues(typeof(SchedulerTypeExt)).Cast<int>())}>"
+            )
         };
     }
     
@@ -85,10 +91,16 @@ public static class ClusterInformationConverts
     {
         return connectionProtocol switch
         {
+            ClusterConnectionProtocol.None => ClusterConnectionProtocolExt.None,
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
+            ClusterConnectionProtocol.FirecRestApi => ClusterConnectionProtocolExt.FirecRestApi,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Connection protocol",
+                $"<{string.Join(", ", Enum.GetValues(typeof(ClusterConnectionProtocolExt)).Cast<int>())}>"
+            )
         };
     }
 
@@ -333,7 +345,8 @@ public static class ClusterInformationConverts
             Port = proxyConnection.Port,
             Type = ConvertProxyTypeIntToExt(proxyConnection.Type),
             Username = proxyConnection.Username,
-            Password = proxyConnection.Password
+            Password = proxyConnection.Password,
+            FirecRestOptions = proxyConnection.FirecRestOptions.ConvertIntToExt()
         };
 
         return convert;
@@ -418,6 +431,52 @@ public static class ClusterInformationConverts
     {
         _ = Enum.TryParse(type.ToString(), out ClusterAuthenticationCredentialsAuthType convert);
         return convert;
+    }
+
+    public static FirecRestOptions ConvertExtToInt(this FirecRestOptionsExt firecRestOptions)
+    {
+        if (firecRestOptions == null)
+            return null;
+
+        return new FirecRestOptions
+        {
+            Url = firecRestOptions.Url,
+            IdpUrl = firecRestOptions.IdpUrl,
+            ExpirioMetadata = new()
+            {
+                SecretName = firecRestOptions.ExpirioMetadata.SecretName,
+                SecretContent = new()
+                {
+                    ClientId = firecRestOptions.ExpirioMetadata.SecretContent.ClientId,
+                    ClientSecret = firecRestOptions.ExpirioMetadata.SecretContent.ClientSecret,
+                    Url = firecRestOptions.ExpirioMetadata.SecretContent.Url,
+                    IdpUrl = firecRestOptions.ExpirioMetadata.SecretContent.IdpUrl
+                }
+            }
+        };
+    }
+
+    public static FirecRestOptionsExt ConvertIntToExt(this FirecRestOptions firecRestOptions)
+    {
+        if (firecRestOptions == null)
+            return null;
+
+        return new FirecRestOptionsExt
+        {
+            Url = firecRestOptions.Url,
+            IdpUrl = firecRestOptions.IdpUrl,
+            ExpirioMetadata = new()
+            {
+                SecretName = firecRestOptions.ExpirioMetadata.SecretName,
+                SecretContent = new()
+                {
+                    ClientId = firecRestOptions.ExpirioMetadata.SecretContent.ClientId,
+                    ClientSecret = firecRestOptions.ExpirioMetadata.SecretContent.ClientSecret,
+                    Url = firecRestOptions.ExpirioMetadata.SecretContent.Url,
+                    IdpUrl = firecRestOptions.ExpirioMetadata.SecretContent.IdpUrl
+                }
+            }
+        };
     }
 
     #endregion

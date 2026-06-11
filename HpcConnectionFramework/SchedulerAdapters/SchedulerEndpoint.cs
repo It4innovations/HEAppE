@@ -35,6 +35,11 @@ internal struct SchedulerEndpoint
     /// </summary>
     public long? AdaptorUserId { get; }
 
+    /// <summary>
+    ///     Used for FirecREST proxy.
+    /// </summary>
+    public long? ProxyConnectionId { get; }
+
     #endregion
 
     #region Constructors,
@@ -47,13 +52,14 @@ internal struct SchedulerEndpoint
     /// <param name="projectModifiedAt"></param>
     /// <param name="schedulerType">Scheduler type</param>
     public SchedulerEndpoint(string masterNodeName, long projectId, DateTime? projectModifiedAt,
-        SchedulerType schedulerType, long? adaptorUserId)
+        SchedulerType schedulerType, long? adaptorUserId, long? proxyConnectionId)
     {
         MasterNodeName = masterNodeName;
         SchedulerType = schedulerType;
         ProjectModifiedAt = projectModifiedAt;
         ProjectId = projectId;
         AdaptorUserId = adaptorUserId;
+        ProxyConnectionId = proxyConnectionId;
     }
 
     #endregion
@@ -72,7 +78,8 @@ internal struct SchedulerEndpoint
                ProjectId.Equals(endpoint.ProjectId) &&
                ProjectModifiedAt.Equals(endpoint.ProjectModifiedAt) &&
                SchedulerType.Equals(endpoint.SchedulerType) &&
-               AdaptorUserId.Equals(endpoint.AdaptorUserId);
+               AdaptorUserId.Equals(endpoint.AdaptorUserId) &&
+               ProxyConnectionId.Equals(endpoint.ProxyConnectionId);
     }
 
     /// <summary>
@@ -81,7 +88,7 @@ internal struct SchedulerEndpoint
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(MasterNodeName, ProjectId, ProjectModifiedAt, SchedulerType, AdaptorUserId);
+        return HashCode.Combine(MasterNodeName, ProjectId, ProjectModifiedAt, SchedulerType, AdaptorUserId, ProxyConnectionId);
     }
 
     #endregion

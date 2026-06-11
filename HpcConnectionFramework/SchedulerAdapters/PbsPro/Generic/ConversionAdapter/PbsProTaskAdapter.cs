@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
@@ -16,9 +17,27 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     #region Instances
 
     /// <summary>
+    ///     Build script instead of command line parameters
+    /// </summary>
+    protected bool _pbs;
+
+    /// <summary>
     ///     Task allocation command builder
     /// </summary>
-    protected StringBuilder _taskBuilder;
+    protected StringBuilder _taskAppender;
+
+    /// <summary>
+    ///     Append parameter to builder
+    /// </summary>
+    protected void DoAppend(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+        if (_pbs)
+            _taskAppender.AppendLine("#PBS " + value);
+        else
+            _taskAppender.Append(value);
+    }
 
     #endregion
 
@@ -30,7 +49,10 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <param name="taskSource">Basic allocation command</param>
     public PbsProTaskAdapter(string taskSource)
     {
-        _taskBuilder = new StringBuilder(taskSource);
+        _pbs = taskSource.StartsWith("#!");
+        _taskAppender = new StringBuilder(taskSource);
+        if (_pbs)
+            _taskAppender.AppendLine();
     }
 
     #endregion
@@ -107,14 +129,14 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <summary>
     ///     Task allocation command
     /// </summary>
-    public object AllocationCmd => _taskBuilder.ToString();
+    public object AllocationCmd => _taskAppender.ToString();
 
     /// <summary>
     ///     Task priority
     /// </summary>
     public TaskPriority Priority
     {
-        set => _taskBuilder.Append($" -p {(int)Math.Round(2047 / 8f * (int)value) - 1024}");
+        set => DoAppend($" -p {(int)Math.Round(2047 / 8f * (int)value) - 1024}");
     }
 
     /// <summary>
@@ -122,7 +144,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Queue
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -q {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -q {value}" : string.Empty);
     }
 
     /// <summary>
@@ -134,6 +156,10 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set { }
     }
 
+    /// <summary>
+    ///     Task cluster allocation name
+    ///     Note: Not supported
+    /// </summary>
     public string ClusterAllocationName
     {
         set { }
@@ -144,7 +170,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Reservation
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -U {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -U {value}" : string.Empty);
     }
 
     /// <summary>
@@ -152,7 +178,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool CpuHyperThreading
     {
-        set => _taskBuilder.Append(value ? " -l cpu_hyper_threading=true" : string.Empty);
+        set => DoAppend(value ? " -l cpu_hyper_threading=true" : string.Empty);
     }
 
     /// <summary>
@@ -160,7 +186,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string JobArrays
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -J {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -J {value}" : string.Empty);
     }
 
     /// <summary>
@@ -168,7 +194,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Name
     {
-        set => _taskBuilder.Append($" -N {value}");
+        set => DoAppend($" -N {value}");
     }
 
     /// <summary>
@@ -176,7 +202,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Project
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
     }
 
     /// <summary>
@@ -188,9 +214,15 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         {
             if (value != null && value.Any())
             {
+                if (_pbs)
+                    _taskAppender.Append("#SBATCH");
+
                 var builder = new StringBuilder(" -W depend=afterok");
                 value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}"));
-                _taskBuilder.Append(builder);
+                _taskAppender.Append(builder);
+
+                if (_pbs)
+                    _taskAppender.AppendLine();
             }
         }
     }
@@ -200,7 +232,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsExclusive
     {
-        set => _taskBuilder.Append(value ? " -l place=free:excl" : string.Empty);
+        set => DoAppend(value ? " -l place=free:excl" : string.Empty);
     }
 
     /// <summary>
@@ -208,7 +240,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsRerunnable
     {
-        set => _taskBuilder.Append(value ? " -r y" : " -r n");
+        set => DoAppend(value ? " -r y" : " -r n");
     }
 
     /// <summary>
@@ -219,7 +251,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set
         {
             var wallTime = TimeSpan.FromSeconds(value);
-            _taskBuilder.Append($" -l walltime={wallTime:hh\\:mm\\:ss}");
+            DoAppend($" -l walltime={wallTime:hh\\:mm\\:ss}");
         }
     }
 
@@ -228,7 +260,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdErrFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
     }
 
     /// <summary>
@@ -245,7 +277,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdOutFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
     }
 
     /// <summary>
@@ -257,7 +289,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         set
         {
-            //_taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -d {value}" : string.Empty);
+            //DoAppend(!string.IsNullOrEmpty(value) ? $" -d {value}" : string.Empty);
         }
     }
 
@@ -266,22 +298,22 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string ExtendedAllocationCommand
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
     }
 
     public long? Memory
     {
-        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+        set => DoAppend(value != null ? $" -l mem={value}mb" : string.Empty);
     }
 
     public long? MemoryPerCPU
     {
-        set => _taskBuilder.Append(value != null ? $" -l mem={value}mb" : string.Empty);
+        set => DoAppend(value != null ? $" -l mem={value}mb" : string.Empty);
     }
 
     public long? MemoryPerGPU
     {
-        set => _taskBuilder.Append(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
+        set => DoAppend(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
     }
 
     /// <summary>
@@ -352,7 +384,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 paralizationSpecs, (int)maxCores, coresPerNode));
         }
 
-        _taskBuilder.Append(allocationCmdBuilder);
+        DoAppend(allocationCmdBuilder.ToString());
     }
 
     /// <summary>
@@ -363,9 +395,16 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         if (variables != null && variables.Any())
         {
-            _taskBuilder.Append(" -v ");
-            foreach (var variable in variables) _taskBuilder.Append($"{variable.Name}={variable.Value},");
-            _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
+            if (_pbs)
+                _taskAppender.Append("#PBS ");
+            
+            _taskAppender.Append(" -v ");
+            foreach (var variable in variables)
+                _taskAppender.Append($"{variable.Name}={variable.Value},");
+            _taskAppender.Remove(_taskAppender.Length - 1, 1);
+
+            if (_pbs)
+                _taskAppender.AppendLine();
         }
     }
 
@@ -382,7 +421,9 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         var nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
         var taskSourceSb = new StringBuilder();
-        taskSourceSb.Append($"echo 'cd {nodefileDir};cd {workDir};");
+        if (!_pbs)
+            taskSourceSb.Append($"echo '");
+        taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
         taskSourceSb.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
@@ -403,10 +444,18 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 : commandLine.Last().Equals(';')
                     ? commandLine
                     : $"{commandLine};");
-
-        taskSourceSb.Append($"' | {_taskBuilder}");
-        //taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
-        _taskBuilder = taskSourceSb;
+        if (!_pbs)
+        {
+            taskSourceSb.Append($"'");
+            taskSourceSb.Append($" | {_taskAppender}");
+            //taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
+            _taskAppender = taskSourceSb;
+        }
+        else
+        {
+            _taskAppender.AppendLine();
+            _taskAppender.Append(taskSourceSb.ToString());
+        }
     }
 
     #endregion

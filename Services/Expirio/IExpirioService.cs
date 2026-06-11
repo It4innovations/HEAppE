@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using HEAppE.Services.Expirio.Models;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.Services.Expirio;
 
@@ -35,4 +36,13 @@ public interface IExpirioService
     /// <param name="cancellationToken"></param>
     /// <returns>Enriched username or null</returns>
     Task<string?> GetEnrichedUsernameAsync(string token, ILogger logger, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exchanges FirecREST credentials.
+    /// </summary>
+    /// <param name="token">Token to exchange</param>
+    /// <param name="masterNodeName">Name of value to GET from Expirio</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>firecrest credentials</returns>
+    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default);
 }

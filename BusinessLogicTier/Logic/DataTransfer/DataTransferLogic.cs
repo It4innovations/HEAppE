@@ -102,7 +102,7 @@ public class DataTransferLogic : IDataTransferLogic
 
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger);
+                .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger);
 
             await scheduler.CreateTunnelAsync(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
@@ -168,7 +168,7 @@ public class DataTransferLogic : IDataTransferLogic
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         
             await SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _logger)
+                .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
                 .RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
             tunnels.Remove(tunnel);
@@ -262,7 +262,7 @@ public class DataTransferLogic : IDataTransferLogic
         try
         {
             var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
-                .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id, _expirioService, _logger);
+                .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
             await scheduler.RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
             _activeTunnels.TryRemove(taskInfo.Id, out _);
         }
@@ -271,4 +271,11 @@ public class DataTransferLogic : IDataTransferLogic
             taskLock.Release();
         }
     }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+    }
+#pragma warning restore IDE1006
 }

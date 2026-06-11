@@ -134,10 +134,10 @@ public interface IManagementLogic
     List<ClusterProxyConnection> GetClusterProxyConnections();
 
     ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type);
+        ProxyType type, FirecRestOptions firecRestOptions);
 
     ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type);
+        string password, ProxyType type, FirecRestOptions firecRestOptions);
 
     void RemoveClusterProxyConnection(long id);
 

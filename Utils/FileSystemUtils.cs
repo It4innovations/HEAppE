@@ -186,35 +186,45 @@ public class FileSystemUtils
         return result;
     }
 
-    public static bool AddConfigurationFiles(string[] confsDirs, string[] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
+    public static bool AddConfigurationFiles(string[] confsDirs, (string, bool) [] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
     {
+        // go through all directories
         foreach (var confDir in confsDirs)
         {
+            // all configuration files must be in the same directory
             bool configFound = true;
             foreach (var confFile in confFiles)
             {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                // skip optional files
+                if (confFile.Item2)
+                    continue;
+                // if any configuration file is missing...
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile.Item1}";
                 if (!File.Exists(confPath))
                 {
                     configFound = false;
                     break;
                 }
             }
+            // ...the directory is rejected as a whole
             if (!configFound)
                 continue;
 
+            // add all found configuration files
             foreach (var confFile in confFiles)
             {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile.Item1}";
+                if (!File.Exists(confPath))
+                    continue;
                 if (confPath.EndsWith(".json"))
                     addJsonFile?.Invoke(confPath);
                 else if (confPath.EndsWith(".njson"))
                     addNotJson?.Invoke(confPath);
             }
-
+            // succeeded
             return true;
         }
-
+        // failed
         return false;
     }
 }
