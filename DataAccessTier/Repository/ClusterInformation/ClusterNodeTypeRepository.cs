@@ -46,6 +46,12 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
         return _dbSet
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
+                    .ThenInclude(cp => cp.Project)
+            .Include(i => i.ClusterNodeTypeAggregation)
+                .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                    .ThenInclude(acc => acc.Accounting)
+            .Include(i => i.PossibleCommands)
+                .ThenInclude(pc => pc.TemplateParameters)
             .FirstOrDefault(i => i.Id == id);
     }
 

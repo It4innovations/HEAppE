@@ -23,6 +23,8 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.Cluster)
+            .Include(c => c.NodeTypes)
             .ThenInclude(n => n.ClusterNodeTypeAggregation)
             .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
             .ThenInclude(acc => acc.Accounting)
@@ -44,7 +46,8 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     
     public Cluster GetByIdWithProxyConnection(long id)
     {
-        return _dbSet.AsNoTracking().Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
+        return AsQueryable()
+            .FirstOrDefault(c => c.Id == id);
     }
 
     public IQueryable<Cluster> AsQueryable()
@@ -54,6 +57,8 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.Cluster)
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.ClusterNodeTypeAggregation)
             .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)

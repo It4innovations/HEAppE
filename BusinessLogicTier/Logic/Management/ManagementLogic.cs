@@ -1456,7 +1456,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public ClusterNodeType GetClusterNodeTypeById(long id)
     {
-        return _unitOfWork.ClusterNodeTypeRepository.GetById(id) ??
+        return _unitOfWork.ClusterNodeTypeRepository.GetByIdWithClusterAndProjects(id) ??
                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
     }
 

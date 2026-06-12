@@ -98,6 +98,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .Include(cpc => cpc.ClusterProject.Cluster)
             .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
             .Include(cpc => cpc.ClusterProject.Project)
+            .Include(cpc => cpc.AdaptorUser)
             .Where(cpc => cpc.ClusterProject.Project.EndDate > DateTime.UtcNow &&
                           cpc.ClusterProject.Project.StartDate <= DateTime.UtcNow)
             .Include(cpc => cpc.ClusterAuthenticationCredentials)
