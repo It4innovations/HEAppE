@@ -239,8 +239,19 @@ internal class JobManagementLogic : IJobManagementLogic
                 .ToList();
 
             foreach (var task in jobInfo.Tasks)
-            foreach (var actualUnfinishedSchedulerTaskInfo in actualUnfinishedSchedulerTasksInfo)
-                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+            {
+                var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
+                    .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
+                if (actualUnfinishedSchedulerTaskInfo != null)
+                {
+                    CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+                }
+
+                if (task.State is > TaskState.Configuring and < TaskState.Finished)
+                {
+                    task.State = TaskState.Canceled;
+                }
+            }
 
             UpdateJobStateByTasks(jobInfo);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
