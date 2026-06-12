@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -382,6 +382,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     /// <summary>
     ///     Get existing or create new HEAppE user, from the OpenId credentials.
+    ///     Roles are synchronised to the DB only when they differ from the current state,
+    ///     eliminating row-lock contention under concurrent bearer-token requests.
     /// </summary>
     /// <param name="lexisUser"></param>
     /// <returns>Newly created or existing HEAppE account.</returns>
@@ -395,10 +397,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 x.ProjectShortName,
                 ProjectResourceNames = x.ProjectResources.Select(r => r.Name).Distinct(),
                 Permissions = x.SystemPermissionTypes
-            });
+            })
+            .ToList();
 
         IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix))
+            .ToList();
 
         DateTime changedTime = DateTime.UtcNow;
         if (string.IsNullOrEmpty(lexisUser.Email))
@@ -421,36 +425,67 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             }
         }
 
-        var hasUserGroup = false;
+        // Build desired (groupId, roleId) set and resolved role map from UserOrg data
+        var desiredRoles = new HashSet<(long GroupId, long RoleId)>();
+        var projectRoleMap = new List<(List<AdaptorUserGroup> Groups, AdaptorUserRole Role)>();
 
+        foreach (var lexisProject in lexisProjects)
+        {
+            var groupsWithProject = userLEXISGroups
+                .Where(x => lexisProject.ProjectResourceNames.Any(a =>
+                    string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)))
+                .ToList();
+
+            if (!groupsWithProject.Any()) continue;
+
+            var roleNames = lexisProject.Permissions
+                .Where(RoleMapping.MappingRoles.ContainsKey)
+                .Select(s => RoleMapping.MappingRoles[s])
+                .ToList();
+
+            if (!roleNames.Any()) continue;
+
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+            projectRoleMap.Add((groupsWithProject, userRole));
+
+            foreach (var group in groupsWithProject)
+                desiredRoles.Add((group.Id, (long)userRole.RoleType));
+        }
+
+        if (desiredRoles.Count == 0)
+            throw new AuthenticationTypeException("NoUserGroup", user.Username);
+
+        // Compare desired roles with current active roles already in DB
+        var currentActiveRoles = user.AdaptorUserUserGroupRoles
+            .Where(r => !r.IsDeleted)
+            .Select(r => (r.AdaptorUserGroupId, r.AdaptorUserRoleId))
+            .ToHashSet();
+
+        if (desiredRoles.SetEquals(currentActiveRoles))
+        {
+            // Roles are identical — skip DB write to avoid row-lock contention under concurrent load
+            _log.Debug($"LEXIS AAI: Roles for user \"{user.Username}\" unchanged — skipping DB synchronization.");
+            return user;
+        }
+
+        _log.Info($"LEXIS AAI: Roles for user \"{user.Username}\" changed — synchronizing to DB.");
+
+        // Soft-delete all current roles and re-apply desired set
         user.AdaptorUserUserGroupRoles.ForEach(f =>
         {
             f.IsDeleted = true;
             f.ModifiedAt = changedTime;
         });
 
-        foreach (var lexisProject in lexisProjects)
+        foreach (var (groups, role) in projectRoleMap)
         {
-            var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
-                string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
-
-            if (groupsWithProject is null || !groupsWithProject.Any()) continue;
-
-            var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
-                .Select(s => RoleMapping.MappingRoles[s]);
-                
-            if (roleNames is null || !roleNames.Any()) continue;
-
-            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-            foreach (var prefixedGroup in groupsWithProject)
-                user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
-
-            hasUserGroup = true;
+            foreach (var group in groups)
+                user.CreateSpecificUserRoleForUser(group, role.RoleType);
         }
 
         _unitOfWork.Save();
         
-        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+        return user;
     }
 
     /// <summary>

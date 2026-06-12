@@ -1,4 +1,4 @@
-﻿namespace HEAppE.BusinessLogicTier.Configuration;
+namespace HEAppE.BusinessLogicTier.Configuration;
 
 /// <summary>
 ///     Business logic configuration
@@ -26,6 +26,13 @@ public sealed class BusinessLogicConfiguration
     ///     Session expiration in seconds
     /// </summary>
     public static int SessionExpirationInSeconds { get; set; } = 900;
+
+    /// <summary>
+    ///     Minimum interval in seconds between two consecutive LastAccessTime writes for the same session.
+    ///     Requests within this window skip the DB write, eliminating row-lock contention under concurrent load.
+    ///     Default: 60 seconds. Set to 0 to always write (legacy behaviour).
+    /// </summary>
+    public static int SessionLastAccessTimeUpdateIntervalInSeconds { get; set; } = 60;
 
     /// <summary>
     ///     HTTP requeues connection timeout in seconds
