@@ -20,7 +20,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
@@ -39,7 +38,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return await _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
@@ -82,7 +80,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
@@ -100,7 +97,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return await _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Where(c => clusterName == null || c.Name == clusterName)
             .Include(c => c.ClusterProjects.Where(cp => projectIds.Contains(cp.ProjectId)))
                 .ThenInclude(cp => cp.Project)
