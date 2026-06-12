@@ -370,7 +370,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
-            return GetOrRegisterLexisCredentials(result);
+            return await GetOrRegisterLexisCredentialsAsync(result);
         }
         catch (HttpRequestException )
         {
@@ -384,11 +384,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     ///     Get existing or create new HEAppE user, from the OpenId credentials.
     ///     Roles are synchronised to the DB only when they differ from the current state,
     ///     eliminating row-lock contention under concurrent bearer-token requests.
+    ///     Uses a lean async DB query (groups + project only, no clusters/templates/users).
     /// </summary>
-    /// <param name="lexisUser"></param>
-    /// <returns>Newly created or existing HEAppE account.</returns>
-    /// <exception cref="AuthenticationTypeException"></exception>
-    private AdaptorUser GetOrRegisterLexisCredentials(UserInfoExtendedModel lexisUser)
+    private async Task<AdaptorUser> GetOrRegisterLexisCredentialsAsync(UserInfoExtendedModel lexisUser)
     {
         var lexisProjects = lexisUser.SystemRoles
             .Where(w => !string.IsNullOrEmpty(w.ProjectShortName))
@@ -400,9 +398,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             })
             .ToList();
 
-        IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix))
-            .ToList();
+        // Lean async query: filter by LEXIS prefix in SQL, join only Project — no clusters/templates/users
+        var userLEXISGroups = await _unitOfWork.AdaptorUserGroupRepository
+            .GetGroupsByPrefixWithActiveProjectsAsync(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
 
         DateTime changedTime = DateTime.UtcNow;
         if (string.IsNullOrEmpty(lexisUser.Email))
@@ -483,7 +481,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 user.CreateSpecificUserRoleForUser(group, role.RoleType);
         }
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
         
         return user;
     }

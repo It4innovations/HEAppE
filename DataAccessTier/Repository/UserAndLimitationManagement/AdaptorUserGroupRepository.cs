@@ -117,5 +117,13 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
             .IgnoreQueryFilters();
     }
 
+    public async Task<List<AdaptorUserGroup>> GetGroupsByPrefixWithActiveProjectsAsync(string namePrefix)
+    {
+        return await _dbSet
+            .Include(g => g.Project)
+            .Where(g => g.Name.StartsWith(namePrefix) && g.Project.EndDate >= DateTime.UtcNow)
+            .ToListAsync();
+    }
+
     #endregion
 }

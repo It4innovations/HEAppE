@@ -18,4 +18,11 @@ public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
     IEnumerable<AdaptorUserGroup> GetGroupsWithProjects(IEnumerable<long> groupIds);
     Task<IEnumerable<AdaptorUserGroup>> GetGroupsWithProjectsAsync(IEnumerable<long> groupIds);
     IQueryable<AdaptorUserGroup> GetQueryableWithoutFilters();
+
+    /// <summary>
+    /// Lightweight query for LEXIS authentication: loads only groups whose name starts with
+    /// <paramref name="namePrefix"/> and are linked to an active project, joining only
+    /// the Project table (no clusters, command templates, or users).
+    /// </summary>
+    Task<List<AdaptorUserGroup>> GetGroupsByPrefixWithActiveProjectsAsync(string namePrefix);
 }
