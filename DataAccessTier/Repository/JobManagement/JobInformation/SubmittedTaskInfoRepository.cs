@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,12 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .ToList();
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetAllUnFinishedAsync()
+    {
+        return await _dbSet.Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
+            .ToListAsync();
+    }
+
     public IEnumerable<SubmittedTaskInfo> GetAllFinished()
     {
         return _dbSet
@@ -44,6 +51,25 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .ToList();
     }
 
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetAllFinishedAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(t => t.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.ClusterUser)
+            .Where(w => w.State >= TaskState.Finished)
+            .ToListAsync();
+    }
+
     public IEnumerable<SubmittedTaskInfo> GetFinishedByIds(IEnumerable<long> ids)
     {
         return _dbSet
@@ -61,6 +87,25 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                     .ThenInclude(js => js.ClusterUser)
             .Where(w => w.State >= TaskState.Finished && ids.Contains(w.Id))
             .ToList();
+    }
+
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetFinishedByIdsAsync(IEnumerable<long> ids)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(t => t.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.ClusterUser)
+            .Where(w => w.State >= TaskState.Finished && ids.Contains(w.Id))
+            .ToListAsync();
     }
 
     public SubmittedTaskInfo GetByIdWithJobSpecification(long id)
@@ -126,11 +171,81 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         return task;
     }
 
+    public async Task<SubmittedTaskInfo> GetByIdWithJobSpecificationAsync(long id)
+    {
+        var task = await _dbSet
+            .Include(t => t.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.CommandTemplate)
+                    .ThenInclude(ct => ct.TemplateParameters)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.CommandParameterValues)
+                    .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.DependsOn)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.EnvironmentVariables)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.RequiredNodes)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.RequestedNodeGroups)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+                        .ThenInclude(c => c.ProxyConnection)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.ClusterUser)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Project)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (task == null) return null;
+
+        if (task.Specification?.JobSpecification?.Cluster != null)
+        {
+            await _context.Entry(task.Specification.JobSpecification.Cluster)
+                .Collection(c => c.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
+                .LoadAsync();
+        }
+
+        if (task.Project != null)
+        {
+            await _context.Entry(task.Project)
+                .Collection(p => p.ClusterProjects)
+                .Query()
+                .Include(cp => cp.ClusterProjectCredentials)
+                .LoadAsync();
+        }
+
+        return task;
+    }
+
     public SubmittedTaskInfo GetByIdWithProject(long id)
     {
         return _dbSet
             .Include(t => t.Project)
             .FirstOrDefault(t => t.Id == id);
+    }
+
+    public async Task<SubmittedTaskInfo> GetByIdWithProjectAsync(long id)
+    {
+        return await _dbSet
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == id);
     }
 
     #endregion

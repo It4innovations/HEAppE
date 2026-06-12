@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
@@ -82,9 +82,8 @@ public class ClusterInformationService : IClusterInformationService
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
 
-        var clusters = unitOfWork.ClusterRepository.AsQueryable()
-            .Where(c => clusterName == null || c.Name == clusterName)
-            .ToList();
+        var projectIds = projects?.Select(p => p.Id).ToList() ?? new List<long>();
+        var clusters = await unitOfWork.ClusterRepository.GetClustersFilteredAsync(clusterName, projectIds);
 
         var clustersExt = clusters
             .Select(c => c.ConvertIntToExt(projects, true))
