@@ -76,11 +76,14 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         //   - Submitter (logging + adaptorUserId)
         //   - Active Tasks with Specification.DependsOn (waiting-limit cancel check)
         //   - Tasks.Specification.JobSpecification.{Cluster,ClusterUser,Submitter,ClusterId,ProjectId}
+        //   - ResourceConsumed (needed to avoid duplicate key exceptions on update)
         // NOT loaded (not needed for state update): ClusterProjects, ClusterProjectCredentials,
-        //   ResourceConsumed, NodeType, CommandTemplate, SubmitterGroup.
+        //   NodeType, CommandTemplate, SubmitterGroup.
         return _dbSet
             .AsSplitQuery()
-            // Active tasks and their task-level specification
+            // Active tasks and their task-level specification / ResourceConsumed
+            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.DependsOn)
@@ -112,7 +115,9 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return await _dbSet
             .AsSplitQuery()
-            // Active tasks and their task-level specification
+            // Active tasks and their task-level specification / ResourceConsumed
+            .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
+                .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks.Where(t => t.State > TaskState.Configuring && t.State < TaskState.Finished))
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.DependsOn)

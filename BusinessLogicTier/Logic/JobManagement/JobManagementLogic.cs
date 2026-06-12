@@ -339,7 +339,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
     {
-        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)

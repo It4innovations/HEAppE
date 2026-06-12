@@ -2427,7 +2427,8 @@ public class ManagementLogic : IManagementLogic
                 .Select(x => x.Split('='))
                 .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
 
-            ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger);
+            ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger, taskId => 
+                _unitOfWork.SubmittedTaskInfoRepository.GetById(taskId)?.ResourceConsumed);
 
             _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
         }

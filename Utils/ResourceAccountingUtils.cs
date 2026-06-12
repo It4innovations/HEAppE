@@ -13,7 +13,7 @@ public static class ResourceAccountingUtils
     private static readonly DataTable _calculator = new DataTable();
     private static readonly char[] _operators = "+-*/%()".ToCharArray();
 
-    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
+    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger, Func<long, ResourceConsumed> getExistingResourceConsumed = null)
     {
         if (dbTaskInfo == null || submittedTaskInfo == null)
         {
@@ -52,7 +52,14 @@ public static class ResourceAccountingUtils
 
         var resourceAccountingValue = CalculateAllocatedResources(accounting.Formula, submittedTaskInfo.ParsedParameters, logger);
 
-        dbTaskInfo.ResourceConsumed ??= new ResourceConsumed();
+        if (dbTaskInfo.ResourceConsumed == null)
+        {
+            if (getExistingResourceConsumed != null)
+            {
+                dbTaskInfo.ResourceConsumed = getExistingResourceConsumed(dbTaskInfo.Id);
+            }
+            dbTaskInfo.ResourceConsumed ??= new ResourceConsumed();
+        }
         dbTaskInfo.ResourceConsumed.Value = resourceAccountingValue;
         dbTaskInfo.ResourceConsumed.LastUpdatedAt = DateTime.UtcNow;
         dbTaskInfo.ResourceConsumed.Accounting = accounting;
