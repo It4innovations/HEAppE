@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BackgroundThread.Configuration;
@@ -54,16 +54,16 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                         using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                         IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
-                        var allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccount();
+                        var allWaitingJobs = await unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccountAsync();
 
                         foreach (var job in allWaitingJobs)
                         {
                             try
                             {
                                 _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
-                                LogicFactory.GetLogicFactory()
+                                await LogicFactory.GetLogicFactory()
                                     .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
-                                    .SubmitJob(job.Id, job.Submitter);
+                                    .SubmitJobAsync(job.Id, job.Submitter);
                             }
                             catch (Exception jobEx)
                             {

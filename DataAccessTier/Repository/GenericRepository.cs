@@ -33,6 +33,11 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
     {
         return _dbSet.Find(id);
     }
+    
+    public virtual async Task<T> GetByIdAsync(long id)
+    {
+        return await _dbSet.FindAsync(id);
+    }
 
     public virtual IList<T> GetAll()
     {

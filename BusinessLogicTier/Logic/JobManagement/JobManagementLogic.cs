@@ -146,7 +146,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
-    public virtual SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<SubmittedJobInfo> SubmitJobAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
@@ -167,7 +167,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     {
                         jobInfo.State = JobState.WaitingForServiceAccount;
                         _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
-                        _unitOfWork.Save();
+                        _unitOfWork.Save(); // Note: inside sync lock we keep sync Save for safety or can use SaveAsync outside lock, but lock is sync so sync Save is fine here.
                         return jobInfo;
                     }
                 }
@@ -181,7 +181,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
             return jobInfo;
         }
 
@@ -271,12 +271,12 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
-    public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> DeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var clusterProject =
-            _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
+            await _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProjectAsync(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
 
         if (jobInfo.State is JobState.Configuring
@@ -290,7 +290,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobInfo.State = JobState.Deleted;
                 jobInfo.Tasks.ForEach(f => f.State = TaskState.Deleted);
                 _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
-                _unitOfWork.Save();
+                await _unitOfWork.SaveAsync();
             }
 
             return isDeleted;
@@ -299,7 +299,7 @@ internal class JobManagementLogic : IJobManagementLogic
         throw new InvalidRequestException("CannotDeleteJob", submittedJobInfoId, jobInfo.State);
     }
     
-    public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual Task<bool> ArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -334,7 +334,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
             CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id).
             MoveJobFiles(jobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken);
-        return isArchived;
+        return Task.FromResult(isArchived);
     }
 
     public SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)

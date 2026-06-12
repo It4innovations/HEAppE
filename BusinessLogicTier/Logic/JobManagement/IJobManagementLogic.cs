@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement;
@@ -10,11 +10,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 public interface IJobManagementLogic
 {
     Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong);
-    SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
+    Task<SubmittedJobInfo> SubmitJobAsync(long createdJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
-    bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
-    bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<bool> DeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<bool> ArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
     SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser, bool checkSharedJobInfoAccess = false);
     IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);

@@ -87,12 +87,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult SubmitJob(SubmitJobModel model)
+    public async Task<IActionResult> SubmitJob(SubmitJobModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+        return Ok(await _service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -129,12 +129,12 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DeleteJob(DeleteJobModel model)
+    public async Task<IActionResult> DeleteJob(DeleteJobModel model)
     {
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
+        var isDeleted = await _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
         if (isDeleted) return Ok("Job was deleted");
         return BadRequest("Job was not deleted");
     }
@@ -155,7 +155,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListJobsForCurrentUser(string sessionCode, string jobStates = null)
+    public async Task<IActionResult> ListJobsForCurrentUser(string sessionCode, string jobStates = null)
     {
         var model = new ListJobsForCurrentUserModel
         {
@@ -164,7 +164,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.ListJobsForCurrentUser(model.SessionCode, jobStates));
+        return Ok(await _service.ListJobsForCurrentUser(model.SessionCode, jobStates));
     }
 
     /// <summary>
