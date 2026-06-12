@@ -248,5 +248,10 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
+    public ResourceConsumed GetResourceConsumed(long taskId)
+    {
+        return _context.Set<ResourceConsumed>().FirstOrDefault(r => r.SubmittedTaskInfoId == taskId);
+    }
+
     #endregion
 }

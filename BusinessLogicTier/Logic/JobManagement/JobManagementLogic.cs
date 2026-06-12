@@ -873,7 +873,7 @@ internal class JobManagementLogic : IJobManagementLogic
         dbJobInfo.State = (JobState)minTaskState < continuousJobState ? (JobState)minTaskState : continuousJobState;
     }
 
-    protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
+    protected SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
     {
         try
@@ -922,10 +922,11 @@ internal class JobManagementLogic : IJobManagementLogic
         return false;
     }
 
-    protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
+    protected SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
         SubmittedTaskInfo clusterTaskInfo)
     {
-        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger);
+        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger, 
+            taskId => _unitOfWork.SubmittedTaskInfoRepository.GetResourceConsumed(taskId));
 
         if (clusterTaskInfo is null)
         {
