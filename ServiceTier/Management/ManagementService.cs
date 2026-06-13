@@ -1005,7 +1005,7 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.GetByIdWithProxyConnection(clusterId);
+            var cluster = managementLogic.GetClusterById(clusterId);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }

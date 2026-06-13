@@ -188,7 +188,16 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
             .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.NodeTypes)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.FileTransferMethods)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Project)
             .Where(cac =>
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
@@ -227,7 +236,16 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
             .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.NodeTypes)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.FileTransferMethods)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Project)
             .Where(cac => 
             cac.Username == username &&
             cac.ClusterProjectCredentials.Any(cpc => 
