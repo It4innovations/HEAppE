@@ -44,4 +44,6 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
     IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters();
     SubmittedJobInfo GetByScheduledJobId(string scheduledJobId);
     Task<SubmittedJobInfo> GetByScheduledJobIdAsync(string scheduledJobId);
+    void AttachCommandTemplatesIncludingDeleted(IEnumerable<SubmittedTaskInfo> tasks);
+    Task AttachCommandTemplatesIncludingDeletedAsync(IEnumerable<SubmittedTaskInfo> tasks);
 }

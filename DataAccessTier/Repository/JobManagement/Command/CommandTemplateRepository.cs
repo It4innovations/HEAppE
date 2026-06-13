@@ -65,6 +65,7 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
         return _dbSet
             .IgnoreQueryFilters()
             .AsNoTracking()
+            .Include(ct => ct.TemplateParameters)
             .Where(ct => idList.Contains(ct.Id))
             .ToList();
     }
@@ -77,6 +78,7 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
         return await _dbSet
             .IgnoreQueryFilters()
             .AsNoTracking()
+            .Include(ct => ct.TemplateParameters)
             .Where(ct => idList.Contains(ct.Id))
             .ToListAsync();
     }

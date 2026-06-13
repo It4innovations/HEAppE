@@ -30,6 +30,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
                 .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(x => x.CommandTemplates)
                 .ThenInclude(ct => ct.TemplateParameters)
             .ToList();
@@ -44,6 +46,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
                 .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(x => x.CommandTemplates)
                 .ThenInclude(ct => ct.TemplateParameters)
             .ToListAsync();
@@ -68,7 +72,9 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _context.Projects
             .AsNoTracking()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefault(p => p.AccountingString == accountingString);
     }
 
@@ -78,7 +84,9 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(p => p.AccountingString == accountingString);
     }
 
@@ -110,7 +118,9 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _context.Projects
             .AsNoTracking()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .ToList();
     }
 
@@ -120,7 +130,9 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .ToListAsync();
     }
 
@@ -147,6 +159,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
                 .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(x => x.CommandTemplates)
                 .ThenInclude(ct => ct.TemplateParameters)
             .Include(x => x.AdaptorUserGroups)

@@ -48,13 +48,16 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
         return _dbSet
             .AsSplitQuery()
             .Include(p => p.Project)
-            .ThenInclude(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             // CommandTemplates are NOT included here — they are loaded on-demand via
             // GetCommandTemplatesByProjectIds() in callers that actually need them.
             // Removing them here avoids unnecessary data transfer on every auth request.
             .Include(i => i.AdaptorUserUserGroupRoles)
-            .ThenInclude(i => i.AdaptorUser)
+                .ThenInclude(i => i.AdaptorUser)
             .Where(p => p.Project.EndDate >= DateTime.UtcNow)
             .ToList();
     }
@@ -64,6 +67,9 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
         return await _dbSet.Include(p => p.Project)
             .ThenInclude(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(p => p.Project)
             .ThenInclude(i => i.CommandTemplates)
             .ThenInclude(i => i.TemplateParameters)

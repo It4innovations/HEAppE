@@ -37,6 +37,8 @@ internal class JobReportingLogic : IJobReportingLogic
             .AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Include(x => x.AdaptorUserUserGroupRoles).ThenInclude(r => r.AdaptorUserRole)
             .Where(x => x.ProjectId.HasValue && projectIds.Contains(x.ProjectId.Value))
             .Where(x => x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId))
@@ -138,6 +140,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .AsNoTracking()
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Where(g => ids.Contains(g.Id))
             .ToList();
 
@@ -178,6 +182,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.SubProjects)
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .FirstOrDefault(g => g.Id == groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
 
         if (group.Project == null) return null;
@@ -219,6 +225,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.SubProjects)
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Where(g => groupIdsList.Contains(g.Id))
             .ToList();
 

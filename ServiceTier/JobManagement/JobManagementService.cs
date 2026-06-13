@@ -321,14 +321,19 @@ public class JobManagementService : IJobManagementService
         }
 
         query = query.AsNoTracking()
-            .Include(x => x.Specification) // This is for the Job
-            .Include(x => x.Project)       // This is for the Job
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(x => x.Project)
             .Include(x => x.Tasks)
-            .ThenInclude(t => t.NodeType)
-            .Include(x => x.Tasks) 
-            .ThenInclude(t => t.Project)
-            .Include(x => x.Tasks)        
-            .ThenInclude(t => t.Specification); // Load Specification for each Task
+                .ThenInclude(t => t.NodeType)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters);
 
         if (clusterId.HasValue)
         {
@@ -367,6 +372,7 @@ public class JobManagementService : IJobManagementService
         }
 
         var results = await query.ToListAsync();
+        await unitOfWork.SubmittedJobInfoRepository.AttachCommandTemplatesIncludingDeletedAsync(results.SelectMany(r => r.Tasks));
         return results
             .Select(x => x.ConvertIntToExt())
             .ToArray();

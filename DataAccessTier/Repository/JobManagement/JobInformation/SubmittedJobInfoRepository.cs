@@ -100,11 +100,13 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.JobSpecification)
                         .ThenInclude(js => js.Submitter)
-            // Job-level specification (Cluster, ClusterUser, WaitingLimit scalar)
+            // Job-level specification (Cluster, ClusterUser, FileTransferMethod, WaitingLimit scalar)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
             .Include(j => j.Submitter)
@@ -137,11 +139,13 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.JobSpecification)
                         .ThenInclude(js => js.Submitter)
-            // Job-level specification (Cluster, ClusterUser, WaitingLimit scalar)
+            // Job-level specification (Cluster, ClusterUser, FileTransferMethod, WaitingLimit scalar)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
             .Include(j => j.Submitter)
@@ -153,8 +157,20 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(j => j.Project)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
             .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
             .ToList();
     }
@@ -164,8 +180,19 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return await _dbSet
             .AsNoTracking()
             .AsSplitQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(j => j.Project)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.NodeType)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
             .Where(w => EF.Property<long>(w, "SubmitterId") == submitterId)
             .ToListAsync();
     }
@@ -532,7 +559,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     /// (navigation property is null). This method fetches those missing templates directly,
     /// bypassing the filter, so historical job data always shows the correct template info.
     /// </summary>
-    private void AttachCommandTemplatesIncludingDeleted(IEnumerable<SubmittedTaskInfo> tasks)
+    public void AttachCommandTemplatesIncludingDeleted(IEnumerable<SubmittedTaskInfo> tasks)
     {
         var taskList = tasks?.ToList();
         if (taskList == null || !taskList.Any()) return;
@@ -548,6 +575,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         var templates = _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
             .AsNoTracking()
+            .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionary(ct => ct.Id);
 
@@ -559,7 +587,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         }
     }
 
-    private async Task AttachCommandTemplatesIncludingDeletedAsync(IEnumerable<SubmittedTaskInfo> tasks)
+    public async Task AttachCommandTemplatesIncludingDeletedAsync(IEnumerable<SubmittedTaskInfo> tasks)
     {
         var taskList = tasks?.ToList();
         if (taskList == null || !taskList.Any()) return;
@@ -575,6 +603,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         var templates = await _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
             .AsNoTracking()
+            .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionaryAsync(ct => ct.Id);
 
