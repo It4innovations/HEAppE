@@ -27,13 +27,12 @@ public interface IJobManagementLogic
     Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials, bool CancelledLocally)> PrepareCancelJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<SubmittedJobInfo> CompleteCancelJobAsync(long submittedJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> actualTasksInfo);
 
-    Task<bool> DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<bool> DeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareDeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<bool> CompleteDeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isDeleted);
 
-    Task<bool> ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<bool> ArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
     Task<(SubmittedJobInfo JobInfo, string LocalBasePath, string JobLogArchivePath, IEnumerable<System.Tuple<string, string>> SourceDestinations)> PrepareArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser);
-
     SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
     /// <summary>Lightweight status read - uses a minimal DB query, no SSH-related includes.</summary>
     SubmittedJobInfo GetSubmittedJobInfoByIdForStatus(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);

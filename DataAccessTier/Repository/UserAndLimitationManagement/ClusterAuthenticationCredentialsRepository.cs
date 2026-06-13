@@ -103,9 +103,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     #region Methods
 
-    public async Task<ClusterAuthenticationCredentials> GetByIdAsync(long id)
+    public override async Task<ClusterAuthenticationCredentials> GetByIdAsync(long id)
     {
-        var dbEntity = base.GetById(id);
+        var dbEntity = await base.GetByIdAsync(id);
+        if (dbEntity == null) return null;
         var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(id);
         dbEntity.ImportVaultData(vaultData);
         return dbEntity;

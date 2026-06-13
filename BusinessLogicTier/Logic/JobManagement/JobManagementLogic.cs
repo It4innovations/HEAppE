@@ -146,7 +146,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return await CompleteCancelJobAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
     }
 
-    public virtual async Task<bool> DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> DeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var (jobInfo, clusterProject) = await PrepareDeleteJobAsync(submittedJobInfoId, loggedUser);
@@ -158,7 +158,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return await CompleteDeleteJobAsync(submittedJobInfoId, loggedUser, isDeleted);
     }
     
-    public virtual async Task<bool> ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> ArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var (jobInfo, _, _, sourceDestinations) = await PrepareArchiveJobAsync(submittedJobInfoId, loggedUser);
@@ -420,7 +420,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         }
                         else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
                         {
-                            CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo, _logger);
+                            CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
                             isNeedUpdateJobState = true;
                         }
                     }
@@ -764,8 +764,8 @@ internal class JobManagementLogic : IJobManagementLogic
         dbJobInfo.State = (JobState)minTaskState < continuousJobState ? (JobState)minTaskState : continuousJobState;
     }
 
-    protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
-        IEnumerable<SubmittedTaskInfo> submittedTasksInfo, ILogger logger)
+    protected SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
+        IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
     {
         try
         {
@@ -781,12 +781,12 @@ internal class JobManagementLogic : IJobManagementLogic
                     throw new Exception($"Task mapping failed. Could not find cluster task with Name matching DB TaskSpecification.Id '{taskIdStr}'. Available names from cluster: [{availableNames}]");
                 }
                 
-                CombineSubmittedTaskInfoFromCluster(dbTask, matchingClusterTask, logger);
+                CombineSubmittedTaskInfoFromCluster(dbTask, matchingClusterTask);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError($"Error combining submitted job info from cluster for job {dbJobInfo.Id}: {ex.Message}");
+            _logger.LogError($"Error combining submitted job info from cluster for job {dbJobInfo.Id}: {ex.Message}");
             throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", ex.Message);
         }
 
@@ -838,10 +838,11 @@ internal class JobManagementLogic : IJobManagementLogic
         return false;
     }
 
-    protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
-        SubmittedTaskInfo clusterTaskInfo, ILogger logger)
+    protected SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
+        SubmittedTaskInfo clusterTaskInfo)
     {
-        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, logger);
+        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger, 
+            taskId => _unitOfWork.SubmittedTaskInfoRepository.GetResourceConsumed(taskId));
 
         if (clusterTaskInfo is null)
         {
@@ -1008,7 +1009,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
-        jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks, _logger);
+        jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
@@ -1032,7 +1033,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
                 .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
             if (actualUnfinishedSchedulerTaskInfo != null)
-                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
+                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
         }
 
         UpdateJobStateByTasks(jobInfo);
@@ -1077,7 +1078,7 @@ internal class JobManagementLogic : IJobManagementLogic
         foreach (var task in jobInfo.Tasks)
         {
             if (task.ScheduledJobId != null && schedulerTaskByJobId.TryGetValue(task.ScheduledJobId, out var clusterTask))
-                CombineSubmittedTaskInfoFromCluster(task, clusterTask, _logger);
+                CombineSubmittedTaskInfoFromCluster(task, clusterTask);
         }
 
         UpdateJobStateByTasks(jobInfo);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement.Command;
@@ -6,6 +7,7 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 public interface ICommandTemplateRepository : IRepository<CommandTemplate>
 {
     IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId);
+    Task<IList<CommandTemplate>> GetCommandTemplatesByProjectIdAsync(long projectId);
     IList<CommandTemplate> GetCommandTemplatesByProjectIds(IEnumerable<long> projectIds);
 
     /// <summary>
@@ -13,4 +15,5 @@ public interface ICommandTemplateRepository : IRepository<CommandTemplate>
     /// Used for historical job/task data where the template may have been deleted after the job ran.
     /// </summary>
     IList<CommandTemplate> GetByIdsIncludingDeleted(IEnumerable<long> ids);
+    Task<IList<CommandTemplate>> GetByIdsIncludingDeletedAsync(IEnumerable<long> ids);
 }

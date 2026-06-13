@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DomainObjects.FileTransfer;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.FileTransfer;
 
@@ -22,6 +24,12 @@ internal class FileTransferMethodRepository : GenericRepository<FileTransferMeth
     {
         return _dbSet.Where(w => w.ClusterId == clusterId)
             .ToList();
+    }
+
+    public async Task<IEnumerable<FileTransferMethod>> GetByClusterIdAsync(long clusterId)
+    {
+        return await _dbSet.Where(w => w.ClusterId == clusterId)
+            .ToListAsync();
     }
 
     #endregion

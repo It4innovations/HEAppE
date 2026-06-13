@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects;
 
@@ -7,6 +7,7 @@ namespace HEAppE.DataAccessTier.IRepository;
 public interface IRepository<T> where T : IdentifiableDbEntity
 {
     T GetById(long id);
+    Task<T> GetByIdAsync(long id);
     IList<T> GetAll();
     Task<IList<T>> GetAllAsync();
     void Insert(T entity);
