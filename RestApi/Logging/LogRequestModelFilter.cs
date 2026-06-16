@@ -65,6 +65,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
 
     private void LogRequestDetailsAsync(ActionExecutingContext context)
     {
+        if (!_logger.IsEnabled(LogLevel.Information)) return;
         try
         {
             var safeArguments = context.ActionArguments

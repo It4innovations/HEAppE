@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.Internal;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 
@@ -25,9 +27,25 @@ internal class AdaptorUserRoleRepository : GenericRepository<AdaptorUserRole>, I
         return _context.AdaptorUserRoles.FirstOrDefault(f => roleName.Contains(f.Name));
     }
 
+    public async Task<AdaptorUserRole> GetByRoleNameAsync(string roleName)
+    {
+        return await _context.AdaptorUserRoles.FirstOrDefaultAsync(f => roleName.Contains(f.Name));
+    }
+
     public AdaptorUserRole GetByRoleNames(IEnumerable<string> roleNames)
     {
         var adaptorUserRoles = _dbSet.Where(w => roleNames.Contains(w.Name)).ToList();
+        return ResolveRoleFromList(adaptorUserRoles);
+    }
+
+    public async Task<AdaptorUserRole> GetByRoleNamesAsync(IEnumerable<string> roleNames)
+    {
+        var adaptorUserRoles = await _dbSet.Where(w => roleNames.Contains(w.Name)).ToListAsync();
+        return ResolveRoleFromList(adaptorUserRoles);
+    }
+
+    private static AdaptorUserRole ResolveRoleFromList(List<AdaptorUserRole> adaptorUserRoles)
+    {
         return adaptorUserRoles switch
         {
             var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Administrator) => role.First(f =>

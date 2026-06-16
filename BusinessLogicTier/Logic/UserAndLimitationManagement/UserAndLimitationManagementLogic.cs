@@ -323,9 +323,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         IEnumerable<Project> projects)
     {
         var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
-        foreach (var project in projects)
+        if (!projectList.Any())
+        {
+            return result;
+        }
+
+        var projectIds = projectList.Select(p => p.Id).Distinct().ToList();
+        var templatesByProject = _unitOfWork.CommandTemplateRepository
+            .GetCommandTemplatesByProjectIds(projectIds)
+            .GroupBy(t => t.ProjectId)
+            .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+        foreach (var project in projectList)
         {
             ProjectResourceUsage usage = new()
             {
@@ -341,32 +353,33 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 NodeTypes = new List<ClusterNodeTypeResourceUsage>()
             };
 
-            var projectCommandTemplates =
-                _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
-            foreach (var nodeType in nodeTypes)
+            if (templatesByProject.TryGetValue(project.Id, out var projectCommandTemplates))
             {
-                var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
-                NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).Where(n => n != null).Distinct().ToList();
+                foreach (var nodeType in nodeTypes)
                 {
-                    CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
-                    NodeType = nodeType
-                };
-                ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
-                {
-                    Id = nodeType.Id,
-                    Name = nodeType.Name,
-                    Cluster = nodeType.Cluster,
-                    ClusterAllocationName = nodeType.ClusterAllocationName,
-                    CoresPerNode = nodeType.CoresPerNode,
-                    Description = nodeType.Description,
-                    FileTransferMethod = nodeType.FileTransferMethod,
-                    MaxWalltime = nodeType.MaxWalltime,
-                    NumberOfNodes = nodeType.NumberOfNodes,
-                    Queue = nodeType.Queue,
-                    NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
-                };
-                usage.NodeTypes.Add(clusterNodeTypeUsage);
+                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType != null && x.NodeType.Id == nodeType.Id);
+                    NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                    {
+                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        NodeType = nodeType
+                    };
+                    ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
+                    {
+                        Id = nodeType.Id,
+                        Name = nodeType.Name,
+                        Cluster = nodeType.Cluster,
+                        ClusterAllocationName = nodeType.ClusterAllocationName,
+                        CoresPerNode = nodeType.CoresPerNode,
+                        Description = nodeType.Description,
+                        FileTransferMethod = nodeType.FileTransferMethod,
+                        MaxWalltime = nodeType.MaxWalltime,
+                        NumberOfNodes = nodeType.NumberOfNodes,
+                        Queue = nodeType.Queue,
+                        NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
+                    };
+                    usage.NodeTypes.Add(clusterNodeTypeUsage);
+                }
             }
 
             result.Add(usage);
@@ -444,7 +457,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
-            return GetOrRegisterLexisCredentials(result);
+            return await GetOrRegisterLexisCredentialsAsync(result);
         }
         catch (HttpRequestException )
         {
@@ -456,11 +469,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     /// <summary>
     ///     Get existing or create new HEAppE user, from the OpenId credentials.
+    ///     Roles are synchronised to the DB only when they differ from the current state,
+    ///     eliminating row-lock contention under concurrent bearer-token requests.
+    ///     Uses a lean async DB query (groups + project only, no clusters/templates/users).
     /// </summary>
-    /// <param name="lexisUser"></param>
-    /// <returns>Newly created or existing HEAppE account.</returns>
-    /// <exception cref="AuthenticationTypeException"></exception>
-    private AdaptorUser GetOrRegisterLexisCredentials(UserInfoExtendedModel lexisUser)
+    private async Task<AdaptorUser> GetOrRegisterLexisCredentialsAsync(UserInfoExtendedModel lexisUser)
     {
         var lexisProjects = lexisUser.SystemRoles
             .Where(w => !string.IsNullOrEmpty(w.ProjectShortName))
@@ -469,10 +482,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 x.ProjectShortName,
                 ProjectResourceNames = x.ProjectResources.Select(r => r.Name).Distinct(),
                 Permissions = x.SystemPermissionTypes
-            });
+            })
+            .ToList();
 
-        IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+        // Lean async query: filter by LEXIS prefix in SQL, join only Project — no clusters/templates/users
+        var userLEXISGroups = await _unitOfWork.AdaptorUserGroupRepository
+            .GetGroupsByPrefixWithActiveProjectsAsync(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
 
         DateTime changedTime = DateTime.UtcNow;
         if (string.IsNullOrEmpty(lexisUser.Email))
@@ -508,36 +523,67 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
         }
 
-        var hasUserGroup = false;
+        // Build desired (groupId, roleId) set and resolved role map from UserOrg data
+        var desiredRoles = new HashSet<(long GroupId, long RoleId)>();
+        var projectRoleMap = new List<(List<AdaptorUserGroup> Groups, AdaptorUserRole Role)>();
 
+        foreach (var lexisProject in lexisProjects)
+        {
+            var groupsWithProject = userLEXISGroups
+                .Where(x => lexisProject.ProjectResourceNames.Any(a =>
+                    string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)))
+                .ToList();
+
+            if (!groupsWithProject.Any()) continue;
+
+            var roleNames = lexisProject.Permissions
+                .Where(RoleMapping.MappingRoles.ContainsKey)
+                .Select(s => RoleMapping.MappingRoles[s])
+                .ToList();
+
+            if (!roleNames.Any()) continue;
+
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+            projectRoleMap.Add((groupsWithProject, userRole));
+
+            foreach (var group in groupsWithProject)
+                desiredRoles.Add((group.Id, (long)userRole.RoleType));
+        }
+
+        if (desiredRoles.Count == 0)
+            throw new AuthenticationTypeException("NoUserGroup", user.Username);
+
+        // Compare desired roles with current active roles already in DB
+        var currentActiveRoles = user.AdaptorUserUserGroupRoles
+            .Where(r => !r.IsDeleted)
+            .Select(r => (r.AdaptorUserGroupId, r.AdaptorUserRoleId))
+            .ToHashSet();
+
+        if (desiredRoles.SetEquals(currentActiveRoles))
+        {
+            // Roles are identical — skip DB write to avoid row-lock contention under concurrent load
+            _logger.LogDebug($"LEXIS AAI: Roles for user \"{user.Username}\" unchanged — skipping DB synchronization.");
+            return user;
+        }
+
+        _logger.LogInformation($"LEXIS AAI: Roles for user \"{user.Username}\" changed — synchronizing to DB.");
+
+        // Soft-delete all current roles and re-apply desired set
         user.AdaptorUserUserGroupRoles.ForEach(f =>
         {
             f.IsDeleted = true;
             f.ModifiedAt = changedTime;
         });
 
-        foreach (var lexisProject in lexisProjects)
+        foreach (var (groups, role) in projectRoleMap)
         {
-            var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
-                string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
-
-            if (groupsWithProject is null || !groupsWithProject.Any()) continue;
-
-            var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
-                .Select(s => RoleMapping.MappingRoles[s]);
-                
-            if (roleNames is null || !roleNames.Any()) continue;
-
-            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-            foreach (var prefixedGroup in groupsWithProject)
-                user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
-
-            hasUserGroup = true;
+            foreach (var group in groups)
+                user.CreateSpecificUserRoleForUser(group, role.RoleType);
         }
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
         
-        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+        return user;
     }
 
     /// <summary>
@@ -752,27 +798,60 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         );
     
         var allGroupRoles = loggedUser.AdaptorUserUserGroupRoles
-            .Where(x => !x.IsDeleted);
+            .Where(x => !x.IsDeleted)
+            .ToList();
+
+        if (!allGroupRoles.Any())
+        {
+            return projectReferences;
+        }
+
+        var allActiveGroups = _unitOfWork.AdaptorUserGroupRepository
+            .GetAllWithAdaptorUserGroupsAndActiveProjects()
+            .ToDictionary(g => g.Id);
+
+        var projectsToLoad = new List<Project>();
+        var projectGroupRoles = new List<(AdaptorUserUserGroupRole GroupRole, Project Project)>();
 
         foreach (var groupRole in allGroupRoles)
         {
-            var project = _unitOfWork.AdaptorUserGroupRepository
-                .GetAllWithAdaptorUserGroupsAndActiveProjects()
-                .FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
-
-            if (project is null || !validProjectIds.Contains(project.Id)) 
+            if (allActiveGroups.TryGetValue(groupRole.AdaptorUserGroupId, out var group) && group.Project != null)
             {
-                continue;
+                var project = group.Project;
+                if (validProjectIds.Contains(project.Id))
+                {
+                    projectGroupRoles.Add((groupRole, project));
+                    projectsToLoad.Add(project);
+                }
             }
-        
-            var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            project.CommandTemplates = commandTemplates.ToList();
+        }
 
-            projectReferences.Add(new ProjectReference
+        if (projectsToLoad.Any())
+        {
+            var uniqueProjectIds = projectsToLoad.Select(p => p.Id).Distinct().ToList();
+            var templatesByProject = _unitOfWork.CommandTemplateRepository
+                .GetCommandTemplatesByProjectIds(uniqueProjectIds)
+                .GroupBy(t => t.ProjectId)
+                .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+            foreach (var item in projectGroupRoles)
             {
-                Role = groupRole.AdaptorUserRole,
-                Project = project
-            });
+                var project = item.Project;
+                if (templatesByProject.TryGetValue(project.Id, out var templates))
+                {
+                    project.CommandTemplates = templates;
+                }
+                else
+                {
+                    project.CommandTemplates = new List<CommandTemplate>();
+                }
+
+                projectReferences.Add(new ProjectReference
+                {
+                    Role = item.GroupRole.AdaptorUserRole,
+                    Project = project
+                });
+            }
         }
 
         return projectReferences;

@@ -30,9 +30,15 @@ services:
       - "${HOST_MSSQL_PORT}:1433"
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_PID: "Express"
+      MSSQL_PID: "${HOST_MSSQL_PID:-Developer}"
+      MSSQL_MEMORY_LIMIT_MB: "${HOST_MSSQL_MEMORY_LIMIT_MB:-4096}"
       TZ: "Europe/Prague"
       SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${HOST_MSSQL_CPUS:-4}"
+          memory: "${HOST_MSSQL_MEMORY:-6G}"
     networks:
       - db_internal_network
       - external_network

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 using Microsoft.EntityFrameworkCore;
@@ -25,12 +26,26 @@ internal class JobSpecificationRepository : GenericRepository<JobSpecification>,
             .ToList();
     }
 
+    public async Task<IEnumerable<JobSpecification>> GetAllByFileTransferMethodAsync(long fileTransferMethodId)
+    {
+        return await _dbSet.Where(js => js.FileTransferMethodId == fileTransferMethodId)
+            .ToListAsync();
+    }
+
     public JobSpecification GetByIdWithTasksAndSubmitter(long id)
     {
         return _dbSet
             .Include(js => js.Tasks)
             .Include(js => js.Submitter)
             .FirstOrDefault(js => js.Id == id);
+    }
+
+    public async Task<JobSpecification> GetByIdWithTasksAndSubmitterAsync(long id)
+    {
+        return await _dbSet
+            .Include(js => js.Tasks)
+            .Include(js => js.Submitter)
+            .FirstOrDefaultAsync(js => js.Id == id);
     }
 
     #endregion

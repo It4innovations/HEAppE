@@ -150,7 +150,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return await CompleteCancelJobAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
     }
 
-    public virtual async Task<bool> DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> DeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var (jobInfo, clusterProject) = await PrepareDeleteJobAsync(submittedJobInfoId, loggedUser);
@@ -162,7 +162,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return await CompleteDeleteJobAsync(submittedJobInfoId, loggedUser, isDeleted);
     }
     
-    public virtual async Task<bool> ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual async Task<bool> ArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var (jobInfo, _, _, sourceDestinations) = await PrepareArchiveJobAsync(submittedJobInfoId, loggedUser);
@@ -185,6 +185,18 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
+    public async Task<SubmittedJobInfo> GetSubmittedJobInfoByIdAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
+    {
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(submittedJobInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+                 .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedJobInfoId);
+        return jobInfo;
+    }
+
     /// <summary>
     /// Lightweight status read using minimal DB query (no SSH navigation properties).
     /// Use for read-only status polling when SSH is not needed.
@@ -192,6 +204,18 @@ internal class JobManagementLogic : IJobManagementLogic
     public SubmittedJobInfo GetSubmittedJobInfoByIdForStatus(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
     {
         var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdForStatus(submittedJobInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+                 .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedJobInfoId);
+        return jobInfo;
+    }
+
+    public async Task<SubmittedJobInfo> GetSubmittedJobInfoByIdForStatusAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
+    {
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdForStatusAsync(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
@@ -231,6 +255,18 @@ internal class JobManagementLogic : IJobManagementLogic
         return taskInfo;
     }
 
+    public virtual async Task<SubmittedTaskInfo> GetSubmittedTaskInfoByIdAsync(long submittedTaskInfoId, AdaptorUser loggedUser,
+        bool checkSharedJobInfoAccess = false)
+    {
+        var taskInfo = await _unitOfWork.SubmittedTaskInfoRepository.GetByIdWithJobSpecificationAsync(submittedTaskInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
+
+      if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+                .AuthorizeUserForTaskInfo(loggedUser, taskInfo, checkSharedJobInfoAccess))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedTaskInfoId);
+        return taskInfo;
+    }
 
     public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
@@ -249,14 +285,29 @@ internal class JobManagementLogic : IJobManagementLogic
         return _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
     }
 
+    public virtual async Task<IEnumerable<SubmittedJobInfo>> GetJobsForUserAsync(AdaptorUser loggedUser)
+    {
+        return await _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterIdAsync(loggedUser.Id);
+    }
+
     public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfosForSubmitterId(long submitterId)
     {
         return _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterId(submitterId);
     }
 
+    public virtual async Task<IEnumerable<SubmittedJobInfo>> GetNotFinishedJobInfosForSubmitterIdAsync(long submitterId)
+    {
+        return await _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterIdAsync(submitterId);
+    }
+
     public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos()
     {
         return _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished();
+    }
+
+    public virtual async Task<IEnumerable<SubmittedJobInfo>> GetNotFinishedJobInfosAsync()
+    {
+        return await _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinishedAsync();
     }
 
     public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
@@ -267,10 +318,19 @@ internal class JobManagementLogic : IJobManagementLogic
         }
         return _unitOfWork.SubmittedTaskInfoRepository.GetFinishedByIds(taskIds);
     }
+
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetAllFinishedTaskInfosAsync(IEnumerable<long> taskIds)
+    {
+        if (taskIds == null || !taskIds.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+        return await _unitOfWork.SubmittedTaskInfoRepository.GetFinishedByIdsAsync(taskIds);
+    }
     
     public async Task UpdateCurrentStateOfUnfinishedJobs()
     {
-        var allUnfinishedJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished().ToList();
+        var allUnfinishedJobs = (await _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinishedAsync()).ToList();
 
         var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
         foreach (var job in allUnfinishedJobs)
@@ -430,7 +490,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         }
                         else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
                         {
-                            CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo, _logger);
+                            CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
                             isNeedUpdateJobState = true;
                         }
                     }
@@ -614,11 +674,19 @@ internal class JobManagementLogic : IJobManagementLogic
         taskSpecification.CommandTemplate =
             _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
 
-        foreach (var cmdParameterValue in
-                 taskSpecification.CommandParameterValues ?? Enumerable.Empty<CommandTemplateParameterValue>())
-            cmdParameterValue.TemplateParameter =
-                _unitOfWork.CommandTemplateParameterRepository.GetByCommandTemplateIdAndCommandParamId(
-                    taskSpecification.CommandTemplateId, cmdParameterValue.CommandParameterIdentifier);
+        if (taskSpecification.CommandParameterValues?.Any() == true && taskSpecification.CommandTemplate?.TemplateParameters != null)
+        {
+            // Map parameters directly from the in-memory eager-loaded collection of the CommandTemplate.
+            // This avoids an extra database query and resolves change tracking conflicts by using the same tracked instances.
+            var paramLookup = taskSpecification.CommandTemplate.TemplateParameters
+                .ToDictionary(p => p.Identifier, p => p, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var cmdParameterValue in taskSpecification.CommandParameterValues)
+            {
+                paramLookup.TryGetValue(cmdParameterValue.CommandParameterIdentifier, out var param);
+                cmdParameterValue.TemplateParameter = param;
+            }
+        }
 
         //Combination parameters from template
         taskSpecification.Priority ??= default;
@@ -768,8 +836,8 @@ internal class JobManagementLogic : IJobManagementLogic
         return dbJobInfo.State != newState;
     }
 
-    protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
-        IEnumerable<SubmittedTaskInfo> submittedTasksInfo, ILogger logger)
+    protected SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
+        IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
     {
         try
         {
@@ -785,12 +853,12 @@ internal class JobManagementLogic : IJobManagementLogic
                     throw new Exception($"Task mapping failed. Could not find cluster task with Name matching DB TaskSpecification.Id '{taskIdStr}'. Available names from cluster: [{availableNames}]");
                 }
                 
-                CombineSubmittedTaskInfoFromCluster(dbTask, matchingClusterTask, logger);
+                CombineSubmittedTaskInfoFromCluster(dbTask, matchingClusterTask);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError($"Error combining submitted job info from cluster for job {dbJobInfo.Id}: {ex.Message}");
+            _logger.LogError($"Error combining submitted job info from cluster for job {dbJobInfo.Id}: {ex.Message}");
             throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", ex.Message);
         }
 
@@ -842,10 +910,11 @@ internal class JobManagementLogic : IJobManagementLogic
         return false;
     }
 
-    protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
-        SubmittedTaskInfo clusterTaskInfo, ILogger logger)
+    protected SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
+        SubmittedTaskInfo clusterTaskInfo)
     {
-        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, logger);
+        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger, 
+            taskId => _unitOfWork.SubmittedTaskInfoRepository.GetResourceConsumed(taskId));
 
         if (clusterTaskInfo is null)
         {
@@ -959,7 +1028,7 @@ internal class JobManagementLogic : IJobManagementLogic
                    new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
                    TransactionScopeAsyncFlowOption.Enabled))
         {
-            var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobInfoId);
+            var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(jobInfoId);
             if (jobInfo != null)
             {
                 if (jobInfo.Tasks != null)
@@ -972,7 +1041,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
             }
             
-            var specification = _unitOfWork.JobSpecificationRepository.GetById(specificationId);
+            var specification = await _unitOfWork.JobSpecificationRepository.GetByIdAsync(specificationId);
             if (specification != null)
             {
                 _unitOfWork.JobSpecificationRepository.Delete(specification);
@@ -985,7 +1054,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         if (jobInfo.Specification.Tasks.Any(x => x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
         
@@ -1010,16 +1079,16 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> CompleteJobSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> submittedTasks)
     {
-        var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
-        jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks, _logger);
+        jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials)> PrepareGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var credentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
@@ -1028,7 +1097,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> CompleteGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> actualTasksInfo)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var actualUnfinishedSchedulerTasksInfo = actualTasksInfo.ToList();
 
         foreach (var task in jobInfo.Tasks)
@@ -1036,7 +1105,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
                 .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
             if (actualUnfinishedSchedulerTaskInfo != null)
-                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
+                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
         }
 
         UpdateJobStateByTasks(jobInfo);
@@ -1046,7 +1115,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials, bool CancelledLocally)> PrepareCancelJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
         {
             var credentials = await
@@ -1069,12 +1138,20 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> CompleteCancelJobAsync(long submittedJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> actualTasksInfo)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var actualUnfinishedSchedulerTasksInfo = actualTasksInfo.ToList();
 
+        // O(N) dictionary lookup instead of O(N²) nested foreach.
+        // Each DB task is matched to its corresponding cluster task by ScheduledJobId.
+        var schedulerTaskByJobId = actualUnfinishedSchedulerTasksInfo
+            .Where(t => t.ScheduledJobId != null)
+            .ToDictionary(t => t.ScheduledJobId!);
+
         foreach (var task in jobInfo.Tasks)
-        foreach (var actualUnfinishedSchedulerTaskInfo in actualUnfinishedSchedulerTasksInfo)
-            CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
+        {
+            if (task.ScheduledJobId != null && schedulerTaskByJobId.TryGetValue(task.ScheduledJobId, out var clusterTask))
+                CombineSubmittedTaskInfoFromCluster(task, clusterTask);
+        }
 
         UpdateJobStateByTasks(jobInfo);
         await _unitOfWork.SaveAsync();
@@ -1083,7 +1160,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareDeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
@@ -1101,7 +1178,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         if (isDeleted)
         {
-            var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
             jobInfo.State = JobState.Deleted;
             jobInfo.Tasks.ForEach(f => f.State = TaskState.Deleted);
             await _unitOfWork.SaveAsync();
@@ -1111,7 +1188,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, string LocalBasePath, string JobLogArchivePath, IEnumerable<System.Tuple<string, string>> SourceDestinations)> PrepareArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
@@ -1145,7 +1222,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedTaskInfo> PrepareGetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
-        var taskInfo = GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        var taskInfo = await GetSubmittedTaskInfoByIdAsync(submittedTaskInfoId, loggedUser);
         if (taskInfo.State != TaskState.Running)
             throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
         return taskInfo;
@@ -1154,9 +1231,9 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(DryRunJobSpecification Specification, Cluster Cluster, Project Project)> PrepareDryRunJobAsync(
         long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser)
     {
-        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(modelProjectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(modelProjectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", modelProjectId);
-        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+        var clusterNodeType = await _unitOfWork.ClusterNodeTypeRepository.GetByIdAsync(modelClusterNodeTypeId)
                               ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists",
                                   modelClusterNodeTypeId);
         var cluster = clusterNodeType.Cluster;
@@ -1178,7 +1255,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
@@ -1187,7 +1264,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");

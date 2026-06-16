@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 using Microsoft.EntityFrameworkCore;
@@ -29,9 +30,27 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)
                 .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(x => x.CommandTemplates)
                 .ThenInclude(ct => ct.TemplateParameters)
             .ToList();
+    }
+
+    public async Task<IEnumerable<Project>> GetAllActiveProjectsAsync()
+    {
+        return await _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.ProjectContacts)
+                .ThenInclude(x => x.Contact)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
+            .ToListAsync();
     }
 
     public Project GetByAccountingString(string accountingString)
@@ -41,21 +60,40 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefault(p => p.AccountingString == accountingString);
     }
 
+    public async Task<Project> GetByAccountingStringAsync(string accountingString)
+    {
+        return await _context.Projects
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.AccountingString == accountingString);
+    }
+
     public Project GetByAccountingStringWithClusterProjects(string accountingString)
     {
         return _context.Projects
             .AsNoTracking()
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .FirstOrDefault(p => p.AccountingString == accountingString);
+    }
+
+    public async Task<Project> GetByAccountingStringWithClusterProjectsAsync(string accountingString)
+    {
+        return await _context.Projects
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
-            .FirstOrDefault(p => p.AccountingString == accountingString);
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .FirstOrDefaultAsync(p => p.AccountingString == accountingString);
     }
 
     public Project GetByIdWithClusterProjects(long projectId)
     {
         return _context.Projects
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -63,14 +101,39 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefault(p => p.Id == projectId);
     }
 
-    public IEnumerable<Project> GetAllWithClusterProjects()
+    public async Task<Project> GetByIdWithClusterProjectsAsync(long projectId)
     {
-        return _context.Projects
+        return await _context.Projects
             .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+    }
+
+    public IEnumerable<Project> GetAllWithClusterProjects()
+    {
+        return _context.Projects
+            .AsNoTracking()
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .ToList();
+    }
+
+    public async Task<IEnumerable<Project>> GetAllWithClusterProjectsAsync()
+    {
+        return await _context.Projects
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .ToListAsync();
     }
 
     public Project GetByIdWithSubProjects(long id)
@@ -78,6 +141,29 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _dbSet
             .AsNoTracking()
             .Include(p => p.SubProjects)
+            .FirstOrDefault(p => p.Id == id);
+    }
+
+    public async Task<Project> GetByIdWithSubProjectsAsync(long id)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(p => p.SubProjects)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public override Project GetById(long id)
+    {
+        return _dbSet
+            .Include(x => x.ProjectContacts)
+                .ThenInclude(x => x.Contact)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
+            .Include(x => x.AdaptorUserGroups)
             .FirstOrDefault(p => p.Id == id);
     }
 

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -19,7 +20,6 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(cp => cp.Project)
 
@@ -35,26 +35,69 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .ToList();
     }
 
+    public async Task<IEnumerable<Cluster>> GetAllWithActiveProjectFilterAsync()
+    {
+        return await _dbSet
+            .AsNoTrackingWithIdentityResolution()
+            .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.ClusterNodeTypeAggregation)
+            .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+            .ThenInclude(acc => acc.Accounting)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+            .ThenInclude(pc => pc.TemplateParameters)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
+            .ToListAsync();
+    }
+
     public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
     {
-        return _dbSet
-            .AsNoTracking()
-            .Where(c => c.ProxyConnectionId == clusterProxyConnectionId)
-            .ToList();
+        return _dbSet.Where(c => c.ProxyConnection.Id == clusterProxyConnectionId);
+    }
+
+    public async Task<IEnumerable<Cluster>> GetAllByClusterProxyConnectionIdAsync(long clusterProxyConnectionId)
+    {
+        return await _dbSet.Where(c => c.ProxyConnection.Id == clusterProxyConnectionId).ToListAsync();
     }
     
+    public override Cluster GetById(long id)
+    {
+        return _dbSet
+            .Include(c => c.ClusterProjects)
+                .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.TemplateParameters)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
+            .FirstOrDefault(c => c.Id == id);
+    }
+
     public Cluster GetByIdWithProxyConnection(long id)
     {
         return _dbSet
-            .AsNoTracking().Include(c => c.ProxyConnection)
+            .Include(c => c.ProxyConnection)
             .FirstOrDefault(c => c.Id == id);
+    }
+
+    public async Task<Cluster> GetByIdWithProxyConnectionAsync(long id)
+    {
+        return await _dbSet
+            .Include(c => c.ProxyConnection)
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public IQueryable<Cluster> AsQueryable()
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
             .Include(c => c.ClusterProjects)
             .ThenInclude(cp => cp.Project)
 
@@ -63,10 +106,29 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
             .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.PossibleCommands)
+            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
             .ThenInclude(pc => pc.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection);
+    }
+
+    public async Task<IEnumerable<Cluster>> GetClustersFilteredAsync(string clusterName, List<long> projectIds)
+    {
+        return await _dbSet
+            .AsNoTrackingWithIdentityResolution()
+            .Where(c => clusterName == null || c.Name == clusterName)
+            .Include(c => c.ClusterProjects.Where(cp => projectIds.Contains(cp.ProjectId)))
+                .ThenInclude(cp => cp.Project)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
+            .Include(c => c.NodeTypes)
+                .ThenInclude(n => n.PossibleCommands.Where(pc => pc.ProjectId == null || (pc.ProjectId.HasValue && projectIds.Contains(pc.ProjectId.Value))))
+                    .ThenInclude(pc => pc.TemplateParameters)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
+            .ToListAsync();
     }
 
     private Cluster GetCluster(Cluster cluster)

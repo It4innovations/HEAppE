@@ -137,20 +137,41 @@ namespace HEAppE.RestApi.Logging
             return (userId, userName, email);
         }
 
+        private static async Task<string> GetRequestBodyAsync(HttpContext context)
+        {
+            const string RequestBodyCacheKey = "CachedRequestBody";
+            if (context.Items.TryGetValue(RequestBodyCacheKey, out var cached) && cached is string body)
+            {
+                return body;
+            }
+
+            if (context.Request.ContentLength > 0)
+            {
+                context.Request.EnableBuffering();
+                var position = context.Request.Body.Position;
+                context.Request.Body.Position = 0;
+
+                using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true))
+                {
+                    var readBody = await reader.ReadToEndAsync();
+                    context.Request.Body.Position = position;
+                    context.Items[RequestBodyCacheKey] = readBody;
+                    return readBody;
+                }
+            }
+
+            return null;
+        }
+
         private static async Task<string> ExtractSessionCode(HttpContext context)
         {
             var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault();
             if (!string.IsNullOrEmpty(sessionCode))
                 return sessionCode;
 
-            if (context.Request.ContentLength > 0)
+            var body = await GetRequestBodyAsync(context);
+            if (!string.IsNullOrEmpty(body))
             {
-                context.Request.EnableBuffering();
-
-                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
-                var body = await reader.ReadToEndAsync();
-                context.Request.Body.Position = 0;
-
                 try 
                 {
                     var json = JsonDocument.Parse(body);
@@ -185,35 +206,31 @@ namespace HEAppE.RestApi.Logging
                 }
             }
             
-            if (context.Request.ContentLength > 0 && (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            if (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)
             {
-                context.Request.EnableBuffering();
-                var position = context.Request.Body.Position;
-                context.Request.Body.Position = 0;
-
-                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
-                var body = await reader.ReadToEndAsync();
-                context.Request.Body.Position = position;
-
-                try
+                var body = await GetRequestBodyAsync(context);
+                if (!string.IsNullOrEmpty(body))
                 {
-                    var json = JsonDocument.Parse(body);
-                    foreach (var key in possibleKeys)
+                    try
                     {
-                        if (json.RootElement.TryGetProperty(key, out var prop))
+                        var json = JsonDocument.Parse(body);
+                        foreach (var key in possibleKeys)
                         {
-                            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out var id))
+                            if (json.RootElement.TryGetProperty(key, out var prop))
                             {
-                                return id;
-                            }
-                            if (prop.ValueKind == JsonValueKind.String && long.TryParse(prop.GetString(), out var strId))
-                            {
-                                return strId;
+                                if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out var id))
+                                {
+                                    return id;
+                                }
+                                if (prop.ValueKind == JsonValueKind.String && long.TryParse(prop.GetString(), out var strId))
+                                {
+                                    return strId;
+                                }
                             }
                         }
                     }
+                    catch { }
                 }
-                catch { }
             }
 
             return null;
@@ -240,30 +257,26 @@ namespace HEAppE.RestApi.Logging
 
         private async Task<string> ExtractUserNameFromContent(HttpContext context)
         {
-            if (context.Request.ContentLength > 0 && (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            if (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)
             {
-                context.Request.EnableBuffering();
-                var position = context.Request.Body.Position;
-                context.Request.Body.Position = 0;
-
-                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
-                var body = await reader.ReadToEndAsync();
-                context.Request.Body.Position = position;
-
-                try
+                var body = await GetRequestBodyAsync(context);
+                if (!string.IsNullOrEmpty(body))
                 {
-                    var json = JsonDocument.Parse(body);
-                    // Look for Username in generic credentials structure
-                    if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
+                    try
                     {
-                        if (creds.TryGetProperty("Username", out var user) || creds.TryGetProperty("username", out user))
-                            return user.GetString();
+                        var json = JsonDocument.Parse(body);
+                        // Look for Username in generic credentials structure
+                        if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
+                        {
+                            if (creds.TryGetProperty("Username", out var user) || creds.TryGetProperty("username", out user))
+                                return user.GetString();
+                        }
+                        // Direct Username property
+                        if (json.RootElement.TryGetProperty("Username", out var directUser) || json.RootElement.TryGetProperty("username", out directUser))
+                            return directUser.GetString();
                     }
-                    // Direct Username property
-                    if (json.RootElement.TryGetProperty("Username", out var directUser) || json.RootElement.TryGetProperty("username", out directUser))
-                        return directUser.GetString();
+                    catch { }
                 }
-                catch { }
             }
             return null;
         }

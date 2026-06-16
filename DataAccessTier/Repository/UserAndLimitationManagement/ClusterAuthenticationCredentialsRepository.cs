@@ -103,9 +103,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     #region Methods
 
-    public async Task<ClusterAuthenticationCredentials> GetByIdAsync(long id)
+    public override async Task<ClusterAuthenticationCredentials> GetByIdAsync(long id)
     {
-        var dbEntity = base.GetById(id);
+        var dbEntity = await base.GetByIdAsync(id);
+        if (dbEntity == null) return null;
         var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(id);
         dbEntity.ImportVaultData(vaultData);
         return dbEntity;
@@ -187,7 +188,16 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
             .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.NodeTypes)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.FileTransferMethods)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Project)
             .Where(cac =>
             cac.ClusterProjectCredentials.Any(cpc => 
                 cpc.ClusterProject.ProjectId == projectId && 
@@ -226,7 +236,16 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials
             .Include(cac => cac.ClusterProjectCredentials)
-            .ThenInclude(cpc => cpc.ClusterProject)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.NodeTypes)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Cluster)
+                        .ThenInclude(c => c.FileTransferMethods)
+            .Include(cac => cac.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterProject)
+                    .ThenInclude(cp => cp.Project)
             .Where(cac => 
             cac.Username == username &&
             cac.ClusterProjectCredentials.Any(cpc => 

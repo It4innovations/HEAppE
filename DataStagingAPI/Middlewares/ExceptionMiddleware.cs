@@ -192,7 +192,7 @@ public class ExceptionMiddleware
                 break;
             case InternalException:
                 problem.Title = "Problem";
-                problem.Detail = _exceptionsLocalizer["InternalException"];
+                problem.Detail = GetExceptionMessage(exception);
                 break;
             case ExternalException:
                 problem.Title = "External Service Error";
@@ -212,7 +212,7 @@ public class ExceptionMiddleware
                 break;
             default:
                 problem.Title = "Problem";
-                problem.Detail = _exceptionsLocalizer["InternalException"];
+                problem.Detail = GetExceptionMessage(exception);
                 break;
         }
 

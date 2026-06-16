@@ -136,7 +136,7 @@ public class JobManagementService : IJobManagementService
 
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(createdJobInfoId) ??
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithProjectAsync(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
@@ -170,7 +170,7 @@ public class JobManagementService : IJobManagementService
 
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
@@ -202,7 +202,7 @@ public class JobManagementService : IJobManagementService
 
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
@@ -242,7 +242,7 @@ public class JobManagementService : IJobManagementService
         // 1. Prepare/Check delete and archive
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
@@ -282,7 +282,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public SubmittedJobInfoExt[] ListJobsForCurrentUser(
+    public async Task<SubmittedJobInfoExt[]> ListJobsForCurrentUser(
         string sessionCode,
         string jobStates = null,
         int? limit = null,
@@ -321,15 +321,19 @@ public class JobManagementService : IJobManagementService
         }
 
         query = query.AsNoTracking()
-            .AsSplitQuery()
-            .Include(x => x.Specification) // This is for the Job
-            .Include(x => x.Project)       // This is for the Job
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(x => x.Project)
             .Include(x => x.Tasks)
-            .ThenInclude(t => t.NodeType)
-            .Include(x => x.Tasks) 
-            .ThenInclude(t => t.Project)
-            .Include(x => x.Tasks)        
-            .ThenInclude(t => t.Specification); // Load Specification for each Task
+                .ThenInclude(t => t.NodeType)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters);
         
         if (clusterId.HasValue)
         {
@@ -367,8 +371,9 @@ public class JobManagementService : IJobManagementService
             query = query.Take(limit.Value);
         }
 
-        return query
-            .ToList() 
+        var results = await query.ToListAsync();
+        await unitOfWork.SubmittedJobInfoRepository.AttachCommandTemplatesIncludingDeletedAsync(results.SelectMany(r => r.Tasks));
+        return results
             .Select(x => x.ConvertIntToExt())
             .ToArray();
     }
@@ -403,7 +408,7 @@ public class JobManagementService : IJobManagementService
 
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
-                job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithProject(submittedJobInfoId) ??
+                job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithProjectAsync(submittedJobInfoId) ??
                           throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
@@ -446,14 +451,23 @@ public class JobManagementService : IJobManagementService
                 }
             } // unitOfWork disposed - DB connection released before SSH call
 
-            // SSH path: job is Running/Queued under introspection mode
+            // SSH path: job is Running/Queued under introspection mode.
+            // NOTE: SSH/HPC scheduler responses are NOT cached — external API results must not be cached.
+            // Concurrent requests for the same job are already serialized by the semaphore above.
             var sshResult = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
-            _cache.Set(cacheKey, sshResult, TimeSpan.FromSeconds(15));
             return sshResult;
         }
         finally
         {
             semaphore.Release();
+            // Remove the semaphore from the dictionary once no other thread is waiting on it.
+            // CurrentCount == 1 means the semaphore is now free (no concurrent waiter).
+            // Small intentional race: if another thread calls GetOrAdd between our check and
+            // TryRemove, it will simply re-add a fresh semaphore — safe and correct.
+            if (semaphore.CurrentCount == 1)
+            {
+                _jobSemaphores.TryRemove(submittedJobInfoId, out _);
+            }
         }
     }
 
