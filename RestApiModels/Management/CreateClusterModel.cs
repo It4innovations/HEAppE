@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -87,4 +87,11 @@ public class CreateClusterModel : SessionCodeModel
     [DataMember(Name = "ProxyConnectionId", IsRequired = true)]
     [Description("Proxy connection id")]
     public long? ProxyConnectionId { get; set; }
+
+    /// <summary>
+    /// Custom configuration
+    /// </summary>
+    [DataMember(Name = "CustomConfiguration", IsRequired = false)]
+    [Description("Custom configuration")]
+    public System.Collections.Generic.Dictionary<string, string>? CustomConfiguration { get; set; }
 }

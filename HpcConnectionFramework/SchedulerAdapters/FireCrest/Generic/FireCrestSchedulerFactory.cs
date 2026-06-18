@@ -1,4 +1,4 @@
-﻿using HEAppE.ConnectionPool;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.FileTransferFramework;
@@ -86,40 +86,38 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        string url, idpUrl, clientId = "", clientSecret = "";
-        dynamic value;
+        string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
+        string url = $"{protocol}://{cluster.MasterNodeName}";
+        string idpUrl = "";
 
-        Dictionary<string, dynamic> options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
-
-        if (cluster.ProxyConnection?.FirecRestOptions != null)
+        if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
         {
-            // take values from FirecRest options in proxy
-            url = cluster.ProxyConnection.FirecRestOptions.Url;
-            idpUrl = cluster.ProxyConnection.FirecRestOptions.IdpUrl;
-
-            // proxy username and password => default credentials for FirecREST
-            clientId = cluster.ProxyConnection.Username;
-            clientSecret = cluster.ProxyConnection.Password;
+            idpUrl = customIdpUrl;
         }
         else
         {
-            // fallback to configuration in appsettings.json
-            FirecRestOptions firecRestOptions = null;
-            if (options != null && options.TryGetValue("FirecRestOptions", out value))
-                firecRestOptions = value;
-
-            if (firecRestOptions == null)
-                throw new Exception("No options for FirecREST found!");
-            
-            // setup FirecREST urls
-            url = firecRestOptions.Url;
-            idpUrl = firecRestOptions.IdpUrl;
+            var configOptions = _firecRestConfiguration.CurrentValue?.FirecRestOptions?[cluster.MasterNodeName];
+            if (configOptions != null)
+            {
+                idpUrl = configOptions.IdpUrl;
+            }
         }
+
+        string clientId = "";
+        string clientSecret = "";
+
+        if (cluster.ProxyConnection != null)
+        {
+            clientId = cluster.ProxyConnection.Username;
+            clientSecret = cluster.ProxyConnection.Password;
+        }
+
+        dynamic value;
+        Dictionary<string, dynamic> options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
 
         // try get values provided by Expirio
         if (options != null)
         {
-
             // get clientId and clientSecret for use with FirecRest's keycloak
             if (options.TryGetValue("f7t_client_id", out value))
                 clientId = value;
@@ -206,16 +204,9 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         Dictionary<string, dynamic> result = [];
         if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
         {
-            // get firecrest options
-            FirecRestOptions firecRestOptions = (cluster?.ProxyConnection?.FirecRestOptions) ?? _firecRestConfiguration.CurrentValue.FirecRestOptions[cluster.MasterNodeName];
-            if (firecRestOptions != null)
-                result.Add("FirecRestOptions", firecRestOptions);
-
-            // get expirio credentials
-            //var token = !string.IsNullOrEmpty(httpContextKeys.Context.FIPToken) ? httpContextKeys.Context.FIPToken : httpContextKeys.Context.LEXISToken;
-            if (!String.IsNullOrEmpty(token) && firecRestOptions != null)
+            if (!String.IsNullOrEmpty(token) && cluster.CustomConfiguration != null)
             {
-                result = result.Concat(await expirioService.ExchangeFirecrestCredentialsAsync(token, firecRestOptions, logger)).ToDictionary();
+                result = result.Concat(await expirioService.ExchangeFirecrestCredentialsAsync(token, cluster.CustomConfiguration, logger)).ToDictionary();
             }
         }
         return result;

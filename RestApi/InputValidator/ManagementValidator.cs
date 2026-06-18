@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 
@@ -569,6 +570,8 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
+        ValidateFirecrestCustomConfiguration(model.SchedulerType, model.CustomConfiguration);
+
         return _messageBuilder.ToString();
     }
 
@@ -580,7 +583,22 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
+        ValidateFirecrestCustomConfiguration(model.SchedulerType, model.CustomConfiguration);
+
         return _messageBuilder.ToString();
+    }
+
+    private void ValidateFirecrestCustomConfiguration(SchedulerType schedulerType, System.Collections.Generic.Dictionary<string, string>? customConfiguration)
+    {
+        if (schedulerType.HasFlag(SchedulerType.FirecRest))
+        {
+            if (customConfiguration == null || 
+                !customConfiguration.TryGetValue("ExpirioSecretName", out var secretName) || 
+                string.IsNullOrEmpty(secretName))
+            {
+                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRest`.");
+            }
+        }
     }
 
     private string ValidateRemoveClusterModel(RemoveClusterModel model)
@@ -651,14 +669,11 @@ public class ManagementValidator : AbstractValidator
         if (!sessionCodeValidation.IsValid)
             _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
-        if (model.FirecRestOptions == null)
-        {
-            if (model.Host == null)
-                _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null");
+        if (string.IsNullOrEmpty(model.Host))
+            _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null or empty");
 
-            if (model.Port <= 0)
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
-        }
+        if (model.Port <= 0)
+            _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
 
         return _messageBuilder.ToString();
     }
@@ -670,14 +685,11 @@ public class ManagementValidator : AbstractValidator
 
         ValidateId(model.Id, "Id");
 
-        if (model.FirecRestOptions == null)
-        {
-            if (model.Host == null)
-                _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null");
+        if (string.IsNullOrEmpty(model.Host))
+            _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null or empty");
 
-            if (model.Port <= 0)
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
-        }
+        if (model.Port <= 0)
+            _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
 
         return _messageBuilder.ToString();
     }

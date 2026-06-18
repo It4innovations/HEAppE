@@ -1088,7 +1088,7 @@ public class ManagementController : BaseController<ManagementController>
         var cluster = _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType, model.ConnectionProtocol,
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
-            model.SessionCode);
+            model.CustomConfiguration, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(cluster);
     }
@@ -1114,7 +1114,7 @@ public class ManagementController : BaseController<ManagementController>
         var cluster = _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType, model.ConnectionProtocol,
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
-            model.SessionCode);
+            model.CustomConfiguration, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(cluster);
     }
@@ -1323,7 +1323,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProxyConnection = _managementService.CreateClusterProxyConnection(model.Host, model.Port,
-            model.Username, model.Password, model.Type, model.FirecRestOptions.ConvertExtToInt(), model.SessionCode);
+            model.Username, model.Password, model.Type, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProxyConnection);
     }
@@ -1347,8 +1347,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProxyConnection = _managementService.ModifyClusterProxyConnection(model.Id, model.Host, model.Port,
-            model.Username, model.Password, model.Type, model.FirecRestOptions.ConvertExtToInt(),
-            model.SessionCode);
+            model.Username, model.Password, model.Type, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(clusterProxyConnection);
     }

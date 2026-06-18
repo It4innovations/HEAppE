@@ -41,8 +41,8 @@ public interface IExpirioService
     /// Exchanges FirecREST credentials.
     /// </summary>
     /// <param name="token">Token to exchange</param>
-    /// <param name="masterNodeName">Name of value to GET from Expirio</param>
+    /// <param name="customConfiguration">Custom configuration dictionary</param>
     /// <param name="cancellationToken"></param>
     /// <returns>firecrest credentials</returns>
-    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, System.Collections.Generic.Dictionary<string, string> customConfiguration, ILogger logger, CancellationToken cancellationToken = default);
 }

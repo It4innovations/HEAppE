@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.ClusterInformation;
 using SshCaAPI.Configuration;
 
 namespace HEAppE.Utils;
@@ -46,7 +46,8 @@ public static class ClusterAuthenticationCredentialsUtils
                     case ClusterConnectionProtocol.SshInteractive:
                         return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
 
-                    case ClusterConnectionProtocol.FirecRestApi:
+                    case ClusterConnectionProtocol.Http:
+                    case ClusterConnectionProtocol.Https:
                         return ClusterAuthenticationCredentialsAuthType.Password;
 
                     default:
@@ -87,7 +88,8 @@ public static class ClusterAuthenticationCredentialsUtils
                     case ClusterConnectionProtocol.SshInteractive:
                         return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
 
-                    case ClusterConnectionProtocol.FirecRestApi:
+                    case ClusterConnectionProtocol.Http:
+                    case ClusterConnectionProtocol.Https:
                         return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
 
                     default:

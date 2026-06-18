@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace HEAppE.DomainObjects.ClusterInformation;
 
@@ -9,5 +9,6 @@ public enum ClusterConnectionProtocol
     MicrosoftHpcApi = 1,
     Ssh = 2,
     SshInteractive = 4,
-    FirecRestApi = 16
+    Http = 8,
+    Https = 16
 }

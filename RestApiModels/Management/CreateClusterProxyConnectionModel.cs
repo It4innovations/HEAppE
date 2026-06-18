@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -51,11 +51,4 @@ public class CreateClusterProxyConnectionModel : SessionCodeModel
     [DataMember(Name = "Type", IsRequired = true)]
     [Description("Type")]
     public ProxyType Type { get; set; }
-
-    /// <summary>
-    /// FirecREST Options
-    /// </summary>
-    [DataMember(Name = "FirecRestOptions", IsRequired = true)]
-    [Description("FirecRestOptions")]
-    public FirecRestOptionsExt FirecRestOptions { get; set; }
 }

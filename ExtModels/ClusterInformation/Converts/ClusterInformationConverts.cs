@@ -64,7 +64,8 @@ public static class ClusterInformationConverts
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
-                .ToArray()
+                .ToArray(),
+            CustomConfiguration = cluster.CustomConfiguration
         };
         return convert;
     }
@@ -95,7 +96,8 @@ public static class ClusterInformationConverts
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            ClusterConnectionProtocol.FirecRestApi => ClusterConnectionProtocolExt.FirecRestApi,
+            ClusterConnectionProtocol.Http => ClusterConnectionProtocolExt.Http,
+            ClusterConnectionProtocol.Https => ClusterConnectionProtocolExt.Https,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Connection protocol",
@@ -103,6 +105,7 @@ public static class ClusterInformationConverts
             )
         };
     }
+
 
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
     {
@@ -349,8 +352,7 @@ public static class ClusterInformationConverts
             Port = proxyConnection.Port,
             Type = ConvertProxyTypeIntToExt(proxyConnection.Type),
             Username = proxyConnection.Username,
-            Password = proxyConnection.Password,
-            FirecRestOptions = proxyConnection.FirecRestOptions.ConvertIntToExt()
+            Password = proxyConnection.Password
         };
 
         return convert;
@@ -435,52 +437,6 @@ public static class ClusterInformationConverts
     {
         _ = Enum.TryParse(type.ToString(), out ClusterAuthenticationCredentialsAuthType convert);
         return convert;
-    }
-
-    public static FirecRestOptions ConvertExtToInt(this FirecRestOptionsExt firecRestOptions)
-    {
-        if (firecRestOptions == null)
-            return null;
-
-        return new FirecRestOptions
-        {
-            Url = firecRestOptions.Url,
-            IdpUrl = firecRestOptions.IdpUrl,
-            ExpirioMetadata = new()
-            {
-                SecretName = firecRestOptions.ExpirioMetadata.SecretName,
-                SecretContent = new()
-                {
-                    ClientId = firecRestOptions.ExpirioMetadata.SecretContent.ClientId,
-                    ClientSecret = firecRestOptions.ExpirioMetadata.SecretContent.ClientSecret,
-                    Url = firecRestOptions.ExpirioMetadata.SecretContent.Url,
-                    IdpUrl = firecRestOptions.ExpirioMetadata.SecretContent.IdpUrl
-                }
-            }
-        };
-    }
-
-    public static FirecRestOptionsExt ConvertIntToExt(this FirecRestOptions firecRestOptions)
-    {
-        if (firecRestOptions == null)
-            return null;
-
-        return new FirecRestOptionsExt
-        {
-            Url = firecRestOptions.Url,
-            IdpUrl = firecRestOptions.IdpUrl,
-            ExpirioMetadata = new()
-            {
-                SecretName = firecRestOptions.ExpirioMetadata.SecretName,
-                SecretContent = new()
-                {
-                    ClientId = firecRestOptions.ExpirioMetadata.SecretContent.ClientId,
-                    ClientSecret = firecRestOptions.ExpirioMetadata.SecretContent.ClientSecret,
-                    Url = firecRestOptions.ExpirioMetadata.SecretContent.Url,
-                    IdpUrl = firecRestOptions.ExpirioMetadata.SecretContent.IdpUrl
-                }
-            }
-        };
     }
 
     #endregion

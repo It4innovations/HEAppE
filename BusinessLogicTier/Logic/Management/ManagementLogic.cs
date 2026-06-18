@@ -1688,7 +1688,7 @@ public class ManagementLogic : IManagementLogic
     public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
     {
         if (proxyConnectionId.HasValue)
         {
@@ -1696,18 +1696,13 @@ public class ManagementLogic : IManagementLogic
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
         }
 
-        var firecRestProxy = FindFirecRestProxy(proxyConnectionId, clusterConnectionProtocol, schedulerType, masterNodeName, port);
-        if (firecRestProxy != null)
+        if (schedulerType.HasFlag(SchedulerType.FirecRest))
         {
-            // set scheduler type to FirecRest
-            schedulerType |= SchedulerType.FirecRest;
             // default to Slurm if no other flag is set
             if (schedulerType == SchedulerType.FirecRest)
                 schedulerType |= SchedulerType.Slurm;
-            clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
-            masterNodeName = firecRestProxy.Host;
-            port = firecRestProxy.Port;
-            proxyConnectionId = firecRestProxy.Id;
+            if (clusterConnectionProtocol == ClusterConnectionProtocol.None)
+                clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
 
         var cluster = new Cluster
@@ -1721,7 +1716,8 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
             DomainName = domainName,
-            ProxyConnectionId = proxyConnectionId
+            ProxyConnectionId = proxyConnectionId,
+            CustomConfiguration = customConfiguration
         };
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
@@ -1748,7 +1744,7 @@ public class ManagementLogic : IManagementLogic
     public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
@@ -1756,18 +1752,13 @@ public class ManagementLogic : IManagementLogic
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
 
-        var firecRestProxy = FindFirecRestProxy(proxyConnectionId, clusterConnectionProtocol, schedulerType, masterNodeName, port);
-        if (firecRestProxy != null)
+        if (schedulerType.HasFlag(SchedulerType.FirecRest))
         {
-            // set scheduler type to FirecRest
-            schedulerType |= SchedulerType.FirecRest;
             // default to Slurm if no other flag is set
             if (schedulerType == SchedulerType.FirecRest)
                 schedulerType |= SchedulerType.Slurm;
-            clusterConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
-            masterNodeName = firecRestProxy.Host;
-            port = firecRestProxy.Port;
-            proxyConnectionId = firecRestProxy.Id;
+            if (clusterConnectionProtocol == ClusterConnectionProtocol.None)
+                clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
 
         existingCluster.Name = name;
@@ -1780,6 +1771,7 @@ public class ManagementLogic : IManagementLogic
         existingCluster.UpdateJobStateByServiceAccount = updateJobStateByServiceAccount;
         existingCluster.DomainName = domainName;
         existingCluster.ProxyConnectionId = proxyConnectionId;
+        existingCluster.CustomConfiguration = customConfiguration;
         _unitOfWork.ClusterRepository.Update(existingCluster);
         _unitOfWork.Save();
 
@@ -1997,7 +1989,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="type"></param>
     /// <returns></returns>
     public ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type, FirecRestOptions firecRestOptions)
+        ProxyType type)
     {
         var clusterProxyConnection = new ClusterProxyConnection
         {
@@ -2005,10 +1997,8 @@ public class ManagementLogic : IManagementLogic
             Port = port,
             Username = username,
             Password = password,
-            Type = type,
-            FirecRestOptions = firecRestOptions
+            Type = type
         };
-        PreprocessClusterProxyConnection(clusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Insert(clusterProxyConnection);
         _unitOfWork.Save();
 
@@ -2027,7 +2017,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type, FirecRestOptions firecRestOptions)
+        string password, ProxyType type)
     {
         var existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id) ??
                                              throw new RequestedObjectDoesNotExistException(
@@ -2038,24 +2028,7 @@ public class ManagementLogic : IManagementLogic
         existingClusterProxyConnection.Username = username;
         existingClusterProxyConnection.Password = password;
         existingClusterProxyConnection.Type = type;
-        existingClusterProxyConnection.FirecRestOptions = firecRestOptions;
-        PreprocessClusterProxyConnection(existingClusterProxyConnection);
         _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
-
-        if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
-        {
-            var url = new Uri(existingClusterProxyConnection.FirecRestOptions.Url);
-            // update dependent clusters using this proxy
-            var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
-            foreach (var c in clusters)
-            {
-                c.MasterNodeName = url.Host;
-                c.Port = url.Port;
-                c.SchedulerType = c.SchedulerType | SchedulerType.FirecRest;
-                c.ConnectionProtocol = ClusterConnectionProtocol.FirecRestApi;
-                _unitOfWork.ClusterRepository.Update(c);
-            }
-        }
         _unitOfWork.Save();
 
         return existingClusterProxyConnection;
@@ -2077,11 +2050,6 @@ public class ManagementLogic : IManagementLogic
         foreach (var c in clusters)
         {
             c.ProxyConnection = null;
-            if (existingClusterProxyConnection.Type == ProxyType.FirecRest)
-            {
-                c.SchedulerType = c.SchedulerType & (~SchedulerType.FirecRest);
-                c.ConnectionProtocol = ClusterConnectionProtocol.None;
-            }
             _unitOfWork.ClusterRepository.Update(c);
         }
 
@@ -3797,50 +3765,6 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
-    // try to setup reasonable defaults if needed
-    private void PreprocessClusterProxyConnection(ClusterProxyConnection clusterProxyConnection)
-    {
-        if (clusterProxyConnection.Type == ProxyType.FirecRest)
-        {
-            UriBuilder url;
-
-            // if url is not set in options, but is provided as host and port, derive it's value
-            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.Url))
-            {
-                url = new(clusterProxyConnection.Host);
-                if (clusterProxyConnection.Port > 0)
-                    url.Port = clusterProxyConnection.Port;
-                clusterProxyConnection.FirecRestOptions.Url = url.ToString();
-            }
-
-            // it idpUrl is not set, try to guess it from url
-            if (String.IsNullOrWhiteSpace(clusterProxyConnection.FirecRestOptions.IdpUrl))
-            {
-                url = new(clusterProxyConnection.FirecRestOptions.Url);
-                var realm = "kcrealm"; // realm from FirecREST demo
-                url.Path = $"/auth/realms/{realm}/protocol/openid-connect/token";
-                clusterProxyConnection.FirecRestOptions.IdpUrl = url.ToString();
-            }
-
-            // synchronize proxy host and port with value in url
-            url = new(clusterProxyConnection.FirecRestOptions.Url);
-            clusterProxyConnection.Host = url.Host;
-            clusterProxyConnection.Port = url.Port;
-        }
-    }
-
-    // returns proxy only if it is FirecREST proxy
-    private ClusterProxyConnection? FindFirecRestProxy(long? proxyConnectionId, ClusterConnectionProtocol clusterConnectionProtocol, SchedulerType schedulerType, string masterNodeName, int? port)
-    {
-        ClusterProxyConnection? firecRestProxy = null;
-        if (proxyConnectionId != null)
-        {
-            var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
-            if (proxyConnection != null && proxyConnection.Type == ProxyType.FirecRest)
-                firecRestProxy = proxyConnection;
-        }
-        return firecRestProxy;
-    }
 
 #pragma warning disable IDE1006
     private string _expirioToken

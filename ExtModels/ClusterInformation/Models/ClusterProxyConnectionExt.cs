@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
@@ -63,13 +63,6 @@ public class ClusterProxyConnectionExt
     [DataMember(Name = "Password", IsRequired = false, EmitDefaultValue = false)]
     [Description("Password")]
     public string Password { get; set; }
-
-    /// <summary>
-    /// FirecREST endpoint options
-    /// </summary>
-    [DataMember(Name = "FirecRestOptions", IsRequired = false, EmitDefaultValue = false)]
-    [Description("FirecRestOptions")]
-    public FirecRestOptionsExt FirecRestOptions { get; set; }
 
     #endregion
 }

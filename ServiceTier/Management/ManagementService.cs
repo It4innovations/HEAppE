@@ -1027,7 +1027,7 @@ public class ManagementService : IManagementService
     public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        string sessionCode)
+        Dictionary<string, string>? customConfiguration, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1037,7 +1037,7 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
@@ -1045,7 +1045,7 @@ public class ManagementService : IManagementService
     public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        string sessionCode)
+        Dictionary<string, string>? customConfiguration, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1055,7 +1055,7 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
@@ -1175,7 +1175,7 @@ public class ManagementService : IManagementService
     }
 
     public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username,
-        string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode)
+        string password, ProxyType type, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1184,13 +1184,13 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterProxyConnection =
-                managementLogic.CreateClusterProxyConnection(host, port, username, password, type, firecRestOptions);
+                managementLogic.CreateClusterProxyConnection(host, port, username, password, type);
             return clusterProxyConnection.ConvertIntToExt();
         }
     }
 
     public ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type, FirecRestOptions firecRestOptions, string sessionCode)
+        string password, ProxyType type, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1199,7 +1199,7 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterProxyConnection =
-                managementLogic.ModifyClusterProxyConnection(id, host, port, username, password, type, firecRestOptions);
+                managementLogic.ModifyClusterProxyConnection(id, host, port, username, password, type);
             return clusterProxyConnection.ConvertIntToExt();
         }
     }

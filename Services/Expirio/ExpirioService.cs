@@ -182,13 +182,20 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, FirecRestOptions firecRestOptions, ILogger logger, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, Dictionary<string, string> customConfiguration, ILogger logger, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("[Expirio] Method: FirecrestCredentials");
         var result = new Dictionary<string, dynamic>();
+
+        if (customConfiguration == null || !customConfiguration.TryGetValue("ExpirioSecretName", out var secretName) || string.IsNullOrEmpty(secretName))
+        {
+            logger.LogWarning("[Expirio] ExchangeFirecrestCredentialsAsync skipped: ExpirioSecretName is missing or empty in custom configuration.");
+            return result;
+        }
+
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
 
-        var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{firecRestOptions.ExpirioMetadata.SecretName}";
+        var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{secretName}";
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, httpUrl);
         httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -201,21 +208,24 @@ public class ExpirioService : IExpirioService
 
             using var doc = JsonDocument.Parse(content);
 
-            var secretContent = firecRestOptions.ExpirioMetadata.SecretContent;
+            var clientIdKey = customConfiguration.TryGetValue("ExpirioClientIdKey", out var cIdKey) ? cIdKey : "client_id";
+            var clientSecretKey = customConfiguration.TryGetValue("ExpirioClientSecretKey", out var cSecKey) ? cSecKey : "client_secret";
+            var urlKey = customConfiguration.TryGetValue("ExpirioUrlKey", out var uKey) ? uKey : null;
+            var idpUrlKey = customConfiguration.TryGetValue("ExpirioIdpUrlKey", out var iKey) ? iKey : null;
 
             string? clientId = null, clientSecret = null, url = null, idpUrl = null;
 
             // extract properties
-            if (doc.RootElement.TryGetProperty(secretContent.ClientId, out var contentProp))
+            if (doc.RootElement.TryGetProperty(clientIdKey, out var contentProp))
                 clientId = contentProp.GetString();
 
-            if (doc.RootElement.TryGetProperty(secretContent.ClientSecret, out contentProp))
+            if (doc.RootElement.TryGetProperty(clientSecretKey, out contentProp))
                 clientSecret = contentProp.GetString();
 
-            if (!String.IsNullOrEmpty(secretContent.Url) && doc.RootElement.TryGetProperty(secretContent.Url, out contentProp))
+            if (!String.IsNullOrEmpty(urlKey) && doc.RootElement.TryGetProperty(urlKey, out contentProp))
                 url = contentProp.GetString();
 
-            if (!String.IsNullOrEmpty(secretContent.IdpUrl) && doc.RootElement.TryGetProperty(secretContent.IdpUrl, out contentProp))
+            if (!String.IsNullOrEmpty(idpUrlKey) && doc.RootElement.TryGetProperty(idpUrlKey, out contentProp))
                 idpUrl = contentProp.GetString();
 
             // add them to result if they exist

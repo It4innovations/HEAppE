@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -109,11 +109,13 @@ public interface IManagementLogic
 
     Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        Dictionary<string, string>? customConfiguration);
 
     Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        Dictionary<string, string>? customConfiguration);
 
     void RemoveCluster(long id);
 
@@ -134,10 +136,10 @@ public interface IManagementLogic
     List<ClusterProxyConnection> GetClusterProxyConnections();
 
     ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
-        ProxyType type, FirecRestOptions firecRestOptions);
+        ProxyType type);
 
     ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username,
-        string password, ProxyType type, FirecRestOptions firecRestOptions);
+        string password, ProxyType type);
 
     void RemoveClusterProxyConnection(long id);
 

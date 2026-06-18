@@ -5,14 +5,14 @@
 namespace HEAppE.DataAccessTier.Migrations
 {
     /// <inheritdoc />
-    public partial class ClusterProxyConnectionFirecRestOptions : Migration
+    public partial class UpdateFirecrestConfiguration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "FirecRestOptions",
-                table: "ClusterProxyConnection",
+                name: "CustomConfiguration",
+                table: "Cluster",
                 type: "nvarchar(max)",
                 nullable: true);
         }
@@ -21,8 +21,8 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "FirecRestOptions",
-                table: "ClusterProxyConnection");
+                name: "CustomConfiguration",
+                table: "Cluster");
         }
     }
 }
