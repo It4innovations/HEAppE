@@ -30,10 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed various regex and multi-line parsing issues in PBS Pro response processing.
 - Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
 - Fixed Entity Framework duplicate key violation (`DbUpdateException`) during job updates by eagerly loading `ResourceConsumed` entities in `SubmittedJobInfoRepository`.
-
-## V6.3.4
-
-### Fixed
 - Fixed an `InvalidOperationException` where `JobSpecification.ClusterUser` was accessed on untracked entities during tunnel closure for finished tasks, which led to SSH port leaks and eventual `502 Tunnel Exception` (port exhaustion). Eagerly load `ClusterUser` in `GetFinishedByIds` and `GetAllFinished` queries of `SubmittedTaskInfoRepository`.
 - Fixed a bug in `EdDSACertGenerator.ToPuTTYPublicKey` where a hardcoded comment was used instead of the configured comment field, resolving a failing unit test.
 
