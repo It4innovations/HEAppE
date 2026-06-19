@@ -8,6 +8,7 @@ using HEAppE.Exceptions.AbstractTypes;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Exceptions.Resources;
+using HEAppE.Services.Expirio.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -203,6 +204,62 @@ public class ExceptionMiddleware
                     ? GetExceptionMessage(exception)
                     : RedactErrorMessage(pbsException.CommandError);
                 problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case FirecRestException firecRestException:
+                problem.Title = "FirecRest Problem";
+                problem.Detail = string.IsNullOrEmpty(firecRestException.CommandError)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(firecRestException.CommandError);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case FirecrestApiException firecrestApiException:
+                problem.Title = "FirecRest API Problem";
+                problem.Detail = string.IsNullOrEmpty(firecrestApiException.ResponseContent)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(firecrestApiException.ResponseContent);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case ExpirioBadRequestException:
+                problem.Title = "Expirio Bad Request";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case ExpirioUnauthorizedException:
+                problem.Title = "Expirio Unauthorized";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case ExpirioNotFoundException:
+                problem.Title = "Expirio Resource Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case ConnectionPoolExhaustedException:
+                problem.Title = "Connection Pool Exhausted";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status429TooManyRequests;
+                logLevel = LogLevel.Warning;
+                break;
+            case AdaptorUserGroupException:
+                problem.Title = "User Group Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case ClusterAuthenticationException:
+                problem.Title = "Cluster Authentication Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case SchedulerException:
+                problem.Title = "Scheduler Configuration Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
                 break;
             case InvalidRequestException:
             case UnableToCreateConnectionException:

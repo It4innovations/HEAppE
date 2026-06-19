@@ -8,6 +8,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic.Conversi
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
+using HEAppE.Exceptions.Internal;
 using HEAppE.Services.Expirio;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -97,12 +98,6 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         string clientId = "";
         string clientSecret = "";
 
-        if (cluster.ProxyConnection != null)
-        {
-            clientId = cluster.ProxyConnection.Username;
-            clientSecret = cluster.ProxyConnection.Password;
-        }
-
         dynamic value;
         Dictionary<string, dynamic> options = Task.Run(async () => await GetSchedulerOptions(cluster, token, expirio, logger)).Result;
 
@@ -120,6 +115,14 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
                 url = value;
             if (options.TryGetValue("f7t_token_url", out value))
                 idpUrl = value;
+        }
+
+        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+        {
+            throw new FirecRestException("FirecRest credentials must be obtained from Expirio. Direct access via Proxy Connection is not allowed.")
+            {
+                CommandError = "Missing Expirio credentials"
+            };
         }
 
         // use masterNodeName to have unique scheduler for various Expirio users
