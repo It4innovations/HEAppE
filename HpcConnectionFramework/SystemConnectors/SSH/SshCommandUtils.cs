@@ -74,7 +74,7 @@ internal static class SshCommandUtils
         
         var startTime = DateTime.UtcNow;
         // This call performs the actual synchronous network I/O
-        var sshCommand = client.RunCommand(command); 
+        var sshCommand = client.RunCommand(command.Replace("\r\n", "\n")); 
         var duration = DateTime.UtcNow - startTime;
 
         _log.Info($"SSH command executed. Command: {command}, Duration: {duration.TotalMilliseconds}ms, Exit Code: {sshCommand.ExitStatus}");

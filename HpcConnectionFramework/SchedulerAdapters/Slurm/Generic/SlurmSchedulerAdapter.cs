@@ -10,12 +10,12 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
-using Org.BouncyCastle.Tls;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
@@ -127,6 +127,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
+        IEnumerable<SubmittedTaskInfo> result;
+
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
@@ -142,7 +144,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
         
             // Parse the detailed job information directly from the combined output
-            return _convertor.ReadParametersFromResponse(jobSpecification.Cluster, command.Result);
+            result = _convertor.ReadParametersFromResponse(jobSpecification.Cluster, command.Result);
         }
         catch (Exception ex)
         {
@@ -153,6 +155,62 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 CommandError = command?.Error ?? ex.Message
             };
         }
+
+        if (true)
+        {
+            StringBuilder builder = new();
+
+            /*
+            builder.Clear();
+            builder.Append(@"cat <<EOF >/tmp/strigger-demo.sh
+#!/bin/bash
+STATE=\$(sacct -j $JOB_ID --format=state --noheader | head -n 1 |  awk '{print \$1}')
+echo ""Job $JOB_ID finished with state \$STATE"" >> /tmp/strigger-demo.txt
+EOF
+");
+            foreach (var taskInfo in result)
+            {
+                builder.Append($"strigger --set --jobid=${taskInfo.ScheduledJobId} --fini --program=/tmp/strigger-demo.sh;\n");
+            }
+
+            integratedCommand = builder.ToString();
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            */
+
+            builder.Clear();
+            foreach (var taskInfo in result)
+            {
+                builder.Append(@"
+sbatch \
+    --dependency=afterany:$JOB_ID \
+    --job-name=""watchdog_$JOB_ID"" \
+    --time=00:02:00 << EOF
+#!/bin/bash
+STATE=\$(sacct -j $JOB_ID --format=state --noheader | head -n 1 |  awk '{print \$1}')
+echo ""Job $JOB_ID finished with state \$STATE"" >> /tmp/depends-demo.txt
+EOF
+".Replace("$JOB_ID", "" + taskInfo.ScheduledJobId));
+            }
+
+            integratedCommand = builder.ToString();
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
