@@ -7,6 +7,7 @@
         <DockerfileContext>..\heappe-core</DockerfileContext>
         <RootNamespace>HEAppE.DataStagingAPI</RootNamespace>
         <ServerGarbageCollection>false</ServerGarbageCollection>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />

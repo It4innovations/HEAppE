@@ -4,6 +4,7 @@
         <DockerTargetOS>Linux</DockerTargetOS>
         <UserSecretsId>a72f16e1-281e-4278-a259-fe4b1a9cef3a</UserSecretsId>
         <ServerGarbageCollection>false</ServerGarbageCollection>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
