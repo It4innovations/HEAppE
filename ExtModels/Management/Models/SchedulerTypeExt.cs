@@ -14,6 +14,5 @@ public enum SchedulerTypeExt
     PbsPro = 2,
     Slurm = 4,
     HyperQueue = 8,
-    PbsProViaFirecRest = 16 | PbsPro,
-    SlurmViaFirecRest = 16 | Slurm
+    FirecRESTSlurm = 16
 }

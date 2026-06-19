@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.Management;
@@ -49,14 +49,14 @@ public class ModifyClusterModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "SchedulerType", IsRequired = true)]
     [Description("Scheduler type")]
-    public SchedulerType SchedulerType { get; set; }
+    public SchedulerTypeExt SchedulerType { get; set; }
 
     /// <summary>
     /// Connection protocol
     /// </summary>
     [DataMember(Name = "ConnectionProtocol", IsRequired = true)]
     [Description("Connection protocol")]
-    public ClusterConnectionProtocol ConnectionProtocol { get; set; }
+    public ClusterConnectionProtocolExt ConnectionProtocol { get; set; }
 
     /// <summary>
     /// Time zone

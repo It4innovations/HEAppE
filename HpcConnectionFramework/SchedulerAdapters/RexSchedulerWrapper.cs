@@ -600,7 +600,7 @@ public class RexSchedulerWrapper : IRexScheduler
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
-        if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
+        if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
             return DummyConnectionInfo;
         return await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
     }

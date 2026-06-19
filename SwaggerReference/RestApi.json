@@ -13092,18 +13092,6 @@
         },
         "additionalProperties": false
       },
-      "ClusterConnectionProtocol": {
-        "enum": [
-          0,
-          1,
-          2,
-          4,
-          8,
-          16
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
       "ClusterConnectionProtocolExt": {
         "enum": [
           0,
@@ -13936,10 +13924,10 @@
             "nullable": true
           },
           "SchedulerType": {
-            "$ref": "#/components/schemas/SchedulerType"
+            "$ref": "#/components/schemas/SchedulerTypeExt"
           },
           "ConnectionProtocol": {
-            "$ref": "#/components/schemas/ClusterConnectionProtocol"
+            "$ref": "#/components/schemas/ClusterConnectionProtocolExt"
           },
           "TimeZone": {
             "maxLength": 10,
@@ -16268,10 +16256,10 @@
             "nullable": true
           },
           "SchedulerType": {
-            "$ref": "#/components/schemas/SchedulerType"
+            "$ref": "#/components/schemas/SchedulerTypeExt"
           },
           "ConnectionProtocol": {
-            "$ref": "#/components/schemas/ClusterConnectionProtocol"
+            "$ref": "#/components/schemas/ClusterConnectionProtocolExt"
           },
           "TimeZone": {
             "maxLength": 10,
@@ -17754,25 +17742,13 @@
         },
         "additionalProperties": false
       },
-      "SchedulerType": {
-        "enum": [
-          1,
-          2,
-          4,
-          8,
-          16
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
       "SchedulerTypeExt": {
         "enum": [
           1,
           2,
           4,
           8,
-          18,
-          20
+          16
         ],
         "type": "integer",
         "format": "int32"

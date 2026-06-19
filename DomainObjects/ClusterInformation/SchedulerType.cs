@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace HEAppE.DomainObjects.ClusterInformation;
 
@@ -9,5 +9,5 @@ public enum SchedulerType
     PbsPro = 2,
     Slurm = 4,
     HyperQueue = 8,
-    FirecRest = 16
+    FirecRESTSlurm = 16
 }

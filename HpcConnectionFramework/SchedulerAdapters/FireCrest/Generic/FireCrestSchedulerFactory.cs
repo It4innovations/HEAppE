@@ -177,7 +177,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         ConversionAdapterFactory conversionAdapterFactory = null;
         if (_schedulerType.HasFlag(SchedulerType.PbsPro))
             conversionAdapterFactory = new PbsProConversionAdapterFactory();
-        else if (_schedulerType.HasFlag(SchedulerType.Slurm))
+        else if (_schedulerType.HasFlag(SchedulerType.Slurm) || _schedulerType == SchedulerType.FirecRESTSlurm)
             conversionAdapterFactory = new SlurmConversionAdapterFactory();
 
         return _convertorSingleton ??= new FirecRestDataConvertor(conversionAdapterFactory, logger);
@@ -196,7 +196,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     protected async Task<Dictionary<string, dynamic>> GetSchedulerOptions(Cluster cluster, string token, IExpirioService expirioService, ILogger logger)
     {
         Dictionary<string, dynamic> result = [];
-        if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRest))
+        if (cluster.SchedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
         {
             if (!String.IsNullOrEmpty(token) && cluster.CustomConfiguration != null)
             {

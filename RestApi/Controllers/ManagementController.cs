@@ -1086,7 +1086,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var cluster = _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName,
-            model.SchedulerType, model.ConnectionProtocol,
+            model.SchedulerType.ConvertExtToInt(), model.ConnectionProtocol.ConvertExtToInt(),
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.CustomConfiguration, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
@@ -1112,7 +1112,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var cluster = _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName,
-            model.SchedulerType, model.ConnectionProtocol,
+            model.SchedulerType.ConvertExtToInt(), model.ConnectionProtocol.ConvertExtToInt(),
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.CustomConfiguration, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);

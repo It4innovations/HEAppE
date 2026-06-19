@@ -78,14 +78,23 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            SchedulerType.PbsPro | SchedulerType.FirecRest => SchedulerTypeExt.PbsProViaFirecRest,
-            SchedulerType.Slurm | SchedulerType.FirecRest => SchedulerTypeExt.SlurmViaFirecRest,
+            SchedulerType.FirecRESTSlurm => SchedulerTypeExt.FirecRESTSlurm,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Scheduler type",
                 $"<{string.Join(", ", Enum.GetValues(typeof(SchedulerTypeExt)).Cast<int>())}>"
             )
         };
+    }
+    
+    public static SchedulerType ConvertExtToInt(this SchedulerTypeExt schedulerTypeExt)
+    {
+        return (SchedulerType)schedulerTypeExt;
+    }
+    
+    public static ClusterConnectionProtocol ConvertExtToInt(this ClusterConnectionProtocolExt connectionProtocolExt)
+    {
+        return (ClusterConnectionProtocol)connectionProtocolExt;
     }
     
     public static ClusterConnectionProtocolExt ConvertIntToExt(this ClusterConnectionProtocol connectionProtocol)

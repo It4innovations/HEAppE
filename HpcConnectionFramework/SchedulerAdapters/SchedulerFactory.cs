@@ -38,8 +38,7 @@ public abstract class SchedulerFactory
 
             SchedulerFactory factoryInstance = type switch
             {
-                SchedulerType.FirecRest | SchedulerType.PbsPro => new FirecRestSchedulerFactory(type),
-                SchedulerType.FirecRest | SchedulerType.Slurm => new FirecRestSchedulerFactory(type),
+                SchedulerType.FirecRESTSlurm => new FirecRestSchedulerFactory(type),
                 SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),

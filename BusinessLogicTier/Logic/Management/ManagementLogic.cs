@@ -1696,11 +1696,8 @@ public class ManagementLogic : IManagementLogic
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
         }
 
-        if (schedulerType.HasFlag(SchedulerType.FirecRest))
+        if (schedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
         {
-            // default to Slurm if no other flag is set
-            if (schedulerType == SchedulerType.FirecRest)
-                schedulerType |= SchedulerType.Slurm;
             if (clusterConnectionProtocol == ClusterConnectionProtocol.None)
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
@@ -1752,11 +1749,8 @@ public class ManagementLogic : IManagementLogic
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                 throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
 
-        if (schedulerType.HasFlag(SchedulerType.FirecRest))
+        if (schedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
         {
-            // default to Slurm if no other flag is set
-            if (schedulerType == SchedulerType.FirecRest)
-                schedulerType |= SchedulerType.Slurm;
             if (clusterConnectionProtocol == ClusterConnectionProtocol.None)
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }

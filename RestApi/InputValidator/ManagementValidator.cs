@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 
@@ -570,7 +571,7 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
-        ValidateFirecrestCustomConfiguration(model.SchedulerType, model.CustomConfiguration);
+        ValidateFirecrestCustomConfiguration(model.SchedulerType.ConvertExtToInt(), model.CustomConfiguration);
 
         return _messageBuilder.ToString();
     }
@@ -583,20 +584,20 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
-        ValidateFirecrestCustomConfiguration(model.SchedulerType, model.CustomConfiguration);
+        ValidateFirecrestCustomConfiguration(model.SchedulerType.ConvertExtToInt(), model.CustomConfiguration);
 
         return _messageBuilder.ToString();
     }
 
     private void ValidateFirecrestCustomConfiguration(SchedulerType schedulerType, System.Collections.Generic.Dictionary<string, string>? customConfiguration)
     {
-        if (schedulerType.HasFlag(SchedulerType.FirecRest))
+        if (schedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
         {
             if (customConfiguration == null || 
                 !customConfiguration.TryGetValue("ExpirioSecretName", out var secretName) || 
                 string.IsNullOrEmpty(secretName))
             {
-                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRest`.");
+                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRESTSlurm`.");
             }
         }
     }
