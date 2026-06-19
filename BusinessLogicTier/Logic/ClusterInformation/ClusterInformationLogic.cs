@@ -418,6 +418,23 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             }
         }
         
+        // 4. Fallback to AdaptorUser username
+        if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
+        {
+            try
+            {
+                var adaptorUser = await _unitOfWork.AdaptorUserRepository.GetByIdAsync(adaptorUserId.Value);
+                if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Username))
+                {
+                    username = adaptorUser.Username;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve AdaptorUser username for fallback.");
+            }
+        }
+        
         return username;
     }
 
