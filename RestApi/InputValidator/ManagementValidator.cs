@@ -591,13 +591,13 @@ public class ManagementValidator : AbstractValidator
 
     private void ValidateFirecrestCustomConfiguration(SchedulerType schedulerType, System.Collections.Generic.Dictionary<string, string>? customConfiguration)
     {
-        if (schedulerType.HasFlag(SchedulerType.FirecRESTSlurm))
+        if (schedulerType.HasFlag(SchedulerType.FirecRestSlurm))
         {
             if (customConfiguration == null || 
                 !customConfiguration.TryGetValue("ExpirioSecretName", out var secretName) || 
                 string.IsNullOrEmpty(secretName))
             {
-                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRESTSlurm`.");
+                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRestSlurm`.");
             }
         }
     }

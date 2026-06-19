@@ -433,7 +433,7 @@ public class JobManagementService : IJobManagementService
                                 .ThenInclude(p => p.ClusterProjects)
                                     .ThenInclude(cp => cp.Cluster)
                             .Where(j => j.Id == submittedJobInfoId).FirstOrDefault();
-                        bool isFirecRestJob() => jobHelper.Project.ClusterProjects.Any(cp => !cp.Cluster.IsDeleted && cp.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRESTSlurm));
+                        bool isFirecRestJob() => jobHelper.Project.ClusterProjects.Any(cp => !cp.Cluster.IsDeleted && cp.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm));
                         if (isFirecRestJob())
                             needSshRefresh = true;
                     }
