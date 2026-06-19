@@ -30,6 +30,7 @@ COPY ["Utils/Utils.csproj", "Utils/"]
 COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "ExternalAuthentication/"]
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestUtils/RestUtils.csproj", "RestUtils/"]
+COPY ["CHANGELOG.md", "CHANGELOG.md"]
 
 RUN dotnet restore "RestApi/RestApi.csproj"
 COPY . .

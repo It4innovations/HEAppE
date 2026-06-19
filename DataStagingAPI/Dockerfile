@@ -23,6 +23,7 @@ COPY ["HpcConnectionFramework/HpcConnectionFramework.csproj", "HpcConnectionFram
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestApiModels/RestApiModels.csproj", "RestApiModels/"]
 COPY ["ServiceTier/ServiceTier.csproj", "ServiceTier/"]
+COPY ["CHANGELOG.md", "CHANGELOG.md"]
 
 RUN dotnet restore "DataStagingAPI/DataStagingAPI.csproj"
 COPY . .
