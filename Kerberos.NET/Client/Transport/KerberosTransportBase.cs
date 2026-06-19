@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Licensed to The .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // -----------------------------------------------------------------------
@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Kerberos.NET.Asn1;
@@ -19,8 +20,6 @@ namespace Kerberos.NET.Transport
 {
     public abstract class KerberosTransportBase : IKerberosTransport2, IDisposable
     {
-        private static readonly Random Random = new Random();
-
         protected KerberosTransportBase(ILoggerFactory logger)
         {
             this.ClientRealmService = new ClientDomainService(logger);
@@ -178,7 +177,7 @@ namespace Kerberos.NET.Transport
         {
             results = results.Where(r => r.Name.StartsWith(servicePrefix));
 
-            var rand = Random.Next(0, results?.Count() ?? 0);
+            var rand = RandomNumberGenerator.GetInt32(0, results?.Count() ?? 0);
 
             var srv = results?.ElementAtOrDefault(rand);
 

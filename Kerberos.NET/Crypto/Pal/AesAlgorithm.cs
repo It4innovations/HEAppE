@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Licensed to The .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // -----------------------------------------------------------------------
@@ -17,7 +17,10 @@ namespace Kerberos.NET.Crypto
             {
                 var impl = Aes.Create();
                 impl.Padding = PaddingMode.None;
+#pragma warning disable SCS0013
+                // nosemgrep: security_code_scan.SCS0013-1
                 impl.Mode = CipherMode.CBC;
+#pragma warning restore SCS0013
                 return impl;
             });
 

@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Licensed to The .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // -----------------------------------------------------------------------
@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +20,6 @@ namespace Kerberos.NET.Transport
 {
     public class HttpsKerberosTransport : KerberosTransportBase
     {
-        private static readonly Random Random = new Random();
-
         private readonly ILogger logger;
 
         public HttpsKerberosTransport(ILoggerFactory logger = null)
@@ -181,7 +180,7 @@ namespace Kerberos.NET.Transport
 
             results = results.Where(r => r.Address.StartsWith("https://") || r.Address.StartsWith("http://"));
 
-            var rand = Random.Next(0, results?.Count() ?? 0);
+            var rand = RandomNumberGenerator.GetInt32(0, results?.Count() ?? 0);
 
             var record = results?.ElementAtOrDefault(rand);
 
