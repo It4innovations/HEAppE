@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Converts;
@@ -84,7 +84,7 @@ public static class FileTransferConverts
             throw new InputValidationException("EnumValueMustBeSet", "File transfer protocol");
 
         if (!Enum.TryParse(fileTransferProtocol.ToString(), out FileTransferProtocolExt convert))
-            throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4>");
+            throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4, 8, 16>");
 
         return convert;
     }
@@ -94,7 +94,7 @@ public static class FileTransferConverts
         if (!protocol.HasValue) throw new InputValidationException("EnumValueMustBeSet", "File transfer protocol");
 
         if (!Enum.TryParse(protocol.ToString(), out FileTransferProtocol convert))
-            throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4>");
+            throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4, 8, 16>");
         return convert;
     }
 

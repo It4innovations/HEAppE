@@ -1,13 +1,15 @@
 #pragma warning disable CS1030
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net.Http;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.NetworkShare;
 using HEAppE.FileTransferFramework.Sftp;
+using HEAppE.FileTransferFramework.FirecRest;
 using HEAppE.HpcConnectionFramework.Configuration;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
@@ -25,6 +27,7 @@ public abstract class FileSystemFactory
         var loggerFactory = (ILoggerFactory)serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
         _logger = loggerFactory.CreateLogger("HEAppE.FileTransferFramework.FileSystemFactory");
         _expirio = (IExpirioService)serviceScope.ServiceProvider.GetService(typeof(IExpirioService));
+        _httpClientFactory = (IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(IHttpClientFactory));
     }
 
     #endregion
@@ -33,9 +36,11 @@ public abstract class FileSystemFactory
 
     protected static readonly ILogger _logger;
     protected static readonly IExpirioService _expirio;
+    protected static readonly IHttpClientFactory _httpClientFactory;
     private readonly ConcurrentDictionary<long, IConnectionPool> _schedulerConnPoolSingletons = new();
     private static FileSystemFactory _windowsSharedFactorySingleton;
     private static FileSystemFactory _sftpFactorySingleton;
+    private static FileSystemFactory _firecrestFactorySingleton;
 
     #endregion
 
@@ -60,6 +65,9 @@ public abstract class FileSystemFactory
             FileTransferProtocol ftp when
                 ftp == FileTransferProtocol.SftpScp ||
                 ftp == FileTransferProtocol.LocalSftpScp => _sftpFactorySingleton ??= new SftpFileSystemFactory(),
+            FileTransferProtocol ftp when
+                ftp == FileTransferProtocol.Http ||
+                ftp == FileTransferProtocol.Https => _firecrestFactorySingleton ??= new FirecRestFileSystemFactory(),
             _ => throw new SftpClientArgumentException("FactoryManagerTypeNotExists", type)
         };
     }

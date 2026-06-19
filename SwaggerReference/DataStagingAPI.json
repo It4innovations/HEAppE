@@ -713,7 +713,9 @@
         "enum": [
           1,
           2,
-          4
+          4,
+          8,
+          16
         ],
         "type": "integer",
         "format": "int32"
