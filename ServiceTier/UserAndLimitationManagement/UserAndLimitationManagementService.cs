@@ -243,7 +243,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var now = DateTime.UtcNow;
         var groups = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
+                r.AdaptorUserRole != null &&
+                r.AdaptorUserRole.ContainedRoleTypes != null &&
                 r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole) &&
+                r.AdaptorUserGroup != null &&
                 (overrideProjectValidityCheck || (r.AdaptorUserGroup.Project == null || r.AdaptorUserGroup.Project.EndDate >= now))
             ).ToList();
         //check that at least one project is available
@@ -280,8 +283,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
         var projects = user.AdaptorUserUserGroupRoles
             .Where(role =>
+                role.AdaptorUserGroup != null &&
                 role.AdaptorUserGroup.Project != null &&
                 (overrideProjectValidityCheck || role.AdaptorUserGroup.Project.EndDate > now) &&
+                role.AdaptorUserRole != null &&
+                role.AdaptorUserRole.ContainedRoleTypes != null &&
                 role.AdaptorUserRole.ContainedRoleTypes
                     .Any(roleType => allowedRoles.Contains(roleType))
             )
