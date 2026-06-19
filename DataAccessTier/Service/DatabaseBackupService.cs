@@ -189,6 +189,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
     {
         try
         {
+            var databaseName = _context.Database.GetDbConnection().Database;
             return _context.Database.SqlQueryRaw<DatabaseBackup>(
             @"SELECT 
                   mf.physical_device_name AS Path,
@@ -207,10 +208,12 @@ internal class DatabaseBackupService : IDatabaseBackupService
               JOIN msdb.dbo.backupmediafamily mf 
                   ON b.media_set_id = mf.media_set_id
               WHERE
+                  b.database_name = @DbName AND
                   (@From IS NULL OR b.backup_finish_date >= @From) AND
                   (@To   IS NULL OR b.backup_finish_date <= @To) AND
                   b.type = @Type
               ORDER BY b.backup_finish_date DESC;",
+            new SqlParameter("@DbName", databaseName),
             new SqlParameter("@Type", type == DatabaseBackupType.Full ? "D" : "L"),
             new SqlParameter("@From", (object)fromDateTime ?? DBNull.Value),
             new SqlParameter("@To", (object)toDateTime ?? DBNull.Value))
