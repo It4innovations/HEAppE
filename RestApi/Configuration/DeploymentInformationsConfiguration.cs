@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.Management;
@@ -50,7 +50,12 @@ public sealed class DeploymentInformationsConfiguration
     /// <summary>
     ///     Instance version
     /// </summary>
-    public static string Version { get; set; }
+    private static string _version = VersionInfo.Version;
+    public static string Version
+    {
+        get => _version;
+        set => _version = string.IsNullOrEmpty(value) ? VersionInfo.Version : value;
+    }
 
     /// <summary>
     ///     Instance IP

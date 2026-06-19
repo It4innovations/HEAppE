@@ -1,4 +1,4 @@
-﻿namespace HEAppE.DataStagingAPI.Configuration;
+namespace HEAppE.DataStagingAPI.Configuration;
 #nullable disable
 /// <summary>
 ///     Swagger setting from config
@@ -29,74 +29,18 @@ public sealed class SwaggerOptions
     /// <summary>
     ///     API Version
     /// </summary>
-    public string Version { get; set; }
-
-    /// <summary>
-    ///     API Title
-    /// </summary>
-    public string Title { get; set; }
-
-    /// <summary>
-    ///     API Description
-    /// </summary>
-    public string Description { get; set; }
-
-    /// <summary>
-    ///     Host address with schema
-    /// </summary>
-    public string Host
-    {
-        get => _host;
-        set => _host = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
-    }
-
-    /// <summary>
-    ///     Host postfix address
-    /// </summary>
-    public string HostPostfix
-    {
-        get => _hostPostfix;
-        set => _hostPostfix = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
-    }
-
-    /// <summary>
-    ///     Swagger prefix
-    /// </summary>
-    public string PrefixDocPath
-    {
-        get => _prefixDocPath;
-        set => _prefixDocPath = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
-    }
-
-    /// <summary>
-    ///     API Term of usage
-    /// </summary>
-    public string TermOfUsageUrl { get; set; }
-
-    /// <summary>
-    ///     API Contact name
-    /// </summary>
-    public string ContactName { get; set; }
-
-    /// <summary>
-    ///     API Contact email
-    /// </summary>
-    public string ContactEmail { get; set; }
-
-    /// <summary>
-    ///     API Contact Url
-    /// </summary>
-    public string ContactUrl { get; set; }
-
-    /// <summary>
-    ///     API License
-    /// </summary>
-    public string License { get; set; }
-
-    /// <summary>
-    ///     API License Url
-    /// </summary>
-    public string LicenseUrl { get; set; }
+    public string Version { get; set; } = "v1.0.0";
+    public string Title { get; set; } = "Data-Staging API";
+    public string Description { get; set; } = "Data-Staging API";
+    public string Host { get; set; } = "http://localhost:5001";
+    public string HostPostfix { get; set; } = "";
+    public string PrefixDocPath { get; set; } = "swagger";
+    public string TermOfUsageUrl { get; set; } = "https://twitter.com/it4innovations";
+    public string ContactName { get; set; } = "IT4Innovations";
+    public string ContactEmail { get; set; } = "support.heappe@it4i.cz";
+    public string ContactUrl { get; set; } = "https://twitter.com/it4innovations";
+    public string License { get; set; } = "GNU General Public License v3.0";
+    public string LicenseUrl { get; set; } = "https://www.gnu.org/licenses/gpl-3.0.html";
 
     #endregion
 }

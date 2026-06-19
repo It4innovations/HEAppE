@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +33,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected ISchedulerDataConvertor _convertor;
     protected ICommands _commands;
     protected ILogger _logger;
-    protected HttpClient _httpClient;
+    protected readonly IHttpClientFactory _httpClientFactory;
+    protected HttpClient _httpClient => _httpClientFactory.CreateClient("FirecREST");
 
     protected string _firecRestUrl;
     protected string _firecRestIdpUrl;
@@ -50,19 +51,19 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #region Constructors
 
-    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
+    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor, IHttpClientFactory httpClientFactory, ILogger logger)
     {
         _logger = logger;
         _convertor = convertor;
         _commands = new FirecRestCommands();
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
+        _httpClientFactory = httpClientFactory;
     }
 
     #endregion
 
     #region Private Methods
 
-    private string GetAuthToken()
+    private async Task<string> GetAuthTokenAsync()
     {
         try
         {
@@ -76,16 +77,14 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             using var request = new HttpRequestMessage(HttpMethod.Post, FirecRestIdpUrl);
             request.Content = tokenRequestContent;
 
-            var tokenResponse = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
+            var tokenResponse = await _httpClient.SendAsync(request);
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                var errorContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
-                    .GetResult();
+                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
                 throw new SshCommandException("Failed to obtain OAuth2 token for FirecRest API", errorContent);
             }
 
-            var responseContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
-                .GetResult();
+            var responseContent = await tokenResponse.Content.ReadAsStringAsync();
             var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
@@ -102,7 +101,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    private void CreateDirectory(string endpoint, string token, string directoryPath, object requestBody)
+    private async Task CreateDirectoryAsync(string endpoint, string token, string directoryPath, object requestBody)
     {
         var jsonContent = JsonSerializer.Serialize(requestBody);
 
@@ -111,8 +110,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Content = content;
 
-        var response = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
-        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        var response = await _httpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
         {
@@ -152,7 +151,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         updatedRequestBody["path"] = parentDirectory;
 
                         _logger.LogDebug($"[CreateDirectory] RECURSION: Creating parent {parentDirectory}...");
-                        CreateDirectory(endpoint, token, parentDirectory, updatedRequestBody);
+                        await CreateDirectoryAsync(endpoint, token, parentDirectory, updatedRequestBody);
                         _logger.LogDebug($"[CreateDirectory] RECURSION DONE. Parent {parentDirectory} handled.");
 
                         _logger.LogDebug($"[CreateDirectory] RETRYING original: {directoryPath}");
@@ -160,10 +159,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                         retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                         retryRequest.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                        var retryResponse = _httpClient.SendAsync(retryRequest).ConfigureAwait(false).GetAwaiter()
-                            .GetResult();
-                        var retryContent = retryResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
-                            .GetResult();
+                        var retryResponse = await _httpClient.SendAsync(retryRequest);
+                        var retryContent = await retryResponse.Content.ReadAsStringAsync();
 
                         _logger.LogDebug($"[CreateDirectory] RETRY Status: {retryResponse.StatusCode}");
                         _logger.LogDebug($"[CreateDirectory] RETRY Content: {retryContent}");
@@ -223,7 +220,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         try
         {
             _logger.LogDebug($"[SubmitJob] STARTING... JobId: {jobSpecification.Id}, Name: {jobSpecification.Name}");
-            var token = GetAuthToken();
+            var token = await GetAuthTokenAsync();
 
             string clusterName = jobSpecification.Cluster.Name;
             string account = jobSpecification.ClusterUser?.Username ?? "default";
@@ -263,11 +260,9 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                     submitRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                     submitRequest.Content = submitContent;
 
-                    var submitResponse = _httpClient.SendAsync(submitRequest).ConfigureAwait(false).GetAwaiter()
-                        .GetResult();
+                    var submitResponse = await _httpClient.SendAsync(submitRequest);
 
-                    var submitResponseContent = submitResponse.Content.ReadAsStringAsync().ConfigureAwait(false)
-                        .GetAwaiter().GetResult();
+                    var submitResponseContent = await submitResponse.Content.ReadAsStringAsync();
 
                     if (!submitResponse.IsSuccessStatusCode)
                     {
@@ -342,9 +337,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string key)
     {
-
-        await Task.Delay(1);
-
         if (submittedTasksInfo == null || !submittedTasksInfo.Any())
         {
             return Enumerable.Empty<SubmittedTaskInfo>();
@@ -356,68 +348,63 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             return submittedTasksInfo;
         }
 
-        Task.Run(async () =>
+        var token = await GetAuthTokenAsync();
+
+        foreach (var task in submittedTasksInfo)
         {
-            var token = GetAuthToken();
-
-            foreach (var task in submittedTasksInfo)
+            if (string.IsNullOrEmpty(task.ScheduledJobId))
             {
-                if (string.IsNullOrEmpty(task.ScheduledJobId))
+                _logger.LogDebug($"[GetActualTasksInfo] Skipping task {task.Name} (No ScheduledJobId).");
+                continue;
+            }
+
+            try
+            {
+                var endpoint = $"{FirecRestUrl}/compute/{cluster.Name}/jobs/{task.ScheduledJobId}";
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.SendAsync(request);
+                var responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogDebug($"[GetActualTasksInfo] Skipping task {task.Name} (No ScheduledJobId).");
-                    continue;
-                }
+                    _logger.LogDebug($"[GetActualTasksInfo] Parsing response for Job {task.ScheduledJobId}...");
+                    var taskInfoList = _convertor.ReadParametersFromResponse(cluster, responseContent);
 
-                try
-                {
-                    var endpoint = $"{FirecRestUrl}/compute/{cluster.Name}/jobs/{task.ScheduledJobId}";
-
-                    using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                    var response = await _httpClient.SendAsync(request);
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    if (response.IsSuccessStatusCode)
+                    if (taskInfoList?.FirstOrDefault() is { } newInfo)
                     {
-                        _logger.LogDebug($"[GetActualTasksInfo] Parsing response for Job {task.ScheduledJobId}...");
-                        var taskInfoList = _convertor.ReadParametersFromResponse(cluster, responseContent);
-
-                        if (taskInfoList?.FirstOrDefault() is { } newInfo)
-                        {
-                            _logger.LogDebug(
-                                $"[GetActualTasksInfo] SUCCESS. Updating Task {task.Name} state to: {newInfo.State}");
-                            task.State = newInfo.State;
-                            task.StartTime = newInfo.StartTime;
-                            task.EndTime = newInfo.EndTime;
-                            task.AllocatedTime = newInfo.AllocatedTime;
-                            task.TaskAllocationNodes = newInfo.TaskAllocationNodes;
-                        }
-                        else
-                        {
-                            _logger.LogDebug(
-                                $"[GetActualTasksInfo] WARNING: Parser returned null or empty list for Job {task.ScheduledJobId}");
-                        }
+                        _logger.LogDebug(
+                            $"[GetActualTasksInfo] SUCCESS. Updating Task {task.Name} state to: {newInfo.State}");
+                        task.State = newInfo.State;
+                        task.StartTime = newInfo.StartTime;
+                        task.EndTime = newInfo.EndTime;
+                        task.AllocatedTime = newInfo.AllocatedTime;
+                        task.TaskAllocationNodes = newInfo.TaskAllocationNodes;
                     }
                     else
                     {
-                        _logger.LogDebug($"[GetActualTasksInfo] ERROR: Request failed for Job {task.ScheduledJobId}");
+                        _logger.LogDebug(
+                            $"[GetActualTasksInfo] WARNING: Parser returned null or empty list for Job {task.ScheduledJobId}");
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, $"Error checking status for job {task.ScheduledJobId}: {ex.Message}");
-                    throw;
+                    _logger.LogDebug($"[GetActualTasksInfo] ERROR: Request failed for Job {task.ScheduledJobId}");
                 }
             }
-        }).GetAwaiter().GetResult();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking status for job {task.ScheduledJobId}: {ex.Message}");
+                throw;
+            }
+        }
 
         return submittedTasksInfo;
     }
 
     public async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
     {
-        await Task.Delay(1);
-
         if (submittedTasksInfo == null || !submittedTasksInfo.Any())
         {
             throw new ArgumentException("Cannot cancel jobs: The provided list of tasks is null or empty.",
@@ -426,7 +413,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
         try
         {
-            var token = GetAuthToken();
+            var token = await GetAuthTokenAsync();
             var tasksToCancel = submittedTasksInfo
                 .Where(task => !string.IsNullOrEmpty(task.ScheduledJobId))
                 .ToList();
@@ -471,7 +458,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             {
                 _logger.LogDebug(
                     $"[CancelJob] Waiting for {cancellationTasks.Count} cancellation requests to complete...");
-                Task.WhenAll(cancellationTasks).GetAwaiter().GetResult();
+                await Task.WhenAll(cancellationTasks);
                 _logger.LogDebug("[CancelJob] All cancellation requests completed.");
             }
             else
@@ -492,8 +479,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            await Task.Delay(1);
-            var token = GetAuthToken();
+            var token = await GetAuthTokenAsync();
 
             string clusterName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
@@ -503,7 +489,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var endpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/mkdir";
             var jobRequestBody = new { path = jobDirectoryPath, p = true };
 
-            CreateDirectory(endpoint, token, jobDirectoryPath, jobRequestBody);
+            await CreateDirectoryAsync(endpoint, token, jobDirectoryPath, jobRequestBody);
 
             _logger.LogDebug($"[CreateJobDirectory] Found {jobInfo.Tasks.Count} tasks. Creating subdirectories...");
 
@@ -511,7 +497,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             {
                 string taskDirectoryPath = $"{jobDirectoryPath}/{task.Specification.Id}".Replace("\\", "/");
                 var taskRequestBody = new { path = taskDirectoryPath, p = true };
-                CreateDirectory(endpoint, token, taskDirectoryPath, taskRequestBody);
+                await CreateDirectoryAsync(endpoint, token, taskDirectoryPath, taskRequestBody);
             }
         }
         catch (Exception ex)
@@ -525,8 +511,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            await Task.Delay(1);
-            var token = GetAuthToken();
+            var token = await GetAuthTokenAsync();
 
             string systemName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
@@ -539,10 +524,10 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             using var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
+            var response = await _httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
                     $"Failed to delete job directory for Job ID {jobInfo.Id}. Status: {response.StatusCode}. Response: {errorContent}");
                 return false;

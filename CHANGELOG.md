@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.4.0
 
 ### Added
+- Implemented support for the FirecREST scheduler adapter.
+- Added a generic custom JSON configuration dictionary (`CustomConfiguration`) to the `Cluster` domain object, allowing flexible, scheduler-specific settings (such as FirecREST configuration).
+- Added support for generic `Http` and `Https` connection protocols.
 - Implemented support for Kerberos authentication (GSSAPI) for SSH and SFTP connections, including integration with Expirio for credential management.
 - Added support for specifying memory requirements per task in job specifications for Slurm and PBS Pro schedulers.
 - Introduced explicit GPU cores and nodes allocation parameters in the `CreateJob` logic.
@@ -32,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Entity Framework duplicate key violation (`DbUpdateException`) during job updates by eagerly loading `ResourceConsumed` entities in `SubmittedJobInfoRepository`.
 - Fixed an `InvalidOperationException` where `JobSpecification.ClusterUser` was accessed on untracked entities during tunnel closure for finished tasks, which led to SSH port leaks and eventual `502 Tunnel Exception` (port exhaustion). Eagerly load `ClusterUser` in `GetFinishedByIds` and `GetAllFinished` queries of `SubmittedTaskInfoRepository`.
 - Fixed a bug in `EdDSACertGenerator.ToPuTTYPublicKey` where a hardcoded comment was used instead of the configured comment field, resolving a failing unit test.
+- Secured database name quoting using `SqlCommandBuilder.QuoteIdentifier` when enabling Read Committed Snapshot Isolation (RCSI) on startup in `MiddlewareContext`, resolving semgrep security scanner alerts.
+- Removed unused synchronous `Disconnect` and `SynchronizeFiles` method wrappers across SSH and synchronizer layers to clean up the codebase and eliminate obsolete blocking `.GetAwaiter().GetResult()` occurrences.
 
 ## V6.3.3
 

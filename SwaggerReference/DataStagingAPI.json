@@ -1,0 +1,942 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Data-Staging API",
+    "description": "Data-Staging API",
+    "termsOfService": "https://twitter.com/it4innovations",
+    "contact": {
+      "name": "IT4Innovations",
+      "url": "https://twitter.com/it4innovations",
+      "email": "support.heappe@it4i.cz"
+    },
+    "license": {
+      "name": "GNU General Public License v3.0",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "version": "v1.0.0"
+  },
+  "paths": {
+    "/api/DataStaging/GetFileTransferMethod": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "summary": "Obtain data transfer information for job.",
+        "description": "Obtain credentials and information for ensuring job data transfer.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetFileTransferMethodModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTransferMethodExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/ProvideCredentials": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "summary": "Provide credentials for data transfer.",
+        "description": "Provide credentials for data transfer to support uploading files to cluster-project directory.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvideCredentialsModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTransferMethodExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/DownloadPartsOfJobFilesFromCluster": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "summary": "Get specific part of FileType content.",
+        "description": "Get specific part of FileType content.<br>FileType: LogFile - 0, ProgressFile - 1, StandardErrorFile - 2, StandardOutputFile - 3.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadPartsOfJobFilesFromClusterModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobFileContentExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/ListChangedFilesForJob": {
+      "get": {
+        "tags": [
+          "DataStaging"
+        ],
+        "summary": "Get all changed files during job execution.",
+        "description": "Get all changed files during job execution with modification timestamp.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedJobInfoId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInformationExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/DownloadFileFromCluster": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadFileFromClusterModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/UploadFilesToProjectDir": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "files": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileUploadResultExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DataStaging/UploadJobScriptsToProjectDir": {
+      "post": {
+        "tags": [
+          "DataStaging"
+        ],
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "files": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileUploadResultExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClusterAuthenticationCredentialsAuthTypeExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ClusterProxyConnectionExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Host": {
+            "type": "string",
+            "description": "Host",
+            "nullable": true
+          },
+          "Port": {
+            "type": "integer",
+            "description": "Port number",
+            "format": "int32"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/ProxyTypeExt"
+          },
+          "Username": {
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Password": {
+            "type": "string",
+            "description": "Password",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DownloadFileFromClusterModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "SubmittedJobInfoId": {
+            "type": "integer",
+            "description": "Subbmited job info id",
+            "format": "int64"
+          },
+          "RelativeFilePath": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string",
+            "description": "Relative file path on cluster",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DownloadPartsOfJobFilesFromClusterModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "SubmittedJobInfoId": {
+            "type": "integer",
+            "description": "Subbmited job info id",
+            "format": "int64"
+          },
+          "TaskFileOffsets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskFileOffsetExt"
+            },
+            "description": "Task file models array",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileInformationExt": {
+        "type": "object",
+        "properties": {
+          "FileName": {
+            "type": "string",
+            "description": "File name",
+            "nullable": true
+          },
+          "LastModifiedDate": {
+            "type": "string",
+            "description": "Last modified at date",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileTransferCipherTypeExt": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "FileTransferKeyCredentialsExt": {
+        "type": "object",
+        "properties": {
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "User name",
+            "nullable": true
+          },
+          "Password": {
+            "type": "string",
+            "description": "Password",
+            "nullable": true
+          },
+          "CipherType": {
+            "$ref": "#/components/schemas/FileTransferCipherTypeExt"
+          },
+          "CredentialsAuthType": {
+            "$ref": "#/components/schemas/ClusterAuthenticationCredentialsAuthTypeExt"
+          },
+          "PrivateKey": {
+            "type": "string",
+            "description": "Private key",
+            "nullable": true
+          },
+          "PrivateKeyCertificate": {
+            "type": "string",
+            "description": "Private key certificate",
+            "nullable": true
+          },
+          "PublicKey": {
+            "type": "string",
+            "description": "Public key",
+            "nullable": true
+          },
+          "Passphrase": {
+            "type": "string",
+            "description": "Passphrase",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileTransferMethodExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "ServerHostname": {
+            "type": "string",
+            "description": "Server host name",
+            "nullable": true
+          },
+          "SharedBasepath": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "Shared base path",
+            "nullable": true
+          },
+          "Protocol": {
+            "$ref": "#/components/schemas/FileTransferProtocolExt"
+          },
+          "Port": {
+            "type": "integer",
+            "description": "Port",
+            "format": "int32",
+            "nullable": true
+          },
+          "ProxyConnection": {
+            "$ref": "#/components/schemas/ClusterProxyConnectionExt"
+          },
+          "Credentials": {
+            "$ref": "#/components/schemas/FileTransferKeyCredentialsExt"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileTransferProtocolExt": {
+        "enum": [
+          1,
+          2,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "FileUploadResultExt": {
+        "type": "object",
+        "properties": {
+          "FileName": {
+            "type": "string",
+            "description": "Original file name",
+            "nullable": true
+          },
+          "Succeeded": {
+            "type": "boolean",
+            "description": "True if file upload succeeded, false otherwise"
+          },
+          "Path": {
+            "type": "string",
+            "description": "Path where the file was uploaded",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetFileTransferMethodModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "SubmittedJobInfoId": {
+            "type": "integer",
+            "description": "Subbmited job info id",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "nullable": true
+          },
+          "Title": {
+            "type": "string",
+            "nullable": true
+          },
+          "Status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "Instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "Errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "JobFileContentExt": {
+        "type": "object",
+        "properties": {
+          "Content": {
+            "type": "string",
+            "description": "Content",
+            "nullable": true
+          },
+          "RelativePath": {
+            "type": "string",
+            "description": "Relative path",
+            "nullable": true
+          },
+          "Offset": {
+            "type": "integer",
+            "description": "Offset",
+            "format": "int64",
+            "nullable": true
+          },
+          "FileType": {
+            "$ref": "#/components/schemas/SynchronizableFilesExt"
+          },
+          "SubmittedTaskInfoId": {
+            "type": "integer",
+            "description": "Submitted task info id",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "nullable": true
+          },
+          "Title": {
+            "type": "string",
+            "nullable": true
+          },
+          "Status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "Instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "ProvideCredentialsModel": {
+        "type": "object",
+        "properties": {
+          "ProjectId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ClusterId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProxyTypeExt": {
+        "enum": [
+          1,
+          2,
+          3,
+          16
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "SynchronizableFilesExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "TaskFileOffsetExt": {
+        "type": "object",
+        "properties": {
+          "SubmittedTaskInfoId": {
+            "type": "integer",
+            "description": "Submitted task info id",
+            "format": "int64",
+            "nullable": true
+          },
+          "FileType": {
+            "$ref": "#/components/schemas/SynchronizableFilesExt"
+          },
+          "Offset": {
+            "type": "integer",
+            "description": "Offset",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "AuthKey": {
+        "type": "apiKey",
+        "description": "AuthKey must appear in header",
+        "name": "AuthKey",
+        "in": "header"
+      },
+      "Bearer": {
+        "type": "apiKey",
+        "description": "JWT Authorization header using the Bearer scheme",
+        "name": "Authorization",
+        "in": "header"
+      },
+      "ServiceApiKey": {
+        "type": "apiKey",
+        "description": "Service API Key authentication. Enter the key below.",
+        "name": "X-API-Key",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    },
+    {
+      "AuthKey": [ ]
+    },
+    {
+      "ServiceApiKey": [ ]
+    }
+  ]
+}

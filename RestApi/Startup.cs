@@ -79,7 +79,6 @@ public class Startup
         services.AddBackgroundServices(Configuration);
         services.AddMemoryCache();
 
-        services.Configure<FirecRestConfiguration>(Configuration.GetSection("FirecRestConfiguration"));
         services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
         services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
@@ -99,8 +98,6 @@ public class Startup
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());
         Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
 
-        services.AddSingleton< // monitor changes without having to restart
-            IOptionsMonitor<FirecRestConfiguration>, OptionsMonitor<FirecRestConfiguration>>();
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

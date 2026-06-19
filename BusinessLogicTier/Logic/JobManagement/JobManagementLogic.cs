@@ -46,8 +46,6 @@ internal class JobManagementLogic : IJobManagementLogic
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
-    private readonly IOptionsMonitor<FirecRestConfiguration> _firecRestConfiguration;
-
     internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                 IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
@@ -61,8 +59,6 @@ internal class JobManagementLogic : IJobManagementLogic
         _userOrgService = userOrgService;
         _logger = logger;
         _expirioService = expirioService;
-        _firecRestConfiguration = (IOptionsMonitor<FirecRestConfiguration>)serviceScope.ServiceProvider.GetService(typeof(IOptionsMonitor<FirecRestConfiguration>));
-        _logger.LogDebug($"Endpoints count in appsettinsg: {_firecRestConfiguration.CurrentValue.Endpoints.Count}");
     }
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,

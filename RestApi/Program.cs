@@ -36,7 +36,6 @@ public class Program
                 {
                     config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, true);
                     config.AddNotJson("/opt/heappe/confs/seed.njson");
-                    config.AddJsonFile("/opt/heappe/confs/firecrest.json", true, true);
                 })
                 .UseKestrel(options =>
                 {
@@ -57,9 +56,8 @@ public class Program
                             "P:\\source\\localHEAppE\\confs"
                         ],
                         confFiles: [
-                            ("appsettings.json", false),
-                            ("seed.njson", false),
-                            ("firecrest.json", true)
+                            ("appsettings.json", true),
+                            ("seed.njson", true)
                         ],
                         addJsonFile: confPath => config.AddJsonFile(confPath, false, true),
                         addNotJson: confPath => config.AddNotJson(confPath))

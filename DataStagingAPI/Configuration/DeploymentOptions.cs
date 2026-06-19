@@ -5,20 +5,8 @@ public class DeploymentOptions
     /// <summary>
     ///     Instance name
     /// </summary>
-    public string Name { get; set; }
-
-    /// <summary>
-    ///     Instance description
-    /// </summary>
-    public string Description { get; set; }
-
-    /// <summary>
-    ///     Instance version
-    /// </summary>
-    public string Version { get; set; }
-
-    /// <summary>
-    ///     Instance IP
-    /// </summary>
-    public string DeployedIPAddress { get; set; }
+    public string Name { get; set; } = "HEAppE instance";
+    public string Description { get; set; } = "HEAppE instance";
+    public string Version { get; set; } = VersionInfo.Version;
+    public string DeployedIPAddress { get; set; } = "127.0.0.1";
 }

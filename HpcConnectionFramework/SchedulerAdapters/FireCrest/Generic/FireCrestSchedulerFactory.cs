@@ -15,6 +15,7 @@ using SshCaAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
@@ -55,8 +56,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     ///     Scheduler type
     /// </summary>
     private SchedulerType _schedulerType;
-
-    private readonly IOptionsMonitor<FirecRestConfiguration> _firecRestConfiguration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     #endregion
 
@@ -65,9 +65,8 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     public FirecRestSchedulerFactory(SchedulerType schedulerType)
     {
         using var serviceScope = ServiceActivator.GetScope();
-
         _schedulerType = schedulerType;
-        _firecRestConfiguration = (IOptionsMonitor<FirecRestConfiguration>)serviceScope.ServiceProvider.GetService(typeof(IOptionsMonitor<FirecRestConfiguration>));
+        _httpClientFactory = (IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(IHttpClientFactory));
     }
 
     /// <summary>
@@ -93,14 +92,6 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
         {
             idpUrl = customIdpUrl;
-        }
-        else
-        {
-            var configOptions = _firecRestConfiguration.CurrentValue?.FirecRestOptions?[cluster.MasterNodeName];
-            if (configOptions != null)
-            {
-                idpUrl = configOptions.IdpUrl;
-            }
         }
 
         string clientId = "";
@@ -171,7 +162,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <returns>FirecRest scheduler adapter</returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), logger);
+        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), _httpClientFactory, logger);
     }
 
     /// <summary>

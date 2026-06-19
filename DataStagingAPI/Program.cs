@@ -50,7 +50,6 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Doc
     builder.Logging.AddLog4Net("Logging/log4netDocker.config");
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
-    builder.Configuration.AddJsonFile("/opt/heappe/confs/firecrest.json", true, true);
 }
 else
 {
@@ -62,9 +61,8 @@ else
             "P:\\source\\localHEAppE\\confs"
         ],
         confFiles: [
-            ("appsettings.json", false),
-            ("appsettings-data.json", false),
-            ("firecrest.json", true)
+            ("appsettings.json", true),
+            ("appsettings-data.json", true)
         ],
         addJsonFile: confPath => builder.Configuration.AddJsonFile(confPath, false, false))
     )
@@ -119,10 +117,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
-
-builder.Services.Configure<FirecRestConfiguration>(builder.Configuration.GetSection("FirecRestConfiguration"));
-builder.Services.AddSingleton< // monitor changes without having to restart
-            IOptionsMonitor<FirecRestConfiguration>, OptionsMonitor<FirecRestConfiguration>>();
 
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();

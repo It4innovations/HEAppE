@@ -138,11 +138,6 @@ public class SshConnector : IPoolableAdapter
         await new SshClientAdapter((SshClient)connectorClient).DisconnectAsync();
     }
     
-    public void Disconnect(object connectorClient)
-    {
-        new SshClientAdapter((SshClient)connectorClient).DisconnectAsync().GetAwaiter().GetResult();
-    }
-    
     /// <summary>
     /// Is connection connected
     /// </summary>

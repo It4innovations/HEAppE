@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
@@ -30,10 +30,6 @@ public class SftpFullNameSynchronizer : IFileSynchronizer
 
     #region Methods
 
-    public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster, string sshCaToken, string lexisToken)
-    {
-        return SynchronizeFilesAsync(cluster, sshCaToken, lexisToken).GetAwaiter().GetResult();
-    }
 
     public async Task<ICollection<JobFileContent>> SynchronizeFilesAsync(Cluster cluster, string sshCaToken, string lexisToken)
     {

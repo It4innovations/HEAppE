@@ -64,8 +64,11 @@ public class MiddlewareContext : DbContext
                                     var dbName = Database.GetDbConnection().Database;
                                     if (!string.IsNullOrEmpty(dbName))
                                     {
+                                        var builder = new SqlCommandBuilder();
+                                        var safeDbName = builder.QuoteIdentifier(dbName);
 #pragma warning disable EF1002
-                                        Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+                                        // nosemgrep: security_code_scan.SCS0002-1
+                                        Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
 #pragma warning restore EF1002
                                         _logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
                                     }
