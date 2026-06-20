@@ -261,12 +261,91 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
     public override async Task<bool> UploadFileToClusterByAbsolutePathAsync(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
-        throw new NotSupportedException("Direct file uploads not supported for FirecREST filesystem manager in this iteration.");
+        try
+        {
+            var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(cluster, lexisToken);
+            string systemName = cluster.Name;
+
+            string remoteDirectory = Path.GetDirectoryName(absoluteFilePath)?.Replace("\\", "/");
+            string fileName = Path.GetFileName(absoluteFilePath);
+
+            var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/upload?path={Uri.EscapeDataString(remoteDirectory)}";
+            _logger.LogDebug($"[FirecRest Upload] POST {endpoint} for file {fileName}");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var content = new MultipartFormDataContent();
+            
+            using var ms = new MemoryStream();
+            await fileStream.CopyToAsync(ms);
+            byte[] fileBytes = ms.ToArray();
+
+            var fileContentContent = new ByteArrayContent(fileBytes);
+            fileContentContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+            content.Add(fileContentContent, "file", fileName);
+
+            request.Content = content;
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError($"Failed to upload file {absoluteFilePath} to cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+                throw new FirecrestApiException($"Failed to upload file. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"An error occurred during file upload to {absoluteFilePath}: {ex.Message}");
+            throw;
+        }
     }
 
     public override async Task<bool> ModifyAbsolutePathFileAttributesAsync(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, bool? ownerCanExecute = null, bool? groupCanExecute = null)
     {
-        throw new NotSupportedException("Modifying absolute path file attributes not supported for FirecREST filesystem manager.");
+        try
+        {
+            var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(cluster, lexisToken);
+            string systemName = cluster.Name;
+
+            var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/chmod";
+            _logger.LogDebug($"[FirecRest Chmod] PUT {endpoint} for file {absoluteFilePath}");
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            string mode = "644";
+            if ((ownerCanExecute.HasValue && ownerCanExecute.Value) || (groupCanExecute.HasValue && groupCanExecute.Value))
+            {
+                mode = "755";
+            }
+
+            var chmodPayload = new
+            {
+                sourcePath = absoluteFilePath.Replace("\\", "/"),
+                mode = mode
+            };
+            var jsonContent = JsonSerializer.Serialize(chmodPayload);
+            request.Content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError($"Failed to change permissions for {absoluteFilePath} to {mode} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+                throw new FirecrestApiException($"Failed to change permissions. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"An error occurred during file attributes modification on {absoluteFilePath}: {ex.Message}");
+            return false;
+        }
     }
 
     #endregion

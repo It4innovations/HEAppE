@@ -155,6 +155,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         schedulerAdapter.FirecRestIdpUrl = idpUrl;
         schedulerAdapter.ClientId = clientId;
         schedulerAdapter.ClientSecret = clientSecret;
+        schedulerAdapter.ClusterName = cluster.Name;
 
         return _schedulerSingletons[uniqueIdentifier];
     }

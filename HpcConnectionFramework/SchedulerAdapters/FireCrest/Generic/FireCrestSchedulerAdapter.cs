@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,6 +46,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public string ClientId { private get; set; }
     public string ClientSecret { private get; set; }
+    public string ClusterName { get; set; }
 
     protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
@@ -210,6 +213,148 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         throw new FirecrestApiException(
             $"Failed to create directory: {directoryPath}. Status: {response.StatusCode}. Response: {responseContent}",
             response.StatusCode, responseContent);
+    }
+
+    private async Task<string> CloneOrUpdateRepositoryLocallyAsync(string repoUrl, string branch)
+    {
+        var urlBytes = Encoding.UTF8.GetBytes(repoUrl);
+        var urlHash = string.Concat(SHA256.HashData(urlBytes).Select(b => b.ToString("x2")));
+        var tempCacheDir = Path.Combine(Path.GetTempPath(), "heappe_scripts_cache_" + urlHash);
+
+        _logger.LogInformation($"Local cache directory for git repository: {tempCacheDir}");
+        Directory.CreateDirectory(tempCacheDir);
+
+        string gitDir = Path.Combine(tempCacheDir, ".git");
+        if (!Directory.Exists(gitDir))
+        {
+            if (Directory.EnumerateFileSystemEntries(tempCacheDir).Any())
+            {
+                Directory.Delete(tempCacheDir, true);
+                Directory.CreateDirectory(tempCacheDir);
+            }
+
+            _logger.LogInformation($"Cloning repository {repoUrl} (branch: {branch}) locally on the server...");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"clone --single-branch -b {branch} \"{repoUrl}\" .",
+                WorkingDirectory = tempCacheDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                throw new Exception("Failed to start git clone process.");
+            }
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0)
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                throw new Exception($"Failed to clone git repository on HEAppE server: {error}");
+            }
+        }
+        else
+        {
+            _logger.LogInformation($"Pulling latest changes for branch {branch} in local cache...");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"pull origin {branch}",
+                WorkingDirectory = tempCacheDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                throw new Exception("Failed to start git pull process.");
+            }
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0)
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                _logger.LogWarning($"Failed to pull git repository: {error}. Cleaning directory and re-cloning.");
+                Directory.Delete(tempCacheDir, true);
+                return await CloneOrUpdateRepositoryLocallyAsync(repoUrl, branch);
+            }
+        }
+
+        return tempCacheDir;
+    }
+
+    private string FindKeyScriptsDirectory(string rootPath)
+    {
+        var searchPath = Path.Combine(rootPath, "HPC", ".key_scripts");
+        if (Directory.Exists(searchPath))
+        {
+            return searchPath;
+        }
+
+        searchPath = Path.Combine(rootPath, ".key_scripts");
+        if (Directory.Exists(searchPath))
+        {
+            return searchPath;
+        }
+
+        var directories = Directory.GetDirectories(rootPath, ".key_scripts", SearchOption.AllDirectories);
+        if (directories.Length > 0)
+        {
+            return directories[0];
+        }
+
+        return null;
+    }
+
+    private async Task UploadFileAsync(string firecrestUrl, string token, string clusterName, string remoteDirectoryPath, string fileName, byte[] fileContent)
+    {
+        var endpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/upload?path={Uri.EscapeDataString(remoteDirectoryPath)}";
+        _logger.LogDebug($"[Firecrest Upload] POST {endpoint} for file {fileName}");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var content = new MultipartFormDataContent();
+        var fileContentContent = new ByteArrayContent(fileContent);
+        fileContentContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+        content.Add(fileContentContent, "file", fileName);
+
+        request.Content = content;
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+            throw new FirecrestApiException($"Failed to upload file {fileName} to {remoteDirectoryPath}. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
+        }
+    }
+
+    private async Task ChmodAsync(string firecrestUrl, string token, string clusterName, string remoteFilePath, string mode)
+    {
+        var endpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/chmod";
+        _logger.LogDebug($"[Firecrest Chmod] PUT {endpoint} for file {remoteFilePath}");
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var chmodPayload = new
+        {
+            sourcePath = remoteFilePath,
+            mode = mode
+        };
+        var jsonContent = JsonSerializer.Serialize(chmodPayload);
+        request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+            throw new FirecrestApiException($"Failed to change permissions for {remoteFilePath}. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
+        }
     }
 
     #endregion
@@ -585,9 +730,90 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        string account, bool isServiceAccount) => await _commands.InitializeClusterScriptDirectoryAsync(
-            schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,
-            localBasepath, account, isServiceAccount);
+        string account, bool isServiceAccount)
+    {
+        if (isServiceAccount) return true;
+
+        if (string.IsNullOrEmpty(ClientId) || string.IsNullOrEmpty(ClientSecret))
+        {
+            _logger.LogWarning("Firecrest client credentials not set. Bypassing script initialization.");
+            return true;
+        }
+
+        try
+        {
+            var repoUrl = _scripts.ClusterScriptsRepository;
+            var branch = _scripts.ClusterScriptsRepositoryBranch;
+            if (string.IsNullOrEmpty(repoUrl))
+            {
+                _logger.LogWarning("ClusterScriptsRepository is not configured.");
+                return false;
+            }
+
+            // 1. Clone or pull repo locally on HEAppE server
+            var localRepoPath = await CloneOrUpdateRepositoryLocallyAsync(repoUrl, branch);
+
+            // 2. Locate .key_scripts folder
+            var localKeyScriptsPath = FindKeyScriptsDirectory(localRepoPath);
+            if (localKeyScriptsPath == null)
+            {
+                _logger.LogError($".key_scripts directory not found in the cloned repository: {localRepoPath}");
+                return false;
+            }
+
+            // 3. Obtain Firecrest URL and token
+            var token = await GetAuthTokenAsync();
+            var firecrestUrl = FirecRestUrl;
+            var clusterName = ClusterName ?? "Unknown";
+
+            // 4. Construct remote destination directory
+            var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+            var targetDir = $"{rootDir}/.key_scripts";
+
+            // 5. Create remote directory
+            var mkdirEndpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/mkdir";
+            var mkdirRequestBody = new { path = targetDir, p = true };
+            await CreateDirectoryAsync(mkdirEndpoint, token, targetDir, mkdirRequestBody);
+
+            // 6. Calculate placeholder replacement
+            var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
+
+            // 7. For each file in the local .key_scripts directory:
+            var files = Directory.GetFiles(localKeyScriptsPath);
+            foreach (var filePath in files)
+            {
+                var fileName = Path.GetFileName(filePath);
+                byte[] fileContent;
+
+                if (fileName == "remote-cmd3.sh")
+                {
+                    var fileText = await File.ReadAllTextAsync(filePath);
+                    fileText = fileText.Replace("TODO", sedReplacement);
+                    fileContent = Encoding.UTF8.GetBytes(fileText);
+                }
+                else
+                {
+                    fileContent = await File.ReadAllBytesAsync(filePath);
+                }
+
+                var remoteFilePath = $"{targetDir}/{fileName}";
+
+                // Upload file
+                await UploadFileAsync(firecrestUrl, token, clusterName, targetDir, fileName, fileContent);
+
+                // Set file permission to executable (chmod 755)
+                await ChmodAsync(firecrestUrl, token, clusterName, remoteFilePath, "755");
+            }
+
+            _logger.LogInformation($"Successfully initialized scripts directory for cluster {clusterName} via Firecrest.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to initialize cluster scripts directory for cluster {ClusterName ?? "Unknown"}: {ex.Message}");
+            return false;
+        }
+    }
 
     public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
         await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
