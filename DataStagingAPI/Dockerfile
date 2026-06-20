@@ -36,5 +36,29 @@ RUN dotnet publish "DataStagingAPI.csproj" -c Release -o /app/publish /p:UseAppH
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+RUN apt-get update 
+RUN apt-get install -y --no-install-recommends curl 
+
+# install OpenTelemetry .NET Automatic Instrumentation
+ARG OTEL_VERSION=1.14.1
+ENV OTEL_DOTNET_AUTO_HOME=/otel-dotnet-auto
+ADD https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/download/v${OTEL_VERSION}/otel-dotnet-auto-install.sh otel-dotnet-auto-install.sh
+RUN apt-get update && apt-get install -y unzip && \
+    sh otel-dotnet-auto-install.sh
+RUN chmod +x /otel-dotnet-auto/instrument.sh
+
+# set OTEL variables
+ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+ENV OTEL_TRACES_EXPORTER=otlp
+# enable Head Sampling on trace signals
+#ENV OTEL_TRACES_SAMPLER=traceidratio
+#ENV OTEL_TRACES_SAMPLER_ARG=0.5
+
+# disable metrics
+ENV OTEL_DOTNET_AUTO_METRICS_INSTRUMENTATION_ENABLED=false
+# disable logs
+ENV OTEL_DOTNET_AUTO_LOGS_INSTRUMENTATION_ENABLED=false
+
 # nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
-ENTRYPOINT ["dotnet", "DataStagingAPI.dll"]
+ENTRYPOINT ["/otel-dotnet-auto/instrument.sh", "dotnet", "DataStagingAPI.dll"]
