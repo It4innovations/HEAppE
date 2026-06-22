@@ -259,7 +259,7 @@ public class Startup
             .AddCheck<VaultHealthCheck>("vault");
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         LogicFactory.ServiceProvider = app.ApplicationServices;
         var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
@@ -267,14 +267,13 @@ public class Startup
         GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;
         GlobalContext.Properties["ip"] = DeploymentInformationsConfiguration.DeployedIPAddress;
 
-        if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
-            loggerFactory.AddLog4Net("Logging/log4netDocker.config");
-        else
-            loggerFactory.AddLog4Net("Logging/log4net.config");
-
+        // log4net is already added in Program.Main before InitializeDatabase to capture seeding logs.
+        // Calling AddLog4Net again here would register a duplicate provider and cause every log
+        // message to appear twice. We only update the log level and DB connection string.
         ConfigureLog4NetLevel();
 
         AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
+
 
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
