@@ -41,12 +41,6 @@ public class MiddlewareContext : DbContext
 
     public static void InitializeDatabase(ILogger logger)
     {
-        if (DatabaseMigrationSettings.DisableSeedingAndMigration)
-        {
-            _isMigrated = true;
-            return;
-        }
-
         if (logger.GetType().Name.Contains("NullLogger") || Environment.GetCommandLineArgs().Any(a => a.Contains("ef"))) return;
 
         if (!string.IsNullOrEmpty(MiddlewareContextSettings.ConnectionString) && !_isMigrated)
