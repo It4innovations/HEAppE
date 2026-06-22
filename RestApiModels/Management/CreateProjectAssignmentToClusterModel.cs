@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -48,5 +48,5 @@ public class CreateProjectAssignmentToClusterModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "PreferredAuthType", IsRequired = false)]
     [Description("Preferred auth type")]
-    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.PrivateKey;
 }

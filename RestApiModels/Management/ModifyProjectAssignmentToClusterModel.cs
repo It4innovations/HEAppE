@@ -46,7 +46,7 @@ public class ModifyProjectAssignmentToClusterModel : SessionCodeModel
     /// <summary>
     /// Preferred auth type
     /// </summary>
-    [DataMember(Name = "PreferredAuthType", IsRequired = false)]
+    [DataMember(Name = "PreferredAuthType", IsRequired = true)]
     [Description("Preferred auth type")]
-    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } = ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+    public ClusterAuthenticationCredentialsAuthType PreferredAuthType { get; set; } 
 }
