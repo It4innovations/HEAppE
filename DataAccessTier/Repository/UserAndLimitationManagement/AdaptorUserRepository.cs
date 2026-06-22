@@ -94,7 +94,10 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByNameIgnoreQueryFilters(string username)
     {
         return _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Username == username);
     }
@@ -102,7 +105,10 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public async Task<AdaptorUser> GetByNameIgnoreQueryFiltersAsync(string username)
     {
         return await _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefaultAsync(w => w.Username == username);
     }
@@ -110,7 +116,10 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByEmailIgnoreQueryFilters(string email)
     {
         return _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Email == email);
     }
@@ -118,7 +127,10 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public async Task<AdaptorUser> GetByEmailIgnoreQueryFiltersAsync(string email)
     {
         return await _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefaultAsync(w => w.Email == email);
     }
