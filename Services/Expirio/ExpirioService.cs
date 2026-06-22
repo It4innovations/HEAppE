@@ -208,38 +208,34 @@ public class ExpirioService : IExpirioService
 
             using var doc = JsonDocument.Parse(content);
 
+            JsonElement targetElement = doc.RootElement;
+            if (doc.RootElement.TryGetProperty("metadata", out var metadataProp))
+            {
+                targetElement = metadataProp;
+            }
+
             var clientIdKey = customConfiguration.TryGetValue("ExpirioClientIdKey", out var cIdKey) ? cIdKey : "client_id";
             var clientSecretKey = customConfiguration.TryGetValue("ExpirioClientSecretKey", out var cSecKey) ? cSecKey : "client_secret";
-            var urlKey = customConfiguration.TryGetValue("ExpirioUrlKey", out var uKey) ? uKey : null;
-            var idpUrlKey = customConfiguration.TryGetValue("ExpirioIdpUrlKey", out var iKey) ? iKey : null;
 
-            string? clientId = null, clientSecret = null, url = null, idpUrl = null;
+            string? clientId = null, clientSecret = null;
 
             // extract properties
-            if (doc.RootElement.TryGetProperty(clientIdKey, out var contentProp))
+            if (targetElement.TryGetProperty(clientIdKey, out var contentProp))
+                clientId = contentProp.GetString();
+            else if (targetElement.TryGetProperty("clientId", out contentProp))
                 clientId = contentProp.GetString();
 
-            if (doc.RootElement.TryGetProperty(clientSecretKey, out contentProp))
+            if (targetElement.TryGetProperty(clientSecretKey, out contentProp))
                 clientSecret = contentProp.GetString();
-
-            if (!String.IsNullOrEmpty(urlKey) && doc.RootElement.TryGetProperty(urlKey, out contentProp))
-                url = contentProp.GetString();
-
-            if (!String.IsNullOrEmpty(idpUrlKey) && doc.RootElement.TryGetProperty(idpUrlKey, out contentProp))
-                idpUrl = contentProp.GetString();
+            else if (targetElement.TryGetProperty("clientSecret", out contentProp))
+                clientSecret = contentProp.GetString();
 
             // add them to result if they exist
             if (!String.IsNullOrEmpty(clientId))
-                result.Add("f7t_client_id", clientId);
+                result.Add("clientId", clientId);
 
             if (!String.IsNullOrEmpty(clientSecret))
-                result.Add("f7t_client_secret", clientSecret);
-
-            if (!String.IsNullOrEmpty(url))
-                result.Add("f7t_url", url);
-
-            if (!String.IsNullOrEmpty(idpUrl))
-                result.Add("f7t_token_url", idpUrl);
+                result.Add("clientSecret", clientSecret);
 
             return result;
         }

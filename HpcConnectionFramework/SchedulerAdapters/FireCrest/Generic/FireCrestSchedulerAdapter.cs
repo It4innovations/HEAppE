@@ -22,6 +22,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using HEAppE.Services.FirecRest;
 using HEAppE.Utils;
 
 
@@ -36,6 +37,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     protected ICommands _commands;
     protected ILogger _logger;
     protected readonly IHttpClientFactory _httpClientFactory;
+    protected readonly IFirecRestTokenService _tokenService;
     protected HttpClient _httpClient => _httpClientFactory.CreateClient("FirecREST");
 
     protected string _firecRestUrl;
@@ -54,12 +56,13 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     #region Constructors
 
-    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor, IHttpClientFactory httpClientFactory, ILogger logger)
+    public FirecRestSchedulerAdapter(ISchedulerDataConvertor convertor, IHttpClientFactory httpClientFactory, IFirecRestTokenService tokenService, ILogger logger)
     {
         _logger = logger;
         _convertor = convertor;
         _commands = new FirecRestCommands();
         _httpClientFactory = httpClientFactory;
+        _tokenService = tokenService;
     }
 
     #endregion
@@ -70,32 +73,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            var tokenRequestContent = new FormUrlEncodedContent(new[]
-            {
-                new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("client_id", ClientId),
-                new KeyValuePair<string, string>("client_secret", ClientSecret)
-            });
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, FirecRestIdpUrl);
-            request.Content = tokenRequestContent;
-
-            var tokenResponse = await _httpClient.SendAsync(request);
-            if (!tokenResponse.IsSuccessStatusCode)
-            {
-                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-                throw new SshCommandException("Failed to obtain OAuth2 token for FirecRest API", errorContent);
-            }
-
-            var responseContent = await tokenResponse.Content.ReadAsStringAsync();
-            var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
-
-            if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
-            {
-                return accessTokenElement.GetString();
-            }
-
-            throw new SshCommandException("Invalid OAuth2 response", "Access token not found in response");
+            return await _tokenService.GetTokenAsync(ClientId, ClientSecret, FirecRestIdpUrl);
         }
         catch (Exception ex)
         {

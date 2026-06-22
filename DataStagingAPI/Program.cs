@@ -28,6 +28,7 @@ using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.UserOrg;
+using HEAppE.Services.FirecRest;
 using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
@@ -140,6 +141,7 @@ var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
 
 builder.Services.AddScoped<IExpirioService, ExpirioService>();
+builder.Services.AddScoped<IFirecRestTokenService, FirecRestTokenService>();
 
 builder.Services.AddHttpClient("ExpirioClient", conf =>
 {
@@ -309,6 +311,7 @@ if (!string.IsNullOrEmpty(pathBase))
 app.UseCors("HEAppEDefaultOrigins");
 
 app.UseRequestLocalization();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseStatusCodePages();

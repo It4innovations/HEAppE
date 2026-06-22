@@ -30,27 +30,6 @@ public class LexisTokenExchangeMiddleware
     {
         ApplyRequestSizeLimit(context);
 
-        bool isDebugEnabled = _logger.IsEnabled(LogLevel.Debug);
-        if (isDebugEnabled)
-        {
-            context.Request.EnableBuffering();
-            try
-            {
-                using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
-                {
-                    var body = await reader.ReadToEndAsync();
-                    context.Request.Body.Position = 0;
-                    _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
-                }
-            }
-            catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogWarning("Client disconnected prematurely while sending request body.");
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return;
-            }
-        }
-
         bool isBearer = context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
                         authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
 
@@ -137,55 +116,7 @@ public class LexisTokenExchangeMiddleware
                 }
             }
         }
-
-        bool isStreamingEndpoint = context.Request.Path.Value
-            ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
-
-        if (isStreamingEndpoint || !isDebugEnabled)
-        {
-            await _next(context);
-            return;
-        }
-
-        var originalBodyStream = context.Response.Body;
-        using var responseBody = new MemoryStream();
-        context.Response.Body = responseBody;
-
-        try
-        {
-            await _next(context);
-        }
-        catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Client disconnected prematurely during request processing.");
-            context.Response.Body = originalBodyStream;
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-        catch (Exception)
-        {
-            context.Response.Body = originalBodyStream;
-            throw;
-        }
-
-        responseBody.Seek(0, SeekOrigin.Begin);
-
-        try
-        {
-            using (var reader = new StreamReader(responseBody, leaveOpen: true))
-            {
-                var responseText = await reader.ReadToEndAsync();
-                _logger.LogDebug(
-                    $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to read response body log context, connection might be aborted.");
-        }
-
-        responseBody.Seek(0, SeekOrigin.Begin);
-        await responseBody.CopyToAsync(originalBodyStream);
+        await _next(context);
     }
 
     private static void ApplyRequestSizeLimit(HttpContext context)

@@ -60,6 +60,7 @@ using HEAppE.Services.Expirio.Configuration;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.UserOrg;
+using HEAppE.Services.FirecRest;
 
 namespace HEAppE.RestApi;
 
@@ -151,6 +152,7 @@ public class Startup
         });
 
         services.AddSingleton<IExpirioService, ExpirioService>();
+        services.AddSingleton<IFirecRestTokenService, FirecRestTokenService>();
 
         services.AddHttpClient("ExpirioClient", conf =>
         {
@@ -278,6 +280,7 @@ public class Startup
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
         app.UseRequestLocalization();
+        app.UseMiddleware<RequestResponseLoggingMiddleware>();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseIpRateLimiting();
         app.UseStatusCodePages();

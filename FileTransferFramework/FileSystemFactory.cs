@@ -14,6 +14,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.FirecRest;
 
 namespace HEAppE.FileTransferFramework;
 
@@ -28,6 +29,7 @@ public abstract class FileSystemFactory
         _logger = loggerFactory.CreateLogger("HEAppE.FileTransferFramework.FileSystemFactory");
         _expirio = (IExpirioService)serviceScope.ServiceProvider.GetService(typeof(IExpirioService));
         _httpClientFactory = (IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(IHttpClientFactory));
+        _tokenService = (IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(IFirecRestTokenService));
     }
 
     #endregion
@@ -37,6 +39,7 @@ public abstract class FileSystemFactory
     protected static readonly ILogger _logger;
     protected static readonly IExpirioService _expirio;
     protected static readonly IHttpClientFactory _httpClientFactory;
+    protected static readonly IFirecRestTokenService _tokenService;
     private readonly ConcurrentDictionary<long, IConnectionPool> _schedulerConnPoolSingletons = new();
     private static FileSystemFactory _windowsSharedFactorySingleton;
     private static FileSystemFactory _sftpFactorySingleton;

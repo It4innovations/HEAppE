@@ -10,6 +10,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionA
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.FirecRest;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SshCaAPI;
@@ -58,6 +59,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// </summary>
     private SchedulerType _schedulerType;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IFirecRestTokenService _tokenService;
 
     #endregion
 
@@ -68,6 +70,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         using var serviceScope = ServiceActivator.GetScope();
         _schedulerType = schedulerType;
         _httpClientFactory = (IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(IHttpClientFactory));
+        _tokenService = (IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(IFirecRestTokenService));
     }
 
     /// <summary>
@@ -105,16 +108,10 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         if (options != null)
         {
             // get clientId and clientSecret for use with FirecRest's keycloak
-            if (options.TryGetValue("f7t_client_id", out value))
+            if (options.TryGetValue("clientId", out value))
                 clientId = value;
-            if (options.TryGetValue("f7t_client_secret", out value))
+            if (options.TryGetValue("clientSecret", out value))
                 clientSecret = value;
-
-            // it is still possible to override url and idpUrl if enabled by metadata
-            if (options.TryGetValue("f7t_url", out value))
-                url = value;
-            if (options.TryGetValue("f7t_token_url", out value))
-                idpUrl = value;
         }
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
@@ -166,7 +163,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <returns>FirecRest scheduler adapter</returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), _httpClientFactory, logger);
+        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), _httpClientFactory, _tokenService, logger);
     }
 
     /// <summary>

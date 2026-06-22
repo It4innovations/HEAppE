@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
@@ -16,6 +16,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ExternalAuthentication\ExternalAuthentication.csproj" />
+      <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     </ItemGroup>
 
 </Project>

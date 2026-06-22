@@ -22,7 +22,7 @@ public class FirecRestFileSystemFactory : FileSystemFactory
         {
             if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out fileManager))
             {
-                fileManager = new FirecRestFileSystemManager(logger, configuration, this, _httpClientFactory, _expirio);
+                fileManager = new FirecRestFileSystemManager(logger, configuration, this, _httpClientFactory, _expirio, _tokenService);
                 _managerSingletons.TryAdd(configuration.ServerHostname, fileManager);
             }
             return fileManager;

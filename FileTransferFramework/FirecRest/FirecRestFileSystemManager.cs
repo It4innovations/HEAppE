@@ -13,6 +13,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.FirecRest;
 using HEAppE.Utils;
 
 namespace HEAppE.FileTransferFramework.FirecRest;
@@ -21,14 +22,16 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IExpirioService _expirio;
+    private readonly IFirecRestTokenService _tokenService;
     private HttpClient _httpClient => _httpClientFactory.CreateClient("FirecREST");
 
     public FirecRestFileSystemManager(ILogger logger, FileTransferMethod configuration,
-        FileSystemFactory synchronizerFactory, IHttpClientFactory httpClientFactory, IExpirioService expirio)
+        FileSystemFactory synchronizerFactory, IHttpClientFactory httpClientFactory, IExpirioService expirio, IFirecRestTokenService tokenService)
         : base(logger, configuration, synchronizerFactory)
     {
         _httpClientFactory = httpClientFactory;
         _expirio = expirio;
+        _tokenService = tokenService;
     }
 
     private async Task<(string Url, string Token)> GetFirecrestUrlAndTokenAsync(Cluster cluster, string userToken)
@@ -48,14 +51,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         var options = await _expirio.ExchangeFirecrestCredentialsAsync(userToken, cluster.CustomConfiguration, _logger);
         if (options != null)
         {
-            if (options.TryGetValue("f7t_client_id", out var value))
+            if (options.TryGetValue("clientId", out var value))
                 clientId = value;
-            if (options.TryGetValue("f7t_client_secret", out value))
+            if (options.TryGetValue("clientSecret", out value))
                 clientSecret = value;
-            if (options.TryGetValue("f7t_url", out value))
-                url = value;
-            if (options.TryGetValue("f7t_token_url", out value))
-                idpUrl = value;
         }
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
@@ -66,52 +65,8 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             };
         }
 
-        var token = await GetAuthTokenAsync(clientId, clientSecret, idpUrl);
+        var token = await _tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
         return (url.TrimEnd('/'), token);
-    }
-
-    private async Task<string> GetAuthTokenAsync(string clientId, string clientSecret, string firecRestIdpUrl)
-    {
-        try
-        {
-            var tokenRequestContent = new FormUrlEncodedContent(new[]
-            {
-                new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("client_id", clientId),
-                new KeyValuePair<string, string>("client_secret", clientSecret)
-            });
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, firecRestIdpUrl);
-            request.Content = tokenRequestContent;
-
-            var tokenResponse = await _httpClient.SendAsync(request);
-            if (!tokenResponse.IsSuccessStatusCode)
-            {
-                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-                throw new FirecRestException($"Failed to obtain OAuth2 token for FirecRest API. Status: {tokenResponse.StatusCode}. Response: {errorContent}")
-                {
-                    CommandError = "Token request failed"
-                };
-            }
-
-            var responseContent = await tokenResponse.Content.ReadAsStringAsync();
-            var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
-
-            if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
-            {
-                return accessTokenElement.GetString();
-            }
-
-            throw new FirecRestException("Invalid OAuth2 response: access_token not found")
-            {
-                CommandError = "Missing access token"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed to retrieve FirecRest authentication token: {ex.Message}");
-            throw;
-        }
     }
 
     private async Task<ICollection<FileInformation>> ListChangedFilesInDirectoryAsync(

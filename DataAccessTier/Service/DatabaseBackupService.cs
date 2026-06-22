@@ -64,7 +64,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
+#pragma warning disable EF1002 // Database name cannot be parameterized
             await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+#pragma warning restore EF1002
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
@@ -161,7 +163,9 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
+#pragma warning disable EF1002 // Database name cannot be parameterized
             _context.Database.ExecuteSqlRaw($"BACKUP LOG [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+#pragma warning restore EF1002
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))

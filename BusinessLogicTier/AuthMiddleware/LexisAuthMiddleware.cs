@@ -28,7 +28,6 @@ public class LexisAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService, IExpirioService expirioService)
     {
-        _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
         // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
