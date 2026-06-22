@@ -5,9 +5,11 @@ WORKDIR /app
 RUN mkdir /sftp
 RUN chmod 700 /sftp
 
-RUN apt-get update 
-RUN apt-get install -y --no-install-recommends curl 
-RUN apt-get install -y --no-install-recommends openssh-client
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    openssh-client \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 80
 
