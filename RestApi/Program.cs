@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using HEAppE.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi;
 
@@ -22,6 +23,23 @@ public class Program
     public static void Main(string[] args)
     {
         var host = CreateWebHostBuilder(args).Build();
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
+            try
+            {
+                logger.LogInformation("Checking database compatibility, migrations and seeding...");
+                HEAppE.DataAccessTier.MiddlewareContext.InitializeDatabase(logger);
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "An error occurred during database initialization.");
+                throw;
+            }
+        }
+
         host.Run();
     }
 

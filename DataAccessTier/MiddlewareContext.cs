@@ -37,7 +37,10 @@ public class MiddlewareContext : DbContext
     public MiddlewareContext(ILogger logger)
     {
         _logger = logger;
+    }
 
+    public static void InitializeDatabase(ILogger logger)
+    {
         if (DatabaseMigrationSettings.DisableSeedingAndMigration)
         {
             _isMigrated = true;
@@ -55,73 +58,76 @@ public class MiddlewareContext : DbContext
                         var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
                         if (localRunEnv != "LocalWindows")
                         {
-                            if (!Database.CanConnect())
+                            using (var context = new MiddlewareContext(logger))
                             {
-                                _logger.LogInformation("Starting migration and seeding into the new database.");
-                                Database.Migrate();
-                                try
+                                if (!context.Database.CanConnect())
                                 {
-                                    var dbName = Database.GetDbConnection().Database;
-                                    if (!string.IsNullOrEmpty(dbName))
+                                    logger.LogInformation("Starting migration and seeding into the new database.");
+                                    context.Database.Migrate();
+                                    try
                                     {
-                                        var builder = new SqlCommandBuilder();
-                                        var safeDbName = builder.QuoteIdentifier(dbName);
-#pragma warning disable EF1002
-                                        // nosemgrep: security_code_scan.SCS0002-1
-                                        Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
-#pragma warning restore EF1002
-                                        _logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
-                                }
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
-                            }
-                            else
-                            {
-                                var appliedMigrations = Database.GetAppliedMigrations().ToList();
-                                var definedMigrations = Database.GetMigrations().ToList();
-                                var lastApplied = appliedMigrations.LastOrDefault();
-                                var lastDefined = definedMigrations.LastOrDefault();
-                                var appliedCount = appliedMigrations.Count;
-                                var definedCount = definedMigrations.Count;
-
-                                _logger.LogInformation($"Database status - Applied: {appliedCount} (last: {lastApplied}), Defined: {definedCount} (last: {lastDefined})");
-
-                                if (appliedCount == 0 || lastApplied != lastDefined || appliedCount != definedCount)
-                                {
-                                    if (DatabaseMigrationSettings.AutoMigrateDatabase)
-                                    {
-                                        _logger.LogInformation("Applying migrations to the database.");
-                                        Database.Migrate();
-
-                                        appliedMigrations = Database.GetAppliedMigrations().ToList();
-                                        lastApplied = appliedMigrations.LastOrDefault();
-                                        appliedCount = appliedMigrations.Count;
-
-                                        if (appliedCount != definedCount || lastApplied != lastDefined)
+                                        var dbName = context.Database.GetDbConnection().Database;
+                                        if (!string.IsNullOrEmpty(dbName))
                                         {
-                                            var extraInDb = appliedMigrations.Except(definedMigrations).ToList();
-                                            var missingInDb = definedMigrations.Except(appliedMigrations).ToList();
-                                            _logger.LogWarning($"Migration count still mismatching after migrate: {appliedCount} applied vs {definedCount} defined. Last in DB: {lastApplied}, Last in code: {lastDefined}");
-                                            if (extraInDb.Any()) _logger.LogWarning($"Extra in DB: {string.Join(", ", extraInDb)}");
-                                            if (missingInDb.Any()) _logger.LogWarning($"Missing in DB: {string.Join(", ", missingInDb)}");
+                                            var builder = new SqlCommandBuilder();
+                                            var safeDbName = builder.QuoteIdentifier(dbName);
+#pragma warning disable EF1002
+                                            // nosemgrep: security_code_scan.SCS0002-1
+                                            context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
+#pragma warning restore EF1002
+                                            logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
                                         }
-
-                                        _isMigrated = true;
                                     }
-                                    else if (lastApplied != lastDefined || appliedCount < definedCount)
+                                    catch (Exception ex)
                                     {
-                                        throw new DbContextException("MigrationMismatch");
+                                        logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
                                     }
+                                    context.EnsureDatabaseSeeded();
+                                    _isMigrated = true;
                                 }
+                                else
+                                {
+                                    var appliedMigrations = context.Database.GetAppliedMigrations().ToList();
+                                    var definedMigrations = context.Database.GetMigrations().ToList();
+                                    var lastApplied = appliedMigrations.LastOrDefault();
+                                    var lastDefined = definedMigrations.LastOrDefault();
+                                    var appliedCount = appliedMigrations.Count;
+                                    var definedCount = definedMigrations.Count;
 
-                                _logger.LogInformation("Application and database migrations are compatible. Seeding data...");
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
+                                    logger.LogInformation($"Database status - Applied: {appliedCount} (last: {lastApplied}), Defined: {definedCount} (last: {lastDefined})");
+
+                                    if (appliedCount == 0 || lastApplied != lastDefined || appliedCount != definedCount)
+                                    {
+                                        if (DatabaseMigrationSettings.AutoMigrateDatabase)
+                                        {
+                                            logger.LogInformation("Applying migrations to the database.");
+                                            context.Database.Migrate();
+
+                                            appliedMigrations = context.Database.GetAppliedMigrations().ToList();
+                                            lastApplied = appliedMigrations.LastOrDefault();
+                                            appliedCount = appliedMigrations.Count;
+
+                                            if (appliedCount != definedCount || lastApplied != lastDefined)
+                                            {
+                                                var extraInDb = appliedMigrations.Except(definedMigrations).ToList();
+                                                var missingInDb = definedMigrations.Except(appliedMigrations).ToList();
+                                                logger.LogWarning($"Migration count still mismatching after migrate: {appliedCount} applied vs {definedCount} defined. Last in DB: {lastApplied}, Last in code: {lastDefined}");
+                                                if (extraInDb.Any()) logger.LogWarning($"Extra in DB: {string.Join(", ", extraInDb)}");
+                                                if (missingInDb.Any()) logger.LogWarning($"Missing in DB: {string.Join(", ", missingInDb)}");
+                                            }
+
+                                            _isMigrated = true;
+                                        }
+                                        else if (lastApplied != lastDefined || appliedCount < definedCount)
+                                        {
+                                            throw new DbContextException("MigrationMismatch");
+                                        }
+                                    }
+
+                                    logger.LogInformation("Application and database migrations are compatible. Seeding data...");
+                                    context.EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
                             }
                         }
                         else
