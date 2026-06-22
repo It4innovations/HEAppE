@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
+using log4net;
+using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +29,18 @@ public class Program
         using (var scope = host.Services.CreateScope())
         {
             var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+
+            // Configure log4net early so that seeding logs are captured in the log output.
+            // Normally log4net is added in Startup.Configure(), which runs during host.Run() —
+            // too late to capture InitializeDatabase logs.
+            var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+            loggerFactory.AddLog4Net(localRunEnv == "Docker"
+                ? "Logging/log4netDocker.config"
+                : "Logging/log4net.config");
+
+            AdoNetAppenderHelper.SetConnectionString(
+                host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging"));
+
             var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
             try
             {
