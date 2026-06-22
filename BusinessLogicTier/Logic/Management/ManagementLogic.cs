@@ -1006,6 +1006,19 @@ public class ManagementLogic : IManagementLogic
             _logger.LogInformation($"AuthType not provided, using preferred type from cluster project: {authType}");
         }
 
+        // If the auth type is Unknown, map to FirecRestIdpViaExpirio if cluster is FirecREST
+        if (authType == ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            var hasFirecrest = _unitOfWork.ClusterProjectRepository.GetAll()
+                .Where(x => x.ProjectId == projectId && !x.IsDeleted && x.Cluster != null)
+                .Any(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm));
+            if (hasFirecrest)
+            {
+                authType = ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio;
+                _logger.LogInformation($"Cluster uses FirecREST scheduler. Mapping Unknown PreferredAuthType to: {authType}");
+            }
+        }
+
         // Resolve Username if not provided
         if (string.IsNullOrEmpty(username))
         {
@@ -1053,7 +1066,9 @@ public class ManagementLogic : IManagementLogic
 
         SecureShellKey secureShellKey = null;
         bool isGenerated = false;
-        if (authType != ClusterAuthenticationCredentialsAuthType.Kerberos &&
+        if (authType != ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio &&
+            authType != ClusterAuthenticationCredentialsAuthType.Unknown &&
+            authType != ClusterAuthenticationCredentialsAuthType.Kerberos &&
             authType != ClusterAuthenticationCredentialsAuthType.Password)
         {
             SSHGenerator sshGenerator = new(_logger);
@@ -3579,6 +3594,8 @@ public class ManagementLogic : IManagementLogic
         ClusterAuthenticationCredentials credentials = null;
         switch(authType)
         {
+            case ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio:
+            case ClusterAuthenticationCredentialsAuthType.Unknown:
             case ClusterAuthenticationCredentialsAuthType.Kerberos:
                 credentials = new()
                 {

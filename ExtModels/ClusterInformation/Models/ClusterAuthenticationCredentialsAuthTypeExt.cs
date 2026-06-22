@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace HEAppE.DomainObjects.ClusterInformation;
 
@@ -21,5 +21,6 @@ public enum ClusterAuthenticationCredentialsAuthTypeExt
     PrivateKeyInVaultAndInSshAgent = 10,
     SshCertificate = 11,
     SshCertificateViaProxy = 12,
-    Kerberos = 13
+    Kerberos = 13,
+    FirecRestIdpViaExpirio = 14
 }

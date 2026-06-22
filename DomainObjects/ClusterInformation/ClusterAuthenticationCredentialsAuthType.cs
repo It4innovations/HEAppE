@@ -1,7 +1,8 @@
-﻿namespace HEAppE.DomainObjects.ClusterInformation;
+namespace HEAppE.DomainObjects.ClusterInformation;
 
 public enum ClusterAuthenticationCredentialsAuthType
 {
+    Unknown = 0,
     Password = 1,
     PasswordInteractive = 2,
     PasswordAndPrivateKey = 3,
@@ -14,5 +15,6 @@ public enum ClusterAuthenticationCredentialsAuthType
     PrivateKeyInVaultAndInSshAgent = 10,
     SshCertificate = 11,
     SshCertificateViaProxy = 12,
-    Kerberos = 13
+    Kerberos = 13,
+    FirecRestIdpViaExpirio = 14
 }

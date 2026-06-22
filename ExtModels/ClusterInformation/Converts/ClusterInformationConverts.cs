@@ -437,6 +437,10 @@ public static class ClusterInformationConverts
                 ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate,
             ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy =>
                 ClusterAuthenticationCredentialsAuthTypeExt.SshCertificateViaProxy,
+            ClusterAuthenticationCredentialsAuthType.Kerberos =>
+                ClusterAuthenticationCredentialsAuthTypeExt.Kerberos,
+            ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio =>
+                ClusterAuthenticationCredentialsAuthTypeExt.FirecRestIdpViaExpirio,
             _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
         };
     }

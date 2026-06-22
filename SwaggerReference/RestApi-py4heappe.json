@@ -13874,6 +13874,7 @@
       },
       "ClusterAuthenticationCredentialsAuthType": {
         "enum": [
+          0,
           1,
           2,
           3,
@@ -13886,7 +13887,8 @@
           10,
           11,
           12,
-          13
+          13,
+          14
         ],
         "type": "integer",
         "format": "int32"
@@ -13906,7 +13908,8 @@
           10,
           11,
           12,
-          13
+          13,
+          14
         ],
         "type": "integer",
         "format": "int32"

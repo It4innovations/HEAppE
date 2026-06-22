@@ -11,6 +11,11 @@ public static class ClusterAuthenticationCredentialsUtils
     public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(
         ClusterAuthenticationCredentials credential, Cluster cluster)
     {
+        if (credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            return ClusterAuthenticationCredentialsAuthType.Unknown;
+        }
+
         if (cluster.ProxyConnection is null)
         {
             //skip if type is >= 13 - other than classic 
