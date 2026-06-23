@@ -379,19 +379,92 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             }
         }
         
-        // 2. Kerberos enriched username resolution
+        // 2. Kerberos enriched username resolution or Firecrest whoami resolution
         if (string.IsNullOrEmpty(username))
         {
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
-            if (!string.IsNullOrEmpty(token))
+            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.GetAll()
+                .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
+                .FirstOrDefault(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm)) : null;
+
+            if (firecrestClusterProject == null)
             {
-                try
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+                if (!string.IsNullOrEmpty(token))
                 {
-                    username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                    try
+                    {
+                        username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                    }
                 }
-                catch (Exception ex)
+            }
+            else
+            {
+                _logger.LogInformation("Attempting FirecREST whoami username resolution.");
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+                if (!string.IsNullOrEmpty(token))
                 {
-                    _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                    try
+                    {
+                        var cluster = firecrestClusterProject.Cluster;
+                        var customConfig = cluster.CustomConfiguration ?? new Dictionary<string, string>();
+                        var credentials = await _expirioService.ExchangeFirecrestCredentialsAsync(token, customConfig, _logger);
+                        if (credentials != null && 
+                            credentials.TryGetValue("clientId", out var clientIdObj) && 
+                            credentials.TryGetValue("clientSecret", out var clientSecretObj))
+                        {
+                            string clientId = clientIdObj.ToString();
+                            string clientSecret = clientSecretObj.ToString();
+
+                            string idpUrl = "";
+                            if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
+                            {
+                                idpUrl = customIdpUrl;
+                            }
+
+                            using var serviceScope = HEAppE.FileTransferFramework.ServiceActivator.GetScope();
+                            var tokenService = (HEAppE.Services.FirecRest.IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(HEAppE.Services.FirecRest.IFirecRestTokenService));
+                            var httpClientFactory = (System.Net.Http.IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(System.Net.Http.IHttpClientFactory));
+
+                            if (tokenService != null && httpClientFactory != null)
+                            {
+                                var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
+                                string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
+                                string firecrestUrl = $"{protocol}://{cluster.MasterNodeName}";
+                                var whoamiUrl = $"{firecrestUrl}/utilities/whoami";
+
+                                using var whoamiRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, whoamiUrl);
+                                whoamiRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
+                                whoamiRequest.Headers.Add("X-Machine-Name", cluster.Name);
+
+                                var httpClient = httpClientFactory.CreateClient("");
+                                using var whoamiResponse = await httpClient.SendAsync(whoamiRequest);
+                                if (whoamiResponse.IsSuccessStatusCode)
+                                {
+                                    var whoamiContent = await whoamiResponse.Content.ReadAsStringAsync();
+                                    _logger.LogDebug($"[Firecrest whoami Response] Success. Content: {whoamiContent}");
+                                    
+                                    using var doc = System.Text.Json.JsonDocument.Parse(whoamiContent);
+                                    if (doc.RootElement.TryGetProperty("username", out var usernameProp) && usernameProp.ValueKind == System.Text.Json.JsonValueKind.String)
+                                    {
+                                        username = usernameProp.GetString();
+                                    }
+                                }
+                                else
+                                {
+                                    var err = await whoamiResponse.Content.ReadAsStringAsync();
+                                    _logger.LogWarning($"[Firecrest whoami] Failed with status {whoamiResponse.StatusCode}: {err}");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "FirecREST whoami username resolution failed.");
+                    }
                 }
             }
         }

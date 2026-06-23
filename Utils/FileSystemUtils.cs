@@ -15,23 +15,34 @@ public class FileSystemUtils
 
     public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
+        var clusterUser = jobSpecification.ClusterUser.Username;
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.ScratchStoragePath;
-        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+            ?.ScratchStoragePath
+            ?.Replace("$USER", clusterUser)
+            ?.Replace("${USER}", clusterUser)
+            ?.Replace("$HOME", $"/users/{clusterUser}");
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
 
     public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
+        var clusterUser = jobSpecification.ClusterUser.Username;
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.ProjectStoragePath;
+            ?.ProjectStoragePath
+            ?.Replace("$USER", clusterUser)
+            ?.Replace("${USER}", clusterUser)
+            ?.Replace("$HOME", $"/users/{clusterUser}");
         if (string.IsNullOrEmpty(basePath))
         {
             basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-                ?.ScratchStoragePath;
+                ?.ScratchStoragePath
+                ?.Replace("$USER", clusterUser)
+                ?.Replace("${USER}", clusterUser)
+                ?.Replace("$HOME", $"/users/{clusterUser}");
         }
-        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
