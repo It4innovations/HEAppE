@@ -133,6 +133,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
         var response = await _httpClient.SendAsync(request);
         var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug($"[CreateDirectory Response] Status: {response.StatusCode}, Content: {responseContent}");
 
         if (response.IsSuccessStatusCode)
         {
@@ -344,9 +345,10 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         request.Content = content;
 
         var response = await _httpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug($"[Firecrest Upload Response] Status: {response.StatusCode}, Content: {responseContent}");
         if (!response.IsSuccessStatusCode)
         {
-            var responseContent = await response.Content.ReadAsStringAsync();
             throw new FirecrestApiException($"Failed to upload file {fileName} to {remoteDirectoryPath}. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
     }
@@ -368,9 +370,10 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
         var response = await _httpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug($"[Firecrest Chmod Response] Status: {response.StatusCode}, Content: {responseContent}");
         if (!response.IsSuccessStatusCode)
         {
-            var responseContent = await response.Content.ReadAsStringAsync();
             throw new FirecrestApiException($"Failed to change permissions for {remoteFilePath}. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
     }
@@ -426,6 +429,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                     var submitResponse = await _httpClient.SendAsync(submitRequest);
 
                     var submitResponseContent = await submitResponse.Content.ReadAsStringAsync();
+                    _logger.LogDebug($"[SubmitJob Response] Status: {submitResponse.StatusCode}, Content: {submitResponseContent}");
 
                     if (!submitResponse.IsSuccessStatusCode)
                     {
@@ -530,6 +534,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
                 var response = await _httpClient.SendAsync(request);
                 var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug($"[GetActualTasksInfo Response] JobId: {task.ScheduledJobId}, Status: {response.StatusCode}, Content: {responseContent}");
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogDebug($"[GetActualTasksInfo] Parsing response for Job {task.ScheduledJobId}...");
@@ -689,11 +694,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await _httpClient.SendAsync(request);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug($"[DeleteJobDirectory Response] Job ID {jobInfo.Id}, Status: {response.StatusCode}, Content: {responseContent}");
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
-                    $"Failed to delete job directory for Job ID {jobInfo.Id}. Status: {response.StatusCode}. Response: {errorContent}");
+                    $"Failed to delete job directory for Job ID {jobInfo.Id}. Status: {response.StatusCode}. Response: {responseContent}");
                 return false;
             }
             else

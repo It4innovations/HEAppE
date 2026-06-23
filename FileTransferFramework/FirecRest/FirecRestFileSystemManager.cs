@@ -82,6 +82,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
         var response = await _httpClient.SendAsync(request);
         var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug($"[FirecRest LS Response] Status: {response.StatusCode}, Content: {responseContent}");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -165,6 +166,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _httpClient.SendAsync(request);
+        _logger.LogDebug($"[FirecRest View Response] Status: {response.StatusCode}");
         if (!response.IsSuccessStatusCode)
         {
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -189,9 +191,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _httpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug($"[FirecRest RM Response] Status: {response.StatusCode}, Content: {responseContent}");
         if (!response.IsSuccessStatusCode)
         {
-            var responseContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning($"Failed to delete session directory {remotePathToDelete} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
         }
     }
@@ -243,9 +246,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             request.Content = content;
 
             var response = await _httpClient.SendAsync(request);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug($"[FirecRest Upload Response] Status: {response.StatusCode}, Content: {responseContent}");
             if (!response.IsSuccessStatusCode)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Failed to upload file {absoluteFilePath} to cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
                 throw new FirecrestApiException($"Failed to upload file. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
             }
@@ -287,9 +291,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             request.Content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
             var response = await _httpClient.SendAsync(request);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug($"[FirecRest Chmod Response] Status: {response.StatusCode}, Content: {responseContent}");
             if (!response.IsSuccessStatusCode)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Failed to change permissions for {absoluteFilePath} to {mode} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
                 throw new FirecrestApiException($"Failed to change permissions. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
             }
