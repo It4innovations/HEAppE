@@ -92,9 +92,6 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     private string ExpandRemotePath(string path, string username)
     {
-        if (!path.StartsWith("~"))
-            return path;
-
         string homeDirTemplate = "/users/{username}";
         if (CustomConfiguration != null && CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
         {
@@ -106,9 +103,22 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             .Replace("{USER}", username)
             .Replace("$USER", username);
 
-        var expanded = homeDir + path.Substring(1); // replace leading ~ with absolute home
-        _logger.LogInformation($"[ExpandRemotePath] Expanded '{path}' → '{expanded}'");
-        return expanded;
+        // 1. Expand ~ if it starts with ~
+        var result = path;
+        if (result.StartsWith("~"))
+        {
+            result = homeDir + result.Substring(1);
+        }
+
+        // 2. Expand $USER, ${USER}, $HOME
+        result = result
+            .Replace("$USER", username)
+            .Replace("${USER}", username)
+            .Replace("$HOME", homeDir)
+            .Replace("${HOME}", homeDir);
+
+        _logger.LogInformation($"[ExpandRemotePath] Expanded '{path}' → '{result}'");
+        return result;
     }
 
     private async Task CreateDirectoryAsync(string endpoint, string token, string directoryPath, object requestBody)
