@@ -49,6 +49,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     public string ClientId { private get; set; }
     public string ClientSecret { private get; set; }
     public string ClusterName { get; set; }
+    public Dictionary<string, string> CustomConfiguration { get; set; }
 
     protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
@@ -89,57 +90,24 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     /// so tilde notation must be resolved before any filesystem API call.
     /// The resolved path is cached per (clusterName, token) within a request.
     /// </summary>
-    private async Task<string> ExpandRemotePathAsync(string path, string clusterName, string token)
+    private string ExpandRemotePath(string path, string username)
     {
         if (!path.StartsWith("~"))
             return path;
 
-        // Call stat on "~" to get the absolute home directory from Firecrest.
-        var statEndpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/stat?path={Uri.EscapeDataString("~")}";
-        using var statRequest = new HttpRequestMessage(HttpMethod.Get, statEndpoint);
-        statRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var statResponse = await _httpClient.SendAsync(statRequest);
-        if (!statResponse.IsSuccessStatusCode)
+        string homeDirTemplate = "/users/{username}";
+        if (CustomConfiguration != null && CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
         {
-            var err = await statResponse.Content.ReadAsStringAsync();
-            _logger.LogWarning($"[ExpandRemotePath] Could not resolve '~' via stat on {clusterName}: {statResponse.StatusCode} – {err}. Path will be sent as-is.");
-            return path;
+            homeDirTemplate = template;
         }
 
-        var statContent = await statResponse.Content.ReadAsStringAsync();
-        _logger.LogDebug($"[ExpandRemotePath] stat response for '~': {statContent}");
+        var homeDir = homeDirTemplate
+            .Replace("{username}", username)
+            .Replace("{USER}", username)
+            .Replace("$USER", username);
 
-        // Firecrest v2 stat returns JSON with an "absolute_path" (or "path") field.
-        string homeDir = null;
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(statContent);
-            var root = doc.RootElement;
-
-            // Try common field names used across Firecrest versions.
-            foreach (var fieldName in new[] { "absolute_path", "path", "realpath" })
-            {
-                if (root.TryGetProperty(fieldName, out var prop) && prop.ValueKind == System.Text.Json.JsonValueKind.String)
-                {
-                    homeDir = prop.GetString();
-                    break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, $"[ExpandRemotePath] Failed to parse stat response: {statContent}");
-        }
-
-        if (string.IsNullOrEmpty(homeDir))
-        {
-            _logger.LogWarning($"[ExpandRemotePath] Could not extract home directory from stat response. Sending path as-is: {path}");
-            return path;
-        }
-
-        var expanded = homeDir.TrimEnd('/') + path.Substring(1); // replace leading ~ with absolute home
-        _logger.LogDebug($"[ExpandRemotePath] Expanded '{path}' → '{expanded}'");
+        var expanded = homeDir + path.Substring(1); // replace leading ~ with absolute home
+        _logger.LogInformation($"[ExpandRemotePath] Expanded '{path}' → '{expanded}'");
         return expanded;
     }
 
@@ -670,7 +638,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             string account = jobInfo.Specification.ClusterUser.Username;
 
             string jobDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
-            jobDirectoryPath = await ExpandRemotePathAsync(jobDirectoryPath, clusterName, token);
+            jobDirectoryPath = ExpandRemotePath(jobDirectoryPath, account);
 
             var endpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/mkdir";
             var jobRequestBody = new { path = jobDirectoryPath, p = true };
@@ -809,7 +777,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             // 4. Construct remote destination directory
             var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
-            rootDir = await ExpandRemotePathAsync(rootDir, clusterName, token);
+            rootDir = ExpandRemotePath(rootDir, account);
             var targetDir = $"{rootDir}/.key_scripts";
 
             // 5. Create remote directory

@@ -13,14 +13,30 @@ public class FileSystemUtils
 {
     private const int WAITING_TIME_FOR_SCHEDULER_CLOSING_OUTPUT_AND_ERROR_FILE_STREAMS = 1500;
 
+    private static string GetHomeDirectory(JobSpecification jobSpecification, string clusterUser)
+    {
+        var homeDirTemplate = "/users/{username}";
+        if (jobSpecification.Cluster?.CustomConfiguration != null &&
+            jobSpecification.Cluster.CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            homeDirTemplate = template;
+        }
+
+        return homeDirTemplate
+            .Replace("{username}", clusterUser)
+            .Replace("{USER}", clusterUser)
+            .Replace("$USER", clusterUser);
+    }
+
     public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var clusterUser = jobSpecification.ClusterUser.Username;
+        var homeDir = GetHomeDirectory(jobSpecification, clusterUser);
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
             ?.ScratchStoragePath
             ?.Replace("$USER", clusterUser)
             ?.Replace("${USER}", clusterUser)
-            ?.Replace("$HOME", $"/users/{clusterUser}");
+            ?.Replace("$HOME", homeDir);
         var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
@@ -29,18 +45,19 @@ public class FileSystemUtils
     public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var clusterUser = jobSpecification.ClusterUser.Username;
+        var homeDir = GetHomeDirectory(jobSpecification, clusterUser);
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
             ?.ProjectStoragePath
             ?.Replace("$USER", clusterUser)
             ?.Replace("${USER}", clusterUser)
-            ?.Replace("$HOME", $"/users/{clusterUser}");
+            ?.Replace("$HOME", homeDir);
         if (string.IsNullOrEmpty(basePath))
         {
             basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
                 ?.ScratchStoragePath
                 ?.Replace("$USER", clusterUser)
                 ?.Replace("${USER}", clusterUser)
-                ?.Replace("$HOME", $"/users/{clusterUser}");
+                ?.Replace("$HOME", homeDir);
         }
         var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
