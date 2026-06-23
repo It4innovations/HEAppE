@@ -327,7 +327,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task UpdateCurrentStateOfUnfinishedJobs()
     {
         var allUnfinishedJobs = (await _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinishedAsync())
-            .Where(j => !j.Specification.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm))
+            .Where(j => (j.Specification.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) != SchedulerType.FirecRestSlurm)
             .ToList();
 
         var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();

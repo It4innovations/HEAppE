@@ -188,7 +188,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
                 .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
-                .FirstOrDefault(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm)) : null;
+                .FirstOrDefault(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm) : null;
 
             if (firecrestClusterProject == null)
             {

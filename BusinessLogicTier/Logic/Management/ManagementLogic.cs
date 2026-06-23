@@ -1013,7 +1013,7 @@ public class ManagementLogic : IManagementLogic
             var hasFirecrest = _unitOfWork.ClusterProjectRepository.AsQueryable()
                 .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == projectId && !x.IsDeleted && x.Cluster != null)
-                .Any(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm));
+                .Any(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm);
             if (hasFirecrest)
             {
                 authType = ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio;
@@ -3714,7 +3714,7 @@ public class ManagementLogic : IManagementLogic
             var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
                 .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
-                .FirstOrDefault(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm)) : null;
+                .FirstOrDefault(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm) : null;
 
             if (firecrestClusterProject == null)
             {

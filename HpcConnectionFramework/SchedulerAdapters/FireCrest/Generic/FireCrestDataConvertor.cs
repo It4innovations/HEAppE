@@ -112,7 +112,7 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             }
             else if (_conversionAdapterFactory is PbsProConversionAdapterFactory)
             {
-                // ...
+                throw new NotImplementedException("PBS Pro conversion is not implemented in FirecRestDataConvertor.");
             }
             return taskScript;
         }
