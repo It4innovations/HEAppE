@@ -20,6 +20,7 @@ public interface IClusterProjectRepository : IRepository<ClusterProject>
     Task<List<ClusterProject>> GetClusterProjectForProjectAsync(long projectId);
     
     IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId);
+    IQueryable<ClusterProject> AsQueryable();
 
     public IQueryable<ClusterProjectCredentialCheckLog> GetAllClusterProjectCredentialsCheckLogForProject(long projectId, DateTime? timeFrom, DateTime? timeTo);
 

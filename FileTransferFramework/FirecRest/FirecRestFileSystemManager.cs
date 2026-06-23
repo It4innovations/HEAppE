@@ -91,9 +91,23 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         }
 
         using var doc = JsonDocument.Parse(responseContent);
+        JsonElement arrayElement = default;
+        bool hasArray = false;
+
         if (doc.RootElement.ValueKind == JsonValueKind.Array)
         {
-            foreach (var element in doc.RootElement.EnumerateArray())
+            arrayElement = doc.RootElement;
+            hasArray = true;
+        }
+        else if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("output", out var outputProp) && outputProp.ValueKind == JsonValueKind.Array)
+        {
+            arrayElement = outputProp;
+            hasArray = true;
+        }
+
+        if (hasArray)
+        {
+            foreach (var element in arrayElement.EnumerateArray())
             {
                 string name = element.GetProperty("name").GetString();
                 if (name == "." || name == "..") continue;

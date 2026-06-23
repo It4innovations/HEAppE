@@ -98,6 +98,11 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .Where(cp => cp.ProjectId == projectId);
     }
 
+    public IQueryable<ClusterProject> AsQueryable()
+    {
+        return _dbSet.AsQueryable();
+    }
+
     public IQueryable<ClusterProjectCredentialCheckLog> GetAllClusterProjectCredentialsCheckLogForProject(long projectId, DateTime? timeFrom, DateTime? timeTo)
     {   
         if (timeFrom.HasValue && timeTo.HasValue)

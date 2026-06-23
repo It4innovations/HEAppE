@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -184,7 +185,8 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         // 2. Kerberos enriched username resolution or Firecrest whoami resolution
         if (string.IsNullOrEmpty(username))
         {
-            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.GetAll()
+            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
+                .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
                 .FirstOrDefault(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm)) : null;
 

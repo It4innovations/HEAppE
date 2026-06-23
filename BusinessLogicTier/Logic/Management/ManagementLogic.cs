@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -1009,7 +1010,8 @@ public class ManagementLogic : IManagementLogic
         // If the auth type is Unknown, map to FirecRestIdpViaExpirio if cluster is FirecREST
         if (authType == ClusterAuthenticationCredentialsAuthType.Unknown)
         {
-            var hasFirecrest = _unitOfWork.ClusterProjectRepository.GetAll()
+            var hasFirecrest = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == projectId && !x.IsDeleted && x.Cluster != null)
                 .Any(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm));
             if (hasFirecrest)
@@ -2607,7 +2609,9 @@ public class ManagementLogic : IManagementLogic
     private async Task<SecureShellKey> CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId, ClusterAuthenticationCredentialsAuthType? preferredAuthType = null)
     {
         _logger.LogInformation($"Creating SSH key for user {username} for project {project.Name}.");
-        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
+        var clusterProjects = _unitOfWork.ClusterProjectRepository.AsQueryable()
+            .Include(x => x.Cluster)
+            .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster");
 
@@ -3707,7 +3711,8 @@ public class ManagementLogic : IManagementLogic
         // 2. Kerberos enriched username resolution or Firecrest whoami resolution
         if (string.IsNullOrEmpty(username))
         {
-            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.GetAll()
+            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
+                .Include(x => x.Cluster)
                 .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
                 .FirstOrDefault(x => x.Cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm)) : null;
 
