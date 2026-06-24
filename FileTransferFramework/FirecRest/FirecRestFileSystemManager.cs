@@ -36,8 +36,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
     private async Task<(string Url, string Token)> GetFirecrestUrlAndTokenAsync(Cluster cluster, string userToken)
     {
-        string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-        string url = $"{protocol}://{cluster.MasterNodeName}";
+        string url = FirecRestUtils.GetFirecRestUrl(cluster);
         string idpUrl = "";
 
         if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))

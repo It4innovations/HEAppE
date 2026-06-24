@@ -11,6 +11,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAd
 using HEAppE.Exceptions.Internal;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.FirecRest;
+using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SshCaAPI;
@@ -89,8 +90,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-        string url = $"{protocol}://{cluster.MasterNodeName}";
+        string url = FirecRestUtils.GetFirecRestUrl(cluster);
         string idpUrl = "";
 
         if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))

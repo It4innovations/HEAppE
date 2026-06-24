@@ -171,7 +171,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
     private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
     {
         string? username = null;
-        _logger.LogInformation($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
+        _logger.LogWarning($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
         
         var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
             .Include(x => x.Cluster)
@@ -180,7 +180,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
 
         if (firecrestClusterProject != null)
         {
-            _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
+            _logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
             if (!string.IsNullOrEmpty(token))
             {
@@ -209,32 +209,27 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                         if (tokenService != null && httpClientFactory != null)
                         {
                             var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
-                            string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-                            string firecrestUrl = $"{protocol}://{cluster.MasterNodeName}";
-                            var whoamiUrl = $"{firecrestUrl}/utilities/whoami";
+                            var userinfoUrl = FirecRestUtils.GetUserinfoUrl(cluster);
 
-                            using var whoamiRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, whoamiUrl);
-                            whoamiRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
-                            whoamiRequest.Headers.Add("X-Machine-Name", cluster.Name);
+                            using var userinfoRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, userinfoUrl);
+                            userinfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
 
                             var httpClient = httpClientFactory.CreateClient("");
-                            using var whoamiResponse = await httpClient.SendAsync(whoamiRequest);
-                            if (whoamiResponse.IsSuccessStatusCode)
+                            using var userinfoResponse = await httpClient.SendAsync(userinfoRequest);
+                            if (userinfoResponse.IsSuccessStatusCode)
                             {
-                                var whoamiContent = await whoamiResponse.Content.ReadAsStringAsync();
-                                _logger.LogDebug($"[Firecrest whoami Response] Success. Content: {whoamiContent}");
-                                
-                                using var doc = System.Text.Json.JsonDocument.Parse(whoamiContent);
-                                if (doc.RootElement.TryGetProperty("username", out var usernameProp) && usernameProp.ValueKind == System.Text.Json.JsonValueKind.String)
+                                var userinfoContent = await userinfoResponse.Content.ReadAsStringAsync();
+                                _logger.LogDebug($"[Firecrest userinfo Response] Success. Content: {userinfoContent}");
+                                username = FirecRestUtils.ParseUsernameFromUserinfo(userinfoContent);
+                                if (!string.IsNullOrEmpty(username))
                                 {
-                                    username = usernameProp.GetString();
-                                    _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
+                                    _logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
                                 }
                             }
                             else
                             {
-                                var err = await whoamiResponse.Content.ReadAsStringAsync();
-                                _logger.LogWarning($"[Firecrest whoami] Failed with status {whoamiResponse.StatusCode}: {err}");
+                                var err = await userinfoResponse.Content.ReadAsStringAsync();
+                                _logger.LogWarning($"[Firecrest userinfo] Failed with status {userinfoResponse.StatusCode}: {err}");
                             }
                         }
                     }
@@ -250,10 +245,10 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             // 1. SSH CA resolution
             if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken))
             {
-                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
+                _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
                 try {
                     username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
-                    _logger.LogInformation($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
+                    _logger.LogWarning($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
                 } catch (Exception ex) {
                     _logger.LogWarning(ex, "SSH CA username resolution failed.");
                 }
@@ -262,14 +257,14 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             // 2. Kerberos enriched username resolution
             if (string.IsNullOrEmpty(username))
             {
-                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
+                _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
                 var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
                 if (!string.IsNullOrEmpty(token))
                 {
                     try
                     {
                         username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
-                        _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
+                        _logger.LogWarning($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
                     }
                     catch (Exception ex)
                     {
@@ -282,7 +277,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         // 3. Token preferred_username resolution
         if (string.IsNullOrEmpty(username))
         {
-            _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
+            _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
             if (!string.IsNullOrEmpty(token))
             {
@@ -291,10 +286,10 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                     var decoded = JwtTokenDecoder.Decode(token);
                     if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
                         username = decoded.PreferedUsername;
-                        _logger.LogInformation($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                        _logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
                     } else if (project != null) {
                         username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                        _logger.LogInformation($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                        _logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
                     }
                 }
                 catch (Exception ex)
@@ -307,14 +302,14 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         // 4. Fallback to AdaptorUser username
         if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
         {
-            _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting fallback to AdaptorUser username.");
+            _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting fallback to AdaptorUser username.");
             try
             {
                 var adaptorUser = await _unitOfWork.AdaptorUserRepository.GetByIdAsync(adaptorUserId.Value);
                 if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Username))
                 {
                     username = adaptorUser.Username;
-                    _logger.LogInformation($"ResolveUsernameFromContextAsync: AdaptorUser fallback resolved username: {username}");
+                    _logger.LogWarning($"ResolveUsernameFromContextAsync: AdaptorUser fallback resolved username: {username}");
                 }
             }
             catch (Exception ex)
@@ -323,7 +318,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             }
         }
         
-        _logger.LogInformation($"ResolveUsernameFromContextAsync: End username resolution. Resolved username: {username}");
+        _logger.LogWarning($"ResolveUsernameFromContextAsync: End username resolution. Resolved username: {username}");
         return username;
     }
 

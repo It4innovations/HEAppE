@@ -3735,32 +3735,27 @@ public class ManagementLogic : IManagementLogic
                         if (tokenService != null && httpClientFactory != null)
                         {
                             var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
-                            string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-                            string firecrestUrl = $"{protocol}://{cluster.MasterNodeName}";
-                            var whoamiUrl = $"{firecrestUrl}/utilities/whoami";
+                            var userinfoUrl = FirecRestUtils.GetUserinfoUrl(cluster);
 
-                            using var whoamiRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, whoamiUrl);
-                            whoamiRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
-                            whoamiRequest.Headers.Add("X-Machine-Name", cluster.Name);
+                            using var userinfoRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, userinfoUrl);
+                            userinfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
 
                             var httpClient = httpClientFactory.CreateClient("");
-                            using var whoamiResponse = await httpClient.SendAsync(whoamiRequest);
-                            if (whoamiResponse.IsSuccessStatusCode)
+                            using var userinfoResponse = await httpClient.SendAsync(userinfoRequest);
+                            if (userinfoResponse.IsSuccessStatusCode)
                             {
-                                var whoamiContent = await whoamiResponse.Content.ReadAsStringAsync();
-                                _logger.LogDebug($"[Firecrest whoami Response] Success. Content: {whoamiContent}");
-                                
-                                using var doc = System.Text.Json.JsonDocument.Parse(whoamiContent);
-                                if (doc.RootElement.TryGetProperty("username", out var usernameProp) && usernameProp.ValueKind == System.Text.Json.JsonValueKind.String)
+                                var userinfoContent = await userinfoResponse.Content.ReadAsStringAsync();
+                                _logger.LogDebug($"[Firecrest userinfo Response] Success. Content: {userinfoContent}");
+                                username = FirecRestUtils.ParseUsernameFromUserinfo(userinfoContent);
+                                if (!string.IsNullOrEmpty(username))
                                 {
-                                    username = usernameProp.GetString();
-                                    _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
+                                    _logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
                                 }
                             }
                             else
                             {
-                                var err = await whoamiResponse.Content.ReadAsStringAsync();
-                                _logger.LogWarning($"[Firecrest whoami] Failed with status {whoamiResponse.StatusCode}: {err}");
+                                var err = await userinfoResponse.Content.ReadAsStringAsync();
+                                _logger.LogWarning($"[Firecrest userinfo] Failed with status {userinfoResponse.StatusCode}: {err}");
                             }
                         }
                     }
