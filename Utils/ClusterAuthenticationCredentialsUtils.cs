@@ -13,7 +13,10 @@ public static class ClusterAuthenticationCredentialsUtils
     {
         if (credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
         {
-            return ClusterAuthenticationCredentialsAuthType.Unknown;
+            if (cluster != null && (cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
+            {
+                return ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio;
+            }
         }
 
         if (cluster.ProxyConnection is null)
