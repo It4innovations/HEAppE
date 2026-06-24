@@ -390,7 +390,9 @@ public class ManagementLogic : IManagementLogic
             
             RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
 
-            var adaptorUserGroup = loggedUser.UserType switch
+            var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
+
+            var adaptorUserGroup = userToUpdate.UserType switch
             {
                 AdaptorUserType.Default => defaultAdaptorUserGroup,
                 AdaptorUserType.OpenId => openIdAdaptorUserGroup,
@@ -398,17 +400,17 @@ public class ManagementLogic : IManagementLogic
                 _ => defaultAdaptorUserGroup
             };
             
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
-            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
-            _unitOfWork.AdaptorUserRepository.Update(loggedUser);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
+            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
+            _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
             _unitOfWork.Save();
             
             _logger.LogInformation($"Created project with id {project.Id}.");
-            _logger.LogInformation($"Assigned user '{loggedUser.Username}' to project '{project.Name}' with roles: {string.Join(", ", loggedUser.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
+            _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
             transactionScope.Complete();
         }
 
