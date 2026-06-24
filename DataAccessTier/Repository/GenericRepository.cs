@@ -62,12 +62,43 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
 
     public virtual void Delete(T entityToDelete)
     {
+        if (entityToDelete == null) return;
+
+        var trackedEntry = _context.ChangeTracker.Entries<T>()
+            .FirstOrDefault(e => e.Entity.Id == entityToDelete.Id);
+        
+        if (trackedEntry != null)
+        {
+            if (!ReferenceEquals(trackedEntry.Entity, entityToDelete))
+            {
+                trackedEntry.State = EntityState.Detached;
+            }
+        }
+
         if (_context.Entry(entityToDelete).State == EntityState.Detached) _dbSet.Attach(entityToDelete);
         _dbSet.Remove(entityToDelete);
     }
 
     public virtual void Update(T entityToUpdate)
     {
+        if (entityToUpdate == null) return;
+
+        var trackedEntry = _context.ChangeTracker.Entries<T>()
+            .FirstOrDefault(e => e.Entity.Id == entityToUpdate.Id);
+        
+        if (trackedEntry != null)
+        {
+            if (ReferenceEquals(trackedEntry.Entity, entityToUpdate))
+            {
+                trackedEntry.State = EntityState.Modified;
+                return;
+            }
+            else
+            {
+                trackedEntry.State = EntityState.Detached;
+            }
+        }
+
         _dbSet.Attach(entityToUpdate);
         _context.Entry(entityToUpdate).State = EntityState.Modified;
     }
@@ -84,6 +115,24 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
 
     public async Task UpdateAsync(T entityToUpdate)
     {
+        if (entityToUpdate == null) return;
+
+        var trackedEntry = _context.ChangeTracker.Entries<T>()
+            .FirstOrDefault(e => e.Entity.Id == entityToUpdate.Id);
+        
+        if (trackedEntry != null)
+        {
+            if (ReferenceEquals(trackedEntry.Entity, entityToUpdate))
+            {
+                trackedEntry.State = EntityState.Modified;
+                return;
+            }
+            else
+            {
+                trackedEntry.State = EntityState.Detached;
+            }
+        }
+
         _dbSet.Attach(entityToUpdate);
         _context.Entry(entityToUpdate).State = EntityState.Modified;
     }
