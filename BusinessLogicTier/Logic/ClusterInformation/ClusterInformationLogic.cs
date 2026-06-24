@@ -475,46 +475,46 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         // 3. Token preferred_username resolution
         if (string.IsNullOrEmpty(username))
         {
-            _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
-            if (!string.IsNullOrEmpty(token))
+            bool allowJwtResolution = false;
+            if (project != null)
             {
-                try 
+                if (project.IsOneToOneMapping)
                 {
-                    var decoded = JwtTokenDecoder.Decode(token);
-                    if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                        username = decoded.PreferedUsername;
-                        _logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
-                    } else if (project != null) {
-                        username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                        _logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                    allowJwtResolution = true;
+                }
+                else
+                {
+                    allowJwtResolution = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
+                        .Any(x => x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
+                }
+            }
+
+            if (allowJwtResolution)
+            {
+                _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    try 
+                    {
+                        var decoded = JwtTokenDecoder.Decode(token);
+                        if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
+                            username = decoded.PreferedUsername;
+                            _logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                        } else if (project != null) {
+                            username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
+                            _logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
-                }
             }
         }
-        
-        // 4. Fallback to AdaptorUser username
-        if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
-        {
-            _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting fallback to AdaptorUser username.");
-            try
-            {
-                var adaptorUser = await _unitOfWork.AdaptorUserRepository.GetByIdAsync(adaptorUserId.Value);
-                if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Username))
-                {
-                    username = adaptorUser.Username;
-                    _logger.LogWarning($"ResolveUsernameFromContextAsync: AdaptorUser fallback resolved username: {username}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to retrieve AdaptorUser username for fallback.");
-            }
-        }
+
         
         _logger.LogWarning($"ResolveUsernameFromContextAsync: End username resolution. Resolved username: {username}");
         return username;
@@ -523,6 +523,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     private async Task SynchronizeCredentialsAsync(long projectId, long adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project == null || !project.IsOneToOneMapping) return;
+
         var username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
         
         if (string.IsNullOrEmpty(username)) return;
