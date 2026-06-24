@@ -753,6 +753,34 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost) =>
         throw new NotSupportedException();
 
+    private async Task<string> GetLocalGitCommitHashAsync(string localRepoPath)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "rev-parse HEAD",
+                WorkingDirectory = localRepoPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null) return string.Empty;
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0) return string.Empty;
+            var output = await process.StandardOutput.ReadToEndAsync();
+            return output.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Failed to get local git commit hash from {localRepoPath}");
+            return string.Empty;
+        }
+    }
+
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         string account, bool isServiceAccount)
@@ -777,6 +805,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             // 1. Clone or pull repo locally on HEAppE server
             var localRepoPath = await CloneOrUpdateRepositoryLocallyAsync(repoUrl, branch);
+            var localCommitHash = await GetLocalGitCommitHashAsync(localRepoPath);
 
             // 2. Locate .key_scripts folder
             var localKeyScriptsPath = FindKeyScriptsDirectory(localRepoPath);
@@ -795,6 +824,33 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
             rootDir = ExpandRemotePath(rootDir, account);
             var targetDir = $"{rootDir}/.key_scripts";
+
+            // Check if already initialized and up-to-date if overwrite is false
+            if (!overwriteExistingProjectRootDirectory && !string.IsNullOrEmpty(localCommitHash))
+            {
+                try
+                {
+                    var hashFilePath = $"{targetDir}/.commit_hash";
+                    var viewEndpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/view?path={Uri.EscapeDataString(hashFilePath)}";
+                    using var viewRequest = new HttpRequestMessage(HttpMethod.Get, viewEndpoint);
+                    viewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    using var viewResponse = await _httpClient.SendAsync(viewRequest);
+                    if (viewResponse.IsSuccessStatusCode)
+                    {
+                        var viewContent = await viewResponse.Content.ReadAsStringAsync();
+                        var remoteHash = FirecRestUtils.ParseFileContent(viewContent);
+                        if (remoteHash != null && remoteHash.Trim() == localCommitHash)
+                        {
+                            _logger.LogInformation($"Scripts directory {targetDir} is already up-to-date (commit hash {localCommitHash}) on cluster {clusterName}. Skipping initialization.");
+                            return true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"Failed to check if remote scripts are up-to-date: {ex.Message}");
+                }
+            }
 
             // 5. Create remote directory
             var mkdirEndpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/mkdir";
@@ -831,7 +887,14 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
                 await ChmodAsync(firecrestUrl, token, clusterName, remoteFilePath, "755");
             }
 
-            _logger.LogInformation($"Successfully initialized scripts directory for cluster {clusterName} via Firecrest.");
+            // 8. Upload local commit hash to finalize deployment and version tracking
+            if (!string.IsNullOrEmpty(localCommitHash))
+            {
+                var hashBytes = Encoding.UTF8.GetBytes(localCommitHash);
+                await UploadFileAsync(firecrestUrl, token, clusterName, targetDir, ".commit_hash", hashBytes);
+            }
+
+            _logger.LogInformation($"Successfully initialized and deployed scripts directory for cluster {clusterName} via Firecrest (commit: {localCommitHash}).");
             return true;
         }
         catch (Exception ex)

@@ -89,41 +89,25 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             throw new FirecrestApiException($"Failed to list files. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
 
-        using var doc = JsonDocument.Parse(responseContent);
-        JsonElement arrayElement = default;
-        bool hasArray = false;
-
-        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+        var files = FirecRestUtils.ParseLsResponse(responseContent);
+        if (files != null)
         {
-            arrayElement = doc.RootElement;
-            hasArray = true;
-        }
-        else if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("output", out var outputProp) && outputProp.ValueKind == JsonValueKind.Array)
-        {
-            arrayElement = outputProp;
-            hasArray = true;
-        }
-
-        if (hasArray)
-        {
-            foreach (var element in arrayElement.EnumerateArray())
+            foreach (var element in files)
             {
-                string name = element.GetProperty("name").GetString();
-                if (name == "." || name == "..") continue;
+                if (element.Name == "." || element.Name == "..") continue;
 
-                string type = element.GetProperty("type").GetString();
-                string fullPath = $"{currentDirectory.TrimEnd('/')}/{name}";
+                string fullPath = $"{currentDirectory.TrimEnd('/')}/{element.Name}";
 
-                if (type == "d")
+                if (element.Type == "d")
                 {
                     results.AddRange(await ListChangedFilesInDirectoryAsync(firecRestUrl, token, systemName, rootDirectory, fullPath, lastModificationLimit));
                 }
                 else
                 {
                     DateTime lastModifiedDate = DateTime.MinValue;
-                    if (element.TryGetProperty("lastModified", out var lmProp) && lmProp.GetString() is { } lmStr)
+                    if (!string.IsNullOrEmpty(element.LastModified))
                     {
-                        DateTime.TryParse(lmStr, out lastModifiedDate);
+                        DateTime.TryParse(element.LastModified, out lastModifiedDate);
                     }
 
                     if (!lastModificationLimit.HasValue || lastModificationLimit.Value <= lastModifiedDate)
@@ -180,14 +164,15 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
         var response = await _httpClient.SendAsync(request);
         _logger.LogDebug($"[FirecRest View Response] Status: {response.StatusCode}");
+        var responseContent = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
-            var responseContent = await response.Content.ReadAsStringAsync();
             _logger.LogError($"Failed to download file {absoluteFilePath} from cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
             throw new FirecrestApiException($"Failed to download file. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
 
-        return await response.Content.ReadAsByteArrayAsync();
+        string contentStr = FirecRestUtils.ParseFileContent(responseContent);
+        return System.Text.Encoding.UTF8.GetBytes(contentStr ?? string.Empty);
     }
 
     public override async Task DeleteSessionFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
