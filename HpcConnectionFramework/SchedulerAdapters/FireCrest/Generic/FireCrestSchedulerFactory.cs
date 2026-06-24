@@ -50,10 +50,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// </summary>
     private ISchedulerDataConvertor _convertorSingleton;
 
-    /// <summary>
-    ///     Scheduler adapter instance for interacting with FirecRest API
-    /// </summary>
-    private ISchedulerAdapter _schedulerAdapterInstance;
+
 
     /// <summary>
     ///     Scheduler type
@@ -159,12 +156,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     }
 
     /// <summary>
-    ///     Create or get existing FirecRest scheduler adapter instance
+    ///     Create a new FirecRest scheduler adapter instance
     /// </summary>
     /// <returns>FirecRest scheduler adapter</returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new FirecRestSchedulerAdapter(CreateDataConvertor(logger), _httpClientFactory, _tokenService, logger);
+        return new FirecRestSchedulerAdapter(CreateDataConvertor(logger), _httpClientFactory, _tokenService, logger);
     }
 
     /// <summary>
