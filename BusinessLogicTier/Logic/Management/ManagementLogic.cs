@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -408,6 +409,13 @@ public class ManagementLogic : IManagementLogic
             userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
             _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
             _unitOfWork.Save();
+            
+            // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
+            // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
+            // Without this, the 10-second UserById cache would return a stale snapshot and the role check
+            // for the brand-new project would fail with a 403 Forbidden.
+            var userCache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            userCache?.Remove($"UserById_{userToUpdate.Id}");
             
             _logger.LogInformation($"Created project with id {project.Id}.");
             _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
