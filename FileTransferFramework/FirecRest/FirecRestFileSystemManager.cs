@@ -85,6 +85,13 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+                (responseContent != null && (responseContent.Contains("No such file or directory") || responseContent.Contains("exit status:2"))))
+            {
+                _logger.LogInformation($"Directory {currentDirectory} does not exist on cluster {systemName}. Returning empty file list.");
+                return results;
+            }
+
             _logger.LogError($"Failed to list files in directory {currentDirectory} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
             throw new FirecrestApiException($"Failed to list files. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
