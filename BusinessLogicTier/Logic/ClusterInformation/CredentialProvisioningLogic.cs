@@ -171,33 +171,105 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
     private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
     {
         string? username = null;
+        _logger.LogInformation($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
         
-        // 1. SSH CA resolution
-        if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken))
+        var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
+            .Include(x => x.Cluster)
+            .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
+            .FirstOrDefault(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm) : null;
+
+        if (firecrestClusterProject != null)
         {
-            try {
-                username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
-            } catch (Exception ex) {
-                _logger.LogWarning(ex, "SSH CA username resolution failed.");
+            _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            if (!string.IsNullOrEmpty(token))
+            {
+                try
+                {
+                    var cluster = firecrestClusterProject.Cluster;
+                    var customConfig = cluster.CustomConfiguration ?? new Dictionary<string, string>();
+                    var credentials = await _expirioService.ExchangeFirecrestCredentialsAsync(token, customConfig, _logger);
+                    if (credentials != null && 
+                        credentials.TryGetValue("clientId", out var clientIdObj) && 
+                        credentials.TryGetValue("clientSecret", out var clientSecretObj))
+                    {
+                        string clientId = clientIdObj.ToString();
+                        string clientSecret = clientSecretObj.ToString();
+
+                        string idpUrl = "";
+                        if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
+                        {
+                            idpUrl = customIdpUrl;
+                        }
+
+                        using var serviceScope = HEAppE.FileTransferFramework.ServiceActivator.GetScope();
+                        var tokenService = (HEAppE.Services.FirecRest.IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(HEAppE.Services.FirecRest.IFirecRestTokenService));
+                        var httpClientFactory = (System.Net.Http.IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(System.Net.Http.IHttpClientFactory));
+
+                        if (tokenService != null && httpClientFactory != null)
+                        {
+                            var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
+                            string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
+                            string firecrestUrl = $"{protocol}://{cluster.MasterNodeName}";
+                            var whoamiUrl = $"{firecrestUrl}/utilities/whoami";
+
+                            using var whoamiRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, whoamiUrl);
+                            whoamiRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
+                            whoamiRequest.Headers.Add("X-Machine-Name", cluster.Name);
+
+                            var httpClient = httpClientFactory.CreateClient("");
+                            using var whoamiResponse = await httpClient.SendAsync(whoamiRequest);
+                            if (whoamiResponse.IsSuccessStatusCode)
+                            {
+                                var whoamiContent = await whoamiResponse.Content.ReadAsStringAsync();
+                                _logger.LogDebug($"[Firecrest whoami Response] Success. Content: {whoamiContent}");
+                                
+                                using var doc = System.Text.Json.JsonDocument.Parse(whoamiContent);
+                                if (doc.RootElement.TryGetProperty("username", out var usernameProp) && usernameProp.ValueKind == System.Text.Json.JsonValueKind.String)
+                                {
+                                    username = usernameProp.GetString();
+                                    _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
+                                }
+                            }
+                            else
+                            {
+                                var err = await whoamiResponse.Content.ReadAsStringAsync();
+                                _logger.LogWarning($"[Firecrest whoami] Failed with status {whoamiResponse.StatusCode}: {err}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "FirecREST whoami username resolution failed.");
+                }
             }
         }
-        
-        // 2. Kerberos enriched username resolution or Firecrest whoami resolution
-        if (string.IsNullOrEmpty(username))
+        else
         {
-            var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
-                .Include(x => x.Cluster)
-                .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
-                .FirstOrDefault(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm) : null;
-
-            if (firecrestClusterProject == null)
+            // 1. SSH CA resolution
+            if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken))
             {
+                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
+                try {
+                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+                    _logger.LogInformation($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
+                } catch (Exception ex) {
+                    _logger.LogWarning(ex, "SSH CA username resolution failed.");
+                }
+            }
+            
+            // 2. Kerberos enriched username resolution
+            if (string.IsNullOrEmpty(username))
+            {
+                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
                 var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
                 if (!string.IsNullOrEmpty(token))
                 {
                     try
                     {
                         username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                        _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
                     }
                     catch (Exception ex)
                     {
@@ -205,77 +277,12 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                     }
                 }
             }
-            else
-            {
-                _logger.LogInformation("Attempting FirecREST whoami username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
-                {
-                    try
-                    {
-                        var cluster = firecrestClusterProject.Cluster;
-                        var customConfig = cluster.CustomConfiguration ?? new Dictionary<string, string>();
-                        var credentials = await _expirioService.ExchangeFirecrestCredentialsAsync(token, customConfig, _logger);
-                        if (credentials != null && 
-                            credentials.TryGetValue("clientId", out var clientIdObj) && 
-                            credentials.TryGetValue("clientSecret", out var clientSecretObj))
-                        {
-                            string clientId = clientIdObj.ToString();
-                            string clientSecret = clientSecretObj.ToString();
-
-                            string idpUrl = "";
-                            if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
-                            {
-                                idpUrl = customIdpUrl;
-                            }
-
-                            using var serviceScope = HEAppE.FileTransferFramework.ServiceActivator.GetScope();
-                            var tokenService = (HEAppE.Services.FirecRest.IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(HEAppE.Services.FirecRest.IFirecRestTokenService));
-                            var httpClientFactory = (System.Net.Http.IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(System.Net.Http.IHttpClientFactory));
-
-                            if (tokenService != null && httpClientFactory != null)
-                            {
-                                var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
-                                string protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-                                string firecrestUrl = $"{protocol}://{cluster.MasterNodeName}";
-                                var whoamiUrl = $"{firecrestUrl}/utilities/whoami";
-
-                                using var whoamiRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, whoamiUrl);
-                                whoamiRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
-                                whoamiRequest.Headers.Add("X-Machine-Name", cluster.Name);
-
-                                var httpClient = httpClientFactory.CreateClient("");
-                                using var whoamiResponse = await httpClient.SendAsync(whoamiRequest);
-                                if (whoamiResponse.IsSuccessStatusCode)
-                                {
-                                    var whoamiContent = await whoamiResponse.Content.ReadAsStringAsync();
-                                    _logger.LogDebug($"[Firecrest whoami Response] Success. Content: {whoamiContent}");
-                                    
-                                    using var doc = System.Text.Json.JsonDocument.Parse(whoamiContent);
-                                    if (doc.RootElement.TryGetProperty("username", out var usernameProp) && usernameProp.ValueKind == System.Text.Json.JsonValueKind.String)
-                                    {
-                                        username = usernameProp.GetString();
-                                    }
-                                }
-                                else
-                                {
-                                    var err = await whoamiResponse.Content.ReadAsStringAsync();
-                                    _logger.LogWarning($"[Firecrest whoami] Failed with status {whoamiResponse.StatusCode}: {err}");
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "FirecREST whoami username resolution failed.");
-                    }
-                }
-            }
         }
-        
+
         // 3. Token preferred_username resolution
         if (string.IsNullOrEmpty(username))
         {
+            _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
             var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
             if (!string.IsNullOrEmpty(token))
             {
@@ -284,8 +291,10 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                     var decoded = JwtTokenDecoder.Decode(token);
                     if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
                         username = decoded.PreferedUsername;
+                        _logger.LogInformation($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
                     } else if (project != null) {
                         username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
+                        _logger.LogInformation($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
                     }
                 }
                 catch (Exception ex)
@@ -298,12 +307,14 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         // 4. Fallback to AdaptorUser username
         if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
         {
+            _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting fallback to AdaptorUser username.");
             try
             {
                 var adaptorUser = await _unitOfWork.AdaptorUserRepository.GetByIdAsync(adaptorUserId.Value);
                 if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Username))
                 {
                     username = adaptorUser.Username;
+                    _logger.LogInformation($"ResolveUsernameFromContextAsync: AdaptorUser fallback resolved username: {username}");
                 }
             }
             catch (Exception ex)
@@ -312,6 +323,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             }
         }
         
+        _logger.LogInformation($"ResolveUsernameFromContextAsync: End username resolution. Resolved username: {username}");
         return username;
     }
 
