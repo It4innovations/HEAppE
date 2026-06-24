@@ -155,8 +155,8 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
     {
         try
         {
-            var parts = fileName.Split('_');
-            var datePart = parts[^1].Replace(".trn", "");
+            var parts = Path.GetFileNameWithoutExtension(fileName).Split('_');
+            var datePart = parts[^1];
             if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
             if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
             return null;

@@ -186,6 +186,9 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                              .Concat(Directory.GetDirectories(folder, "confs_*backup_*")
                                      .Select(d => new DirectoryInfo(d))
                                      .Select(d => new { File = (FileSystemInfo)d, IsDirectory = true }))
+                             .Concat(Directory.GetFiles(folder, "vault_snapshot_*.tar")
+                                     .Select(f => new FileInfo(f))
+                                     .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false }))
                              .Select(x => new
                              {
                                  x.File,
@@ -221,8 +224,8 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
-            var parts = fileName.Split('_');
-            var datePart = parts[^1].Replace(".bak", "");
+            var parts = Path.GetFileNameWithoutExtension(fileName).Split('_');
+            var datePart = parts[^1];
             if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
             if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
             return null;

@@ -194,7 +194,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
         try
         {
             var databaseName = _context.Database.GetDbConnection().Database;
-            return _context.Database.SqlQueryRaw<DatabaseBackup>(
+            var backups = _context.Database.SqlQueryRaw<DatabaseBackup>(
             @"SELECT 
                   mf.physical_device_name AS Path,
                   CASE
@@ -222,6 +222,33 @@ internal class DatabaseBackupService : IDatabaseBackupService
             new SqlParameter("@From", (object)fromDateTime ?? DBNull.Value),
             new SqlParameter("@To", (object)toDateTime ?? DBNull.Value))
             .ToList();
+
+            var folderPath = type == DatabaseBackupType.Full 
+                ? DatabaseFullBackupConfiguration.Current.LocalPath 
+                : DatabaseTransactionLogBackupConfiguration.Current.LocalPath;
+
+            var nasPath = type == DatabaseBackupType.Full 
+                ? DatabaseFullBackupConfiguration.Current.NASPath 
+                : DatabaseTransactionLogBackupConfiguration.Current.NASPath;
+
+            return backups.Where(b => 
+            {
+                if (string.IsNullOrEmpty(b.FileName)) return false;
+                
+                if (!string.IsNullOrEmpty(folderPath))
+                {
+                    var localFile = Path.Combine(folderPath, b.FileName);
+                    if (File.Exists(localFile)) return true;
+                }
+
+                if (!string.IsNullOrEmpty(nasPath))
+                {
+                    var nasFile = Path.Combine(nasPath, b.FileName);
+                    if (File.Exists(nasFile)) return true;
+                }
+
+                return false;
+            }).ToList();
         }
         catch (Exception ex)
         {
