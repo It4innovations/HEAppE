@@ -30,6 +30,7 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.Expirio;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -214,6 +215,16 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate,
                 endDate, useAccountingStringForScheduler, piEmail, isOneToOneMapping, loggedUser);
+            
+            // Also evict the session-code user cache (covers pure session-code auth and the combined
+            // X-API-Key + SessionCode path used by the automated setup script).
+            // The UserById_ cache is evicted inside ManagementLogic.CreateProject.
+            if (!string.IsNullOrEmpty(sessionCode))
+            {
+                var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+                cache?.Remove($"SessionUser_{sessionCode}");
+            }
+            
             return project.ConvertIntToExt();
         }
     }
