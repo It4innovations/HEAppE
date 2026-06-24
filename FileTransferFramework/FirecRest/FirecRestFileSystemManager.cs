@@ -156,7 +156,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(jobSpecification.Cluster, lexisToken);
         string systemName = jobSpecification.Cluster.Name;
 
-        var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/view?path={Uri.EscapeDataString(absoluteFilePath.Replace("\\", "/"))}";
+        string username = jobSpecification.ClusterUser?.Username ?? string.Empty;
+        string expandedPath = FirecRestUtils.ExpandRemotePath(absoluteFilePath, username, jobSpecification.Cluster.CustomConfiguration);
+
+        var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/view?path={Uri.EscapeDataString(expandedPath.Replace("\\", "/"))}";
         _logger.LogDebug($"[FirecRest View] GET {endpoint}");
 
         using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
@@ -167,7 +170,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         var responseContent = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError($"Failed to download file {absoluteFilePath} from cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+            _logger.LogError($"Failed to download file {expandedPath} from cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
             throw new FirecrestApiException($"Failed to download file. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
         }
 
@@ -181,7 +184,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         string systemName = jobInfo.Specification.Cluster.Name;
 
         string remotePathToDelete = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
-        var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/rm?path={Uri.EscapeDataString(remotePathToDelete)}";
+        string username = jobInfo.Specification.ClusterUser?.Username ?? string.Empty;
+        string expandedPath = FirecRestUtils.ExpandRemotePath(remotePathToDelete, username, jobInfo.Specification.Cluster.CustomConfiguration);
+
+        var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/rm?path={Uri.EscapeDataString(expandedPath.Replace("\\", "/"))}";
 
         _logger.LogDebug($"[FirecRest RM] DELETE {endpoint}");
 
@@ -193,7 +199,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         _logger.LogDebug($"[FirecRest RM Response] Status: {response.StatusCode}, Content: {responseContent}");
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning($"Failed to delete session directory {remotePathToDelete} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+            _logger.LogWarning($"Failed to delete session directory {expandedPath} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
         }
     }
 
@@ -207,7 +213,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(cluster, lexisToken);
         string systemName = cluster.Name;
 
-        return await ListChangedFilesInDirectoryAsync(firecRestUrl, token, systemName, taskClusterDirectoryPath, taskClusterDirectoryPath, jobSubmitTime);
+        string username = clusterAuthenticationCredentials?.Username ?? string.Empty;
+        string expandedPath = FirecRestUtils.ExpandRemotePath(taskClusterDirectoryPath, username, cluster.CustomConfiguration);
+
+        return await ListChangedFilesInDirectoryAsync(firecRestUrl, token, systemName, expandedPath, expandedPath, jobSubmitTime);
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
@@ -222,8 +231,11 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(cluster, lexisToken);
             string systemName = cluster.Name;
 
-            string remoteDirectory = Path.GetDirectoryName(absoluteFilePath)?.Replace("\\", "/");
-            string fileName = Path.GetFileName(absoluteFilePath);
+            string username = credentials?.Username ?? string.Empty;
+            string expandedPath = FirecRestUtils.ExpandRemotePath(absoluteFilePath, username, cluster.CustomConfiguration);
+
+            string remoteDirectory = Path.GetDirectoryName(expandedPath)?.Replace("\\", "/");
+            string fileName = Path.GetFileName(expandedPath);
 
             var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/upload?path={Uri.EscapeDataString(remoteDirectory)}";
             _logger.LogDebug($"[FirecRest Upload] POST {endpoint} for file {fileName}");
@@ -248,7 +260,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             _logger.LogDebug($"[FirecRest Upload Response] Status: {response.StatusCode}, Content: {responseContent}");
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to upload file {absoluteFilePath} to cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+                _logger.LogError($"Failed to upload file {expandedPath} to cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
                 throw new FirecrestApiException($"Failed to upload file. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
             }
 
@@ -268,8 +280,11 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(cluster, lexisToken);
             string systemName = cluster.Name;
 
+            string username = credentials?.Username ?? string.Empty;
+            string expandedPath = FirecRestUtils.ExpandRemotePath(absoluteFilePath, username, cluster.CustomConfiguration);
+
             var endpoint = $"{firecRestUrl}/filesystem/{systemName}/ops/chmod";
-            _logger.LogDebug($"[FirecRest Chmod] PUT {endpoint} for file {absoluteFilePath}");
+            _logger.LogDebug($"[FirecRest Chmod] PUT {endpoint} for file {expandedPath}");
 
             using var request = new HttpRequestMessage(HttpMethod.Put, endpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -282,7 +297,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
             var chmodPayload = new
             {
-                sourcePath = absoluteFilePath.Replace("\\", "/"),
+                sourcePath = expandedPath.Replace("\\", "/"),
                 mode = mode
             };
             var jsonContent = JsonSerializer.Serialize(chmodPayload);
@@ -293,7 +308,7 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             _logger.LogDebug($"[FirecRest Chmod Response] Status: {response.StatusCode}, Content: {responseContent}");
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to change permissions for {absoluteFilePath} to {mode} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
+                _logger.LogError($"Failed to change permissions for {expandedPath} to {mode} on cluster {systemName}. Status: {response.StatusCode}, Response: {responseContent}");
                 throw new FirecrestApiException($"Failed to change permissions. Status: {response.StatusCode}, Response: {responseContent}", response.StatusCode, responseContent);
             }
 

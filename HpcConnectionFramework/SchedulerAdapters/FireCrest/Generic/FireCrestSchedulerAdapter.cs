@@ -92,31 +92,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     private string ExpandRemotePath(string path, string username)
     {
-        string homeDirTemplate = "/users/{username}";
-        if (CustomConfiguration != null && CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
-        {
-            homeDirTemplate = template;
-        }
-
-        var homeDir = homeDirTemplate
-            .Replace("{username}", username)
-            .Replace("{USER}", username)
-            .Replace("$USER", username);
-
-        // 1. Expand ~ if it starts with ~
-        var result = path;
-        if (result.StartsWith("~"))
-        {
-            result = homeDir + result.Substring(1);
-        }
-
-        // 2. Expand $USER, ${USER}, $HOME
-        result = result
-            .Replace("$USER", username)
-            .Replace("${USER}", username)
-            .Replace("$HOME", homeDir)
-            .Replace("${HOME}", homeDir);
-
+        var result = FirecRestUtils.ExpandRemotePath(path, username, CustomConfiguration);
         _logger.LogInformation($"[ExpandRemotePath] Expanded '{path}' → '{result}'");
         return result;
     }
@@ -686,6 +662,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             string account = jobInfo.Specification.ClusterUser.Username;
 
             string remotePathToDelete = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
+            remotePathToDelete = ExpandRemotePath(remotePathToDelete, account);
 
             var endpoint =
                 $"{FirecRestUrl}/filesystem/{systemName}/ops/rm?path={Uri.EscapeDataString(remotePathToDelete)}";
@@ -904,8 +881,66 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) =>
-        await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
+    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
+    {
+        try
+        {
+            var token = await GetAuthTokenAsync();
+            string clusterName = jobInfo.Specification.Cluster.Name;
+            string account = jobInfo.Specification.ClusterUser.Username;
+
+            _logger.LogInformation($"[FirecRest MoveJobFiles] Copying/moving log files to archive for Job ID {jobInfo.Id}.");
+
+            foreach (var sourceDestination in sourceDestinations)
+            {
+                string sourcePath = ExpandRemotePath(sourceDestination.Item1, account);
+                string destPath = ExpandRemotePath(sourceDestination.Item2, account);
+
+                // 1. Download file content
+                var viewEndpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/view?path={Uri.EscapeDataString(sourcePath)}";
+                using var viewRequest = new HttpRequestMessage(HttpMethod.Get, viewEndpoint);
+                viewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                using var viewResponse = await _httpClient.SendAsync(viewRequest);
+                if (!viewResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning($"[FirecRest MoveJobFiles] Source file {sourcePath} does not exist or cannot be viewed. Status: {viewResponse.StatusCode}. Skipping.");
+                    continue;
+                }
+
+                var viewContent = await viewResponse.Content.ReadAsStringAsync();
+                var fileContentStr = FirecRestUtils.ParseFileContent(viewContent);
+                if (fileContentStr == null)
+                {
+                    _logger.LogWarning($"[FirecRest MoveJobFiles] Failed to parse content of source file {sourcePath}. Skipping.");
+                    continue;
+                }
+
+                // 2. Ensure target directory exists
+                string destDir = Path.GetDirectoryName(destPath)?.Replace("\\", "/");
+                if (!string.IsNullOrEmpty(destDir))
+                {
+                    var mkdirEndpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/mkdir";
+                    var mkdirRequestBody = new { path = destDir, p = true };
+                    await CreateDirectoryAsync(mkdirEndpoint, token, destDir, mkdirRequestBody);
+                }
+
+                // 3. Upload file content to destination
+                byte[] fileBytes = Encoding.UTF8.GetBytes(fileContentStr);
+                string destFileName = Path.GetFileName(destPath);
+                await UploadFileAsync(FirecRestUrl, token, clusterName, destDir, destFileName, fileBytes);
+
+                _logger.LogInformation($"[FirecRest MoveJobFiles] Successfully copied {sourcePath} to {destPath}.");
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"[FirecRest MoveJobFiles] Exception during job files archiving for Job ID {jobInfo.Id}: {ex.Message}");
+            return false;
+        }
+    }
 
     public Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog) =>
         throw new NotSupportedException();
