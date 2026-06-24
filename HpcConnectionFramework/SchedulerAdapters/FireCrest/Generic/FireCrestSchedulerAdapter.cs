@@ -307,6 +307,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     private async Task UploadFileAsync(string firecrestUrl, string token, string clusterName, string remoteDirectoryPath, string fileName, byte[] fileContent)
     {
+        if (fileContent == null || fileContent.Length == 0)
+        {
+            fileContent = Encoding.UTF8.GetBytes("\n");
+        }
+
         var endpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/upload?path={Uri.EscapeDataString(remoteDirectoryPath)}";
         _logger.LogDebug($"[Firecrest Upload] POST {endpoint} for file {fileName}");
 
@@ -891,6 +896,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
             _logger.LogInformation($"[FirecRest MoveJobFiles] Copying/moving log files to archive for Job ID {jobInfo.Id}.");
 
+            var verifiedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var sourceDestination in sourceDestinations)
             {
                 string sourcePath = ExpandRemotePath(sourceDestination.Item1, account);
@@ -918,7 +925,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
                 // 2. Ensure target directory exists
                 string destDir = Path.GetDirectoryName(destPath)?.Replace("\\", "/");
-                if (!string.IsNullOrEmpty(destDir))
+                if (!string.IsNullOrEmpty(destDir) && verifiedDirs.Add(destDir))
                 {
                     var mkdirEndpoint = $"{FirecRestUrl}/filesystem/{clusterName}/ops/mkdir";
                     var mkdirRequestBody = new { path = destDir, p = true };

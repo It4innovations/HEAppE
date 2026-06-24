@@ -255,6 +255,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
             using var ms = new MemoryStream();
             await fileStream.CopyToAsync(ms);
             byte[] fileBytes = ms.ToArray();
+            if (fileBytes.Length == 0)
+            {
+                fileBytes = System.Text.Encoding.UTF8.GetBytes("\n");
+            }
 
             var fileContentContent = new ByteArrayContent(fileBytes);
             fileContentContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");

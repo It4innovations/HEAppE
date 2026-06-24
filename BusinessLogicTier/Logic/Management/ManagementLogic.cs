@@ -824,7 +824,32 @@ public class ManagementLogic : IManagementLogic
                 //get existing secure key
                 var existingKey = existingCredentials.FirstOrDefault();
                 if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKey))
+                {
+                    SSHGenerator sshGenerator = new(_logger);
+                    var passphrase = StringUtils.GetRandomString();
+                    var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+
+                    var modificationDate = DateTime.UtcNow;
+                    foreach (var cred in existingCredentials)
+                    {
+                        cred.PrivateKey = secureShellKey.PrivateKeyPEM;
+                        cred.PrivateKeyPassphrase = passphrase;
+                        cred.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
+                        cred.CipherType = secureShellKey.CipherType;
+
+                        var firstCluster = project.ClusterProjects.FirstOrDefault(x => !x.IsDeleted)?.Cluster;
+                        if (firstCluster != null)
+                        {
+                            cred.AuthenticationType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(cred, firstCluster);
+                        }
+
+                        await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
+                    }
+                    _unitOfWork.Save();
+
+                    secureShellKeys.Add(secureShellKey);
                     continue;
+                }
 
                 if (existingKey != null)
                 {

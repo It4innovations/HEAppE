@@ -83,7 +83,7 @@ public static class FirecRestUtils
             var response = JsonSerializer.Deserialize<FirecRestFileContentResponse>(jsonContent);
             if (response != null)
             {
-                if (!string.IsNullOrEmpty(response.Content))
+                if (response.Content != null)
                 {
                     return response.Content;
                 }
