@@ -10,7 +10,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
+//using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -132,6 +132,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
+        //throw new Exception("exception");
+
         // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
@@ -156,7 +158,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
 
-        if (true)
+        if (false)
         {
             StringBuilder builder = new();
 

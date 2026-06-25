@@ -1,10 +1,11 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using Microsoft.Extensions.Primitives;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 
@@ -289,7 +290,26 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        bool notificationScript = true;
+        //send_status() { local state=$1; }; cleanup_handler() { send_status "CANCELLED_OR_TIMEOUT"; exit 1; }; trap 'cleanup_handler' SIGTERM; trap 'if [ $? -eq 0 ]; then send_status "COMPLETED"; else send_status "FAILED"; fi' EXIT; send_status "BEGIN"; wait $!;
+
         _taskBuilder.Append($" --wrap \'cd {workDir};");
+
+        if (notificationScript)
+        {
+            //_taskBuilder.Append("{ ");
+            _taskBuilder.Append("send_status() { local STATE=$1; echo \"Job $SLURM_JOB_ID entered state $STATE\" >> /tmp/script-demo.txt; };");
+            _taskBuilder.Append("cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; exit 1; };");
+            _taskBuilder.Append("exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };");
+            //_taskBuilder.Append("exit_handler() { \\[\\[ $? -eq 0 \\]\\] && send_status \"COMPLETED\" || send_status \"FAILED\"; };");
+            _taskBuilder.Append("trap \'cleanup_handler\' SIGTERM;");
+            _taskBuilder.Append("trap \'exit_handler\' EXIT;");
+            //_taskBuilder.Append("trap \'if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi\' EXIT;");
+            //_taskBuilder.Append("trap '[[ $? -eq 0 ]] && send_status \"COMPLETED\" || send_status \"FAILED\"' EXIT;");
+            _taskBuilder.Append("send_status \"BEGIN\";");
+            _taskBuilder.Append("{ ");
+        }
+
         _taskBuilder.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
@@ -310,6 +330,12 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 : commandLine.Last().Equals(';')
                     ? commandLine
                     : $"{commandLine};");
+
+        if (notificationScript)
+        {
+            _taskBuilder.Append(" }&");
+            _taskBuilder.Append("wait $!");
+        }
 
         _taskBuilder.Append('\'');
     }
