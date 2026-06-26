@@ -291,17 +291,20 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
         bool notificationScript = true;
+        bool useControlLoop = true;
+        int controlLoopSleepTime = 5;
+        string outputFile = "/tmp/script-demo.txt";
 
         _taskBuilder.Append($" --wrap \'cd {workDir};");
 
         if (notificationScript)
         {
-            var sendCommand = "echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> /tmp/script-demo.txt;";
+            var sendCommand = "echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> " + outputFile + ";";
             var wrapperScript = new[] {
                 "send_status() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
                 "cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; trap - EXIT; exit 1; };",
                 "exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };",
-                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM
+                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell)
                 "trap \'exit_handler\' EXIT;",
                 "send_status \"BEGIN\";"
             };
@@ -334,7 +337,14 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (notificationScript)
         {
             _taskBuilder.Append(" }&");
-            _taskBuilder.Append("wait $!");
+            if (useControlLoop)
+            {
+                _taskBuilder.Append("while :; do sleep " + controlLoopSleepTime + "; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; done");
+            }
+            else
+            {
+                _taskBuilder.Append("wait $!");
+            }
         }
 
         _taskBuilder.Append('\'');
