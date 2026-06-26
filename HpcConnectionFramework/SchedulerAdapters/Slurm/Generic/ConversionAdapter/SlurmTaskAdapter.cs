@@ -295,7 +295,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         int controlLoopSleepTime = 5;
         string outputFile = "/tmp/script-demo.txt";
 
-        _taskBuilder.Append($" --wrap \'cd {workDir};");
+        _taskBuilder.Append($" --wrap \'");
+
         // TODO: check 2x3
         if (notificationScript)
         {
@@ -306,13 +307,16 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 "exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };",
                 "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell)
                 "trap \'exit_handler\' EXIT;",
-                "send_status \"BEGIN\";"
+                "control_loop() { local PID=$1; while kill -0 $PID 2>/dev/null; do sleep " + controlLoopSleepTime + "; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; done };"
             };
             foreach (var line in wrapperScript)
                 _taskBuilder.Append(line);
+
+            _taskBuilder.Append("send_status \"BEGIN\";");
             _taskBuilder.Append("{ ");
         }
 
+        _taskBuilder.Append($"cd {workDir};");
         _taskBuilder.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
@@ -336,16 +340,16 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
         if (notificationScript)
         {
-            _taskBuilder.Append(" }&");
+            _taskBuilder.Append(" }& PID=$!;");
             if (useControlLoop)
             {
-                // TODO: sleep => wait
-                _taskBuilder.Append("PID=$!;");
-                _taskBuilder.Append("while kill -0 $PID 2>/dev/null; do sleep " + controlLoopSleepTime + "; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; done");
+                _taskBuilder.Append("control_loop $PID & CL_PID=$!;");
+                _taskBuilder.Append("wait $PID;");
+                _taskBuilder.Append("kill -s 15 $CL_PID");
             }
             else
             {
-                _taskBuilder.Append("wait $!");
+                _taskBuilder.Append("wait $PID");
             }
         }
 
