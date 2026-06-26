@@ -394,6 +394,20 @@ public sealed class KrbLibSim
             //TODO: remove watch
             var watch = Stopwatch.StartNew();
 
+            Krb5TicketCache userTicketCache;
+            if (USE_MEMORY_CACHE)
+            {
+                if (s_ticketCaches.TryGetValue(GetMyMemoryCacheId(), out userTicketCache))
+                {
+                    _kerberosClient.Cache.DefaultDomain = userTicketCache.DefaultDomain;
+                }
+            }
+            else
+            {
+                userTicketCache = new Krb5TicketCache(GetUserTicketCachePath(_username), s_loggerFactory);
+                _kerberosClient.Cache.DefaultDomain = userTicketCache.DefaultDomain;
+            }
+
             // load all tickets
             foreach (TicketCacheEntry entry in GetTicketCacheEntries())
             {
