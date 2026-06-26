@@ -175,16 +175,21 @@ namespace Kerberos.NET.Transport
 
         protected virtual DnsRecord SelectedPreferredInstance(string domain, string servicePrefix, IEnumerable<DnsRecord> results, int defaultPort)
         {
-            results = results.Where(r => r.Name.StartsWith(servicePrefix));
-
-            var rand = RandomNumberGenerator.GetInt32(0, results?.Count() ?? 0);
-
-            var srv = results?.ElementAtOrDefault(rand);
-
-            if (srv == null)
+            if (results == null)
             {
                 throw new KerberosTransportException($"Cannot locate SRV record for {domain}");
             }
+
+            var matchingResults = results.Where(r => r.Name.StartsWith(servicePrefix)).ToList();
+
+            if (matchingResults.Count == 0)
+            {
+                throw new KerberosTransportException($"Cannot locate SRV record for {domain}");
+            }
+
+            var rand = RandomNumberGenerator.GetInt32(0, matchingResults.Count);
+
+            var srv = matchingResults[rand];
 
             if (srv.Port <= 0)
             {

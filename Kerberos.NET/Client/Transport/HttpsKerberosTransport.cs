@@ -177,17 +177,21 @@ namespace Kerberos.NET.Transport
         private async Task<Uri> LocatePreferredKdc(string domain)
         {
             var results = await this.LocateKdc(domain, HttpsServicePrefix);
-
-            results = results.Where(r => r.Address.StartsWith("https://") || r.Address.StartsWith("http://"));
-
-            var rand = RandomNumberGenerator.GetInt32(0, results?.Count() ?? 0);
-
-            var record = results?.ElementAtOrDefault(rand);
-
-            if (record == null)
+            if (results == null)
             {
                 return null;
             }
+
+            var matchingResults = results.Where(r => r.Address.StartsWith("https://") || r.Address.StartsWith("http://")).ToList();
+
+            if (matchingResults.Count == 0)
+            {
+                return null;
+            }
+
+            var rand = RandomNumberGenerator.GetInt32(0, matchingResults.Count);
+
+            var record = matchingResults[rand];
 
             var uri = new Uri(record.Target);
 
