@@ -99,6 +99,7 @@ services:
       - app_volume:/app/shared
       - vault-volume:/opt/vault-backup-access:ro
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
+      - "${HOST_KRB5_CONF_PATH}:/etc/krb5.conf:ro"
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:
@@ -110,7 +111,6 @@ services:
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT}
-      KRB5_CONFIG: "/opt/heappe/confs/krb5.conf"
     networks:
       - sshagent_internal_network
       - db_internal_network
