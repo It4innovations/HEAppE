@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     openssh-client \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/krb5.conf
 
 EXPOSE 80
 
