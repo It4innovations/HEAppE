@@ -96,6 +96,7 @@ internal class LinuxCommands : ICommands
     public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
         var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}/.";
         var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
@@ -115,6 +116,7 @@ internal class LinuxCommands : ICommands
         string path)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
         //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
         var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}/{path}";
         inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
@@ -190,6 +192,7 @@ internal class LinuxCommands : ICommands
         bool sharedAccountsPoolMode)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
 
         localBasePath = localBasePath.TrimEnd('/');
         var cmdBuilder =
@@ -219,7 +222,9 @@ internal class LinuxCommands : ICommands
     /// <param name="jobInfo">Job information</param>
     public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.ClusterUser.Username}/{jobInfo.Specification.Id}";
+        string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
+        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         try
         {
             var sshCommand =
@@ -247,6 +252,8 @@ internal class LinuxCommands : ICommands
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         if (isServiceAccount) return true;
+
+        localBasepath = ExpandPathSimple(localBasepath, account);
 
         var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
         string bashSafeRootDir = rootDir.StartsWith("~/") 
@@ -322,9 +329,11 @@ internal class LinuxCommands : ICommands
             var projectBasePath = string.IsNullOrEmpty(clusterProject.ProjectStoragePath) 
                 ? clusterProject.ScratchStoragePath 
                 : clusterProject.ProjectStoragePath;
+            
+            string account = jobInfo.Specification.ClusterUser.Username;
+            projectBasePath = ExpandPath(projectBasePath, jobInfo, account);
 
             var heappeJobsDir = $"{_scripts.InstanceIdentifierPath.TrimStart('/')}/{_scripts.JobLogArchiveSubPath.TrimStart('/')}";
-            string account = jobInfo.Specification.ClusterUser.Username;
 
             cmdBuilder.Append(
                 $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
@@ -360,6 +369,39 @@ internal class LinuxCommands : ICommands
         }
 
         return true;
+    }
+
+    private static string ExpandPathSimple(string path, string username)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+        return path.Replace("$USER", username).Replace("${USER}", username);
+    }
+
+    private string GetHomeDirectory(SubmittedJobInfo jobInfo, string clusterUser)
+    {
+        var homeDirTemplate = "/users/{username}";
+        if (jobInfo.Specification.Cluster?.CustomConfiguration != null &&
+            jobInfo.Specification.Cluster.CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            homeDirTemplate = template;
+        }
+
+        return homeDirTemplate
+            .Replace("{username}", clusterUser)
+            .Replace("{USER}", clusterUser)
+            .Replace("$USER", clusterUser);
+    }
+
+    private string ExpandPath(string path, SubmittedJobInfo jobInfo, string username)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+        var expanded = path.Replace("$USER", username).Replace("${USER}", username);
+        if (expanded.Contains("$HOME"))
+        {
+            var homeDir = GetHomeDirectory(jobInfo, username);
+            expanded = expanded.Replace("$HOME", homeDir);
+        }
+        return expanded;
     }
 
     #endregion
