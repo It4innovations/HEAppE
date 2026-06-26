@@ -299,9 +299,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             var sendCommand = "echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> /tmp/script-demo.txt;";
             var wrapperScript = new[] {
                 "send_status() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
-                "cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; exit 1; };",
+                "cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; trap - EXIT; exit 1; };",
                 "exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };",
-                "trap \'cleanup_handler\' SIGTERM;",
+                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM
                 "trap \'exit_handler\' EXIT;",
                 "send_status \"BEGIN\";"
             };
