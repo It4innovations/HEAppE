@@ -62,6 +62,8 @@ public sealed class KrbLibSim
     private static bool s_initialized = false;
     private static Krb5Config s_krb5Conf;
     private static string s_ticketCachePath;
+    private static string s_lastConfigFilePath = string.Empty;
+    private static DateTime s_lastConfigWriteTime = DateTime.MinValue;
     
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
@@ -103,14 +105,18 @@ public sealed class KrbLibSim
     #region private methods
     private static void EnsureInitialized()
     {
-        if (s_initialized)
+        string configFilePath = GetConfigFilePath();
+        DateTime lastWrite = File.Exists(configFilePath) ? File.GetLastWriteTimeUtc(configFilePath) : DateTime.MinValue;
+
+        if (s_initialized && configFilePath == s_lastConfigFilePath && lastWrite <= s_lastConfigWriteTime)
         {
             return;
         }
 
         lock (s_initLock)
         {
-            if (s_initialized)
+            lastWrite = File.Exists(configFilePath) ? File.GetLastWriteTimeUtc(configFilePath) : DateTime.MinValue;
+            if (s_initialized && configFilePath == s_lastConfigFilePath && lastWrite <= s_lastConfigWriteTime)
             {
                 return;
             }
@@ -122,6 +128,8 @@ public sealed class KrbLibSim
                 ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
                 : s_krb5Conf.Defaults.DefaultCCacheName ?? "";
                 
+            s_lastConfigFilePath = configFilePath;
+            s_lastConfigWriteTime = lastWrite;
             s_initialized = true;
         }
     }
