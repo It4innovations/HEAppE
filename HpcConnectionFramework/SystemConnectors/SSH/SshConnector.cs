@@ -136,6 +136,10 @@ public class SshConnector : IPoolableAdapter
             !(connectorClient is NoAuthenticationSshClient))
         {
             string destPath = "/opt/heappe/confs/krb5.conf";
+            if (Directory.Exists(destPath))
+            {
+                destPath = Path.Combine(destPath, "krb5.conf");
+            }
             bool needsDownload = false;
             try
             {

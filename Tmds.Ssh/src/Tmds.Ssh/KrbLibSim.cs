@@ -30,7 +30,29 @@ public sealed class KrbLibSim
         {
             return customPath;
         }
-        return "/etc/krb5.conf";
+        if (System.IO.Directory.Exists(customPath))
+        {
+            var filePathInsideDir = System.IO.Path.Combine(customPath, "krb5.conf");
+            if (System.IO.File.Exists(filePathInsideDir))
+            {
+                return filePathInsideDir;
+            }
+        }
+
+        var etcPath = "/etc/krb5.conf";
+        if (System.IO.File.Exists(etcPath))
+        {
+            return etcPath;
+        }
+        if (System.IO.Directory.Exists(etcPath))
+        {
+            var filePathInsideDir = System.IO.Path.Combine(etcPath, "krb5.conf");
+            if (System.IO.File.Exists(filePathInsideDir))
+            {
+                return filePathInsideDir;
+            }
+        }
+        return etcPath;
     }
     private const string TICKET_CACHE_PREFIX = "tkt_";
     private const LogLevel MIN_LOG_LEVEL = LogLevel.Error;

@@ -15,15 +15,25 @@ public static class KerberosConfigHelper
     internal static readonly System.Threading.SemaphoreSlim _krbConfigSemaphore = new System.Threading.SemaphoreSlim(1, 1);
     private const string DestPath = "/opt/heappe/confs/krb5.conf";
 
+    private static string GetConfigFilePath()
+    {
+        if (Directory.Exists(DestPath))
+        {
+            return Path.Combine(DestPath, "krb5.conf");
+        }
+        return DestPath;
+    }
+
     /// <summary>
     /// Bootstraps/updates the krb5.conf file for a specific connection target.
     /// </summary>
     public static async Task BootstrapConfigIfNeededAsync(string masterNodeName, Cluster cluster, ILogger logger)
     {
+        string targetPath = GetConfigFilePath();
         bool needsBootstrap = false;
         try
         {
-            if (!File.Exists(DestPath))
+            if (!File.Exists(targetPath))
             {
                 needsBootstrap = true;
             }
@@ -38,7 +48,7 @@ public static class KerberosConfigHelper
             await _krbConfigSemaphore.WaitAsync();
             try
             {
-                if (!File.Exists(DestPath))
+                if (!File.Exists(targetPath))
                 {
                     logger.LogInformation("Bootstrapping krb5.conf for Kerberos connection...");
                     string domain = !string.IsNullOrEmpty(cluster.DomainName) 
@@ -66,23 +76,23 @@ public static class KerberosConfigHelper
                     sb.AppendLine($"    .{domain} = {realm}");
                     sb.AppendLine($"    {domain} = {realm}");
 
-                    var dir = Path.GetDirectoryName(DestPath);
+                    var dir = Path.GetDirectoryName(targetPath);
                     if (dir != null && !Directory.Exists(dir))
                     {
                         Directory.CreateDirectory(dir);
                     }
 
                     string existingContent = "";
-                    if (File.Exists(DestPath))
+                    if (File.Exists(targetPath))
                     {
-                        try { existingContent = await File.ReadAllTextAsync(DestPath); } catch { }
+                        try { existingContent = await File.ReadAllTextAsync(targetPath); } catch { }
                     }
                     string mergedContent = Krb5ConfigMerger.Merge(existingContent, sb.ToString());
 
-                    string tempPath = DestPath + ".tmp";
+                    string tempPath = targetPath + ".tmp";
                     await File.WriteAllTextAsync(tempPath, mergedContent);
-                    File.Move(tempPath, DestPath, overwrite: true);
-                    logger.LogInformation($"Successfully bootstrapped krb5.conf at {DestPath}");
+                    File.Move(tempPath, targetPath, overwrite: true);
+                    logger.LogInformation($"Successfully bootstrapped krb5.conf at {targetPath}");
                 }
             }
             catch (Exception ex)
