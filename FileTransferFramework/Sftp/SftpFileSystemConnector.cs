@@ -560,7 +560,11 @@ public class SftpFileSystemConnector : IPoolableAdapter
             byte[] krbtkt = await GetKernelTicketAsync(lexisToken);
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
-        return new KerberosSftpClient(_logger, masterNodeName, cluster.DomainName, username);
+
+        string host = !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName;
+        int? connectionPort = cluster.Port ?? port;
+        string address = connectionPort.HasValue ? $"{host}:{connectionPort.Value}" : host;
+        return new KerberosSftpClient(_logger, masterNodeName, address, username);
     }
 
     private async Task<byte[]> GetKernelTicketAsync(string lexisToken)

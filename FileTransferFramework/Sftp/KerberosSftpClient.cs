@@ -24,7 +24,7 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
     private bool _isConnected = false;
 
     public KerberosSftpClient(ILogger logger, string masterNodeName, string address, string userName)
-        : base(new ConnectionInfo(address, userName, new NoneAuthenticationMethod(userName)))
+        : base(new ConnectionInfo(masterNodeName, userName, new NoneAuthenticationMethod(userName)))
     {
         _logger = logger;
         _userName = userName;
