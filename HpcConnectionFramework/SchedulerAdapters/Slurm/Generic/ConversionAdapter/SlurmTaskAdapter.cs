@@ -291,22 +291,22 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
         bool notificationScript = true;
-        //send_status() { local state=$1; }; cleanup_handler() { send_status "CANCELLED_OR_TIMEOUT"; exit 1; }; trap 'cleanup_handler' SIGTERM; trap 'if [ $? -eq 0 ]; then send_status "COMPLETED"; else send_status "FAILED"; fi' EXIT; send_status "BEGIN"; wait $!;
 
         _taskBuilder.Append($" --wrap \'cd {workDir};");
 
         if (notificationScript)
         {
-            //_taskBuilder.Append("{ ");
-            _taskBuilder.Append("send_status() { local STATE=$1; echo \"Job $SLURM_JOB_ID entered state $STATE\" >> /tmp/script-demo.txt; };");
-            _taskBuilder.Append("cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; exit 1; };");
-            _taskBuilder.Append("exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };");
-            //_taskBuilder.Append("exit_handler() { \\[\\[ $? -eq 0 \\]\\] && send_status \"COMPLETED\" || send_status \"FAILED\"; };");
-            _taskBuilder.Append("trap \'cleanup_handler\' SIGTERM;");
-            _taskBuilder.Append("trap \'exit_handler\' EXIT;");
-            //_taskBuilder.Append("trap \'if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi\' EXIT;");
-            //_taskBuilder.Append("trap '[[ $? -eq 0 ]] && send_status \"COMPLETED\" || send_status \"FAILED\"' EXIT;");
-            _taskBuilder.Append("send_status \"BEGIN\";");
+            var sendCommand = "echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> /tmp/script-demo.txt;";
+            var wrapperScript = new[] {
+                "send_status() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
+                "cleanup_handler() { send_status \"CANCELLED_OR_TIMEOUT\"; exit 1; };",
+                "exit_handler() { if [ $? -eq 0 ]; then send_status \"COMPLETED\"; else send_status \"FAILED\"; fi };",
+                "trap \'cleanup_handler\' SIGTERM;",
+                "trap \'exit_handler\' EXIT;",
+                "send_status \"BEGIN\";"
+            };
+            foreach (var line in wrapperScript)
+                _taskBuilder.Append(line);
             _taskBuilder.Append("{ ");
         }
 
