@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Linq;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
@@ -122,7 +123,9 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
             }
             else
             {
-                string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+                string traceId = TryGetTraceId(response, content);
+                string traceIdPart = !string.IsNullOrEmpty(traceId) ? $"\nTrace ID: {traceId}" : "";
+                string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}{traceIdPart}";
                 logger.LogError($"[UserOrg API Error] UserOrg API Error: {details}");
 
                 switch (response.StatusCode)
@@ -156,5 +159,47 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
                 Details = $"Unexpected error during request to UserOrg API. Technical details: {ex.Message}"
             };
         }
+    }
+
+    private string TryGetTraceId(HttpResponseMessage response, string content)
+    {
+        var headersToCheck = new[] { "traceparent", "trace-id", "X-Trace-Id", "traceid", "request-id", "X-Request-Id", "correlation-id", "X-Correlation-Id" };
+        foreach (var header in headersToCheck)
+        {
+            if (response.Headers.TryGetValues(header, out var values) && values.Any())
+            {
+                return values.First();
+            }
+            if (response.Content != null && response.Content.Headers.TryGetValues(header, out var contentValues) && contentValues.Any())
+            {
+                return contentValues.First();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(content))
+        {
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(content);
+                var root = jsonDoc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object)
+                {
+                    var jsonPropertiesToCheck = new[] { "traceId", "trace_id", "traceID", "traceparent", "requestId", "request_id", "requestID" };
+                    foreach (var propName in jsonPropertiesToCheck)
+                    {
+                        if (root.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.String)
+                        {
+                            return prop.GetString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+        }
+
+        return null;
     }
 }

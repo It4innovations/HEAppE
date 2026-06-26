@@ -23,6 +23,33 @@ namespace HEAppE.RestApi.Logging
             // Set requestId in log4net context so it gets logged properly
             log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
 
+            // Add Trace ID/traceparent/Request-ID to Response headers
+            if (System.Diagnostics.Activity.Current != null)
+            {
+                if (!context.Response.Headers.ContainsKey("traceparent"))
+                {
+                    context.Response.Headers.Append("traceparent", System.Diagnostics.Activity.Current.Id);
+                }
+                
+                var otelTraceId = System.Diagnostics.Activity.Current.TraceId.ToHexString();
+                if (!context.Response.Headers.ContainsKey("X-Trace-Id"))
+                {
+                    context.Response.Headers.Append("X-Trace-Id", otelTraceId);
+                }
+            }
+            else
+            {
+                if (!context.Response.Headers.ContainsKey("X-Trace-Id"))
+                {
+                    context.Response.Headers.Append("X-Trace-Id", context.TraceIdentifier);
+                }
+            }
+
+            if (!context.Response.Headers.ContainsKey("X-Request-Id"))
+            {
+                context.Response.Headers.Append("X-Request-Id", context.TraceIdentifier);
+            }
+
             try
             {
                 _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
