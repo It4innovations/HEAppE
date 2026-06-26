@@ -35,7 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 /// </summary>
 public class SshConnector : IPoolableAdapter
 {
-    private static readonly System.Threading.SemaphoreSlim _krbConfigSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+    private static System.Threading.SemaphoreSlim _krbConfigSemaphore => KerberosConfigHelper._krbConfigSemaphore;
     private ISshCertificateAuthorityService _sshCaService;
     private IExpirioService _expirio;
     private ILogger _logger;
@@ -688,84 +688,12 @@ public class SshConnector : IPoolableAdapter
 
     private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string address, string lexisToken, Cluster cluster)
     {
+        await KerberosConfigHelper.BootstrapConfigIfNeededAsync(masterNodeName, cluster, _logger);
+
         if(Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {
             byte[] krbtkt = await GetKerberosTicket(lexisToken);
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
-        }
-
-        string destPath = "/opt/heappe/confs/krb5.conf";
-        bool needsBootstrap = false;
-        try
-        {
-            if (!File.Exists(destPath))
-            {
-                needsBootstrap = true;
-            }
-        }
-        catch
-        {
-            needsBootstrap = true;
-        }
-
-        if (needsBootstrap)
-        {
-            await _krbConfigSemaphore.WaitAsync();
-            try
-            {
-                if (!File.Exists(destPath))
-                {
-                    _logger.LogInformation("Bootstrapping krb5.conf for Kerberos connection...");
-                    string domain = !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : GetDomainFromHostname(masterNodeName);
-                    string realm = domain.ToUpperInvariant();
-                    string kdc = masterNodeName;
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.AppendLine("[libdefaults]");
-                    sb.AppendLine($"    default_realm = {realm}");
-                    sb.AppendLine("    dns_lookup_realm = false");
-                    sb.AppendLine("    dns_lookup_kdc = false");
-                    sb.AppendLine("    rdns = false");
-                    sb.AppendLine("    ticket_lifetime = 24h");
-                    sb.AppendLine("    forwardable = true");
-                    sb.AppendLine("");
-                    sb.AppendLine("[realms]");
-                    sb.AppendLine($"    {realm} = {{");
-                    sb.AppendLine($"        kdc = {kdc}:88");
-                    sb.AppendLine($"        admin_server = {kdc}");
-                    sb.AppendLine("    }");
-                    sb.AppendLine("");
-                    sb.AppendLine("[domain_realm]");
-                    sb.AppendLine($"    .{domain} = {realm}");
-                    sb.AppendLine($"    {domain} = {realm}");
-
-                    var dir = Path.GetDirectoryName(destPath);
-                    if (!Directory.Exists(dir))
-                    {
-                        Directory.CreateDirectory(dir);
-                    }
-
-                    string existingContent = "";
-                    if (File.Exists(destPath))
-                    {
-                        try { existingContent = await File.ReadAllTextAsync(destPath); } catch { }
-                    }
-                    string mergedContent = Krb5ConfigMerger.Merge(existingContent, sb.ToString());
-
-                    string tempPath = destPath + ".tmp";
-                    await File.WriteAllTextAsync(tempPath, mergedContent);
-                    File.Move(tempPath, destPath, overwrite: true);
-                    _logger.LogInformation($"Successfully bootstrapped krb5.conf at {destPath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to bootstrap krb5.conf");
-            }
-            finally
-            {
-                _krbConfigSemaphore.Release();
-            }
         }
 
         return new KerberosSshClient(masterNodeName, address, username);

@@ -23,8 +23,6 @@ namespace Tmds.Ssh;
 public sealed class KrbLibSim
 {
     #region private fields
-    private static readonly string CONFIG_FILE_PATH = GetConfigFilePath();
-
     private static string GetConfigFilePath()
     {
         var customPath = "/opt/heappe/confs/krb5.conf";
@@ -37,8 +35,12 @@ public sealed class KrbLibSim
     private const string TICKET_CACHE_PREFIX = "tkt_";
     private const LogLevel MIN_LOG_LEVEL = LogLevel.Error;
     private const bool MEMORY_CACHE_ID_USERNAME_ONLY = true; // true: the memory cache id is the username; false: username and realm.
-    private static readonly Krb5Config s_krb5Conf;
-    private static readonly string s_ticketCachePath;
+    
+    private static readonly object s_initLock = new object();
+    private static bool s_initialized = false;
+    private static Krb5Config s_krb5Conf;
+    private static string s_ticketCachePath;
+    
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
     private static ILogger s_logger;
@@ -62,11 +64,6 @@ public sealed class KrbLibSim
         // inform that this library is active
         s_logger.LogInformation("|-> KrbLibSim is enabled <-|");
 
-        s_krb5Conf = GetConfigurationFile();
-
-        // expects the DefaultCCacheName property to be set in krb5.conf file
-        s_ticketCachePath = s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1];
-
         if(USE_MEMORY_CACHE)
         {
             s_ticketCaches = new ConcurrentDictionary<string, Krb5TicketCache>();
@@ -82,19 +79,45 @@ public sealed class KrbLibSim
 
 
     #region private methods
+    private static void EnsureInitialized()
+    {
+        if (s_initialized)
+        {
+            return;
+        }
+
+        lock (s_initLock)
+        {
+            if (s_initialized)
+            {
+                return;
+            }
+
+            s_krb5Conf = GetConfigurationFile();
+            
+            // expects the DefaultCCacheName property to be set in krb5.conf file
+            s_ticketCachePath = s_krb5Conf.Defaults.DefaultCCacheName?.Contains(":") == true
+                ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
+                : s_krb5Conf.Defaults.DefaultCCacheName ?? "";
+                
+            s_initialized = true;
+        }
+    }
+
     /// <summary>
     /// Return the krb5.conf as a krb5Config instance.
     /// File must exist in the appropriate path.
     /// </summary>
     private static Krb5Config GetConfigurationFile()
     {
-        if (!File.Exists(CONFIG_FILE_PATH))
+        string configFilePath = GetConfigFilePath();
+        if (!File.Exists(configFilePath))
         {
-            throw new Exception($"ERROR: Kerberos config file does not exist at the location: {CONFIG_FILE_PATH}.");
+            throw new Exception($"ERROR: Kerberos config file does not exist at the location: {configFilePath}.");
         }
 
         // Kerberos configuration text
-        string configValue = File.ReadAllText(CONFIG_FILE_PATH);
+        string configValue = File.ReadAllText(configFilePath);
         // Parse text into a Kerberos configuration instance
         var krb5Config = Krb5Config.Parse(configValue);
         //TODO: Dns lookup not working with this library for linux.
@@ -106,10 +129,12 @@ public sealed class KrbLibSim
     }
 
 
+    /// <summary>
     /// Gets the ticket cache path according to the specific user.
     /// </summary>
     private static string GetUserTicketCachePath(string username)
     {
+        EnsureInitialized();
         return Path.Join(s_ticketCachePath, TICKET_CACHE_PREFIX + username);
     }
 
@@ -142,7 +167,14 @@ public sealed class KrbLibSim
     {
         while(true)
         {
-            TryCleanCache();
+            try
+            {
+                TryCleanCache();
+            }
+            catch (Exception ex)
+            {
+                s_logger.LogError(ex, "Error during TryCleanCache in background loop");
+            }
             await Task.Delay(s_cleanCacheInterval).ConfigureAwait(false);
         }
     }
@@ -156,6 +188,7 @@ public sealed class KrbLibSim
     /// </summary>
     public static Auth CreateAuth(string username, string service, bool useDelegatedCredentials)
     {
+        EnsureInitialized();
         return new Auth(s_krb5Conf, username, service, useDelegatedCredentials);
     }
 
@@ -175,6 +208,7 @@ public sealed class KrbLibSim
     /// </summary>
     public static bool HasTicket(string username)
     {
+        EnsureInitialized();
         if(MEMORY_CACHE_ID_USERNAME_ONLY)
         {
             if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
@@ -195,6 +229,11 @@ public sealed class KrbLibSim
     /// </summary>
     public static void TryCleanCache()
     {
+        if (!s_initialized)
+        {
+            return;
+        }
+
         foreach(string user in s_ticketCaches.Keys.ToList())
         {
             if(s_ticketCaches.TryGetValue(user, out Krb5TicketCache ticketCache))

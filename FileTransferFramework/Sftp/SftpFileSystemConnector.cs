@@ -100,7 +100,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 => await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos
-                => await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster.DomainName, lexisToken, port),
+                => await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster, lexisToken, port),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
                 await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port),
@@ -551,14 +551,16 @@ public class SftpFileSystemConnector : IPoolableAdapter
     }
 
     private async Task<KerberosSftpClient> CreateConnectionObjectUsingKerberosAuthenticationAsync(string masterNodeName,
-        string username, string address, string lexisToken, int? port)
+        string username, Cluster cluster, string lexisToken, int? port)
     {
+        await HEAppE.HpcConnectionFramework.SystemConnectors.SSH.KerberosConfigHelper.BootstrapConfigIfNeededAsync(masterNodeName, cluster, _logger);
+
         if (Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {
             byte[] krbtkt = await GetKernelTicketAsync(lexisToken);
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
-        return new KerberosSftpClient(_logger, masterNodeName, address, username);
+        return new KerberosSftpClient(_logger, masterNodeName, cluster.DomainName, username);
     }
 
     private async Task<byte[]> GetKernelTicketAsync(string lexisToken)

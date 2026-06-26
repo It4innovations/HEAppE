@@ -602,18 +602,40 @@ internal class JobManagementLogic : IJobManagementLogic
                 {
                     //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
                     //if you want to, refactoring is possible
+                    if (task.CommandParameterValues == null)
+                    {
+                        throw new InputValidationException("NotValidJobSpecification", "CommandParameterValues cannot be null.");
+                    }
+
+                    if (commandTemplate.TemplateParameters == null || !commandTemplate.TemplateParameters.Any())
+                    {
+                        throw new InputValidationException("NotValidJobSpecification", "Template parameters are not defined for the generic command template.");
+                    }
+
                     var definedGenericCommandParameters = commandTemplate.TemplateParameters
-                        .Select(x => x.Identifier);
+                        .Select(x => x.Identifier)
+                        .ToList();
                     var userDefinedCommandParameters = task.CommandParameterValues
-                        .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
+                        .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier))
+                        .ToList();
                     var userScriptParameter = task.CommandParameterValues
-                        .Where(x => definedGenericCommandParameters
-                            .Contains(x.CommandParameterIdentifier))
-                        .FirstOrDefault();
-                    var userParametersParameterName = commandTemplate.TemplateParameters
-                        .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
-                        .FirstOrDefault().Identifier;
-                    var parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
+                        .FirstOrDefault(x => definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
+
+                    if (userScriptParameter == null)
+                    {
+                        throw new InputValidationException("NotValidJobSpecification", "User script path parameter, for generic command template, does not have a value.");
+                    }
+
+                    var userParametersParameter = commandTemplate.TemplateParameters
+                        .FirstOrDefault(x => x.Identifier != userScriptParameter.CommandParameterIdentifier);
+
+                    if (userParametersParameter == null)
+                    {
+                        throw new InputValidationException("NotValidJobSpecification", "User parameters parameter is not defined for the generic command template.");
+                    }
+
+                    var userParametersParameterName = userParametersParameter.Identifier;
+                    var parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters);
 
                     task.CommandParameterValues.Add(new CommandTemplateParameterValue
                     {
