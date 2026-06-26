@@ -1,5 +1,6 @@
 #pragma warning disable CA2200
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,6 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 /// </summary>
 public class SshConnector : IPoolableAdapter
 {
+    private static readonly System.Threading.SemaphoreSlim _krbConfigSemaphore = new System.Threading.SemaphoreSlim(1, 1);
     private ISshCertificateAuthorityService _sshCaService;
     private IExpirioService _expirio;
     private ILogger _logger;
@@ -108,7 +110,7 @@ public class SshConnector : IPoolableAdapter
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
-                await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, cluster.DomainName, lexisToken),
+                await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, cluster.DomainName, lexisToken, cluster),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
@@ -126,7 +128,74 @@ public class SshConnector : IPoolableAdapter
 
     public async Task ConnectAsync(object connectorClient)
     {
-        await new SshClientAdapter((SshClient)connectorClient).ConnectAsync();
+        var adapter = new SshClientAdapter((SshClient)connectorClient);
+        await adapter.ConnectAsync();
+
+        if (connectorClient is SshClient sshClient && 
+            !(connectorClient is KerberosSshClient) && 
+            !(connectorClient is NoAuthenticationSshClient))
+        {
+            string destPath = "/opt/heappe/confs/krb5.conf";
+            bool needsDownload = false;
+            try
+            {
+                if (!File.Exists(destPath) || (DateTime.UtcNow - File.GetLastWriteTimeUtc(destPath)).TotalHours >= 1)
+                {
+                    needsDownload = true;
+                }
+            }
+            catch
+            {
+                needsDownload = true;
+            }
+
+            if (needsDownload)
+            {
+                await _krbConfigSemaphore.WaitAsync();
+                try
+                {
+                    // Double-checked locking pattern: check state again after acquiring lock
+                    if (!File.Exists(destPath) || (DateTime.UtcNow - File.GetLastWriteTimeUtc(destPath)).TotalHours >= 1)
+                    {
+                        _logger.LogInformation("Automatically downloading krb5.conf from connected host...");
+                        var commandResult = await adapter.RunCommandAsync("cat /etc/krb5.conf");
+                        if (commandResult != null && !string.IsNullOrWhiteSpace(commandResult.Result) && commandResult.ExitStatus == 0)
+                        {
+                            var dir = Path.GetDirectoryName(destPath);
+                            if (!Directory.Exists(dir))
+                            {
+                                Directory.CreateDirectory(dir);
+                            }
+                            
+                            string existingContent = "";
+                            if (File.Exists(destPath))
+                            {
+                                try { existingContent = await File.ReadAllTextAsync(destPath); } catch { }
+                            }
+                            string mergedContent = Krb5ConfigMerger.Merge(existingContent, commandResult.Result);
+
+                            string tempPath = destPath + ".tmp";
+                            await File.WriteAllTextAsync(tempPath, mergedContent);
+                            File.Move(tempPath, destPath, overwrite: true);
+                            
+                            _logger.LogInformation($"Successfully auto-downloaded and saved krb5.conf to {destPath}");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Failed to auto-download krb5.conf: exit code {commandResult?.ExitStatus}, error: {commandResult?.Error}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error while auto-downloading krb5.conf from host.");
+                }
+                finally
+                {
+                    _krbConfigSemaphore.Release();
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -617,22 +686,100 @@ public class SshConnector : IPoolableAdapter
         return client;
     }
 
-    /// <summary>
-    ///     Create connection object using kerberos ticket.
-    /// </summary>
-    /// <param name="masterNodeName"></param>
-    /// <param name="username"></param>
-    /// <param name="address"></param>
-    /// <param name="lexisToken"></param>
-    /// <returns></returns>
-    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string address, string lexisToken)
+    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string address, string lexisToken, Cluster cluster)
     {
         if(Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {
             byte[] krbtkt = await GetKerberosTicket(lexisToken);
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
+
+        string destPath = "/opt/heappe/confs/krb5.conf";
+        bool needsBootstrap = false;
+        try
+        {
+            if (!File.Exists(destPath))
+            {
+                needsBootstrap = true;
+            }
+        }
+        catch
+        {
+            needsBootstrap = true;
+        }
+
+        if (needsBootstrap)
+        {
+            await _krbConfigSemaphore.WaitAsync();
+            try
+            {
+                if (!File.Exists(destPath))
+                {
+                    _logger.LogInformation("Bootstrapping krb5.conf for Kerberos connection...");
+                    string domain = !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : GetDomainFromHostname(masterNodeName);
+                    string realm = domain.ToUpperInvariant();
+                    string kdc = masterNodeName;
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine("[libdefaults]");
+                    sb.AppendLine($"    default_realm = {realm}");
+                    sb.AppendLine("    dns_lookup_realm = false");
+                    sb.AppendLine("    dns_lookup_kdc = false");
+                    sb.AppendLine("    rdns = false");
+                    sb.AppendLine("    ticket_lifetime = 24h");
+                    sb.AppendLine("    forwardable = true");
+                    sb.AppendLine("");
+                    sb.AppendLine("[realms]");
+                    sb.AppendLine($"    {realm} = {{");
+                    sb.AppendLine($"        kdc = {kdc}:88");
+                    sb.AppendLine($"        admin_server = {kdc}");
+                    sb.AppendLine("    }");
+                    sb.AppendLine("");
+                    sb.AppendLine("[domain_realm]");
+                    sb.AppendLine($"    .{domain} = {realm}");
+                    sb.AppendLine($"    {domain} = {realm}");
+
+                    var dir = Path.GetDirectoryName(destPath);
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+
+                    string existingContent = "";
+                    if (File.Exists(destPath))
+                    {
+                        try { existingContent = await File.ReadAllTextAsync(destPath); } catch { }
+                    }
+                    string mergedContent = Krb5ConfigMerger.Merge(existingContent, sb.ToString());
+
+                    string tempPath = destPath + ".tmp";
+                    await File.WriteAllTextAsync(tempPath, mergedContent);
+                    File.Move(tempPath, destPath, overwrite: true);
+                    _logger.LogInformation($"Successfully bootstrapped krb5.conf at {destPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to bootstrap krb5.conf");
+            }
+            finally
+            {
+                _krbConfigSemaphore.Release();
+            }
+        }
+
         return new KerberosSshClient(masterNodeName, address, username);
+    }
+
+    private static string GetDomainFromHostname(string hostname)
+    {
+        if (string.IsNullOrEmpty(hostname)) return "local";
+        int firstDot = hostname.IndexOf('.');
+        if (firstDot > 0 && firstDot < hostname.Length - 1)
+        {
+            return hostname.Substring(firstDot + 1);
+        }
+        return hostname;
     }
 
     /// <summary>
@@ -648,4 +795,222 @@ public class SshConnector : IPoolableAdapter
     }
 
     #endregion
+}
+
+public static class Krb5ConfigMerger
+{
+    public static string Merge(string existingContent, string newContent)
+    {
+        if (string.IsNullOrWhiteSpace(existingContent)) return newContent;
+        if (string.IsNullOrWhiteSpace(newContent)) return existingContent;
+
+        var existingSections = ParseSections(existingContent);
+        var newSections = ParseSections(newContent);
+
+        // Merge [libdefaults]
+        if (newSections.TryGetValue("libdefaults", out var newLibdefaults))
+        {
+            if (!existingSections.TryGetValue("libdefaults", out var existingLibdefaults))
+            {
+                existingSections["libdefaults"] = newLibdefaults;
+            }
+            else
+            {
+                var existingLines = ParseLines(existingLibdefaults);
+                var newLines = ParseLines(newLibdefaults);
+                foreach (var kvp in newLines)
+                {
+                    existingLines[kvp.Key] = kvp.Value;
+                }
+                existingSections["libdefaults"] = FormatLines(existingLines);
+            }
+        }
+
+        // Merge [realms]
+        if (newSections.TryGetValue("realms", out var newRealms))
+        {
+            if (!existingSections.TryGetValue("realms", out var existingRealms))
+            {
+                existingSections["realms"] = newRealms;
+            }
+            else
+            {
+                var existingBlocks = ParseBlocks(existingRealms);
+                var newBlocks = ParseBlocks(newRealms);
+                foreach (var kvp in newBlocks)
+                {
+                    existingBlocks[kvp.Key] = kvp.Value;
+                }
+                existingSections["realms"] = FormatBlocks(existingBlocks);
+            }
+        }
+
+        // Merge [domain_realm]
+        if (newSections.TryGetValue("domain_realm", out var newDomainRealm))
+        {
+            if (!existingSections.TryGetValue("domain_realm", out var existingDomainRealm))
+            {
+                existingSections["domain_realm"] = newDomainRealm;
+            }
+            else
+            {
+                var existingLines = ParseLines(existingDomainRealm);
+                var newLines = ParseLines(newDomainRealm);
+                foreach (var kvp in newLines)
+                {
+                    existingLines[kvp.Key] = kvp.Value;
+                }
+                existingSections["domain_realm"] = FormatLines(existingLines);
+            }
+        }
+
+        // Keep other sections from both
+        foreach (var section in newSections.Keys)
+        {
+            if (!string.Equals(section, "libdefaults", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(section, "realms", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(section, "domain_realm", StringComparison.OrdinalIgnoreCase))
+            {
+                existingSections[section] = newSections[section];
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        foreach (var kvp in existingSections)
+        {
+            sb.AppendLine($"[{kvp.Key}]");
+            sb.Append(kvp.Value);
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private static Dictionary<string, string> ParseSections(string content)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string currentSectionName = null;
+        StringBuilder currentSectionContent = new StringBuilder();
+
+        using (var reader = new StringReader(content))
+        {
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+                {
+                    if (currentSectionName != null)
+                    {
+                        result[currentSectionName] = currentSectionContent.ToString();
+                    }
+                    currentSectionName = trimmed.Substring(1, trimmed.Length - 2).Trim();
+                    currentSectionContent.Clear();
+                }
+                else
+                {
+                    if (currentSectionName != null)
+                    {
+                        currentSectionContent.AppendLine(line);
+                    }
+                }
+            }
+            if (currentSectionName != null)
+            {
+                result[currentSectionName] = currentSectionContent.ToString();
+            }
+        }
+        return result;
+    }
+
+    private static Dictionary<string, string> ParseLines(string content)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using (var reader = new StringReader(content))
+        {
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#") || trimmed.StartsWith(";")) continue;
+                int eqIdx = trimmed.IndexOf('=');
+                if (eqIdx > 0)
+                {
+                    var key = trimmed.Substring(0, eqIdx).Trim();
+                    var val = trimmed.Substring(eqIdx + 1).Trim();
+                    result[key] = val;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static string FormatLines(Dictionary<string, string> lines)
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (var kvp in lines)
+        {
+            sb.AppendLine($"    {kvp.Key} = {kvp.Value}");
+        }
+        return sb.ToString();
+    }
+
+    private static Dictionary<string, string> ParseBlocks(string content)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using (var reader = new StringReader(content))
+        {
+            string line;
+            string currentBlockName = null;
+            StringBuilder currentBlockContent = new StringBuilder();
+            int braceCount = 0;
+
+            while ((line = reader.ReadLine()) != null)
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed)) continue;
+
+                if (currentBlockName == null)
+                {
+                    int eqIdx = trimmed.IndexOf('=');
+                    if (eqIdx > 0)
+                    {
+                        currentBlockName = trimmed.Substring(0, eqIdx).Trim();
+                        var remainder = trimmed.Substring(eqIdx + 1).Trim();
+                        currentBlockContent.Clear();
+                        currentBlockContent.AppendLine($"    {currentBlockName} = {remainder}");
+                        if (remainder.Contains("{")) braceCount++;
+                        if (remainder.Contains("}")) braceCount--;
+                        if (braceCount == 0)
+                        {
+                            result[currentBlockName] = currentBlockContent.ToString();
+                            currentBlockName = null;
+                        }
+                    }
+                }
+                else
+                {
+                    currentBlockContent.AppendLine(line);
+                    if (trimmed.Contains("{")) braceCount++;
+                    if (trimmed.Contains("}")) braceCount--;
+                    if (braceCount <= 0)
+                    {
+                        result[currentBlockName] = currentBlockContent.ToString();
+                        currentBlockName = null;
+                        braceCount = 0;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static string FormatBlocks(Dictionary<string, string> blocks)
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (var kvp in blocks)
+        {
+            sb.Append(kvp.Value);
+        }
+        return sb.ToString();
+    }
 }

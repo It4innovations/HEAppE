@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.Exceptions.External;
@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 /// <summary>
 /// Utility class for executing SSH commands with optimized retry logic.
 /// </summary>
-internal static class SshCommandUtils
+public static class SshCommandUtils
 {    
     /// <summary>
     /// Maximum number of attempts for a single command execution.
@@ -33,7 +33,7 @@ internal static class SshCommandUtils
     /// <summary>
     /// Runs an SSH command asynchronously with automatic retries.
     /// </summary>
-    internal static async Task<SshCommandWrapper> RunSshCommandAsync(object client, string command, ILogger logger)
+    public static async Task<SshCommandWrapper> RunSshCommandAsync(object client, string command, ILogger logger)
     {
         var adapter = client as SshClientAdapter ?? new SshClientAdapter((Renci.SshNet.SshClient)client);
         int attempt = 0;

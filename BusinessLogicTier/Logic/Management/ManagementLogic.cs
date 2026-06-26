@@ -1563,7 +1563,6 @@ public class ManagementLogic : IManagementLogic
         
         return clusterAccountStatusList;
     }
-    
 
     /// <summary>
     ///     Get GetCommandTemplateParameter by id

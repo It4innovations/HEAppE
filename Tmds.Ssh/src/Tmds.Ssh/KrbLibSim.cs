@@ -23,7 +23,17 @@ namespace Tmds.Ssh;
 public sealed class KrbLibSim
 {
     #region private fields
-    private const string CONFIG_FILE_PATH = "//etc/krb5.conf";
+    private static readonly string CONFIG_FILE_PATH = GetConfigFilePath();
+
+    private static string GetConfigFilePath()
+    {
+        var customPath = "/opt/heappe/confs/krb5.conf";
+        if (System.IO.File.Exists(customPath))
+        {
+            return customPath;
+        }
+        return "/etc/krb5.conf";
+    }
     private const string TICKET_CACHE_PREFIX = "tkt_";
     private const LogLevel MIN_LOG_LEVEL = LogLevel.Error;
     private const bool MEMORY_CACHE_ID_USERNAME_ONLY = true; // true: the memory cache id is the username; false: username and realm.

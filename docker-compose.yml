@@ -16,6 +16,11 @@ services:
       - sshagent_internal_network
     profiles:
       - sshagent
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -44,6 +49,11 @@ services:
       - external_network
     profiles:
       - db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   datastagingapi:
     image: "${DOCKER_REGISTRY-}datastagingapi"
@@ -71,6 +81,11 @@ services:
       - otelnet
     profiles:
       - staging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   heappe:
     image: "${DOCKER_REGISTRY-}heappe"
@@ -104,6 +119,11 @@ services:
       - otelnet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
   
   otel-collector-init:
     image: busybox:1.37.0
@@ -113,6 +133,11 @@ services:
       - /var/log/otel:/var/log/otel
     profiles:
       - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
   
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.151.0
@@ -133,6 +158,11 @@ services:
       - otelnet
     profiles:
       - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
   
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.17.0
@@ -143,6 +173,11 @@ services:
       - otelnet
     profiles:
       - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault:
     image: hashicorp/vault:1.17.3
@@ -159,6 +194,11 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vaultagent:
     image: hashicorp/vault:1.17.3
@@ -174,6 +214,11 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault_init:
     build:
@@ -194,6 +239,11 @@ services:
       - vaultNet
     profiles:
       - initVault
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault_unseal:
     build:
@@ -213,6 +263,11 @@ services:
     networks:
       - vaultNet
     command: /opt/unsealOrInitHVault.sh
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   app_volume:
