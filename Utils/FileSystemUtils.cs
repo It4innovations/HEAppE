@@ -263,18 +263,19 @@ public class FileSystemUtils
     {
         if (string.IsNullOrEmpty(path)) return string.Empty;
 
-        string homeDirTemplate = "/users/{username}";
+        string? resolvedHomeDir = null;
         if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
         {
-            homeDirTemplate = template;
-        }
-
-        var resolvedHomeDir = string.IsNullOrEmpty(homeDir) 
-            ? homeDirTemplate
+            resolvedHomeDir = template
                 .Replace("{username}", username)
                 .Replace("{USER}", username)
-                .Replace("$USER", username)
-            : homeDir;
+                .Replace("$USER", username);
+        }
+
+        if (string.IsNullOrEmpty(resolvedHomeDir))
+        {
+            resolvedHomeDir = string.IsNullOrEmpty(homeDir) ? $"/users/{username}" : homeDir;
+        }
 
         var result = path;
         if (result.StartsWith("~"))
