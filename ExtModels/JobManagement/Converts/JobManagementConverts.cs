@@ -279,7 +279,9 @@ public static class JobManagementConverts
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
-            KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
+            KeyScriptsDirectoryPath = ClusterRuntimeConfiguration.For(
+                project.ClusterProjects?.FirstOrDefault(x => !x.IsDeleted)?.Cluster?.CustomConfiguration
+            ).GetPathToScript(project.AccountingString, string.Empty),
 
             CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
             ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)
