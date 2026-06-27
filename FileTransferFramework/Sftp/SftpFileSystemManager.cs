@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -47,10 +47,6 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
-        
-        var localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
-
-        var partPath = localBasePath.Replace(basePath, string.Empty);
 
         var connection =
             await _connectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
@@ -63,7 +59,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                 if(basePath.StartsWith("~"))
                     basePath = basePath.Replace("~", client.WorkingDirectory);
                 
-                var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, partPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
+                var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
                 await client.DownloadFileAsync(file, stream);
                 return stream.ToArray();
             }
