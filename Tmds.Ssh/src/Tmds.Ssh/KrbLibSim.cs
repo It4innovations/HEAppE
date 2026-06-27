@@ -30,29 +30,7 @@ public sealed class KrbLibSim
         {
             return customPath;
         }
-        if (System.IO.Directory.Exists(customPath))
-        {
-            var filePathInsideDir = System.IO.Path.Combine(customPath, "krb5.conf");
-            if (System.IO.File.Exists(filePathInsideDir))
-            {
-                return filePathInsideDir;
-            }
-        }
-
-        var etcPath = "/etc/krb5.conf";
-        if (System.IO.File.Exists(etcPath))
-        {
-            return etcPath;
-        }
-        if (System.IO.Directory.Exists(etcPath))
-        {
-            var filePathInsideDir = System.IO.Path.Combine(etcPath, "krb5.conf");
-            if (System.IO.File.Exists(filePathInsideDir))
-            {
-                return filePathInsideDir;
-            }
-        }
-        return etcPath;
+        return "/etc/krb5.conf";
     }
     private const string TICKET_CACHE_PREFIX = "tkt_";
     private const LogLevel MIN_LOG_LEVEL = LogLevel.Error;
@@ -62,8 +40,6 @@ public sealed class KrbLibSim
     private static bool s_initialized = false;
     private static Krb5Config s_krb5Conf;
     private static string s_ticketCachePath;
-    private static string s_lastConfigFilePath = string.Empty;
-    private static DateTime s_lastConfigWriteTime = DateTime.MinValue;
     
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
@@ -105,18 +81,14 @@ public sealed class KrbLibSim
     #region private methods
     private static void EnsureInitialized()
     {
-        string configFilePath = GetConfigFilePath();
-        DateTime lastWrite = File.Exists(configFilePath) ? File.GetLastWriteTimeUtc(configFilePath) : DateTime.MinValue;
-
-        if (s_initialized && configFilePath == s_lastConfigFilePath && lastWrite <= s_lastConfigWriteTime)
+        if (s_initialized)
         {
             return;
         }
 
         lock (s_initLock)
         {
-            lastWrite = File.Exists(configFilePath) ? File.GetLastWriteTimeUtc(configFilePath) : DateTime.MinValue;
-            if (s_initialized && configFilePath == s_lastConfigFilePath && lastWrite <= s_lastConfigWriteTime)
+            if (s_initialized)
             {
                 return;
             }
@@ -128,8 +100,6 @@ public sealed class KrbLibSim
                 ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
                 : s_krb5Conf.Defaults.DefaultCCacheName ?? "";
                 
-            s_lastConfigFilePath = configFilePath;
-            s_lastConfigWriteTime = lastWrite;
             s_initialized = true;
         }
     }
