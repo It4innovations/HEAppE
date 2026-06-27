@@ -765,7 +765,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        string account, bool isServiceAccount)
+        string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
         if (isServiceAccount) return true;
 
@@ -803,7 +803,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var clusterName = ClusterName ?? "Unknown";
 
             // 4. Construct remote destination directory
-            var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+            var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
+            var rootDir = Path.Combine(clusterConfig.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
             rootDir = ExpandRemotePath(rootDir, account);
             var targetDir = $"{rootDir}/.key_scripts";
 
@@ -840,7 +841,7 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             await CreateDirectoryAsync(mkdirEndpoint, token, targetDir, mkdirRequestBody);
 
             // 6. Calculate placeholder replacement
-            var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
+            var sedReplacement = $"{localBasepath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}";
 
             // 7. For each file in the local .key_scripts directory:
             var files = Directory.GetFiles(localKeyScriptsPath);
@@ -1002,7 +1003,7 @@ class FirecRestCommands : ICommands
         return [];
     }
 
-    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
         await Task.Delay(1);
         return true;

@@ -253,20 +253,21 @@ internal class LinuxCommands : ICommands
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
         if (isServiceAccount) return true;
 
         localBasepath = ExpandPathSimple(localBasepath, account);
 
-        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+        var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
+        var rootDir = Path.Combine(clusterConfig.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
         string bashSafeRootDir = rootDir.StartsWith("~/") 
             ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
             : "\"" + rootDir + "\"";
         
         var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
         var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
-        var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
+        var sedReplacement = $"{localBasepath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}";
 
         var cmdBuilder = new StringBuilder();
         cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && cd {bashSafeRootDir} && ");

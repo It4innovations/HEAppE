@@ -248,7 +248,7 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             return await _adapter.InitializeClusterScriptDirectoryAsync(
-                conn.Connection, path, true, localBasepath, credentials.Username, false);
+                conn.Connection, path, true, localBasepath, credentials.Username, false, cluster.CustomConfiguration);
         }
         finally
         {
@@ -444,7 +444,7 @@ public class RexSchedulerWrapper : IRexScheduler
             schedulerConnection = await GetConnectionForUserAsync(clusterAuthCredentials, cluster, sshCaToken, lexisToken);
             return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
-                clusterAuthCredentials.Username, isServiceAccount);
+                clusterAuthCredentials.Username, isServiceAccount, cluster.CustomConfiguration);
         }
         catch (HEAppE.Exceptions.AbstractTypes.BaseException)
         {

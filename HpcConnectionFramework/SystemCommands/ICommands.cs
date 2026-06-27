@@ -83,7 +83,7 @@ public interface ICommands
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
     Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, 
-        bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
+        bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration);
 
     Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode);
 }

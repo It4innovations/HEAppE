@@ -487,10 +487,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
         return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory,
-            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
+            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount, customConfiguration);
     }
 
     public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
