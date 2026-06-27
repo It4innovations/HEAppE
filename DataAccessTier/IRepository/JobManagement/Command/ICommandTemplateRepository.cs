@@ -16,4 +16,5 @@ public interface ICommandTemplateRepository : IRepository<CommandTemplate>
     /// </summary>
     IList<CommandTemplate> GetByIdsIncludingDeleted(IEnumerable<long> ids);
     Task<IList<CommandTemplate>> GetByIdsIncludingDeletedAsync(IEnumerable<long> ids);
+    IList<CommandTemplate> GetCommandTemplatesByClusterId(long clusterId);
 }

@@ -82,4 +82,11 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .Where(ct => idList.Contains(ct.Id))
             .ToListAsync();
     }
+
+    public IList<CommandTemplate> GetCommandTemplatesByClusterId(long clusterId)
+    {
+        return _dbSet.Where(w => w.ClusterNodeType.ClusterId == clusterId && !w.IsDeleted)
+            .Include(i => i.ClusterNodeType)
+            .ToList();
+    }
 }

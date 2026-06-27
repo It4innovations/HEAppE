@@ -1806,6 +1806,56 @@ public class ManagementLogic : IManagementLogic
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
 
+        string? GetScriptsBasePath(Dictionary<string, string>? dict)
+        {
+            if (dict == null) return null;
+            if (dict.TryGetValue("ScriptsBasePath", out var path)) return path;
+            if (dict.TryGetValue("HPCConnectionFrameworkSettings:ScriptsSettings:ScriptsBasePath", out path)) return path;
+            return null;
+        }
+
+        string? NormalizePath(string? p) => p?.TrimEnd('/', '\\');
+
+        var oldBasePath = GetScriptsBasePath(existingCluster.CustomConfiguration);
+        var newBasePath = GetScriptsBasePath(customConfiguration);
+        var globalBasePath = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath;
+
+        var normOld = NormalizePath(oldBasePath);
+        var normNew = NormalizePath(newBasePath);
+        var normGlobal = NormalizePath(globalBasePath);
+
+        bool hasOld = !string.IsNullOrEmpty(normOld);
+        bool hasNew = !string.IsNullOrEmpty(normNew);
+
+        if ((hasOld && hasNew && normOld != normNew) || 
+            (!hasOld && hasNew && normGlobal != normNew) ||
+            (hasOld && !hasNew && normOld != normGlobal))
+        {
+            var templates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByClusterId(id);
+            foreach (var template in templates)
+            {
+                if (string.IsNullOrEmpty(template.ExecutableFile)) continue;
+
+                string targetPath = hasNew ? newBasePath! : globalBasePath;
+                var prefixToReplace = "";
+
+                if (hasOld && template.ExecutableFile.StartsWith(oldBasePath!))
+                    prefixToReplace = oldBasePath!;
+                else if (hasOld && normOld != null && template.ExecutableFile.StartsWith(normOld))
+                    prefixToReplace = normOld;
+                else if (hasNew && template.ExecutableFile.StartsWith(globalBasePath))
+                    prefixToReplace = globalBasePath;
+                else if (hasNew && normGlobal != null && template.ExecutableFile.StartsWith(normGlobal))
+                    prefixToReplace = normGlobal;
+
+                if (!string.IsNullOrEmpty(prefixToReplace))
+                {
+                    template.ExecutableFile = targetPath + template.ExecutableFile.Substring(prefixToReplace.Length);
+                    _unitOfWork.CommandTemplateRepository.Update(template);
+                }
+            }
+        }
+
         existingCluster.Name = name;
         existingCluster.Description = description;
         existingCluster.MasterNodeName = masterNodeName;
@@ -3328,12 +3378,13 @@ public class ManagementLogic : IManagementLogic
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
                               ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", modelClusterNodeTypeId);
 
+        var cluster = clusterNodeType.Cluster ?? _unitOfWork.ClusterRepository.GetById(clusterNodeType.ClusterId.Value);
         var commandTemplate = new CommandTemplate
         {
             Name = modelName,
             Description = modelDescription,
             ExtendedAllocationCommand = modelExtendedAllocationCommand,
-            ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, "generic.sh"),
+            ExecutableFile = ClusterRuntimeConfiguration.For(cluster?.CustomConfiguration).GetPathToScript(project.AccountingString, "generic.sh"),
             PreparationScript = modelPreparationScript,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false,
