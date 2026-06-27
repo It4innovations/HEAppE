@@ -228,7 +228,8 @@ internal class LinuxCommands : ICommands
     {
         string account = jobInfo.Specification.ClusterUser.Username;
         localBasePath = ExpandPath(localBasePath, jobInfo, account);
-        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        var shellCommand = $"rm -Rf {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         try
         {
             var sshCommand =
@@ -338,8 +339,8 @@ internal class LinuxCommands : ICommands
             string account = jobInfo.Specification.ClusterUser.Username;
             projectBasePath = ExpandPath(projectBasePath, jobInfo, account);
 
-            var heappeJobsDir = $"{_scripts.InstanceIdentifierPath.TrimStart('/')}/{_scripts.JobLogArchiveSubPath.TrimStart('/')}";
             var copyFilesClusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+            var heappeJobsDir = $"{copyFilesClusterConfig.InstanceIdentifierPath.TrimStart('/')}/{copyFilesClusterConfig.JobLogArchiveSubPath.TrimStart('/')}";
 
             cmdBuilder.Append(
                 $"{copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");

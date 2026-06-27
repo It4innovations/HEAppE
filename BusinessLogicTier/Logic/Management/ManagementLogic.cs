@@ -535,7 +535,7 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
         
-        _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
+        var cluster = _unitOfWork.ClusterRepository.GetById(clusterId) ??
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
         var existingAssignment = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProjectIncludingDeleted(clusterId, projectId);
@@ -549,8 +549,8 @@ public class ManagementLogic : IManagementLogic
             var now = DateTime.UtcNow;
             existingAssignment.IsDeleted = false;
             existingAssignment.ModifiedAt = now;
-            existingAssignment.ScratchStoragePath = CleanPath(scratchStoragePath);
-            existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath);
+            existingAssignment.ScratchStoragePath = CleanPath(scratchStoragePath, cluster.CustomConfiguration);
+            existingAssignment.ProjectStoragePath = CleanPath(projectStoragePath, cluster.CustomConfiguration);
             existingAssignment.PreferredAuthType = preferredAuthType;
             
             project.ModifiedAt = now;
@@ -591,8 +591,8 @@ public class ManagementLogic : IManagementLogic
         {
             ClusterId = clusterId,
             ProjectId = projectId,
-            ScratchStoragePath = CleanPath(scratchStoragePath),
-            ProjectStoragePath = CleanPath(projectStoragePath),
+            ScratchStoragePath = CleanPath(scratchStoragePath, cluster.CustomConfiguration),
+            ProjectStoragePath = CleanPath(projectStoragePath, cluster.CustomConfiguration),
             PreferredAuthType = preferredAuthType,
             CreatedAt = createdAt,
             ModifiedAt = createdAt,
@@ -651,9 +651,11 @@ public class ManagementLogic : IManagementLogic
              throw new InputValidationException("CannotModifyDeletedAssignment");
         }
 
+        var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+        var customConfiguration = cluster?.CustomConfiguration;
         var modified = DateTime.UtcNow;
-        clusterProject.ScratchStoragePath = CleanPath(scratchStoragePath);
-        clusterProject.ProjectStoragePath = CleanPath(projectStoragePath);
+        clusterProject.ScratchStoragePath = CleanPath(scratchStoragePath, customConfiguration);
+        clusterProject.ProjectStoragePath = CleanPath(projectStoragePath, customConfiguration);
         clusterProject.PreferredAuthType = preferredAuthType;
         clusterProject.ModifiedAt = modified;
         clusterProject.Project.ModifiedAt = modified;
@@ -720,11 +722,18 @@ public class ManagementLogic : IManagementLogic
         _logger.LogInformation($"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'");
     }
 
-    private string CleanPath(string path)
+    private string CleanPath(string path, Dictionary<string, string>? customConfiguration = null)
     {
         if (string.IsNullOrEmpty(path)) return string.Empty;
 
-        return path
+        var clean = path;
+        if (customConfiguration != null)
+        {
+            var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
+            clean = clean.Replace(clusterConfig.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture);
+        }
+
+        return clean
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
             .TrimEnd('\\', '/');
     }

@@ -339,6 +339,7 @@ public class FileTransferLogic : IFileTransferLogic
                 where taskFileOffset.SubmittedTaskInfoId == taskInfo.Id
                 select taskFileOffset).ToList();
             
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             foreach (var currentOffset in currentTaskFileOffsets)
             {
                 ICollection<JobFileContent> contents = null;
@@ -346,13 +347,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         await fileManager.DownloadPartOfJobFileFromClusterAsync(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.JobLogArchiveSubPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
                 }
                 else
                 {
                     contents =
                         await fileManager.DownloadPartOfJobFileFromClusterAsync(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
                 }
 
                 if (contents != null)

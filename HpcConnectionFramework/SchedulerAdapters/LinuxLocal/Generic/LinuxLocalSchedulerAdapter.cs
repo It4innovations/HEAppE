@@ -60,7 +60,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             var jobDirPath = Path.Combine(clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, account, jobId)
                 .Replace('\\', '/');
             var cliCommand =
-                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+                $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
             var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, cliCommand, _logger);
 
             _logger.LogInformation($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
@@ -149,9 +149,8 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         var localBasePath = jobSpecification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath;
 
-        //compose command with parameters of job and task IDs
         shellCommandSb.Append(
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
+            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
         jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
         //log local HPC Run script to log file
@@ -192,12 +191,14 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     public virtual async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         string message)
     {
+        var firstTask = submitedTasksInfo.FirstOrDefault();
+        var clusterConfig = ClusterRuntimeConfiguration.For(firstTask?.Specification.JobSpecification.Cluster.CustomConfiguration);
         StringBuilder commandSb = new();
         var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
             .Distinct();
         localClusterJobIds.ToList().ForEach(id =>
             commandSb.Append(
-                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
+                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(clusterConfig.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
         var command = commandSb.ToString();
 
         _logger.LogInformation(
@@ -218,8 +219,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             NodeType = nodeType
         };
 
+        var clusterConfig = ClusterRuntimeConfiguration.For(nodeType.Cluster?.CustomConfiguration);
         var command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
+            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
             _logger);
         _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
         if (int.TryParse(command.Result, out var totalJobs)) usage.TotalJobs = totalJobs;
@@ -399,10 +401,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         int clusterConnectionFailedCount = 0;
         int dryRunJobFailedCount = 0;
 
+        var clusterConfig = ClusterRuntimeConfiguration.For(cluster?.CustomConfiguration);
         foreach (var nodeType in cluster.NodeTypes)
         {
             var partition = nodeType.Queue;
-            var script_name = $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName}";
+            var script_name = $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName}";
             var testCommand = $"[ -f {script_name} ]"; // just check that file to run scripts exists
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -482,7 +485,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             var jobDirPath = Path.Combine(clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, username, jobId)
                 .Replace('\\', '/');
             
-            var cliCommand = $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+            var cliCommand = $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
 
             try
             {
