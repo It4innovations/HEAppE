@@ -328,6 +328,9 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var allUnfinishedJobs = (await _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinishedAsync())
             .Where(j => (j.Specification.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) != SchedulerType.FirecRestSlurm)
+            // Kerberos clusters (e.g. Metacentrum) have no persistent service account — job state
+            // is fetched on-demand via CurrentInfoForJob/GetActualTasksInfo, not by background polling.
+            .Where(j => j.Specification.ClusterUser?.AuthenticationType != ClusterAuthenticationCredentialsAuthType.Kerberos)
             .ToList();
 
         var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
@@ -1109,6 +1112,15 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials)> PrepareGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+
+        // Kerberos clusters (e.g. Metacentrum) have no persistent service account.
+        // The per-user ClusterUser is the correct credential; Kerberos ticket is obtained
+        // from the user's active SSH/PBS session context, not from a stored secret.
+        if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+        {
+            return (jobInfo, jobInfo.Specification.ClusterUser);
+        }
+
         var credentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);

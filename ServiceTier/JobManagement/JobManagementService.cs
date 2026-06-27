@@ -438,7 +438,23 @@ public class JobManagementService : IJobManagementService
                             needSshRefresh = true;
                     }
                 }
-                
+
+                if (!needSshRefresh)
+                {
+                    // Kerberos clusters (e.g. Metacentrum) have no background polling — status must
+                    // be fetched on-demand via the scheduler, not served from stale DB state.
+                    if (job.State == JobState.Running || job.State == JobState.Queued || job.State == JobState.Submitted)
+                    {
+                        var jobWithSpec = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+                            .Include(j => j.Specification)
+                                .ThenInclude(s => s.ClusterUser)
+                            .Where(j => j.Id == submittedJobInfoId)
+                            .FirstOrDefault();
+                        if (jobWithSpec?.Specification?.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                            needSshRefresh = true;
+                    }
+                }
+
                 if (!needSshRefresh)
                 {
                     // DB-only path: use lightweight query - no SSH navigation properties needed
