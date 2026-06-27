@@ -43,6 +43,38 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
+    private string ExpandRemotePath(string path, string username, string homeDir, Dictionary<string, string>? customConfiguration)
+    {
+        if (string.IsNullOrEmpty(path)) return string.Empty;
+
+        string homeDirTemplate = "/users/{username}";
+        if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            homeDirTemplate = template;
+        }
+
+        var resolvedHomeDir = string.IsNullOrEmpty(homeDir) 
+            ? homeDirTemplate
+                .Replace("{username}", username)
+                .Replace("{USER}", username)
+                .Replace("$USER", username)
+            : homeDir;
+
+        var result = path;
+        if (result.StartsWith("~"))
+        {
+            result = resolvedHomeDir + result.Substring(1);
+        }
+
+        result = result
+            .Replace("$USER", username)
+            .Replace("${USER}", username)
+            .Replace("$HOME", resolvedHomeDir)
+            .Replace("${HOME}", resolvedHomeDir);
+
+        return result;
+    }
+
     public override async Task<byte[]> DownloadFileFromClusterAsync(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken)
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
@@ -56,11 +88,12 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             var client = SftpClientAdapter.FromObject(connection.Connection);
             using (var stream = new MemoryStream())
             {
-                if(basePath.StartsWith("~"))
-                    basePath = basePath.Replace("~", client.WorkingDirectory);
+                var username = jobInfo.Specification.ClusterUser.Username;
+                var homeDir = client.WorkingDirectory;
+                basePath = ExpandRemotePath(basePath, username, homeDir, jobInfo.Specification.Cluster.CustomConfiguration);
                 
                 var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
-                var file = Path.Combine(basePath, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
+                var file = Path.Combine(basePath, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath.TrimStart('/'), username, relativeFilePath.TrimStart('/'));
                 await client.DownloadFileAsync(file, stream);
                 return stream.ToArray();
             }
@@ -80,7 +113,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         {
             var client = SftpClientAdapter.FromObject(connection.Connection);
             using var stream = new MemoryStream();
-            var path = absoluteFilePath.Replace("~/", string.Empty).Replace("/~/", string.Empty);
+            var username = jobSpecification.ClusterUser.Username;
+            var homeDir = client.WorkingDirectory;
+            var path = ExpandRemotePath(absoluteFilePath, username, homeDir, jobSpecification.Cluster.CustomConfiguration);
             await client.DownloadFileAsync(path, stream);
             return stream.ToArray();
         }
