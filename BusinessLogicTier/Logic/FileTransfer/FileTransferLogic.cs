@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -190,6 +190,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         }
 
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var transferMethod = new FileTransferMethod
         {
             Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
@@ -197,7 +198,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
                 Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) ? response.PosixUsername : clusterUserAuthCredentials.Username,
@@ -225,6 +226,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
 
         var publicKey = string.Empty;
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var transferMethod = new FileTransferMethod
         {
             Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
@@ -232,7 +234,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath)
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath)
         };
 
         _logger.LogInformation($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
@@ -569,8 +571,9 @@ public class FileTransferLogic : IFileTransferLogic
         var result = new Dictionary<string, dynamic>();
         
         var jobSpecification = _unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath = FileSystemUtils
-            .GetJobClusterDirectoryPath(jobSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+            .GetJobClusterDirectoryPath(jobSpecification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
         if (string.IsNullOrEmpty(jobClusterDirectoryPath))
             throw new Exception("Error: jobClusterDirectoryPath is not set!");
 
@@ -673,7 +676,8 @@ public class FileTransferLogic : IFileTransferLogic
                     basePath = jobInfo.Specification.Cluster.ClusterProjects
                         .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
                 }
-                var localBasePath = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
+                var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+                var localBasePath = Path.Combine(basePath, clusterConfig.InstanceIdentifierPath, clusterConfig.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
  
                 if (relativeFilePath.StartsWith(start1))
                 {

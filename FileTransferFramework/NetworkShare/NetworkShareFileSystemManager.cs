@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -44,9 +44,10 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
     {
         await Task.Run(() =>
         {
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             var jobClusterDirectoryPath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath,
-                    _scripts.SubExecutionsPath);
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath,
+                    clusterConfig.SubExecutionsPath);
             UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
             Directory.Delete(jobClusterDirectoryPath, true);
         });

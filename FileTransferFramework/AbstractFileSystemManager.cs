@@ -69,8 +69,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
     public virtual async Task CopyInputFilesToClusterAsync(SubmittedJobInfo jobInfo, string localJobDirectory, string sshCaToken, string lexisToken)
     {
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
         await CopyAllAsync(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null,
             jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
     }
@@ -130,8 +131,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     {
         foreach (var taskInfo in jobInfo.Tasks)
         {
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
 
             string[] excludedFiles =
             {
@@ -186,12 +188,14 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
     public virtual Task<ICollection<FileInformation>> ListChangedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
     {
-        return ListFilesForJobAsync(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, sshCaToken, lexisToken);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        return ListFilesForJobAsync(jobInfo, jobSubmitTime, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, sshCaToken, lexisToken);
     }
 
     public virtual Task<ICollection<FileInformation>> ListArchivedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken)
     {
-        return ListFilesForJobAsync(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, sshCaToken, lexisToken);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        return ListFilesForJobAsync(jobInfo, jobSubmitTime, clusterConfig.InstanceIdentifierPath, clusterConfig.JobLogArchiveSubPath, sshCaToken, lexisToken);
     }
 
 
@@ -208,8 +212,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
         foreach (var taskInfo in jobInfo.Tasks)
         {
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
             var fileInfo =
                 CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
             var sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
@@ -237,8 +242,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
         foreach (var task in jobSpecification.Tasks)
         {
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(task, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(task, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
             var fileInfo = CreateSynchronizableFileInfoForType(task, taskClusterDirectoryPath, fileType);
             var sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
 

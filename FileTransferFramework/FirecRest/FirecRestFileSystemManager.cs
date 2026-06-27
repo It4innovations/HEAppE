@@ -14,6 +14,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.FirecRest;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 
 namespace HEAppE.FileTransferFramework.FirecRest;
@@ -151,9 +152,10 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
                 .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ProjectStoragePath;
         }
 
-        var localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        var localBasePath = Path.Combine(basePath, clusterConfig.SubExecutionsPath.TrimStart('/'));
         var partPath = localBasePath.Replace(basePath, string.Empty);
-        var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, partPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
+        var file = Path.Combine(basePath, clusterConfig.InstanceIdentifierPath, partPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
 
         return await DownloadFileFromClusterByAbsolutePathAsync(jobInfo.Specification, file, sshCaToken, lexisToken);
     }
@@ -190,7 +192,8 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
         var (firecRestUrl, token) = await GetFirecrestUrlAndTokenAsync(jobInfo.Specification.Cluster, lexisToken);
         string systemName = jobInfo.Specification.Cluster.Name;
 
-        string remotePathToDelete = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath).Replace("\\", "/");
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        string remotePathToDelete = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace("\\", "/");
         string username = jobInfo.Specification.ClusterUser?.Username ?? string.Empty;
         string expandedPath = FirecRestUtils.ExpandRemotePath(remotePathToDelete, username, jobInfo.Specification.Cluster.CustomConfiguration);
 

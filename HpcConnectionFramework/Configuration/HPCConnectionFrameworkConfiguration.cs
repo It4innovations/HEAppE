@@ -1,4 +1,6 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
+
+using System.Collections.Generic;
 
 /// <summary>
 ///     HPC connection framework configuration
@@ -50,6 +52,18 @@ public sealed class HPCConnectionFrameworkConfiguration
     }
 
     /// <summary>
+    /// Return full path to execute command script
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <param name="customConfiguration"></param>
+    /// <returns></returns>
+    public static string GetExecuteCmdScriptPath(string projectAccountingString, Dictionary<string, string> customConfiguration)
+    {
+        var basePath = customConfiguration.TryGetValue("ScriptsBasePath", out var path) ? path : ScriptsSettings.ScriptsBasePath;
+        return $"{basePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+    }
+
+    /// <summary>
     /// Return full path to script for project
     /// </summary>
     /// <param name="projectAccountingString"></param>
@@ -58,5 +72,18 @@ public sealed class HPCConnectionFrameworkConfiguration
     public static string GetPathToScript(string projectAccountingString, string scriptName)
     {
         return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{scriptName}";
+    }
+
+    /// <summary>
+    /// Return full path to script for project
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <param name="scriptName"></param>
+    /// <param name="customConfiguration"></param>
+    /// <returns></returns>
+    public static string GetPathToScript(string projectAccountingString, string scriptName, Dictionary<string, string> customConfiguration)
+    {
+        var basePath = customConfiguration.TryGetValue("ScriptsBasePath", out var path) ? path : ScriptsSettings.ScriptsBasePath;
+        return $"{basePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{scriptName}";
     }
 }

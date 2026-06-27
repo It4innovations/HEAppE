@@ -87,8 +87,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
@@ -580,7 +581,8 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         foreach (var nodeType in cluster.NodeTypes)
         {
             var partition = nodeType.Queue;
-            var script_name = HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(project.AccountingString);
+            var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+            var script_name = clusterConfig.GetExecuteCmdScriptPath(project.AccountingString, clusterProjectCredential.ClusterAuthenticationCredentials?.Username);
             var testCommand = $"[ -f {script_name} ]"; // just check that file to run scripts exists
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");

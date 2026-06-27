@@ -59,7 +59,8 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                 if(basePath.StartsWith("~"))
                     basePath = basePath.Replace("~", client.WorkingDirectory);
                 
-                var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
+                var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+                var file = Path.Combine(basePath, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
                 await client.DownloadFileAsync(file, stream);
                 return stream.ToArray();
             }
@@ -91,8 +92,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     public override async Task DeleteSessionFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
         var connection =
             await _connectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try

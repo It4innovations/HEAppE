@@ -90,6 +90,7 @@ public class Startup
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
         Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
+        ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());

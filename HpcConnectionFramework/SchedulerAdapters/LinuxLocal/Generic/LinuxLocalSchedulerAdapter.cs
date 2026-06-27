@@ -56,7 +56,8 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
         foreach (var jobId in scheduledJobIdsList)
         {
-            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, account, jobId)
+            var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+            var jobDirPath = Path.Combine(clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, account, jobId)
                 .Replace('\\', '/');
             var cliCommand =
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
@@ -139,8 +140,9 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
         var sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}",
+            $"{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {sshCommandBase64}",
             _logger);
 
         shellCommandSb.Clear();
@@ -149,17 +151,17 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         //compose command with parameters of job and task IDs
         shellCommandSb.Append(
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
+            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
         jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
         //log local HPC Run script to log file
         shellCommandSb.Append(
-            $" >> {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/job_logger.Logtxt");
+            $" >> {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/job_logger.Logtxt");
         shellCommand = shellCommandSb.ToString();
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
         command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}",
+            $"{clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh", credentials?.Username)} {sshCommandBase64}",
             _logger);
 
         return await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
@@ -476,7 +478,8 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         foreach (var task in validTasks)
         {
             string jobId = task.Specification.JobSpecification.Id.ToString();
-            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, username, jobId)
+            var clusterConfig = ClusterRuntimeConfiguration.For(task.Specification.JobSpecification.Cluster.CustomConfiguration);
+            var jobDirPath = Path.Combine(clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, username, jobId)
                 .Replace('\\', '/');
             
             var cliCommand = $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";

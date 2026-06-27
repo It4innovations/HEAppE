@@ -69,8 +69,9 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "hq submit");
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {

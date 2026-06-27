@@ -150,9 +150,22 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
 
         var templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
             template.TemplateParameters, taskSpecification.CommandParameterValues);
+
+        var executableFile = template.ExecutableFile;
+        if (executableFile != null && executableFile.Contains("/.key_scripts/"))
+        {
+            var parts = executableFile.Split(new[] { "/.key_scripts/" }, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                var scriptName = parts[1];
+                var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+                executableFile = clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, scriptName, jobSpecification.ClusterUser?.Username);
+            }
+        }
+
         taskAdapter.SetPreparationAndCommand(workDirectory,
             ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
-            ReplaceTemplateDirectivesInCommand($"{template.ExecutableFile} {template.CommandParameters}",
+            ReplaceTemplateDirectivesInCommand($"{executableFile} {template.CommandParameters}",
                 templateParameters),
             stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
 

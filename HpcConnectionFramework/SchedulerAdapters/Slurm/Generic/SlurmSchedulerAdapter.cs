@@ -163,7 +163,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
-        var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+        var sbatchCmd = $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         SshCommandWrapper command = null;
         try
@@ -532,8 +533,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         foreach (var nodeType in cluster.NodeTypes)
         {
             var partition = nodeType.Queue;
+            var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+            var script_name = clusterConfig.GetExecuteCmdScriptPath(project.AccountingString, clusterProjectCredential.ClusterAuthenticationCredentials?.Username);
             var testCommand = PrepareSbatchCommand(
-                HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(project.AccountingString),
+                script_name,
                 job_name: "dryrun",
                 account: project.AccountingString,
                 partition: partition,
@@ -585,9 +588,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
     public async Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
     {
+        var clusterConfig = ClusterRuntimeConfiguration.For(dryRunJobSpecification.ClusterNodeType.Cluster.CustomConfiguration);
         var sbatchCommand = PrepareSbatchCommand(
-            HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(dryRunJobSpecification.Project
-                .AccountingString),
+            clusterConfig.GetExecuteCmdScriptPath(dryRunJobSpecification.Project.AccountingString, dryRunJobSpecification.ClusterUser?.Username),
             job_name: "dryrun",
             account: dryRunJobSpecification.Project.AccountingString,
             partition: dryRunJobSpecification.ClusterNodeType.Queue,
