@@ -48,7 +48,7 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <returns></returns>
     public static string GetExecuteCmdScriptPath(string projectAccountingString)
     {
-        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+        return GetExecuteCmdScriptPath(projectAccountingString, null);
     }
 
     /// <summary>
@@ -57,10 +57,10 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <param name="projectAccountingString"></param>
     /// <param name="customConfiguration"></param>
     /// <returns></returns>
-    public static string GetExecuteCmdScriptPath(string projectAccountingString, Dictionary<string, string> customConfiguration)
+    public static string GetExecuteCmdScriptPath(string projectAccountingString, Dictionary<string, string>? customConfiguration)
     {
-        var basePath = customConfiguration.TryGetValue("ScriptsBasePath", out var path) ? path : ScriptsSettings.ScriptsBasePath;
-        return $"{basePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+        var config = ClusterRuntimeConfiguration.For(customConfiguration);
+        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{config.CommandScriptsPathSettings.ExecuteCmdScriptName}";
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <returns></returns>
     public static string GetPathToScript(string projectAccountingString, string scriptName)
     {
-        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{scriptName}";
+        return GetPathToScript(projectAccountingString, scriptName, null);
     }
 
     /// <summary>
@@ -81,9 +81,9 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <param name="scriptName"></param>
     /// <param name="customConfiguration"></param>
     /// <returns></returns>
-    public static string GetPathToScript(string projectAccountingString, string scriptName, Dictionary<string, string> customConfiguration)
+    public static string GetPathToScript(string projectAccountingString, string scriptName, Dictionary<string, string>? customConfiguration)
     {
-        var basePath = customConfiguration.TryGetValue("ScriptsBasePath", out var path) ? path : ScriptsSettings.ScriptsBasePath;
-        return $"{basePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{scriptName}";
+        var config = ClusterRuntimeConfiguration.For(customConfiguration);
+        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{scriptName}";
     }
 }

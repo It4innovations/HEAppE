@@ -142,8 +142,8 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                 .GetInstance(initCluster.SchedulerType)
                 .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
 
-            string path = Path.Combine(initProject.AccountingString,
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+            var clusterConfig = ClusterRuntimeConfiguration.For(initCluster.CustomConfiguration);
+            string path = Path.Combine(initProject.AccountingString, clusterConfig.InstanceIdentifierPath);
                 
             var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(
                 path,

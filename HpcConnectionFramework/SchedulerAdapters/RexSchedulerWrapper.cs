@@ -266,8 +266,9 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var localBasepath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         string path = Path.Combine(jobInfo.Specification.Project.AccountingString,
-            HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+            clusterConfig.InstanceIdentifierPath);
 
         var cacheKey = (jobInfo.Specification.ClusterUser.Id, path);
 

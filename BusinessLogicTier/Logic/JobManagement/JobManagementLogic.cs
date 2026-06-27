@@ -1231,15 +1231,16 @@ internal class JobManagementLogic : IJobManagementLogic
             projectBasePath = basePath;
         }
         
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var localBasePath = Path.Combine(
                 basePath, 
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'),
+                clusterConfig.InstanceIdentifierPath, 
+                clusterConfig.SubExecutionsPath.TrimStart('/'),
                 jobInfo.Specification.ClusterUser.Username);
         var jobLogArchivePath = Path.Combine(
                 projectBasePath, 
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
-                HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'), 
+                clusterConfig.InstanceIdentifierPath, 
+                clusterConfig.JobLogArchiveSubPath.TrimStart('/'), 
                 jobInfo.Specification.ClusterUser.Username);
         
         var sourceDestinations = jobInfo.Specification.Tasks
