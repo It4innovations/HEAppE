@@ -114,34 +114,7 @@ public static class FirecRestUtils
     /// </summary>
     public static string ExpandRemotePath(string path, string username, Dictionary<string, string>? customConfiguration = null)
     {
-        if (string.IsNullOrEmpty(path)) return string.Empty;
-
-        string homeDirTemplate = "/users/{username}";
-        if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
-        {
-            homeDirTemplate = template;
-        }
-
-        var homeDir = homeDirTemplate
-            .Replace("{username}", username)
-            .Replace("{USER}", username)
-            .Replace("$USER", username);
-
-        // 1. Expand ~ if it starts with ~
-        var result = path;
-        if (result.StartsWith("~"))
-        {
-            result = homeDir + result.Substring(1);
-        }
-
-        // 2. Expand $USER, ${USER}, $HOME
-        result = result
-            .Replace("$USER", username)
-            .Replace("${USER}", username)
-            .Replace("$HOME", homeDir)
-            .Replace("${HOME}", homeDir);
-
-        return result;
+        return FileSystemUtils.ExpandRemotePath(path, username, null, customConfiguration);
     }
 }
 

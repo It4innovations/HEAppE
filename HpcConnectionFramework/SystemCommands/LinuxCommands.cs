@@ -380,35 +380,12 @@ internal class LinuxCommands : ICommands
 
     private static string ExpandPathSimple(string path, string username)
     {
-        if (string.IsNullOrEmpty(path)) return path;
-        return path.Replace("$USER", username).Replace("${USER}", username);
-    }
-
-    private string GetHomeDirectory(SubmittedJobInfo jobInfo, string clusterUser)
-    {
-        var homeDirTemplate = "/users/{username}";
-        if (jobInfo.Specification.Cluster?.CustomConfiguration != null &&
-            jobInfo.Specification.Cluster.CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
-        {
-            homeDirTemplate = template;
-        }
-
-        return homeDirTemplate
-            .Replace("{username}", clusterUser)
-            .Replace("{USER}", clusterUser)
-            .Replace("$USER", clusterUser);
+        return HEAppE.Utils.FileSystemUtils.ExpandRemotePath(path, username);
     }
 
     private string ExpandPath(string path, SubmittedJobInfo jobInfo, string username)
     {
-        if (string.IsNullOrEmpty(path)) return path;
-        var expanded = path.Replace("$USER", username).Replace("${USER}", username);
-        if (expanded.Contains("$HOME"))
-        {
-            var homeDir = GetHomeDirectory(jobInfo, username);
-            expanded = expanded.Replace("$HOME", homeDir);
-        }
-        return expanded;
+        return HEAppE.Utils.FileSystemUtils.ExpandRemotePath(path, username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
     }
 
     #endregion

@@ -255,4 +255,39 @@ public class FileSystemUtils
         // failed
         return false;
     }
+
+    /// <summary>
+    /// Expands path variables (like $USER, ~) based on home directory templates.
+    /// </summary>
+    public static string ExpandRemotePath(string path, string username, string? homeDir = null, Dictionary<string, string>? customConfiguration = null)
+    {
+        if (string.IsNullOrEmpty(path)) return string.Empty;
+
+        string homeDirTemplate = "/users/{username}";
+        if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            homeDirTemplate = template;
+        }
+
+        var resolvedHomeDir = string.IsNullOrEmpty(homeDir) 
+            ? homeDirTemplate
+                .Replace("{username}", username)
+                .Replace("{USER}", username)
+                .Replace("$USER", username)
+            : homeDir;
+
+        var result = path;
+        if (result.StartsWith("~"))
+        {
+            result = resolvedHomeDir + result.Substring(1);
+        }
+
+        result = result
+            .Replace("$USER", username)
+            .Replace("${USER}", username)
+            .Replace("$HOME", resolvedHomeDir)
+            .Replace("${HOME}", resolvedHomeDir);
+
+        return result;
+    }
 }

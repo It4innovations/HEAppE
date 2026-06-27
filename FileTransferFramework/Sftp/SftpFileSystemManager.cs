@@ -45,34 +45,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     private string ExpandRemotePath(string path, string username, string homeDir, Dictionary<string, string>? customConfiguration)
     {
-        if (string.IsNullOrEmpty(path)) return string.Empty;
-
-        string homeDirTemplate = "/users/{username}";
-        if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
-        {
-            homeDirTemplate = template;
-        }
-
-        var resolvedHomeDir = string.IsNullOrEmpty(homeDir) 
-            ? homeDirTemplate
-                .Replace("{username}", username)
-                .Replace("{USER}", username)
-                .Replace("$USER", username)
-            : homeDir;
-
-        var result = path;
-        if (result.StartsWith("~"))
-        {
-            result = resolvedHomeDir + result.Substring(1);
-        }
-
-        result = result
-            .Replace("$USER", username)
-            .Replace("${USER}", username)
-            .Replace("$HOME", resolvedHomeDir)
-            .Replace("${HOME}", resolvedHomeDir);
-
-        return result;
+        return FileSystemUtils.ExpandRemotePath(path, username, homeDir, customConfiguration);
     }
 
     public override async Task<byte[]> DownloadFileFromClusterAsync(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken)

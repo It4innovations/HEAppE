@@ -625,18 +625,20 @@ public class FileTransferLogic : IFileTransferLogic
                 .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname, _logger);
         }
 
+        string username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) 
+            ? response.PosixUsername 
+            : clusterUserAuthCredentials.Username;
+
         var transferMethod = new FileTransferMethod
         {
             Protocol = cluster.FileTransferMethods.FirstOrDefault()!.Protocol,
             Port = cluster.FileTransferMethods.FirstOrDefault()!.Port ?? 22,
             Cluster = cluster,
             ServerHostname = cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname,
-            SharedBasePath = clusterProject.ScratchStoragePath,
+            SharedBasePath = FileSystemUtils.ExpandRemotePath(clusterProject.ScratchStoragePath, username, null, cluster.CustomConfiguration),
             Credentials = new FileTransferKeyCredentials
             {
-                Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) 
-                    ? response.PosixUsername 
-                    : clusterUserAuthCredentials.Username,
+                Username = username,
                 Password = clusterUserAuthCredentials.Password,
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
