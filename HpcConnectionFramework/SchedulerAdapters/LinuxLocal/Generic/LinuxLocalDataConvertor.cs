@@ -156,8 +156,9 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
                 task.CommandTemplate.TemplateParameters,
                 task.CommandParameterValues
             );
+            var executableFile = ResolveExecutableFile(task.CommandTemplate, jobSpecification);
             taskCommandLine.Append(ReplaceTemplateDirectivesInCommand(
-                $"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}",
+                $"{executableFile} {task.CommandTemplate.CommandParameters}",
                 commandParameterDictionary));
 
             if (!string.IsNullOrEmpty(task.StandardOutputFile))

@@ -151,18 +151,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
             template.TemplateParameters, taskSpecification.CommandParameterValues);
 
-        var executableFile = template.ExecutableFile;
-        if (executableFile != null && executableFile.Contains("/.key_scripts/"))
-        {
-            var parts = executableFile.Split(new[] { "/.key_scripts/" }, StringSplitOptions.None);
-            if (parts.Length > 1)
-            {
-                var scriptName = parts[1];
-                var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
-                executableFile = clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, scriptName, jobSpecification.ClusterUser?.Username);
-            }
-        }
-
+        var executableFile = ResolveExecutableFile(template, jobSpecification);
         taskAdapter.SetPreparationAndCommand(workDirectory,
             ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
             ReplaceTemplateDirectivesInCommand($"{executableFile} {template.CommandParameters}",
@@ -423,6 +412,22 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         {
             throw new SchedulerException("ConvertingError", type, obj, format);
         }
+    }
+
+    protected string ResolveExecutableFile(CommandTemplate template, JobSpecification jobSpecification)
+    {
+        var executableFile = template.ExecutableFile;
+        if (executableFile != null && executableFile.Contains("/.key_scripts/"))
+        {
+            var parts = executableFile.Split(new[] { "/.key_scripts/" }, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                var scriptName = parts[1];
+                var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+                executableFile = clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, scriptName, jobSpecification.ClusterUser?.Username);
+            }
+        }
+        return executableFile;
     }
 
     #endregion
