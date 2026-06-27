@@ -171,13 +171,14 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
         var localBasePath = $"{jobSpecification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath}";
         
-        var jobDir = Path.Join(localBasePath, _scripts.InstanceIdentifierPath, 
-            HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+        var jobDir = Path.Join(localBasePath, clusterConfig.InstanceIdentifierPath, 
+            clusterConfig.SubExecutionsPath,
             jobSpecification.ClusterUser.Username,
             jobSpecification.Id.ToString()).Replace('\\', '/');
         //preparation script, prepares job info file to the job directory at local linux "cluster"
         return
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
+            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
     }
 
     #endregion
