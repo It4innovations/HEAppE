@@ -20,6 +20,15 @@ namespace HEAppE.RestApi.Logging
             _isLate = isLate;
         }
 
+        private static bool IsPayloadBufferingBypassed(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            return path.Contains("/FileTransfer/", StringComparison.OrdinalIgnoreCase) ||
+                   path.Contains("/DataTransfer/", StringComparison.OrdinalIgnoreCase) ||
+                   path.Contains("/DataStaging/", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task InvokeAsync(HttpContext context)
         {
             if (_isLate)
@@ -32,10 +41,17 @@ namespace HEAppE.RestApi.Logging
                 bool isDebugEnabled = _logger.IsEnabled(LogLevel.Debug);
                 bool isStreamingEndpoint = context.Request.Path.Value
                     ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
+                bool isBypassed = IsPayloadBufferingBypassed(context.Request.Path.Value);
 
-                if (!isDebugEnabled || isStreamingEndpoint)
+                if (!isDebugEnabled || isStreamingEndpoint || isBypassed)
                 {
                     await _next(context);
+                    
+                    if (isDebugEnabled && (isStreamingEndpoint || isBypassed))
+                    {
+                        // Log response status code only, avoiding reading/buffering response body
+                        _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}");
+                    }
                     return;
                 }
 
@@ -118,8 +134,9 @@ namespace HEAppE.RestApi.Logging
             bool isDebug = _logger.IsEnabled(LogLevel.Debug);
             bool isStreaming = context.Request.Path.Value
                 ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
+            bool isBypassedPath = IsPayloadBufferingBypassed(context.Request.Path.Value);
 
-            if (!isDebug || isStreaming)
+            if (!isDebug || isStreaming || isBypassedPath)
             {
                 try
                 {
@@ -127,10 +144,14 @@ namespace HEAppE.RestApi.Logging
                 }
                 finally
                 {
-                    // Fallback logging for non-debug/streaming early failures
+                    // Fallback logging for non-debug/streaming/bypassed early failures
                     if (!context.Items.ContainsKey("LateLogging_Executed"))
                     {
                         _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
+                        if (isDebug && (isStreaming || isBypassedPath))
+                        {
+                            _logger.LogDebug($"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}");
+                        }
                     }
                     log4net.LogicalThreadContext.Properties.Remove("requestId");
                 }
