@@ -399,22 +399,20 @@ internal class DatabaseBackupService : IDatabaseBackupService
 
     /// <summary>
     ///     Check if full backup can be done
-    ///     Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode
     /// </summary>
     /// <returns></returns>
     private bool DatabaseFullBackupCanBeDone()
     {
         var databaseName = _context.Database.GetDbConnection().Database;
         var result = _context.Database
-            .SqlQueryRaw<int>(
+            .SqlQueryRaw<int?>(
                 @"SELECT 1 AS Value 
                   FROM sys.databases d 
-                  WHERE d.name = {0} 
-                    AND d.recovery_model_desc IN ('FULL', 'BULK_LOGGED')",
+                  WHERE d.name = {0}",
                 databaseName)
-            .Single();
+            .SingleOrDefault();
 
-        return result > 0;
+        return result.HasValue;
     }
 
     /// <summary>

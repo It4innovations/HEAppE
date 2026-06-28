@@ -5,6 +5,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using Microsoft.Extensions.Logging;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.BusinessLogicTier.Configuration;
 
@@ -92,5 +93,80 @@ public class RoleAssignmentConfiguration
             else if (user == null) missing.Add(username);
         }
         return (assigned, missing, existingCount);
+    }
+
+    public static void AssignAllRolesFromConfigToAllGroups(List<AdaptorUserGroup> groups, IUnitOfWork unitOfWork, ILogger logger)
+    {
+        var allConfiguredUsernames = new HashSet<string>(
+            (Administrators ?? Array.Empty<string>())
+            .Concat(Maintainers ?? Array.Empty<string>())
+            .Concat(Managers ?? Array.Empty<string>())
+            .Concat(Submitters ?? Array.Empty<string>())
+            .Concat(Reporters ?? Array.Empty<string>())
+            .Concat(GroupReporters ?? Array.Empty<string>())
+            .Concat(ManagementAdmins ?? Array.Empty<string>())
+            .Where(x => !string.IsNullOrEmpty(x)),
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        if (!allConfiguredUsernames.Any())
+        {
+            logger.LogInformation("No roles defined in configuration. Synchronization skipped.");
+            return;
+        }
+
+        // Fetch all these users in a single query with their group roles pre-loaded
+        var users = unitOfWork.AdaptorUserRepository.GetQueryableWithoutFilters()
+            .Include(x => x.AdaptorUserUserGroupRoles)
+            .Where(u => allConfiguredUsernames.Contains(u.Username))
+            .ToList();
+
+        var userMap = users.ToDictionary(u => u.Username, u => u, StringComparer.OrdinalIgnoreCase);
+        int totalAssigned = 0;
+
+        foreach (var group in groups)
+        {
+            int assignedForGroup = 0;
+
+            void Process(string[] usernames, AdaptorUserRoleType roleType)
+            {
+                if (usernames == null || usernames.Length == 0) return;
+
+                foreach (var username in new HashSet<string>(usernames))
+                {
+                    if (userMap.TryGetValue(username, out var user))
+                    {
+                        if (!user.IsDeleted)
+                        {
+                            bool hasRole = user.AdaptorUserUserGroupRoles?.Any(r => 
+                                r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)roleType && !r.IsDeleted) ?? false;
+
+                            if (!hasRole)
+                            {
+                                user.CreateSpecificUserRoleForUser(group, roleType);
+                                unitOfWork.AdaptorUserRepository.Update(user);
+                                assignedForGroup++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Process(Administrators, AdaptorUserRoleType.Administrator);
+            Process(Maintainers, AdaptorUserRoleType.Maintainer);
+            Process(Managers, AdaptorUserRoleType.Manager);
+            Process(Submitters, AdaptorUserRoleType.Submitter);
+            Process(Reporters, AdaptorUserRoleType.Reporter);
+            Process(GroupReporters, AdaptorUserRoleType.GroupReporter);
+            Process(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin);
+
+            totalAssigned += assignedForGroup;
+        }
+
+        if (totalAssigned > 0)
+        {
+            logger.LogInformation($"Saving {totalAssigned} role assignments to database.");
+            unitOfWork.Save();
+        }
     }
 }

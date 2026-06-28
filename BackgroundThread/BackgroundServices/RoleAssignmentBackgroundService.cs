@@ -35,24 +35,13 @@ public class RoleAssignmentBackgroundService : BackgroundService
             
             using (IServiceScope scope = _scopeFactory.CreateScope())
             {
-                using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork(_logger))
+                using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
                 {
-                    var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
+                    var groups = await workerUow.AdaptorUserGroupRepository.GetAllAsync();
                     var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
 
-                    foreach (var userGroup in userGroups)
-                    {
-                        if (stoppingToken.IsCancellationRequested) break;
-
-                        using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
-                        {
-                            var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
-                            if (localGroup != null)
-                            {
-                                RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _logger);
-                            }
-                        }
-                    }
+                    _logger.LogInformation($"Syncing roles for {userGroups.Count} user groups.");
+                    RoleAssignmentConfiguration.AssignAllRolesFromConfigToAllGroups(userGroups, workerUow, _logger);
                 }
             }
             _logger.LogInformation("Role assignment synchronization finished successfully.");

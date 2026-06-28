@@ -30,31 +30,61 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
+        _logger.LogInformation("DatabaseFullBackupBackgroundService started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                bool backupCanBeDone = _configuration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
-                
-                if (backupCanBeDone)
+                if (!_configuration.ScheduledBackupEnabled)
+                {
+                    _logger.LogDebug("Database full backup is disabled in configuration.");
+                }
+                else
                 {
                     DateTime now = DateTime.Now;
                     TimeSpan scheduledTime = TimeSpan.Parse(_configuration.ScheduledRuntime, new CultureInfo("en-US"));
+                    _logger.LogDebug($"Checking backup schedule. Current time of day: {now.TimeOfDay}, scheduled time: {scheduledTime}.");
 
-                    if (now.TimeOfDay >= scheduledTime && now.TimeOfDay < scheduledTime.Add(TimeSpan.FromMinutes(2)))
+                    if (now.TimeOfDay >= scheduledTime)
                     {
-                        await DoFullBackupAsync();
-
-                        ApplyRetentionPolicy(_configuration.LocalPath);
-                        if (!string.IsNullOrEmpty(_configuration.NASPath))
+                        _logger.LogDebug("Current time is past scheduled runtime. Checking if backup is needed.");
+                        if (!BackupForTodayExists(_configuration.LocalPath))
                         {
-                            ApplyRetentionPolicy(_configuration.NASPath);
+                            _logger.LogDebug("No backup found for today. Checking if backup can be performed.");
+                            if (await DatabaseFullBackupCanBeDone())
+                            {
+                                _logger.LogInformation("Starting scheduled database full backup...");
+                                await DoFullBackupAsync();
+
+                                ApplyRetentionPolicy(_configuration.LocalPath);
+                                if (!string.IsNullOrEmpty(_configuration.NASPath))
+                                {
+                                    ApplyRetentionPolicy(_configuration.NASPath);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Database full backup cannot be performed (DatabaseFullBackupCanBeDone returned false).");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Database full backup for today already exists. Skipping execution.");
                         }
 
                         DateTime tomorrow = DateTime.Today.AddDays(1).Add(scheduledTime);
-                        await Task.Delay(tomorrow - DateTime.Now, stoppingToken);
-                        continue;
+                        TimeSpan delay = tomorrow - DateTime.Now;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            _logger.LogInformation($"Next database full backup scheduled in {delay.TotalHours:F2} hours at {tomorrow:yyyy-MM-dd HH:mm:ss}.");
+                            await Task.Delay(delay, stoppingToken);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug($"Current time {now.TimeOfDay} is before scheduled time {scheduledTime}. Will check again in 1 minute.");
                     }
                 }
             }
@@ -73,20 +103,48 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         }
     }
 
+    private bool BackupForTodayExists(string folder)
+    {
+        try
+        {
+            _logger.LogDebug($"Checking if backup for today exists in folder: '{folder}'");
+            if (!Directory.Exists(folder))
+            {
+                _logger.LogDebug($"Folder '{folder}' does not exist.");
+                return false;
+            }
+            string dateStr = DateTime.Now.ToString("yyyyMMdd");
+            string searchPattern = $"{_configuration.BackupFileNamePrefix}_FULL_{dateStr}*.bak";
+            _logger.LogDebug($"Searching for files matching pattern: '{searchPattern}'");
+            var files = Directory.GetFiles(folder, searchPattern);
+            bool exists = files.Any();
+            _logger.LogDebug($"Backup files found: {files.Length}. Today's backup exists: {exists}");
+            return exists;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Failed to check if backup for today exists in '{folder}': ");
+            return false;
+        }
+    }
+
     private async Task<bool> DatabaseFullBackupCanBeDone()
     {
         try
         {
+            _logger.LogDebug($"Checking if full database backup can be performed. ConnectionString: '{MiddlewareContextSettings.ConnectionString}'");
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
+            _logger.LogDebug($"Opened database connection successfully. Database: '{conn.Database}'");
 
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db " +
-                "AND d.recovery_model_desc IN ('FULL', 'BULK_LOGGED')";
+            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db";
             cmd.Parameters.AddWithValue("@db", conn.Database);
 
             var result = await cmd.ExecuteScalarAsync();
-            return result != null && (int)result > 0;
+            bool canBeDone = result != null && (int)result > 0;
+            _logger.LogDebug($"Database existence check in sys.databases returned: {canBeDone}");
+            return canBeDone;
         }
         catch (Exception ex)
         {
