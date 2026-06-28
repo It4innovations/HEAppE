@@ -37,7 +37,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -54,6 +54,7 @@
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
         <ProjectReference Include="..\SshCaAPI\SshCaAPI.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
+        <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
         <ProjectReference Include="..\Tmds.Ssh\src\Tmds.Ssh\Tmds.Ssh.csproj" />
     </ItemGroup>
     <ItemGroup>

@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
 
 /// <summary>
 ///     Cluster scripts configuration
@@ -95,6 +95,16 @@ public sealed class ScriptsConfiguration
     ///     Linux local command scripts path configuration
     /// </summary>
     public LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathSettings { get; } = new();
+
+    /// <summary>
+    ///     Eventual consistency retry count for scheduler queries
+    /// </summary>
+    public int EventualConsistencyRetryCount { get; set; } = 3;
+
+    /// <summary>
+    ///     Eventual consistency retry delay in milliseconds for scheduler queries
+    /// </summary>
+    public int EventualConsistencyRetryDelayMs { get; set; } = 1000;
 
     #endregion
 }

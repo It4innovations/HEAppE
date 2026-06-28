@@ -102,7 +102,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                     : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
 
             IEnumerable<SubmittedTaskInfo> tasks = null;
-            int retryCount = 3;
+            int maxRetries = clusterConfig.Scripts.EventualConsistencyRetryCount;
+            int retryDelayMs = clusterConfig.Scripts.EventualConsistencyRetryDelayMs;
+            int retryCount = maxRetries;
             while (retryCount >= 0)
             {
                 try
@@ -121,8 +123,8 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
                 
                 if (retryCount > 0)
                 {
-                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in 1s... ({retryCount} attempts left)");
-                    await Task.Delay(1000);
+                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{jobIdsWithJobArrayIndexes.Count} tasks found with complete info in qstat. Retrying in {retryDelayMs}ms... ({retryCount} attempts left)");
+                    await Task.Delay(retryDelayMs);
                 }
                 retryCount--;
             }

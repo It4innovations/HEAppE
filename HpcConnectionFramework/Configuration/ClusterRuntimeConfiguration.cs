@@ -83,6 +83,8 @@ public sealed class ClusterRuntimeConfiguration
                 JobLogArchiveSubPath        = HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath,
                 SubScriptsPath              = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubScriptsPath,
                 ScriptsBasePath             = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath,
+                EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
+                EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
             };
 
             // Bind override section on top — only keys present in overrides will overwrite.

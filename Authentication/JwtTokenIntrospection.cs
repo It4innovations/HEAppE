@@ -20,18 +20,10 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
     private string? _introspectionEndpoint;
 
     public JwtTokenIntrospectionService(
+        HttpClient httpClient,
         ILogger<JwtTokenIntrospectionService> logger)
     {
-        logger.LogInformation("Initializing JwtTokenIntrospectionService with Authority: {Authority}",
-            JwtTokenIntrospectionConfiguration.Authority);
-        _httpClient = new HttpClient()
-        {
-            BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority)
-        };
-        var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-        var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
-        _httpClient.Timeout = TimeSpan.FromSeconds(30);
+        _httpClient = httpClient;
         _logger = logger;
     }
 

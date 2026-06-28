@@ -175,7 +175,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             var schedulerJobIdClusterAllocationNamePairs = scheduledJobIds.Select(id => (id, jobSpecification.Tasks.First().ClusterNodeType.ClusterAllocationName)).ToList();
 
             IEnumerable<SubmittedTaskInfo> tasks = null;
-            int retryCount = 3;
+            int maxRetries = clusterConfig.Scripts.EventualConsistencyRetryCount;
+            int retryDelayMs = clusterConfig.Scripts.EventualConsistencyRetryDelayMs;
+            int retryCount = maxRetries;
             while (retryCount >= 0)
             {
                 try
@@ -191,8 +193,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
                 if (retryCount > 0)
                 {
-                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{schedulerJobIdClusterAllocationNamePairs.Count} tasks found in scontrol. Retrying in 1s... ({retryCount} attempts left)");
-                    await Task.Delay(1000);
+                    _logger.LogInformation($"Eventual consistency: only {tasks?.Count() ?? 0}/{schedulerJobIdClusterAllocationNamePairs.Count} tasks found in scontrol. Retrying in {retryDelayMs}ms... ({retryCount} attempts left)");
+                    await Task.Delay(retryDelayMs);
                 }
                 retryCount--;
             }

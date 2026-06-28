@@ -22,6 +22,11 @@ namespace SshCaAPI
         private readonly RestClient _basicRestClient;
 
         public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
+            : this(null, baseUri, caName, connectionTimeoutInSeconds)
+        {
+        }
+
+        public SshCertificateAuthorityService(System.Net.Http.IHttpClientFactory? httpClientFactory, string baseUri, string caName, double connectionTimeoutInSeconds)
         {
             //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
             string url = string.Empty;
@@ -48,7 +53,16 @@ namespace SshCaAPI
                 },
                 Timeout = TimeSpan.FromMilliseconds(connectionTimeoutInSeconds * 1000)
             };
-            _basicRestClient = new RestClient(options);
+
+            if (httpClientFactory != null)
+            {
+                var httpClient = httpClientFactory.CreateClient("SshCaClient");
+                _basicRestClient = new RestClient(httpClient, options);
+            }
+            else
+            {
+                _basicRestClient = new RestClient(options);
+            }
         }
 
         /// <summary>

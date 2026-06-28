@@ -86,20 +86,11 @@ builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
 
-var globalRetryPolicy = HttpPolicyExtensions
-    .HandleTransientHttpError()
-    .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-        onRetry: (outcome, timespan, retryCount, context) =>
-        {
-            LogManager.GetLogger("RetryPolicy").Warn($"Retry {retryCount} after {timespan.TotalSeconds}s: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
-        });
-
 builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
 {
     options.HttpMessageHandlerBuilderActions.Add(builder =>
     {
-        builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(globalRetryPolicy));
+        builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy));
     });
 });
 
@@ -126,6 +117,7 @@ builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>()
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
 builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+    sp.GetRequiredService<IHttpClientFactory>(),
     SshCaSettings.BaseUri,
     SshCaSettings.CAName,
     SshCaSettings.ConnectionTimeoutInSeconds
@@ -147,7 +139,8 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
     conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
     conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
     conf.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+})
+.AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
 
@@ -155,7 +148,14 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 {
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-});
+})
+.AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+builder.Services.AddHttpClient("SshCaClient")
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+builder.Services.AddHttpClient("FirecREST")
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddHttpClient("LexisTokenExchangeClient");

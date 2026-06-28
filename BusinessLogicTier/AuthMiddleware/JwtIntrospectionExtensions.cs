@@ -18,6 +18,7 @@ using HEAppE.Services.Expirio;
 using HEAppE.Exceptions.AbstractTypes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using HEAppE.Authentication;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -209,6 +210,20 @@ public static class JwtIntrospectionExtensions
                     var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
                     client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
                 });
+
+            services.AddHttpClient<IJwtTokenIntrospectionService, HEAppE.Authentication.JwtTokenIntrospectionService>(client =>
+            {
+                if (!string.IsNullOrEmpty(JwtTokenIntrospectionConfiguration.Authority))
+                {
+                    client.BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority);
+                }
+                var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         }
         return services;
     }

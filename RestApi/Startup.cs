@@ -106,6 +106,7 @@ public class Startup
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
         services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+            sp.GetRequiredService<IHttpClientFactory>(),
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
             SshCaSettings.ConnectionTimeoutInSeconds
@@ -113,21 +114,12 @@ public class Startup
         
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-        
-        var retryPolicy = HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (outcome, timespan, retryCount, context) =>
-                {
-                    LogManager.GetLogger("RetryPolicy").Warn($"Retry {retryCount} after {timespan.TotalSeconds}s: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
-                });
 
         services.ConfigureAll<HttpClientFactoryOptions>(options =>
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
             {
-                builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(retryPolicy));
+                builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy));
             });
         });
 
@@ -140,7 +132,7 @@ public class Startup
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
-        
+
         services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -150,7 +142,8 @@ public class Startup
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
                 conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
-        });
+        })
+        .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddSingleton<IExpirioService, ExpirioService>();
         services.AddSingleton<IFirecRestTokenService, FirecRestTokenService>();
@@ -161,7 +154,13 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
-        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)));
+        .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+        services.AddHttpClient("SshCaClient")
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+        services.AddHttpClient("FirecREST")
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
