@@ -22,12 +22,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HEAppE.RestApi.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
+[LogBehavior(LoggingBehavior.HeadersOnly)]
 public class FileTransferController : BaseController<FileTransferController>
 {
     #region Instances

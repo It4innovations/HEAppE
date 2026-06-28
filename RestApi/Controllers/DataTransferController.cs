@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
+using HEAppE.RestApi.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -24,6 +25,7 @@ namespace HEAppE.RestApi.Controllers;
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
+[LogBehavior(LoggingBehavior.HeadersOnly)]
 public class DataTransferController : BaseController<DataTransferController>
 {
     #region Instances

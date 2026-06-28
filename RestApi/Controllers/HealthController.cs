@@ -16,6 +16,7 @@ using System.Net;
 using System.Threading.Tasks;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using Microsoft.AspNetCore.Authorization;
+using HEAppE.RestApi.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -25,6 +26,7 @@ namespace HEAppE.RestApi.Controllers;
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
+[LogBehavior(LoggingBehavior.None)]
 public class HealthController : BaseController<HealthController>
 {
     #region Instances

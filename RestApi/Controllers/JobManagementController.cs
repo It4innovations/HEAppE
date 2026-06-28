@@ -17,6 +17,7 @@ using SshCaAPI;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HEAppE.RestApi.Logging;
 
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -67,6 +68,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <returns></returns>
     [HttpPost("CreateJob")]
     [RequestSizeLimit(250000)]
+    [LogBehavior(LoggingBehavior.HeadersOnly)]
     [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -286,6 +288,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <returns></returns>
     [HttpPost("DryRunJob")]
     [RequestSizeLimit(250000)]
+    [LogBehavior(LoggingBehavior.HeadersOnly)]
     [ProducesResponseType(typeof(DryRunJobInfoExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -14,6 +14,7 @@ using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Mvc;
+using HEAppE.RestApi.Logging;
 #pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
 using System;
 using SshCaAPI;
@@ -91,7 +92,8 @@ public class DataStagingEndpoint : IApiRoute
                 generatedOperation.Summary = "Get specific part of FileType content.";
                 generatedOperation.Description = "Get specific part of FileType content.<br>FileType: LogFile - 0, ProgressFile - 1, StandardErrorFile - 2, StandardOutputFile - 3.";
                 return generatedOperation;
-            });
+            })
+            .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
 
         group.MapGet("ListChangedFilesForJob", async ([FromQuery(Name = "SessionCode")] string? sessionCode,
                 [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId,
@@ -135,7 +137,8 @@ public class DataStagingEndpoint : IApiRoute
                 }).Produces<string>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .RequestSizeLimit(378);
+            .RequestSizeLimit(378)
+            .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
 
         group.MapPost("UploadFilesToProjectDir",
                 async (
@@ -169,7 +172,8 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .DisableRequestTimeout()
             .RequestSizeLimit(2_200_000_000)
-            .DisableAntiforgery();
+            .DisableAntiforgery()
+            .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
 
         group.MapPost("UploadJobScriptsToProjectDir",
                 async (
@@ -203,7 +207,8 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .DisableRequestTimeout()
             .RequestSizeLimit(2_200_000_000)
-            .DisableAntiforgery();
+            .DisableAntiforgery()
+            .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
     }
 
     static async Task<List<FileUploadResultExt>> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
