@@ -280,7 +280,7 @@ public class Startup
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
         app.UseRequestLocalization();
-        app.UseMiddleware<RequestResponseLoggingMiddleware>();
+        app.UseMiddleware<RequestResponseLoggingMiddleware>(false);
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseIpRateLimiting();
         app.UseStatusCodePages();
@@ -314,6 +314,7 @@ public class Startup
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<LogUserContextMiddleware>();
+        app.UseMiddleware<RequestResponseLoggingMiddleware>(true);
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>

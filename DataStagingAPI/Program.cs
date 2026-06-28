@@ -310,7 +310,7 @@ if (!string.IsNullOrEmpty(pathBase))
 app.UseCors("HEAppEDefaultOrigins");
 
 app.UseRequestLocalization();
-app.UseMiddleware<RequestResponseLoggingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>(false);
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseStatusCodePages();
@@ -334,6 +334,7 @@ app.UseSwaggerUI(swaggerUI =>
 });
 
 app.UseMiddleware<LogUserContextMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>(true);
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
