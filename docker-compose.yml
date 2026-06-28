@@ -10,7 +10,7 @@ services:
       - "${HOST_SSHAGENT_HOST_MAP_FOLD_PATH}:${HOST_SSHAGENT_CONTAINER_MAP_FOLD_PATH}"
       - app_volume:/app/shared
     environment:
-      TZ: "Europe/Prague"
+      TZ: "UTC"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
     networks:
       - sshagent_internal_network
@@ -37,7 +37,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "${HOST_MSSQL_PID:-Developer}"
       MSSQL_MEMORY_LIMIT_MB: "${HOST_MSSQL_MEMORY_LIMIT_MB:-4096}"
-      TZ: "Europe/Prague"
+      TZ: "UTC"
       SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
     deploy:
       resources:
@@ -70,7 +70,7 @@ services:
       - "${HOST_DATA_STAGING_PORT}:8080"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
-      TZ: "Europe/Prague"
+      TZ: "UTC"
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]-datastagingapi
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT}
@@ -107,7 +107,7 @@ services:
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
-      TZ: "Europe/Prague"
+      TZ: "UTC"
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT}
