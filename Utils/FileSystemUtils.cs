@@ -273,7 +273,7 @@ public class FileSystemUtils
         }
 
         var result = path;
-        if (customConfiguration.ContainsKey("HomeDirectoryTemplate") && result.StartsWith("~"))
+        if (customConfiguration != null && customConfiguration.ContainsKey("HomeDirectoryTemplate") && result.StartsWith("~"))
         {
             result = resolvedHomeDir + result.Substring(1);
         }
