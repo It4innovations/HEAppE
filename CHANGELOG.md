@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved username derivation from identity providers (Lexis) and added support for Adaptor User IDs in credential management.
 - Added file renaming capability to the `SftpFileSystemManager`.
 - Extended Swagger documentation with new reporting and integration endpoints.
+- Implemented instance-to-instance migration, allowing administrators to export and import the database backup and encrypted HashiCorp Vault secrets as a single package.
+- Added a passphrase security policy for the migration package with complexity validation checks (minimum 12 characters, uppercase, lowercase, digits, and special characters).
 
 ### Changed
 - Implemented endpoint-specific request size limits and optimized token handling for streaming endpoints to improve performance.
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved scheduler command execution by optimizing scheduler adapter commands with batched `xargs` operations, enhancing efficiency and reliability.
 - Improved database backup retention logic to handle 14-digit timestamps and automatically clean up obsolete directories.
 - Simplified SSH username assignment logic to ensure consistent account mapping.
+- Excluded migration package binary payload from logging in `RequestResponseLoggingMiddleware` using headers-only logging behavior.
 
 ### Fixed
 - Resolved parsing errors for scheduler timestamps when cluster TimeZone is unconfigured, implementing a robust fallback to system default and supporting ISO 8601 format.

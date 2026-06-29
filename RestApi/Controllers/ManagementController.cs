@@ -30,6 +30,7 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
+using HEAppE.RestApi.Logging;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.Management;
@@ -2497,6 +2498,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="passphrase">Optional passphrase for encryption</param>
     /// <returns>Encrypted binary package file</returns>
     [HttpPost("ExportMigrationPackage")]
+    [LogBehavior(LoggingBehavior.HeadersOnly)]
     [RequestSizeLimit(1000)]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -2523,6 +2525,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="file">Encrypted migration package file (.enc)</param>
     /// <returns>Success message</returns>
     [HttpPost("ImportMigrationPackage")]
+    [LogBehavior(LoggingBehavior.HeadersOnly)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
