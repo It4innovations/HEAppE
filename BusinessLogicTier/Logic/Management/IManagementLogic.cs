@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -203,6 +204,8 @@ public interface IManagementLogic
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
     void RestoreDatabase(string backupFileName, bool includeLogs);
+    Task<byte[]> ExportMigrationPackage(string? passphrase);
+    Task ImportMigrationPackage(Stream encryptedPackageStream, string? passphrase);
 
     Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
 

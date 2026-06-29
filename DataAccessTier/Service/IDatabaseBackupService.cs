@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.Management;
+using HEAppE.DomainObjects.Management;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,4 +11,6 @@ public interface IDatabaseBackupService
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
     void RestoreDatabase(string backupFileName, bool includeLogs);
+    Task<byte[]> ExportMigrationPackage(string passphrase);
+    Task ImportMigrationPackage(System.IO.Stream encryptedPackageStream, string passphrase);
 }

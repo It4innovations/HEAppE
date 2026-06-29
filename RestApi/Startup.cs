@@ -95,6 +95,7 @@ public class Startup
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+        Configuration.Bind("MigrationSettings", new MigrationSettings());
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());

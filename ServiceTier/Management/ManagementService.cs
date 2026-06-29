@@ -1,3 +1,4 @@
+using System.IO;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -1864,6 +1865,32 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
             managementLogic.RestoreDatabase(backupFileName, includeLogs);
+        }
+    }
+
+    public async Task<byte[]> ExportMigrationPackage(string? passphrase, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            return await managementLogic.ExportMigrationPackage(passphrase);
+        }
+    }
+
+    public async Task ImportMigrationPackage(Stream encryptedPackageStream, string? passphrase, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            await managementLogic.ImportMigrationPackage(encryptedPackageStream, passphrase);
         }
     }
 

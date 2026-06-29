@@ -3543,6 +3543,16 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.DatabaseBackupService.RestoreDatabase(backupFileName, includeLogs);
     }
 
+    public async Task<byte[]> ExportMigrationPackage(string? passphrase)
+    {
+        return await _unitOfWork.DatabaseBackupService.ExportMigrationPackage(passphrase);
+    }
+
+    public async Task ImportMigrationPackage(Stream encryptedPackageStream, string? passphrase)
+    {
+        await _unitOfWork.DatabaseBackupService.ImportMigrationPackage(encryptedPackageStream, passphrase);
+    }
+
     #endregion
 
     #region Private methods

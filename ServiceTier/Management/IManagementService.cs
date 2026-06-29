@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -220,6 +221,8 @@ public interface IManagementService
     string BackupDatabaseTransactionLogs(string sessionCode);
     List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
     void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode);
+    Task<byte[]> ExportMigrationPackage(string? passphrase, string sessionCode);
+    Task ImportMigrationPackage(Stream encryptedPackageStream, string? passphrase, string sessionCode);
     public Task<List<PublicKeyExt>> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,
         string sessionCode);

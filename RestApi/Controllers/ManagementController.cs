@@ -2490,6 +2490,66 @@ public class ManagementController : BaseController<ManagementController>
         return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
 
+    /// <summary>
+    ///     Export migration package containing database and vault secrets (encrypted).
+    /// </summary>
+    /// <param name="sessionCode">Session code</param>
+    /// <param name="passphrase">Optional passphrase for encryption</param>
+    /// <returns>Encrypted binary package file</returns>
+    [HttpPost("ExportMigrationPackage")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ExportMigrationPackage(string sessionCode, string? passphrase = null)
+    {
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var fileBytes = await _managementService.ExportMigrationPackage(passphrase, sessionCode);
+        var fileName = $"heappe_migration_{DateTime.Now:yyyyMMddHHmmss}.enc";
+
+        return File(fileBytes, "application/octet-stream", fileName);
+    }
+
+    /// <summary>
+    ///     Import migration package, decrypting and restoring database and vault secrets.
+    /// </summary>
+    /// <param name="sessionCode">Session code</param>
+    /// <param name="passphrase">Optional passphrase for decryption</param>
+    /// <param name="file">Encrypted migration package file (.enc)</param>
+    /// <returns>Success message</returns>
+    [HttpPost("ImportMigrationPackage")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ImportMigrationPackage(
+        [FromQuery(Name = "SessionCode")] string sessionCode,
+        [FromQuery(Name = "Passphrase")] string? passphrase,
+        IFormFile file)
+    {
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        if (file == null || file.Length == 0)
+        {
+            throw new InputValidationException("MigrationPackageFileMissing");
+        }
+
+        using (var stream = file.OpenReadStream())
+        {
+            await _managementService.ImportMigrationPackage(stream, passphrase, sessionCode);
+        }
+
+        return Ok("Migration package imported successfully. Database and Vault secrets restored.");
+    }
+
     #endregion
     #endregion
 }
