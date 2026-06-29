@@ -15,7 +15,7 @@ public class FileSystemUtils
 
     private static string GetHomeDirectory(JobSpecification jobSpecification, string clusterUser)
     {
-        var homeDirTemplate = "/users/{username}";
+        var homeDirTemplate = string.Empty;
         if (jobSpecification.Cluster?.CustomConfiguration != null &&
             jobSpecification.Cluster.CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
         {
@@ -272,13 +272,8 @@ public class FileSystemUtils
                 .Replace("$USER", username);
         }
 
-        if (string.IsNullOrEmpty(resolvedHomeDir))
-        {
-            resolvedHomeDir = string.IsNullOrEmpty(homeDir) ? $"/users/{username}" : homeDir;
-        }
-
         var result = path;
-        if (result.StartsWith("~"))
+        if (customConfiguration.ContainsKey("HomeDirectoryTemplate") && result.StartsWith("~"))
         {
             result = resolvedHomeDir + result.Substring(1);
         }
