@@ -98,7 +98,7 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
             FullName = entry.ToPath(),
             IsDirectory = entry.FileType == UnixFileType.Directory,
             IsSymbolicLink = entry.FileType == UnixFileType.SymbolicLink,
-            LastWriteTime = entry.LastWriteTime.LocalDateTime.Convert(hostTimeZone)
+            LastWriteTime = entry.LastWriteTime.UtcDateTime
         });
         
         var result = new List<HEAppE.FileTransferFramework.Sftp.SftpFile>();

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using HEAppE.Exceptions.Internal;
@@ -124,7 +124,7 @@ public class SftpClientAdapter
                             FullName = replacedTilde ? item.FullName.Replace(sftpClient.WorkingDirectory, "~") : item.FullName,
                             IsDirectory = item.IsDirectory,
                             IsSymbolicLink = item.IsSymbolicLink,
-                            LastWriteTime = item.LastWriteTime.Convert(hostTimeZone),
+                            LastWriteTime = item.LastWriteTimeUtc,
                             Name = item.Name
                         });
                     }
