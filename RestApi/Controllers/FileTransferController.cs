@@ -133,6 +133,7 @@ public class FileTransferController : BaseController<FileTransferController>
     /// <returns></returns>
     [HttpGet("ListChangedFilesForJob")]
     [RequestSizeLimit(98)]
+    [LogBehavior(LoggingBehavior.Full)]
     [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
