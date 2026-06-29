@@ -244,6 +244,31 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         var pIds = projectIds?.ToList();
         if (pIds == null || !pIds.Any()) return Enumerable.Empty<SubmittedJobInfo>().ToLookup(x => 0L);
 
+        string timezone = null;
+        if (clusterId.HasValue)
+        {
+            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId.Value);
+            timezone = cluster?.TimeZone;
+        }
+
+        if (timezone == null)
+        {
+            var firstProjectId = pIds.FirstOrDefault();
+            if (firstProjectId > 0)
+            {
+                var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(firstProjectId);
+                timezone = project?.ClusterProjects?.FirstOrDefault()?.Cluster?.TimeZone;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(timezone))
+        {
+            if (start != DateTime.MinValue && start.Kind != DateTimeKind.Utc)
+                start = HEAppE.Utils.DateTimeZoneExtension.Convert(start, timezone);
+            if (end != DateTime.MaxValue && end.Kind != DateTimeKind.Utc)
+                end = HEAppE.Utils.DateTimeZoneExtension.Convert(end, timezone);
+        }
+
         var query = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
             .Where(j => j.Project != null && pIds.Contains(j.Project.Id))
