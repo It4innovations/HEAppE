@@ -330,58 +330,103 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        if (!maxCores.HasValue || maxCores <= 0)
-            throw new ArgumentException("Argument 'maxCores' have to be specified for PbsPro CPU task.");
+        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
 
         var allocationCmdBuilder = new StringBuilder(" -l select=");
 
-        //For specific node names
-        if (requiredNodes?.Count > 0)
+        if (isGpuAllocation)
         {
-            var requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
-            var remainingCores = maxCores - requiredNodesMaxCores;
-            var cpusPerHost = maxCores > requiredNodesMaxCores ? coresPerNode : maxCores / requiredNodes.Count;
+            int nodes = gpuNodes ?? 1;
+            int gpuCount = gpuCores ?? 1;
+            int gpusPerNode = gpuCount / nodes;
+            if (gpusPerNode == 0) gpusPerNode = 1;
 
-            var parSpecsForReqNodes = paralizationSpecs
-                .Where(w => w.MaxCores % coresPerNode == 0 && w.MaxCores / coresPerNode == 1)
-                .ToList();
-
-            var i = 0;
-            var first = true;
-            foreach (var hostname in requiredNodes)
+            if (requiredNodes?.Count > 0)
             {
-                var parSpec = parSpecsForReqNodes?.ElementAtOrDefault(i);
-                allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}");
-                if (parSpec != null)
+                nodes = requiredNodes.Count;
+                gpusPerNode = gpuCount / nodes;
+                if (gpusPerNode == 0) gpusPerNode = 1;
+
+                var first = true;
+                foreach (var hostname in requiredNodes)
                 {
-                    allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue
-                        ? $":mpiprocs={parSpec.MPIProcesses.Value}"
-                        : string.Empty);
-                    allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue
-                        ? $":ompthreads={parSpec.OpenMPThreads.Value}"
-                        : string.Empty);
+                    allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}:ngpus={gpusPerNode}");
+                    first = false;
+                }
+            }
+            else
+            {
+                var reqNodeGroupsCmd = string.Empty;
+                if (requestedNodeGroups.Any())
+                {
+                    var builder = new StringBuilder();
+                    foreach (var nodeGroup in requestedNodeGroups) builder.Append($":{nodeGroup}=true");
+                    reqNodeGroupsCmd = builder.ToString();
                 }
 
-                allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy)
-                    ? string.Empty
-                    : $" -l place={placementPolicy}");
-
-                i++;
-                if (first)
-                    first = false;
-            }
-
-            if (remainingCores > 0)
-            {
-                allocationCmdBuilder.Append('+');
-                allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                    paralizationSpecs.Except(parSpecsForReqNodes).ToList(), (int)remainingCores, coresPerNode));
+                int cpusPerChunk = gpuNodes.HasValue && gpuNodes.Value > 0 ? coresPerNode : 1;
+                allocationCmdBuilder.Append($"{nodes}{reqNodeGroupsCmd}:ncpus={cpusPerChunk}:ngpus={gpusPerNode}");
             }
         }
         else
         {
-            allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                paralizationSpecs, (int)maxCores, coresPerNode));
+            if (gpuCores.HasValue || gpuNodes.HasValue)
+            {
+                throw new HEAppE.Exceptions.External.InputValidationException("GpuAllocationNotSupportedForCpuNodeType");
+            }
+
+            if (!maxCores.HasValue || maxCores <= 0)
+                throw new ArgumentException("Argument 'maxCores' have to be specified for PbsPro CPU task.");
+
+            //For specific node names
+            if (requiredNodes?.Count > 0)
+            {
+                var requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
+                var remainingCores = maxCores - requiredNodesMaxCores;
+                var cpusPerHost = maxCores > requiredNodesMaxCores ? coresPerNode : maxCores / requiredNodes.Count;
+
+                var parSpecsForReqNodes = paralizationSpecs
+                    .Where(w => w.MaxCores % coresPerNode == 0 && w.MaxCores / coresPerNode == 1)
+                    .ToList();
+
+                var i = 0;
+                var first = true;
+                foreach (var hostname in requiredNodes)
+                {
+                    var parSpec = parSpecsForReqNodes?.ElementAtOrDefault(i);
+                    allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}");
+                    if (parSpec != null)
+                    {
+                        allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue
+                            ? $":mpiprocs={parSpec.MPIProcesses.Value}"
+                            : string.Empty);
+                        allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue
+                            ? $":ompthreads={parSpec.OpenMPThreads.Value}"
+                            : string.Empty);
+                    }
+
+                    i++;
+                    if (first)
+                        first = false;
+                }
+
+                if (remainingCores > 0)
+                {
+                    allocationCmdBuilder.Append('+');
+                    allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
+                        paralizationSpecs.Except(parSpecsForReqNodes).ToList(), (int)remainingCores, coresPerNode));
+                }
+            }
+            else
+            {
+                allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
+                    paralizationSpecs, (int)maxCores, coresPerNode));
+            }
+        }
+
+        if (!string.IsNullOrEmpty(placementPolicy))
+        {
+            allocationCmdBuilder.Append($" -l place={placementPolicy}");
         }
 
         DoAppend(allocationCmdBuilder.ToString());

@@ -281,56 +281,42 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         // GPU allocation
         if (isGpuAllocation)
         {
-            // partial allocation
-            if (isPartialAllocation)
+            int? gpuCount = null;
+            if (maxCores.HasValue)
             {
-                // only temporary solution until LEXIS systems implement new gpu core/node parameters
-                // then remove this and use logic in else statement
-                if (maxCores.HasValue)
-                {
-                    doAppend($" --gpus={maxCores}");
-                }
-                else
-                {
-                    if (!gpuCores.HasValue || gpuCores <= 0)
-                    {
-                        throw new ArgumentException("Argument 'gpuCores' have to be specified for Slurm task GPU partial allocation.");
-                    }
-
-                    doAppend($" --gpus={gpuCores}");
-                }
+                gpuCount = maxCores.Value;
             }
-            else
+            else if (gpuCores.HasValue && gpuCores.Value > 0)
             {
-                // only temporary solution until LEXIS systems implement new gpu core/node parameters
-                // then remove this and use logic in else statement
-                if (maxCores.HasValue)
-                {
-                    int gpuCount = (int)maxCores;
-                    var nodeCount = maxCores / coresPerNode;
-                    nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+                gpuCount = gpuCores.Value;
+            }
 
-                    doAppend($" --gpus={gpuCount}");
-                    doAppend($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)nodeCount)}{reqNodeGroupsCmd}");
-                }
-                else
-                {
-                    if (!gpuNodes.HasValue || gpuNodes <= 0)
-                    {
-                        //set gpuNodes -- count
-                        gpuNodes = maxCores / coresPerNode;
-                        gpuNodes += maxCores % coresPerNode > 0 ? 1 : 0;
-                    }
+            if (gpuCount.HasValue)
+            {
+                doAppend($" --gpus={gpuCount}");
+            }
 
-                    int gpuCount = (int)gpuNodes * coresPerNode;
-                    doAppend($" --gpus={gpuCount}");
-                    doAppend($" --nodes={gpuNodes}{PrepareNameOfNodes(requiredNodes.ToArray(), (int)gpuNodes)}{reqNodeGroupsCmd}");
-                }
+            // Append nodes if explicitly requested
+            if (gpuNodes.HasValue && gpuNodes.Value > 0)
+            {
+                doAppend($" --nodes={gpuNodes.Value}{PrepareNameOfNodes(requiredNodes.ToArray(), gpuNodes.Value)}{reqNodeGroupsCmd}");
+            }
+            // Or calculate if maxCores is specified (legacy logic)
+            else if (maxCores.HasValue)
+            {
+                int nodeCount = maxCores.Value / coresPerNode;
+                nodeCount += maxCores.Value % coresPerNode > 0 ? 1 : 0;
+                doAppend($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
             }
         }
         // CPU only allocation
         else
         {
+            if (gpuCores.HasValue || gpuNodes.HasValue)
+            {
+                throw new HEAppE.Exceptions.External.InputValidationException("GpuAllocationNotSupportedForCpuNodeType");
+            }
+
             if (!maxCores.HasValue || maxCores <= 0)
                 throw new ArgumentException($"Invalid number of cores: {maxCores} for Slurm task CPU allocation.");
 
