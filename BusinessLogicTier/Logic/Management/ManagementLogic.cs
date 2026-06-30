@@ -2964,20 +2964,7 @@ public class ManagementLogic : IManagementLogic
     {
         await Task.Delay(1);
 
-        string timezone = null;
-        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
-        if (project != null)
-        {
-            timezone = project.ClusterProjects?.FirstOrDefault()?.Cluster?.TimeZone;
-        }
 
-        if (!string.IsNullOrEmpty(timezone))
-        {
-            if (timeFrom.HasValue && timeFrom.Value != DateTime.MinValue && timeFrom.Value.Kind != DateTimeKind.Utc)
-                timeFrom = HEAppE.Utils.DateTimeZoneExtension.Convert(timeFrom.Value, timezone);
-            if (timeTo.HasValue && timeTo.Value != DateTime.MaxValue && timeTo.Value.Kind != DateTimeKind.Utc)
-                timeTo = HEAppE.Utils.DateTimeZoneExtension.Convert(timeTo.Value, timezone);
-        }
 
         var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
 
@@ -3054,20 +3041,7 @@ public class ManagementLogic : IManagementLogic
             Errors = resultErrors
         };
 
-        string timezone = null;
-        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
-        if (project != null)
-        {
-            timezone = project.ClusterProjects?.FirstOrDefault()?.Cluster?.TimeZone;
-        }
 
-        if (!string.IsNullOrEmpty(timezone))
-        {
-            if (timeFrom.HasValue && timeFrom.Value != DateTime.MinValue && timeFrom.Value.Kind != DateTimeKind.Utc)
-                timeFrom = HEAppE.Utils.DateTimeZoneExtension.Convert(timeFrom.Value, timezone);
-            if (timeTo.HasValue && timeTo.Value != DateTime.MaxValue && timeTo.Value.Kind != DateTimeKind.Utc)
-                timeTo = HEAppE.Utils.DateTimeZoneExtension.Convert(timeTo.Value, timezone);
-        }
 
         var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
         foreach (var groupedLogs in logs.GroupBy(l => l.ClusterAuthenticationCredentialsId).ToList())

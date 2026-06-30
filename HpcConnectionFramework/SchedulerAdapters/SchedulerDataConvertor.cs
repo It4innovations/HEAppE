@@ -399,7 +399,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                             date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
                         }
 
-                        return date.Convert(cluster.TimeZone);
+                        return DateTime.SpecifyKind(date, DateTimeKind.Utc);
                     }
                     catch (Exception ex) when (ex is not SchedulerException)
                     {

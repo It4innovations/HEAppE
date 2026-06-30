@@ -16,9 +16,12 @@ public static class DateTimeZoneExtension
     {
         var timeZone = string.IsNullOrEmpty(zone)
             ? DateTimeZoneProviders.Bcl.GetSystemDefault()
-            : DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone);
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
 
-        if (timeZone == null) throw new ArgumentException("Argument 'zone' could not find in zones");
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
 
         var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneLeniently(timeZone).ToDateTimeUtc();
         return utcTime;

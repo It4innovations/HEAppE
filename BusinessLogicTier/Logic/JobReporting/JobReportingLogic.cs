@@ -146,6 +146,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .ToList();
 
         var pIds = groups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
+
         var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects, limit, offset, clusterId, userId);
 
         return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()))
@@ -243,31 +244,6 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
     {
         var pIds = projectIds?.ToList();
         if (pIds == null || !pIds.Any()) return Enumerable.Empty<SubmittedJobInfo>().ToLookup(x => 0L);
-
-        string timezone = null;
-        if (clusterId.HasValue)
-        {
-            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId.Value);
-            timezone = cluster?.TimeZone;
-        }
-
-        if (timezone == null)
-        {
-            var firstProjectId = pIds.FirstOrDefault();
-            if (firstProjectId > 0)
-            {
-                var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(firstProjectId);
-                timezone = project?.ClusterProjects?.FirstOrDefault()?.Cluster?.TimeZone;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(timezone))
-        {
-            if (start != DateTime.MinValue && start.Kind != DateTimeKind.Utc)
-                start = HEAppE.Utils.DateTimeZoneExtension.Convert(start, timezone);
-            if (end != DateTime.MaxValue && end.Kind != DateTimeKind.Utc)
-                end = HEAppE.Utils.DateTimeZoneExtension.Convert(end, timezone);
-        }
 
         var query = _unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
