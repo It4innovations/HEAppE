@@ -120,6 +120,9 @@
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
     <value>Logged user '{0}' is not authorized to query job info '{1}'.</value>
   </data>
+  <data name="AdaptorUserNotAuthorizedForJobException_ClusterOperationRequiresOwner" xml:space="preserve">
+    <value>Logged user '{0}' cannot perform this operation on job '{1}'. This cluster operation can only be performed by the job owner.</value>
+  </data>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Logged user '{0}' is not authorized to query task info '{1}'.</value>
   </data>

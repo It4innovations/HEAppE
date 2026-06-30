@@ -172,6 +172,7 @@ public class FileTransferLogic : IFileTransferLogic
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
 
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
         //retrieve credentials from vault
@@ -220,6 +221,7 @@ public class FileTransferLogic : IFileTransferLogic
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
         if (jobInfo.FileTransferTemporaryKeys.Count() > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
@@ -303,6 +305,7 @@ public class FileTransferLogic : IFileTransferLogic
             $"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
         if (jobInfo.Specification.ClusterUser.AuthenticationType is ClusterAuthenticationCredentialsAuthType
@@ -328,6 +331,7 @@ public class FileTransferLogic : IFileTransferLogic
             $"Getting part of job files from cluster for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService, _logger);
@@ -409,6 +413,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService, _logger);
@@ -427,6 +432,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
@@ -571,7 +577,9 @@ public class FileTransferLogic : IFileTransferLogic
     {
         var result = new Dictionary<string, dynamic>();
         
-        var jobSpecification = _unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId);
+        var jobSpecification = _unitOfWork.JobSpecificationRepository.GetByIdWithTasksAndSubmitter(createdJobInfoId);
+        if (jobSpecification.Submitter.Id != loggedUser.Id)
+            throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), createdJobInfoId);
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath = FileSystemUtils
             .GetJobClusterDirectoryPath(jobSpecification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
@@ -736,6 +744,14 @@ public class FileTransferLogic : IFileTransferLogic
         get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
     }
 #pragma warning restore IDE1006
+
+    private static void VerifyOwner(SubmittedJobInfo jobInfo, AdaptorUser loggedUser)
+    {
+        if (jobInfo.Submitter.Id != loggedUser.Id)
+        {
+            throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), jobInfo.Id);
+        }
+    }
 
     #endregion
 }

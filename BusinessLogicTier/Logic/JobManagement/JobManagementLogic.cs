@@ -1078,6 +1078,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         if (jobInfo.Specification.Tasks.Any(x => x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
         
@@ -1112,6 +1113,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials)> PrepareGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
 
         // Kerberos clusters (e.g. Metacentrum) have no persistent service account.
         // The per-user ClusterUser is the correct credential; Kerberos ticket is obtained
@@ -1148,6 +1150,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials, bool CancelledLocally)> PrepareCancelJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
         {
             var credentials = await
@@ -1193,6 +1196,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareDeleteJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
@@ -1221,6 +1225,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, string LocalBasePath, string JobLogArchivePath, IEnumerable<System.Tuple<string, string>> SourceDestinations)> PrepareArchiveJobAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
@@ -1256,6 +1261,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<SubmittedTaskInfo> PrepareGetAllocatedNodesIPsAsync(long submittedTaskInfoId, AdaptorUser loggedUser)
     {
         var taskInfo = await GetSubmittedTaskInfoByIdAsync(submittedTaskInfoId, loggedUser);
+        VerifyOwner(taskInfo.Specification.JobSpecification, loggedUser);
         if (taskInfo.State != TaskState.Running)
             throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
         return taskInfo;
@@ -1289,6 +1295,7 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
@@ -1298,10 +1305,27 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataFromTempAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
         return (jobInfo, clusterProject);
+    }
+
+    private static void VerifyOwner(SubmittedJobInfo jobInfo, AdaptorUser loggedUser)
+    {
+        if (jobInfo.Submitter.Id != loggedUser.Id)
+        {
+            throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), jobInfo.Id);
+        }
+    }
+
+    private static void VerifyOwner(JobSpecification jobSpec, AdaptorUser loggedUser)
+    {
+        if (jobSpec.Submitter.Id != loggedUser.Id)
+        {
+            throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), jobSpec.Id);
+        }
     }
 
 #pragma warning disable IDE1006
