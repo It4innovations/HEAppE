@@ -133,9 +133,7 @@ public class SshConnector : IPoolableAdapter
         var adapter = new SshClientAdapter((SshClient)connectorClient);
         await adapter.ConnectAsync();
 
-        if (connectorClient is SshClient sshClient && 
-            !(connectorClient is KerberosSshClient) && 
-            !(connectorClient is NoAuthenticationSshClient))
+        if (connectorClient is KerberosSshClient sshClient)
         {
             string destPath = "/opt/heappe/confs/krb5.conf";
             if (Directory.Exists(destPath))
