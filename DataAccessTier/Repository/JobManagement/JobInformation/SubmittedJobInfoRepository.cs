@@ -433,7 +433,11 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(t => t.Project) 
             .Include(j => j.Specification)
                 .ThenInclude(s => s.SubProject)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
             .FirstOrDefault(j => j.Id == id);
 
         if (job != null)
@@ -460,7 +464,11 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(t => t.Project) 
             .Include(j => j.Specification)
                 .ThenInclude(s => s.SubProject)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
             .FirstOrDefaultAsync(j => j.Id == id);
 
         if (job != null)
@@ -541,6 +549,10 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .AsNoTracking()
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
             .Include(j => j.Submitter)
             .FirstOrDefault(j => j.Id == id);
     }
@@ -550,6 +562,10 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return await _dbSet
             .AsNoTracking()
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
             .Include(j => j.Submitter)
             .FirstOrDefaultAsync(j => j.Id == id);
     }

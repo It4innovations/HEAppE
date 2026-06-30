@@ -28,6 +28,43 @@ public static class DateTimeZoneExtension
     }
 
     /// <summary>
+    ///     Convert UTC date to local date in specific timezone
+    /// </summary>
+    public static DateTime? ConvertUtcToLocal(this DateTime? utcTime, string zone)
+    {
+        if (!utcTime.HasValue) return null;
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
+
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
+
+        var instant = Instant.FromDateTimeUtc(DateTime.SpecifyKind(utcTime.Value, DateTimeKind.Utc));
+        return instant.InZone(timeZone).ToDateTimeUnspecified();
+    }
+
+    /// <summary>
+    ///     Convert UTC date to local date in specific timezone
+    /// </summary>
+    public static DateTime ConvertUtcToLocal(this DateTime utcTime, string zone)
+    {
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
+
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
+
+        var instant = Instant.FromDateTimeUtc(DateTime.SpecifyKind(utcTime, DateTimeKind.Utc));
+        return instant.InZone(timeZone).ToDateTimeUnspecified();
+    }
+
+    /// <summary>
     ///     Convert date with local time to UTC
     /// </summary>
     /// <param name="dateInZone">Date in zone</param>

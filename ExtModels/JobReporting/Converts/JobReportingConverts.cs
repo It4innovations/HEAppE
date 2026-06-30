@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -31,14 +31,14 @@ public static class JobReportingConverts
         return convert;
     }
 
-    public static TaskExtendedReportExt ConvertIntToExtendedExt(this TaskReport report)
+    public static TaskExtendedReportExt ConvertIntToExtendedExt(this TaskReport report, string timezone)
     {
         var convert = new TaskExtendedReportExt
         {
             Id = report.SubmittedTaskInfo.Id,
             Name = report.SubmittedTaskInfo.Name,
-            StartTime = report.SubmittedTaskInfo.StartTime,
-            EndTime = report.SubmittedTaskInfo.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedTaskInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedTaskInfo.EndTime, timezone),
             State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
             CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId,
             Usage = report.Usage
@@ -48,15 +48,15 @@ public static class JobReportingConverts
     }
 
 
-    public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report)
+    public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report, string timezone)
     {
         var convert = new TaskDetailedReportExt
         {
             Id = report.SubmittedTaskInfo.Id,
             ScheduledJobId = report.SubmittedTaskInfo.ScheduledJobId,
             Name = report.SubmittedTaskInfo.Name,
-            StartTime = report.SubmittedTaskInfo.StartTime,
-            EndTime = report.SubmittedTaskInfo.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedTaskInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedTaskInfo.EndTime, timezone),
             State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
             CommandTemplateId = report.SubmittedTaskInfo.Specification?.CommandTemplateId ?? 0,
             Usage = report.Usage,
@@ -81,11 +81,14 @@ public static class JobReportingConverts
 
     public static JobExtendedReportExt ConvertIntToExtendedExt(this JobReport report)
     {
+        string timezone = report.SubmittedJobInfo.Specification?.Cluster?.TimeZone 
+            ?? report.SubmittedJobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         var convert = new JobExtendedReportExt
         {
             Id = report.SubmittedJobInfo.Id,
             Name = report.SubmittedJobInfo.Name,
-            Tasks = report.Tasks.Select(x => x.ConvertIntToExtendedExt()).ToList(),
+            Tasks = report.Tasks.Select(x => x.ConvertIntToExtendedExt(timezone)).ToList(),
             State = report.SubmittedJobInfo.State.ConvertIntToExt()
         };
 
@@ -94,16 +97,19 @@ public static class JobReportingConverts
 
     public static JobDetailedReportExt ConvertIntToDetailedExt(this JobReport report)
     {
+        string timezone = report.SubmittedJobInfo.Specification?.Cluster?.TimeZone 
+            ?? report.SubmittedJobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         var convert = new JobDetailedReportExt
         {
             Id = report.SubmittedJobInfo.Id,
             Name = report.SubmittedJobInfo.Name,
-            Tasks = report.Tasks.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+            Tasks = report.Tasks.Select(x => x.ConvertIntToDetailedExt(timezone)).ToList(),
             State = report.SubmittedJobInfo.State.ConvertIntToExt(),
-            CreationTime = report.SubmittedJobInfo.CreationTime,
-            StartTime = report.SubmittedJobInfo.StartTime,
-            SubmitTime = report.SubmittedJobInfo.SubmitTime,
-            EndTime = report.SubmittedJobInfo.EndTime,
+            CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.CreationTime, timezone),
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.StartTime, timezone),
+            SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.SubmitTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.EndTime, timezone),
             Submitter = report.SubmittedJobInfo.Submitter.Username
         };
 

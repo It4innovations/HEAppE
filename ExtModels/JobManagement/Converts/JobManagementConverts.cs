@@ -192,18 +192,21 @@ public static class JobManagementConverts
 
     public static SubmittedJobInfoExt ConvertIntToExt(this SubmittedJobInfo jobInfo)
     {
+        string timezone = jobInfo.Specification?.Cluster?.TimeZone 
+            ?? jobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         SubmittedJobInfoExt convert = new()
         {
             Id = jobInfo.Id,
             Name = jobInfo.Name,
             State = jobInfo.State.ConvertIntToExt(),
-            CreationTime = jobInfo.CreationTime,
-            SubmitTime = jobInfo.SubmitTime,
-            StartTime = jobInfo.StartTime,
-            EndTime = jobInfo.EndTime,
+            CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
+            SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             SubProject = jobInfo.Specification.SubProject?.Identifier,
-            Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt())
+            Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt(timezone))
                 .ToArray()
         };
         return convert;
@@ -239,7 +242,7 @@ public static class JobManagementConverts
         return convert;
     }
 
-    private static SubmittedTaskInfoExt ConvertIntToExt(this SubmittedTaskInfo task)
+    private static SubmittedTaskInfoExt ConvertIntToExt(this SubmittedTaskInfo task, string timezone)
     {
         SubmittedTaskInfoExt convert = new()
         {
@@ -250,8 +253,8 @@ public static class JobManagementConverts
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
-            StartTime = task.StartTime,
-            EndTime = task.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,
