@@ -9,9 +9,20 @@ public static class DateTimeZoneExtension
     {
         if (string.IsNullOrEmpty(zone)) return zone;
         var z = zone.Trim();
-        if (string.Equals(z, "CEST", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(z, "CEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "CET", StringComparison.OrdinalIgnoreCase))
         {
             return "Europe/Prague";
+        }
+        if (string.Equals(z, "EEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "EET", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Europe/Helsinki";
+        }
+        if (string.Equals(z, "WEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "WET", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Europe/London";
         }
         return z;
     }
