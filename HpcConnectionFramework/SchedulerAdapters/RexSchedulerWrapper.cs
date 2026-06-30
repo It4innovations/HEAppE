@@ -248,7 +248,7 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             return await _adapter.InitializeClusterScriptDirectoryAsync(
-                conn.Connection, path, true, localBasepath, credentials.Username, false, cluster.CustomConfiguration);
+                conn.Connection, path, false, localBasepath, credentials.Username, false, cluster.CustomConfiguration);
         }
         finally
         {

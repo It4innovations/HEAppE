@@ -53,6 +53,13 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
+    /// <summary>
+    /// In-memory cache: key = "account:targetDir", value = last successfully deployed git commit hash.
+    /// Prevents re-uploading scripts on every job submit when nothing has changed.
+    /// Cleared/bypassed when overwriteExistingProjectRootDirectory = true.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _deployedHashCache = new();
+
     #endregion
 
     #region Constructors
@@ -807,31 +814,15 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var rootDir = Path.Combine(clusterConfig.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
             rootDir = ExpandRemotePath(rootDir, account);
             var targetDir = $"{rootDir}/.key_scripts";
+            var cacheKey = $"{account}:{targetDir}";
 
-            // Check if already initialized and up-to-date if overwrite is false
+            // Check in-memory cache first (skip even the remote hash API call)
             if (!overwriteExistingProjectRootDirectory && !string.IsNullOrEmpty(localCommitHash))
             {
-                try
+                if (_deployedHashCache.TryGetValue(cacheKey, out var cachedHash) && cachedHash == localCommitHash)
                 {
-                    var hashFilePath = $"{targetDir}/.commit_hash";
-                    var viewEndpoint = $"{firecrestUrl}/filesystem/{clusterName}/ops/view?path={Uri.EscapeDataString(hashFilePath)}";
-                    using var viewRequest = new HttpRequestMessage(HttpMethod.Get, viewEndpoint);
-                    viewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    using var viewResponse = await _httpClient.SendAsync(viewRequest);
-                    if (viewResponse.IsSuccessStatusCode)
-                    {
-                        var viewContent = await viewResponse.Content.ReadAsStringAsync();
-                        var remoteHash = FirecRestUtils.ParseFileContent(viewContent);
-                        if (remoteHash != null && remoteHash.Trim() == localCommitHash)
-                        {
-                            _logger.LogInformation($"Scripts directory {targetDir} is already up-to-date (commit hash {localCommitHash}) on cluster {clusterName}. Skipping initialization.");
-                            return true;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug($"Failed to check if remote scripts are up-to-date: {ex.Message}");
+                    _logger.LogDebug($"[FirecREST] Scripts for {targetDir} already deployed (in-memory cache hit, commit {localCommitHash}). Skipping.");
+                    return true;
                 }
             }
 
@@ -875,6 +866,8 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             {
                 var hashBytes = Encoding.UTF8.GetBytes(localCommitHash);
                 await UploadFileAsync(firecrestUrl, token, clusterName, targetDir, ".commit_hash", hashBytes);
+                // Update in-memory cache so subsequent submits skip re-upload
+                _deployedHashCache[cacheKey] = localCommitHash;
             }
 
             _logger.LogInformation($"Successfully initialized and deployed scripts directory for cluster {clusterName} via Firecrest (commit: {localCommitHash}).");
