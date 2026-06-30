@@ -133,73 +133,7 @@ public class SshConnector : IPoolableAdapter
         var adapter = new SshClientAdapter((SshClient)connectorClient);
         await adapter.ConnectAsync();
 
-        if (connectorClient is KerberosSshClient sshClient)
-        {
-            string destPath = "/opt/heappe/confs/krb5.conf";
-            if (Directory.Exists(destPath))
-            {
-                destPath = Path.Combine(destPath, "krb5.conf");
-            }
-            bool needsDownload = false;
-            try
-            {
-                if (!File.Exists(destPath) || (DateTime.UtcNow - File.GetLastWriteTimeUtc(destPath)).TotalHours >= 1)
-                {
-                    needsDownload = true;
-                }
-            }
-            catch
-            {
-                needsDownload = true;
-            }
 
-            if (needsDownload)
-            {
-                await _krbConfigSemaphore.WaitAsync();
-                try
-                {
-                    // Double-checked locking pattern: check state again after acquiring lock
-                    if (!File.Exists(destPath) || (DateTime.UtcNow - File.GetLastWriteTimeUtc(destPath)).TotalHours >= 1)
-                    {
-                        _logger.LogInformation("Automatically downloading krb5.conf from connected host...");
-                        var commandResult = await adapter.RunCommandAsync("cat /etc/krb5.conf");
-                        if (commandResult != null && !string.IsNullOrWhiteSpace(commandResult.Result) && commandResult.ExitStatus == 0)
-                        {
-                            var dir = Path.GetDirectoryName(destPath);
-                            if (!Directory.Exists(dir))
-                            {
-                                Directory.CreateDirectory(dir);
-                            }
-                            
-                            string existingContent = "";
-                            if (File.Exists(destPath))
-                            {
-                                try { existingContent = await File.ReadAllTextAsync(destPath); } catch { }
-                            }
-                            string mergedContent = Krb5ConfigMerger.Merge(existingContent, commandResult.Result);
-
-                            string tempPath = destPath + ".tmp";
-                            await File.WriteAllTextAsync(tempPath, mergedContent);
-                            File.Move(tempPath, destPath, overwrite: true);
-                            
-                            _logger.LogInformation($"Successfully auto-downloaded and saved krb5.conf to {destPath}");
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Failed to auto-download krb5.conf: exit code {commandResult?.ExitStatus}, error: {commandResult?.Error}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error while auto-downloading krb5.conf from host.");
-                }
-                finally
-                {
-                    _krbConfigSemaphore.Release();
-                }
-            }
-        }
     }
 
     /// <summary>
@@ -692,7 +626,7 @@ public class SshConnector : IPoolableAdapter
 
     private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string addressHost, string lexisToken, Cluster cluster, int? port)
     {
-        await KerberosConfigHelper.BootstrapConfigIfNeededAsync(masterNodeName, cluster, _logger);
+        KerberosConfigHelper.VerifyKrb5ConfigExists();
 
         if(Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {

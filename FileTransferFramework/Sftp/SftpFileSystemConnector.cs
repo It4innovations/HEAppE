@@ -553,7 +553,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
     private async Task<KerberosSftpClient> CreateConnectionObjectUsingKerberosAuthenticationAsync(string masterNodeName,
         string username, Cluster cluster, string lexisToken, int? port)
     {
-        await HEAppE.HpcConnectionFramework.SystemConnectors.SSH.KerberosConfigHelper.BootstrapConfigIfNeededAsync(masterNodeName, cluster, _logger);
+        HEAppE.HpcConnectionFramework.SystemConnectors.SSH.KerberosConfigHelper.VerifyKrb5ConfigExists();
 
         if (Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {

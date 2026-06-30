@@ -600,6 +600,9 @@
   <data name="ClusterAuthenticationException_NotExistingClusterAuthenticationCredentials" xml:space="preserve">
     <value>Cluster authentication credentials do not exist for user &apos;{0}&apos; on cluster &apos;{1}&apos;.</value>
   </data>
+  <data name="ClusterAuthenticationException_MissingKrb5Config" xml:space="preserve">
+    <value>Missing Kerberos configuration file (krb5.conf). Please contact your administrator.</value>
+  </data>
   <data name="ClusterAuthenticationException_NotExistingPrivateKey" xml:space="preserve">
     <value>Private key &apos;{0}&apos; specified for cluster authentication does not exist.</value>
   </data>

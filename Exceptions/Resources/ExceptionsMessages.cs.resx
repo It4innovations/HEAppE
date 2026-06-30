@@ -207,6 +207,9 @@
   <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
     <value>Soubor s privátním klíčem umístěný na '{0}' neexistuje.</value>
   </data>
+  <data name="ClusterAuthenticationException_MissingKrb5Config" xml:space="preserve">
+    <value>Chybí konfigurační soubor Kerberos (krb5.conf). Kontaktujte prosím administrátora.</value>
+  </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>Cluster s tímto projektem neexistuje v HEAppE.</value>
   </data>

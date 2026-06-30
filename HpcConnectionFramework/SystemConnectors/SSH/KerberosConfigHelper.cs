@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Exceptions.Internal;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -14,6 +15,28 @@ public static class KerberosConfigHelper
 {
     internal static readonly System.Threading.SemaphoreSlim _krbConfigSemaphore = new System.Threading.SemaphoreSlim(1, 1);
     private const string DestPath = "/opt/heappe/confs/krb5.conf";
+
+    /// <summary>
+    /// Verifies that the krb5.conf file exists either in the path specified by the KRB5_CONFIG env variable,
+    /// at the default HEAppE path, or at the system-wide /etc/krb5.conf path.
+    /// </summary>
+    public static void VerifyKrb5ConfigExists()
+    {
+        string envPath = Environment.GetEnvironmentVariable("KRB5_CONFIG");
+        if (!string.IsNullOrEmpty(envPath))
+        {
+            if (!File.Exists(envPath))
+            {
+                throw new ClusterAuthenticationException("MissingKrb5Config");
+            }
+            return;
+        }
+
+        if (!File.Exists(DestPath) && !File.Exists("/etc/krb5.conf"))
+        {
+            throw new ClusterAuthenticationException("MissingKrb5Config");
+        }
+    }
 
     /// <summary>
     /// Bootstraps/updates the krb5.conf file for a specific connection target.
