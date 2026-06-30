@@ -279,7 +279,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo, bool isAdminOverride = false)
     {
-        if (isAdminOverride)
+        if (isAdminOverride || (loggedUser.AdaptorUserUserGroupRoles?.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator) ?? false))
         {
             return true;
         }
@@ -288,6 +288,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo, bool checkSharedJobInfoAccess = false)
     {
+        if (loggedUser.AdaptorUserUserGroupRoles?.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator) ?? false)
+        {
+            return true;
+        }
         bool isOwner = taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
         if (isOwner) 
             return true;

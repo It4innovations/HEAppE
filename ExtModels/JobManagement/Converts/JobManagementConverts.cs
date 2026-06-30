@@ -202,8 +202,8 @@ public static class JobManagementConverts
             State = jobInfo.State.ConvertIntToExt(),
             CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
-            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
-            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
+            StartTime = jobInfo.StartTime,
+            EndTime = jobInfo.EndTime,
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             SubProject = jobInfo.Specification.SubProject?.Identifier,
             Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt(timezone))
@@ -253,8 +253,8 @@ public static class JobManagementConverts
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
-            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
-            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
+            StartTime = task.StartTime,
+            EndTime = task.EndTime,
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,

@@ -27,8 +27,11 @@ namespace HEAppE.RestApi.Logging
             var logAttribute = endpoint?.Metadata.GetMetadata<LogBehaviorAttribute>();
             var behavior = logAttribute?.Behavior ?? LoggingBehavior.Full;
 
-            // Behavior: None -> completely suppress all logging for this request
-            if (behavior == LoggingBehavior.None)
+            bool isSwagger = context.Request.Path.Value
+                ?.Contains("/swagger", StringComparison.OrdinalIgnoreCase) == true;
+
+            // Behavior: None or Swagger -> completely suppress all logging for this request
+            if (behavior == LoggingBehavior.None || isSwagger)
             {
                 await _next(context);
                 return;
@@ -39,7 +42,10 @@ namespace HEAppE.RestApi.Logging
                 context.Items["LateLogging_Executed"] = true;
 
                 // Log request
-                _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
+                if (!context.Items.ContainsKey("LogRequestModelFilter_Executed"))
+                {
+                    _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
+                }
 
                 bool isDebugEnabled = _logger.IsEnabled(LogLevel.Debug);
                 bool isStreamingEndpoint = context.Request.Path.Value

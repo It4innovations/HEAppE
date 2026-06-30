@@ -59,6 +59,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        context.HttpContext.Items["LogRequestModelFilter_Executed"] = true;
         LogRequestDetailsAsync(context);
         await next();
     }
