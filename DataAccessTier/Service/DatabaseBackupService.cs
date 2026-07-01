@@ -252,7 +252,10 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 }
 
                 return false;
-            }).ToList();
+            })
+            .GroupBy(b => b.FileName, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
         }
         catch (Exception ex)
         {

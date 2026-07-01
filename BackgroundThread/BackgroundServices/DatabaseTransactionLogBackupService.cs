@@ -26,6 +26,23 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Run initial retention policy check on startup to clean up obsolete/old log backups
+        try
+        {
+            if (Directory.Exists(_configuration.LocalPath))
+            {
+                ApplyRetentionPolicy(_configuration.LocalPath);
+            }
+            if (!string.IsNullOrEmpty(_configuration.NASPath) && Directory.Exists(_configuration.NASPath))
+            {
+                ApplyRetentionPolicy(_configuration.NASPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during initial database transaction log backup retention cleanup on startup: ");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

@@ -32,6 +32,23 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         await Task.Yield();
         _logger.LogInformation("DatabaseFullBackupBackgroundService started.");
 
+        // Run initial retention policy check on startup to clean up obsolete/old backups
+        try
+        {
+            if (Directory.Exists(_configuration.LocalPath))
+            {
+                ApplyRetentionPolicy(_configuration.LocalPath);
+            }
+            if (!string.IsNullOrEmpty(_configuration.NASPath) && Directory.Exists(_configuration.NASPath))
+            {
+                ApplyRetentionPolicy(_configuration.NASPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during initial database full backup retention cleanup on startup: ");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
