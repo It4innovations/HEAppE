@@ -67,6 +67,7 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
     public override ClusterNodeType GetById(long id)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
                     .ThenInclude(cp => cp.Project)
@@ -81,6 +82,7 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
     public ClusterNodeType GetByIdWithClusterAndProjects(long id)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
                     .ThenInclude(cp => cp.Project)
@@ -95,6 +97,7 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
     public async Task<ClusterNodeType> GetByIdWithClusterAndProjectsAsync(long id)
     {
         return await _dbSet
+            .AsSplitQuery()
             .Include(i => i.Cluster)
                 .ThenInclude(c => c.ClusterProjects)
                     .ThenInclude(cp => cp.Project)

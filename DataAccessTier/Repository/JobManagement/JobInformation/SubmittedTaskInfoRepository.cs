@@ -36,6 +36,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
@@ -73,6 +74,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
@@ -109,6 +111,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     public SubmittedTaskInfo GetByIdWithJobSpecification(long id)
     {
         var task = _dbSet
+            .AsSplitQuery()
             .Include(t => t.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)

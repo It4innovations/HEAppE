@@ -22,6 +22,7 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(s => s.User)
             .ThenInclude(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserRole) 

@@ -71,6 +71,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
                 .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -94,6 +95,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
             .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -117,6 +119,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return _context.Projects
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.ClusterProjects)
                 .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
@@ -155,6 +158,7 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     public override Project GetById(long id)
     {
         return _dbSet
+            .AsSplitQuery()
             .Include(x => x.ProjectContacts)
                 .ThenInclude(x => x.Contact)
             .Include(x => x.ClusterProjects)

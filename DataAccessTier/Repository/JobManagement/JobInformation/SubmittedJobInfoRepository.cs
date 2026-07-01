@@ -39,6 +39,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Project)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
@@ -214,6 +215,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(j => j.Project)
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
@@ -243,6 +245,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var jobs = _dbSet
             .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(x => x.Specification.SubProject)
             .Include(x => x.Specification.Submitter)
             .Include(x => x.Tasks)
@@ -287,6 +290,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     public SubmittedJobInfo GetByIdWithTasks(long id)
     {
         var job = _dbSet
+            .AsSplitQuery()
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
                     .ThenInclude(c => c.ProxyConnection)
@@ -482,6 +486,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return _dbSet
             .IgnoreQueryFilters()
             .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
@@ -513,6 +518,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .AsNoTrackingWithIdentityResolution()
+            .AsSplitQuery()
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Specification)
