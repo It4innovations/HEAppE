@@ -13,7 +13,7 @@ namespace HEAppE.Services.AuthMiddleware;
 
 public interface ILexisTokenService
 {
-    Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken);
+    Task<string> ExchangeLexisTokenForIdpAsync(string lexisAccessToken);
 }
 
 public class LexisTokenService : ILexisTokenService
@@ -29,11 +29,11 @@ public class LexisTokenService : ILexisTokenService
         _log = logger;
     }
 
-    public async Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken)
+    public async Task<string> ExchangeLexisTokenForIdpAsync(string lexisAccessToken)
     {
         if (string.IsNullOrWhiteSpace(lexisAccessToken))
         {
-            _log.LogWarning("ExchangeLexisTokenForFipAsync: lexisAccessToken is null or empty.");
+            _log.LogWarning("ExchangeLexisTokenForIdpAsync: lexisAccessToken is null or empty.");
             return null;
         }
 
@@ -61,11 +61,11 @@ public class LexisTokenService : ILexisTokenService
 
             if (!response.IsSuccessStatusCode)
             {
-                _log.LogError("[TokenExchange Response] Error: {StatusCode}, Content: {Content}", response.StatusCode, responseContent);
+                _log.LogError("[TokenExchange Response] Error: {StatusCode}", response.StatusCode);
                 throw new AuthenticationTypeException("ExternalApiError", "LexisTokenExchange")
                 {
                     ServiceName = "LexisTokenExchange",
-                    Details = $"Token exchange failed with status code {response.StatusCode}. Content: {responseContent}"
+                    Details = $"Token exchange failed with status code {response.StatusCode}."
                 };
             }
 
@@ -73,7 +73,7 @@ public class LexisTokenService : ILexisTokenService
 
             var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
             string exchangedAccessToken = json.GetProperty("access_token").GetString();
-            return await GetFipTokenInfoAsync(exchangedAccessToken);
+            return await GetIdpTokenInfoAsync(exchangedAccessToken);
         }
         catch (TaskCanceledException ex)
         {
@@ -104,15 +104,15 @@ public class LexisTokenService : ILexisTokenService
         }
     }
 
-    private async Task<string> GetFipTokenInfoAsync(string exchangedLexisAccessToken)
+    private async Task<string> GetIdpTokenInfoAsync(string exchangedLexisAccessToken)
     {
         if (string.IsNullOrWhiteSpace(exchangedLexisAccessToken))
-            throw new ArgumentException("FIP access token is required.", nameof(exchangedLexisAccessToken));
+            throw new ArgumentException("IdP access token is required.", nameof(exchangedLexisAccessToken));
 
         var cfg = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration;
         var userinfoUrl = $"{cfg.BaseUrl}/realms/{cfg.Realm}/broker/{cfg.Broker}/token";
 
-        _log.LogDebug("[FipTokenInfo Request] URL: {UserinfoUrl}", userinfoUrl);
+        _log.LogDebug("[IdpTokenInfo Request] URL: {UserinfoUrl}", userinfoUrl);
 
         var client = _httpClientFactory.CreateClient("LexisTokenExchangeClient");
         var request = new HttpRequestMessage(HttpMethod.Get, userinfoUrl);
@@ -125,47 +125,47 @@ public class LexisTokenService : ILexisTokenService
 
             if (!response.IsSuccessStatusCode)
             {
-                _log.LogError("[FipTokenInfo Response] Error: {StatusCode}, Content: {Content}", response.StatusCode, responseContent);
-                throw new AuthenticationTypeException("ExternalApiError", "FipTokenInfo")
+                _log.LogError("[IdpTokenInfo Response] Error: {StatusCode}", response.StatusCode);
+                throw new AuthenticationTypeException("ExternalApiError", "IdpTokenInfo")
                 {
-                    ServiceName = "FipTokenInfo",
-                    Details = $"Failed to retrieve FIP token info with status code {response.StatusCode}. Content: {responseContent}"
+                    ServiceName = "IdpTokenInfo",
+                    Details = $"Failed to retrieve IdP token info with status code {response.StatusCode}."
                 };
             }
-
-            _log.LogDebug("[FipTokenInfo Response] Success");
 
             try
             {
                 var json = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                return json.GetProperty("access_token").GetString();
+                var token = json.GetProperty("access_token").GetString();
+                _log.LogDebug("[IdpTokenInfo Response] Success. Token: {Token}", HEAppE.Utils.StringUtils.MaskToken(token));
+                return token;
             }
             catch (JsonException ex)
             {
-                _log.LogError("[FipTokenInfo] Invalid JSON format. Response content: {Content}", responseContent);
-                throw new AuthenticationTypeException("ExternalApiError", ex, "FipTokenInfo")
+                _log.LogError("[IdpTokenInfo] Invalid JSON format.");
+                throw new AuthenticationTypeException("ExternalApiError", ex, "IdpTokenInfo")
                 {
-                    ServiceName = "FipTokenInfo",
-                    Details = $"Failed to parse FIP token info response: {ex.Message}"
+                    ServiceName = "IdpTokenInfo",
+                    Details = $"Failed to parse IdP token info response: {ex.Message}"
                 };
             }
         }
         catch (TaskCanceledException ex)
         {
-            _log.LogError(ex, "[FipTokenInfo Timeout] Request to {UserinfoUrl} timed out.", userinfoUrl);
-            throw new AuthenticationTypeException("ExternalApiTimeout", ex, "FipTokenInfo")
+            _log.LogError(ex, "[IdpTokenInfo Timeout] Request to {UserinfoUrl} timed out.", userinfoUrl);
+            throw new AuthenticationTypeException("ExternalApiTimeout", ex, "IdpTokenInfo")
             {
-                ServiceName = "FipTokenInfo",
-                Details = $"Failed to retrieve FIP token info due to timeout at {userinfoUrl}."
+                ServiceName = "IdpTokenInfo",
+                Details = $"Failed to retrieve IdP token info due to timeout at {userinfoUrl}."
             };
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "[FipTokenInfo] Unexpected error.");
-            throw new AuthenticationTypeException("ExternalApiError", ex, "FipTokenInfo")
+            _log.LogError(ex, "[IdpTokenInfo] Unexpected error.");
+            throw new AuthenticationTypeException("ExternalApiError", ex, "IdpTokenInfo")
             {
-                ServiceName = "FipTokenInfo",
-                Details = $"Unexpected error during FIP token retrieval: {ex.Message}"
+                ServiceName = "IdpTokenInfo",
+                Details = $"Unexpected error during IdP token retrieval: {ex.Message}"
             };
         }
     }

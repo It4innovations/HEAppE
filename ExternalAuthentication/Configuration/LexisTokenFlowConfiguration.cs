@@ -11,7 +11,7 @@ public class LexisTokenFlowConfiguration
     public string Broker { get; set; } = string.Empty;
     public string Scope { get; set; } = "openid profile email";
 
-    // FIP / HEAppE target
+    // IdP / HEAppE target
     public string ClientId { get; set; } = "heappe";
     public string ClientSecret { get; set; } = string.Empty;
     public double ConnectionTimeoutInSeconds { get; set; } = 15;

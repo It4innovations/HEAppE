@@ -27,7 +27,7 @@ public interface IRequestContext
     public string Email { get; set; }
     public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
-    public string FIPToken { get; set; }
+    public string IdpToken { get; set; }
     public string LEXISToken { get; set; }
 }
 
@@ -38,7 +38,7 @@ public class RequestContext : IRequestContext
     public string Email { get; set; }
     public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
-    public string FIPToken { get; set; }
+    public string IdpToken { get; set; }
     public string LEXISToken { get; set; }
 }
 
@@ -85,7 +85,7 @@ public class HttpContextKeys : IHttpContextKeys
                 _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.FIPToken
+                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.IdpToken
                 });
             }
             
@@ -123,7 +123,7 @@ public class HttpContextKeys : IHttpContextKeys
         var form = new Dictionary<string, string>
         {
             ["grant_type"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.GrantType,
-            ["subject_token"] = Context.FIPToken,
+            ["subject_token"] = Context.IdpToken,
             ["subject_token_type"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.SubjectTokenType,
             ["audience"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.Audience
         };
@@ -142,8 +142,8 @@ public class HttpContextKeys : IHttpContextKeys
             
             if (!response.IsSuccessStatusCode)
             {
-               _logger.LogError($"[SshCaExchange Response] Error: {response.StatusCode}, Content: {content}");
-               throw new ExternalException($"Token exchange service returned {response.StatusCode}. Details: {content}") { ServiceName = "KeycloakTokenExchange" };
+               _logger.LogError($"[SshCaExchange Response] Error: {response.StatusCode}");
+               throw new ExternalException($"Token exchange service returned {response.StatusCode}.") { ServiceName = "KeycloakTokenExchange" };
             }
 
             _logger.LogDebug($"[SshCaExchange Response] Success: {response.StatusCode}");
@@ -160,7 +160,7 @@ public class HttpContextKeys : IHttpContextKeys
             }
             catch (System.Text.Json.JsonException ex)
             {
-                _logger.LogError(ex, $"[SshCaExchange] Failed to deserialize token response. Content: {content}");
+                _logger.LogError(ex, $"[SshCaExchange] Failed to deserialize token response.");
                 throw new ExternalException($"Token exchange service returned invalid JSON format: {ex.Message}") { ServiceName = "KeycloakTokenExchange" };
             }
         }

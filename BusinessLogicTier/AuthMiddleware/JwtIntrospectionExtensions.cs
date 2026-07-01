@@ -240,13 +240,11 @@ public class LoggingHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
     {
-        var requestContent = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
-        _log.LogDebug("[Introspection Request] {Method} {RequestUri} Content: {Content}", request.Method, request.RequestUri, requestContent);
+        _log.LogDebug("[Introspection Request] {Method} {RequestUri}", request.Method, request.RequestUri);
 
         var response = await base.SendAsync(request, cancellationToken);
 
-        var responseContent = response.Content != null ? await response.Content.ReadAsStringAsync(cancellationToken) : "[empty]";
-        _log.LogDebug("[Introspection Response] Status: {StatusCode} Content: {Content}", response.StatusCode, responseContent);
+        _log.LogDebug("[Introspection Response] Status: {StatusCode}", response.StatusCode);
 
         return response;
     }

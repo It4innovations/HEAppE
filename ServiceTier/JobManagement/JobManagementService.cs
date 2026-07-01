@@ -429,7 +429,7 @@ public class JobManagementService : IJobManagementService
                 if (!needSshRefresh)
                 {
                     // solution for FirecREST
-                    bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken);
+                    bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken);
                     if (hasToken())
                     {
                         var jobHelper = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
@@ -584,7 +584,7 @@ public class JobManagementService : IJobManagementService
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
     }
 #pragma warning restore IDE1006
 

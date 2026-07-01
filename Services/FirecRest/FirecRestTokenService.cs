@@ -42,19 +42,18 @@ public class FirecRestTokenService : IFirecRestTokenService
 
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                _logger.LogError($"[FirecRestTokenService Response] Failure ({tokenResponse.StatusCode}). Response: {responseContent}");
-                throw new FirecRestException($"Failed to obtain OAuth2 token for FirecRest API. Status: {tokenResponse.StatusCode}. Response: {responseContent}")
+                _logger.LogError($"[FirecRestTokenService Response] Failure ({tokenResponse.StatusCode}).");
+                throw new FirecRestException($"Failed to obtain OAuth2 token for FirecRest API. Status: {tokenResponse.StatusCode}.")
                 {
                     CommandError = "Token request failed"
                 };
             }
 
-            _logger.LogDebug($"[FirecRestTokenService Response] Success ({tokenResponse.StatusCode}). Content: {responseContent}");
-
             var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             if (tokenData.TryGetProperty("access_token", out var accessTokenElement) && accessTokenElement.GetString() is { } token)
             {
+                _logger.LogDebug($"[FirecRestTokenService Response] Success ({tokenResponse.StatusCode}). Token: {HEAppE.Utils.StringUtils.MaskToken(token)}");
                 return token;
             }
 

@@ -3815,7 +3815,7 @@ public class ManagementLogic : IManagementLogic
         if (firecrestClusterProject != null)
         {
             _logger.LogInformation($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
             if (!string.IsNullOrEmpty(token))
             {
                 try
@@ -3892,7 +3892,7 @@ public class ManagementLogic : IManagementLogic
             if (string.IsNullOrEmpty(username))
             {
                 _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
                 if (!string.IsNullOrEmpty(token))
                 {
                     try
@@ -3929,7 +3929,7 @@ public class ManagementLogic : IManagementLogic
             if (allowJwtResolution)
             {
                 _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) ? _httpContextKeys.Context.FIPToken : _httpContextKeys.Context.LEXISToken;
+                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
                 if (!string.IsNullOrEmpty(token))
                 {
                     try 
@@ -3992,7 +3992,7 @@ public class ManagementLogic : IManagementLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.FIPToken;
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
     }
 #pragma warning restore IDE1006
 

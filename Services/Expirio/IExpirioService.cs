@@ -26,7 +26,7 @@ public interface IExpirioService
     /// <returns>Kerberos ticket string</returns>
     Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default);
 
-    Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default);
+    Task<bool> ExchangeTokensAsync(string idpToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the enriched username from a Kerberos ticket exchange response.

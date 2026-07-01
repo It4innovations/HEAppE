@@ -67,14 +67,14 @@ public class ExpirioService : IExpirioService
 
             if (response.IsSuccessStatusCode)
             {
-                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {content}");
-                
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
 
-                return JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
+                var deserialized = JsonSerializer.Deserialize<KerberosCredentialResponse>(content, options);
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content length: {content.Length}. Content: {HEAppE.Utils.StringUtils.MaskToken(deserialized?.Content)}");
+                return deserialized;
             }
             else
             {
@@ -118,8 +118,9 @@ public class ExpirioService : IExpirioService
 
             if (response.IsSuccessStatusCode)
             {
-                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
-                return ParseTokenResponse(content, logger);
+                var exchangedToken = ParseTokenResponse(content, logger);
+                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {HEAppE.Utils.StringUtils.MaskToken(exchangedToken)}");
+                return exchangedToken;
             }
             else
             {
@@ -156,7 +157,7 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<bool> ExchangeTokensAsync(string fipToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
+    public async Task<bool> ExchangeTokensAsync(string idpToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
     {
         // Placeholder implementation
         await Task.Delay(1);
@@ -204,7 +205,7 @@ public class ExpirioService : IExpirioService
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (response.IsSuccessStatusCode)
         {
-            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {content}");
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}).");
 
             using var doc = JsonDocument.Parse(content);
 
@@ -236,6 +237,8 @@ public class ExpirioService : IExpirioService
 
             if (!String.IsNullOrEmpty(clientSecret))
                 result.Add("clientSecret", clientSecret);
+
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). ClientId: {clientId}, ClientSecret: {HEAppE.Utils.StringUtils.MaskToken(clientSecret)}");
 
             return result;
         }

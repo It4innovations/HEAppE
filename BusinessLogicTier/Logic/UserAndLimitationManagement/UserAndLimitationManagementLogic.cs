@@ -89,10 +89,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
-        bool hasFIPOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) 
+        bool hasIdpOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) 
                                   || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
 
-        if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        if (!hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
             _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);

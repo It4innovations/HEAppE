@@ -46,10 +46,10 @@ public class LexisTokenExchangeMiddleware
                     JwtTokenIntrospectionConfiguration.IsEnabled)
                 {
                     _logger.LogInformation(
-                        $"LexisTokenExchangeMiddleware: Introspection enabled but Lexis token exchange flow disabled. Using incoming token as FIP token.");
+                        $"LexisTokenExchangeMiddleware: Introspection enabled but Lexis token exchange flow disabled. Using incoming token as IdP token.");
                     context.Request.Headers["Authorization"] = $"Bearer {incomingToken}";
-                    contextKeysService.Context.FIPToken = incomingToken;
-                    _logger.LogDebug($"LexisTokenExchangeMiddleware: FIP Token set to incoming token: {incomingToken}");
+                    contextKeysService.Context.IdpToken = incomingToken;
+                    _logger.LogDebug($"LexisTokenExchangeMiddleware: IdP Token set to incoming token: {HEAppE.Utils.StringUtils.MaskToken(incomingToken)}");
                 }
                 else if (LexisAuthenticationConfiguration.UseBearerAuth &&
                          !JwtTokenIntrospectionConfiguration.IsEnabled)
@@ -60,7 +60,7 @@ public class LexisTokenExchangeMiddleware
             }
             else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
-                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for FIP token");
+                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token");
                 try
                 {
                     string exchanged;
@@ -79,12 +79,12 @@ public class LexisTokenExchangeMiddleware
                     else
                     {
                         _logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService");
-                        exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
+                        exchanged = await lexisTokenService.ExchangeLexisTokenForIdpAsync(incomingToken);
                     }
 
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
-                    contextKeysService.Context.FIPToken = exchanged;
-                    _logger.LogDebug($"LexisTokenExchangeMiddleware: Success. FIP Token: {exchanged}");
+                    contextKeysService.Context.IdpToken = exchanged;
+                    _logger.LogDebug($"LexisTokenExchangeMiddleware: Success. IdP Token: {HEAppE.Utils.StringUtils.MaskToken(exchanged)}");
                 }
                 catch (Exception ex)
                 {

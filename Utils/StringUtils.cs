@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -72,5 +72,16 @@ public static class StringUtils
     {
         enc = enc ?? Encoding.UTF8;
         return new MemoryStream(enc.GetBytes(str ?? ""));
+    }
+
+    public static string MaskToken(string token)
+    {
+        if (string.IsNullOrEmpty(token)) return "[null/empty]";
+        if (token.Length <= 12)
+        {
+            if (token.Length <= 4) return "...";
+            return $"{token.Substring(0, 2)}...{token.Substring(token.Length - 2)}";
+        }
+        return $"{token.Substring(0, 6)}...{token.Substring(token.Length - 6)}";
     }
 }
