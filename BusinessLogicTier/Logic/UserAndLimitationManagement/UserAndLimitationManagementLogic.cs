@@ -195,22 +195,28 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
     {
-        return credentials switch
+        switch (credentials)
         {
-            PasswordCredentials => AuthenticateUserWithPassword(credentials as PasswordCredentials),
-            DigitalSignatureCredentials => AuthenticateUserWithDigitalSignature(
-                credentials as DigitalSignatureCredentials),
-            OpenIdCredentials => CreateSessionCode(
-                await HandleOpenIdAuthenticationAsync(credentials as OpenIdCredentials)).UniqueCode,
-            LexisCredentials => CreateSessionCode(
-                await HandleTokenAsApiKeyAuthenticationAsync(credentials as LexisCredentials)).UniqueCode,
-            _ => throw new AuthenticationTypeException("NotSupportedAuthentication")
-        };
+            case PasswordCredentials passwordCredentials:
+                return AuthenticateUserWithPassword(passwordCredentials);
+            case DigitalSignatureCredentials digitalSignatureCredentials:
+                return AuthenticateUserWithDigitalSignature(digitalSignatureCredentials);
+            case OpenIdCredentials openIdCredentials:
+                var openIdUser = await HandleOpenIdAuthenticationAsync(openIdCredentials);
+                credentials.Username = openIdUser.Username;
+                return CreateSessionCode(openIdUser).UniqueCode;
+            case LexisCredentials lexisCredentials:
+                var lexisUser = await HandleTokenAsApiKeyAuthenticationAsync(lexisCredentials);
+                credentials.Username = lexisUser.Username;
+                return CreateSessionCode(lexisUser).UniqueCode;
+            default:
+                throw new AuthenticationTypeException("NotSupportedAuthentication");
+        }
     }
 
     public async Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials)
     {
-        _logger.LogInformation($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
+        _logger.LogInformation("OpenId: Authenticating user to the OpenStack using token.");
 
         var user = await HandleOpenIdAuthenticationAsync(credentials);
         return user;
@@ -446,7 +452,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             var offline_token = (await openIdClient.ExchangeTokenAsync(openIdCredentials.OpenIdAccessToken))
                 .AccessToken;
             var userInfo = await openIdClient.GetUserInfoAsync(offline_token);
-            return GetOrRegisterNewOpenIdUser(userInfo.Convert());
+            var userOpenId = userInfo.Convert();
+
+            _logger.LogInformation($"OpenId: User \"{userOpenId.UserName}\" wants to authenticate to the system.");
+            return GetOrRegisterNewOpenIdUser(userOpenId);
         }
         catch (AuthenticationTypeException)
         {
@@ -458,9 +467,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _logger.LogInformation($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            _logger.LogInformation("LEXIS AAI: Authenticating user using token.");
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
+            
+            string username = result.UserName;
+            if (string.IsNullOrEmpty(username))
+            {
+                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Email;
+            }
+            if (string.IsNullOrEmpty(username))
+            {
+                username = StringUtils.GenerateUsername(result.Id.ToString());
+            }
+
+            _logger.LogInformation($"LEXIS AAI: User \"{username}\" wants to authenticate to the system.");
             return await GetOrRegisterLexisCredentialsAsync(result);
         }
         catch (HttpRequestException )

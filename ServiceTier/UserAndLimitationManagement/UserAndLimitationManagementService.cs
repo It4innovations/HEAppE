@@ -101,6 +101,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
             if (!string.IsNullOrEmpty(result))
             { 
+                if (string.IsNullOrEmpty(credentials.Username))
+                {
+                    credentials.Username = credentialsIn.Username;
+                }
                 _logger.LogInformation($"User {credentials.Username} authenticated successfully.");
             }
         }
