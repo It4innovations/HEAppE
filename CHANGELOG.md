@@ -16,13 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduced explicit GPU cores and nodes allocation parameters in the `CreateJob` logic.
 - New management API endpoints and logic for handling generic cluster authentication credentials.
 - Migrated the entire application from `log4net` to `Microsoft.Extensions.Logging` (`ILogger`), providing better integration with modern .NET observability tools and improved log context.
+- Integrated OpenTelemetry with Jaeger tracing support (including automated instrumentation in `RestApi` and `DataStagingAPI`), disabled by default and configurable via `docker-compose.yml`.
+- Introduced Dictionary API endpoints (`/heappe/Dictionary/...`) to expose external enum mappings (proxy types, database backup types, cluster connection protocols, usage types, synchronizable files, and cipher types).
 - Improved username derivation from identity providers (Lexis) and added support for Adaptor User IDs in credential management.
 - Added file renaming capability to the `SftpFileSystemManager`.
 - Extended Swagger documentation with new reporting and integration endpoints.
 - Implemented instance-to-instance migration, allowing administrators to export and import the database backup and encrypted HashiCorp Vault secrets as a single package.
 - Added a passphrase security policy for the migration package with complexity validation checks (minimum 12 characters, uppercase, lowercase, digits, and special characters).
+- Introduced `ClusterRuntimeConfiguration` to support customized file paths (such as `InstanceIdentifierPath`, `SubExecutionsPath`, and `JobLogArchiveSubPath`) per cluster, allowing multiple independent HEAppE instances to run on the same environment.
 
 ### Changed
+- Aligned the entire Docker environment to run in UTC timezone by default, updating the `TZ` environment variable to `UTC` in `docker-compose.yml` across services.
+- Configured log output formats for rolling file and database appenders to consistently record timestamps in UTC.
+- Restructured date and time response payloads in the REST API to convert UTC timestamps to the cluster's local timezone.
+- Configured SFTP file transfer last write time checks to consistently use UTC.
 - Implemented endpoint-specific request size limits and optimized token handling for streaming endpoints to improve performance.
 - Refactored scheduler adapters to capture full SSH output for better diagnostics and error reporting.
 - Improved scheduler command execution by optimizing scheduler adapter commands with batched `xargs` operations, enhancing efficiency and reliability.
@@ -32,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Resolved parsing errors for scheduler timestamps when cluster TimeZone is unconfigured, implementing a robust fallback to system default and supporting ISO 8601 format.
+- Standardized timezone handling and normalization (mapping abbreviation zones like CET/CEST, EET/EEST, WEST/WET to standard IANA identifiers) in `DateTimeZoneExtension` to prevent crashes during daylight saving time transitions.
 - Corrected node allocation calculations for Slurm tasks to ensure accurate resource accounting.
 - Fixed various regex and multi-line parsing issues in PBS Pro response processing.
 - Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
