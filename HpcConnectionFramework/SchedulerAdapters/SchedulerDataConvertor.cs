@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -12,7 +12,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
@@ -27,10 +27,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
+    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger)
     {
         _conversionAdapterFactory = conversionAdapterFactory;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
 
     #endregion
@@ -50,7 +50,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     /// <summary>
     ///     Logger
     /// </summary>
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
 
     #endregion
 
@@ -67,6 +67,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+
         // Setting global parameters for all tasks
         var globalJobParameters = (string)jobAdapter.AllocationCmd;
         var tasks = new List<object>();
@@ -99,8 +100,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             taskSpecification.RequiredNodes.Select(s => s.NodeName).ToList(),
             taskSpecification.PlacementPolicy,
             taskSpecification.TaskParalizationSpecifications,
-            Convert.ToInt32(taskSpecification.MinCores),
-            Convert.ToInt32(taskSpecification.MaxCores),
+            taskSpecification.MinCores,
+            taskSpecification.MaxCores,
+            taskSpecification.GpuCores,
+            taskSpecification.GpuNodes,
             taskSpecification.ClusterNodeType.CoresPerNode,
             taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation);
 
@@ -113,7 +116,8 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         if (Convert.ToInt32(taskSpecification.WalltimeLimit) > 0)
             taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
 
-        var workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+        var clusterConfig = ClusterRuntimeConfiguration.For(taskSpecification.JobSpecification.Cluster.CustomConfiguration);
+        var workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
 
         var stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
         taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -131,7 +135,12 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
         taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
+        taskAdapter.Reservation = jobSpecification.Reservation;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
+
+        taskAdapter.Memory = taskSpecification.Memory;
+        taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU;
+        taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU;
 
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);
@@ -142,9 +151,11 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
 
         var templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
             template.TemplateParameters, taskSpecification.CommandParameterValues);
+
+        var executableFile = ResolveExecutableFile(template, jobSpecification);
         taskAdapter.SetPreparationAndCommand(workDirectory,
             ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
-            ReplaceTemplateDirectivesInCommand($"{template.ExecutableFile} {template.CommandParameters}",
+            ReplaceTemplateDirectivesInCommand($"{executableFile} {template.CommandParameters}",
                 templateParameters),
             stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
 
@@ -253,18 +264,24 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             else
             {
                 var templateParameterValueFromQuery = templateParameter.Query;
-                if (templateParameter.Query.StartsWith("Job."))
-                    templateParameterValueFromQuery =
-                        GetPropertyValueForQuery(jobSpecification, templateParameter.Query);
+                if (!string.IsNullOrEmpty(templateParameter.Query))
+                {
+                    if (templateParameter.Query.StartsWith("Job."))
+                        templateParameterValueFromQuery =
+                            GetPropertyValueForQuery(jobSpecification, templateParameter.Query);
 
-                if (templateParameter.Query == "Task.Workdir")
-                    templateParameterValueFromQuery =
-                        FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                    else if (templateParameter.Query == "Task.Workdir")
+                    {
+                        var clusterConfig = ClusterRuntimeConfiguration.For(taskSpecification.JobSpecification.Cluster.CustomConfiguration);
+                        templateParameterValueFromQuery =
+                            FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
+                    }
 
-                if (templateParameter.Query.StartsWith("Task."))
-                    templateParameterValueFromQuery =
-                        GetPropertyValueForQuery(taskSpecification, templateParameter.Query);
-                finalParameters.Add(templateParameter.Identifier, templateParameterValueFromQuery);
+                    else if (templateParameter.Query.StartsWith("Task."))
+                        templateParameterValueFromQuery =
+                            GetPropertyValueForQuery(taskSpecification, templateParameter.Query);
+                }
+                finalParameters.Add(templateParameter.Identifier, templateParameterValueFromQuery ?? string.Empty);
             }
         }
 
@@ -364,16 +381,30 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                 case "DateTime":
                 {
                     var parsedText = Convert.ToString(obj)?.Replace("  ", " ");
-
                     if (string.IsNullOrEmpty(parsedText)) return null;
 
-                    if (string.IsNullOrEmpty(format) && DateTime.TryParse(parsedText, out var date))
+                    DateTime date;
+                    try
                     {
-                        return date.Convert(cluster.TimeZone);
-                    }
+                        if (string.IsNullOrEmpty(format))
+                        {
+                            if (!DateTime.TryParse(parsedText, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out date) &&
+                                !DateTime.TryParse(parsedText, CultureInfo.CurrentCulture, DateTimeStyles.None, out date))
+                            {
+                                throw new FormatException($"Unable to parse DateTime: '{parsedText}'");
+                            }
+                        }
+                        else
+                        {
+                            date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
+                        }
 
-                    date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
-                    return date.Convert(cluster.TimeZone);
+                        return DateTime.SpecifyKind(date, DateTimeKind.Utc);
+                    }
+                    catch (Exception ex) when (ex is not SchedulerException)
+                    {
+                        throw new SchedulerException("ConvertingError", ex, type, obj, format);
+                    }
                 }
                 default:
                 {
@@ -385,6 +416,22 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         {
             throw new SchedulerException("ConvertingError", type, obj, format);
         }
+    }
+
+    protected string ResolveExecutableFile(CommandTemplate template, JobSpecification jobSpecification)
+    {
+        var executableFile = template.ExecutableFile;
+        if (executableFile != null && executableFile.Contains("/.key_scripts/"))
+        {
+            var parts = executableFile.Split(new[] { "/.key_scripts/" }, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                var scriptName = parts[1];
+                var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+                executableFile = clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, scriptName, jobSpecification.ClusterUser?.Username);
+            }
+        }
+        return executableFile;
     }
 
     #endregion

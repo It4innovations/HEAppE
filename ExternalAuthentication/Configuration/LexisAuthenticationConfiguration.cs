@@ -11,4 +11,5 @@ public class LexisAuthenticationConfiguration
     public static RoleMapping RoleMapping { get; set; } = new();
     public static string HEAppEGroupNamePrefix { get; set; }
     public static string HEAppEUserPrefix { get; set; }
+    public static double ConnectionTimeoutInSeconds { get; set; } = 10;
 }

@@ -15,11 +15,14 @@ internal class WorkingDirectory : ICommand<string>
 
     public string ProcessResult(SftpCommandResult result)
     {
-        var text = Regex.Replace(result.Output, @"\s{2,}", " ");
-        var lines = Regex.Split(text, "\r\n|\r|\n").ToList();
+        var lines = Regex.Split(result.Output, "\r\n|\r|\n")
+            .Select(l => Regex.Replace(l, @"\s{2,}", " ").Trim())
+            .ToList();
 
-        var path = lines[1].Replace("Remote working directory: ", "");
-        return path;
+        var pathLine = lines.FirstOrDefault(l => l.Contains("Remote working directory:"));
+        if (pathLine == null) return string.Empty;
+
+        return pathLine.Replace("Remote working directory: ", "").Trim();
     }
 
     #endregion

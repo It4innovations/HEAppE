@@ -1,4 +1,6 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
+
+using System.Collections.Generic;
 
 /// <summary>
 ///     HPC connection framework configuration
@@ -46,7 +48,19 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <returns></returns>
     public static string GetExecuteCmdScriptPath(string projectAccountingString)
     {
-        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+        return GetExecuteCmdScriptPath(projectAccountingString, null);
+    }
+
+    /// <summary>
+    /// Return full path to execute command script
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <param name="customConfiguration"></param>
+    /// <returns></returns>
+    public static string GetExecuteCmdScriptPath(string projectAccountingString, Dictionary<string, string>? customConfiguration)
+    {
+        var config = ClusterRuntimeConfiguration.For(customConfiguration);
+        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{config.CommandScriptsPathSettings.ExecuteCmdScriptName}";
     }
 
     /// <summary>
@@ -57,6 +71,19 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <returns></returns>
     public static string GetPathToScript(string projectAccountingString, string scriptName)
     {
-        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{scriptName}";
+        return GetPathToScript(projectAccountingString, scriptName, null);
+    }
+
+    /// <summary>
+    /// Return full path to script for project
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <param name="scriptName"></param>
+    /// <param name="customConfiguration"></param>
+    /// <returns></returns>
+    public static string GetPathToScript(string projectAccountingString, string scriptName, Dictionary<string, string>? customConfiguration)
+    {
+        var config = ClusterRuntimeConfiguration.For(customConfiguration);
+        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{scriptName}";
     }
 }

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.0
+
+### Added
+- Implemented support for the FirecREST scheduler adapter and added support for `Http` and `Https` connection protocols.
+- Implemented support for Kerberos authentication (GSSAPI) for SSH and SFTP connections, including integration with Expirio for credential management.
+- Added a custom JSON configuration dictionary (`CustomConfiguration`) to the `Cluster` domain object, allowing flexible, scheduler-specific settings (such as FirecREST configuration).
+- Added support for specifying memory requirements per task in job specifications for Slurm and PBS Pro schedulers.
+- Introduced explicit GPU cores and nodes allocation parameters in the `CreateJob` logic.
+- New management API endpoints and logic for handling generic cluster authentication credentials.
+- Migrated the entire application from `log4net` to `Microsoft.Extensions.Logging` (`ILogger`), providing better integration with modern .NET observability tools and improved log context.
+- Integrated OpenTelemetry with Jaeger tracing support (including automated instrumentation in `RestApi` and `DataStagingAPI`), disabled by default and configurable via `docker-compose.yml`.
+- Introduced Dictionary API endpoints (`/heappe/Dictionary/...`) to expose external enum mappings (proxy types, database backup types, cluster connection protocols, usage types, synchronizable files, and cipher types).
+- Improved username derivation from identity providers.
+- Implemented instance-to-instance migration, allowing administrators to export and import the database backup and encrypted HashiCorp Vault secrets as a single package.
+
+### Changed
+- Aligned the entire Docker environment to run in UTC timezone by default, updating the `TZ` environment variable to `UTC` in `docker-compose.yml` across services.
+- Configured log output formats for rolling file and database appenders to consistently record timestamps in UTC.
+- Restructured date and time response payloads in the REST API to convert UTC timestamps to the cluster's local timezone.
+- Configured SFTP file transfer last write time checks to consistently use UTC.
+- Implemented endpoint-specific request size limits and optimized token handling for streaming endpoints to improve performance.
+- Refactored scheduler adapters to capture full SSH output for better diagnostics and error reporting.
+- Improved scheduler command execution by optimizing scheduler adapter commands with batched `xargs` operations, enhancing efficiency and reliability (#9).
+- Improved database backup retention logic to handle 14-digit timestamps and automatically clean up obsolete directories.
+
+### Fixed
+- Resolved parsing errors for scheduler timestamps when cluster TimeZone is unconfigured, implementing a robust fallback to system default and supporting ISO 8601 format (#10).
+- Standardized timezone handling and normalization (mapping abbreviation zones like CET/CEST, EET/EEST, WEST/WET to standard IANA identifiers) in `DateTimeZoneExtension` to prevent crashes during daylight saving time transitions.
+- Fixed various regex and multi-line parsing issues in PBS Pro response processing.
+- Added retry mechanisms to job submission flows to handle eventual consistency in high-load cluster environments.
+- Fixed Entity Framework duplicate key violation (`DbUpdateException`) during job updates by eagerly loading `ResourceConsumed` entities in `SubmittedJobInfoRepository`.
+- Fixed an `InvalidOperationException` where `JobSpecification.ClusterUser` was accessed on untracked entities during tunnel closure for finished tasks, which led to SSH port leaks and eventual `502 Tunnel Exception` (port exhaustion). Eagerly load `ClusterUser` in `GetFinishedByIds` and `GetAllFinished` queries of `SubmittedTaskInfoRepository`.
+- Secured database name quoting using `SqlCommandBuilder.QuoteIdentifier` when enabling Read Committed Snapshot Isolation (RCSI) on startup in `MiddlewareContext`, resolving semgrep security scanner alerts.
+- Removed unused synchronous `Disconnect` and `SynchronizeFiles` method wrappers across SSH and synchronizer layers to clean up the codebase and eliminate obsolete blocking `.GetAwaiter().GetResult()` occurrences.
+
 ## V6.3.3
 
 ### Performance

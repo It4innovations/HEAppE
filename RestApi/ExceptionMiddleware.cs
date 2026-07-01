@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,6 +8,7 @@ using HEAppE.Exceptions.AbstractTypes;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Exceptions.Resources;
+using HEAppE.Services.Expirio.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -115,22 +116,40 @@ public class ExceptionMiddleware
         var logLevel = LogLevel.Error;
         switch (exception)
         {
-            case InsufficientRoleException:
-            case UnauthorizedAccessException:
-                problem.Title = "Unauthorized Access";
+            case InputValidationException:
+                problem.Title = "Validation Problem";
                 problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status401Unauthorized;
+                problem.Status = StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
-            case InputValidationException:
             case RequestedObjectDoesNotExistException:
-                problem.Title = "Validation Problem";
+                problem.Title = "Resource Not Found";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status404NotFound;
                 logLevel = LogLevel.Warning;
                 break;
-            case SessionCodeNotValidException:
+            case DatabaseRestoreExternalException:
+                problem.Title = "Backup File Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case InsufficientRoleException:
+            case UnauthorizedAccessException:
             case AdaptorUserNotAuthorizedForJobException:
+            case AdaptorUserNotReferencedForProjectException:
+                problem.Title = "Access Forbidden";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
+            case NotAllowedException:
+                problem.Title = "Not Allowed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                logLevel = LogLevel.Warning;
+                break;
+            case SessionCodeNotValidException:
                 problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
@@ -140,6 +159,36 @@ public class ExceptionMiddleware
                 problem.Title = "UserOrg Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case InvalidAuthenticationCredentialsException:
+                problem.Title = "Authentication Failed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case JwtDecodeException:
+                problem.Title = "Token Parsing Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case RequestedJobResourcesExceededUserLimitationsException:
+                problem.Title = "Resource Limit Exceeded";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case ResourceUsageException resourceUsageEx:
+                problem.Title = resourceUsageEx.Message == "ReporterNoAccessToJob" ? "Access Forbidden" : "Resource Usage Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = resourceUsageEx.Message == "ReporterNoAccessToJob" ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case FileTransferTemporaryKeyException tempKeyEx:
+                problem.Title = tempKeyEx.Message == "SshKeyGenerationLimit" ? "Too Many Requests" : "File Transfer Key Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = tempKeyEx.Message == "SshKeyGenerationLimit" ? StatusCodes.Status429TooManyRequests : StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
             case SlurmException slurmException:
@@ -156,6 +205,62 @@ public class ExceptionMiddleware
                     : RedactErrorMessage(pbsException.CommandError);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case FirecRestException firecRestException:
+                problem.Title = "FirecRest Problem";
+                problem.Detail = string.IsNullOrEmpty(firecRestException.CommandError)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(firecRestException.CommandError);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case FirecrestApiException firecrestApiException:
+                problem.Title = "FirecRest API Problem";
+                problem.Detail = string.IsNullOrEmpty(firecrestApiException.ResponseContent)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(firecrestApiException.ResponseContent);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case ExpirioBadRequestException:
+                problem.Title = "Expirio Bad Request";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case ExpirioUnauthorizedException:
+                problem.Title = "Expirio Unauthorized";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
+            case ExpirioNotFoundException:
+                problem.Title = "Expirio Resource Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case ConnectionPoolExhaustedException:
+                problem.Title = "Connection Pool Exhausted";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status429TooManyRequests;
+                logLevel = LogLevel.Warning;
+                break;
+            case AdaptorUserGroupException:
+                problem.Title = "User Group Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
+            case ClusterAuthenticationException:
+                problem.Title = "Cluster Authentication Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
+            case SchedulerException:
+                problem.Title = "Scheduler Configuration Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
             case InvalidRequestException:
             case UnableToCreateConnectionException:
                 problem.Title = "Invalid Request";
@@ -167,19 +272,37 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case SshCommandException:
+                problem.Title = "SSH Command Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case SFTPCommandException:
+                problem.Title = "SFTP Command Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case SftpClientException:
+            case SftpClientArgumentException:
+            case SshClientArgumentException:
+                problem.Title = "SSH/SFTP Client Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case UnableToCreateTunnelException:
                 problem.Title = "Tunnel Exception";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case SshCAServiceTypeException:
+                problem.Title = "SSH CA Service Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                logLevel = LogLevel.Warning;
+                break;
             case InternalException:
                 problem.Title = "Problem";
-                problem.Detail = _exceptionsLocalizer["InternalException"];
-                break;
-            case NotAllowedException:
-                problem.Title = "Not Allowed";
                 problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status403Forbidden;
                 break;
             case ExternalException:
                 problem.Title = "External Service Error";
@@ -196,14 +319,31 @@ public class ExceptionMiddleware
                     _ => StatusCodes.Status400BadRequest
                 };
                 break;
+            case ArgumentException argumentException:
+                problem.Title = "Invalid Argument";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                break;
             default:
                 problem.Title = "Problem";
-                problem.Detail = _exceptionsLocalizer["InternalException"];
+                problem.Detail = GetExceptionMessage(exception);
                 break;
         }
 
-        // Log exception with default 'en' culture localization
+        log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
         _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
+        log4net.LogicalThreadContext.Properties.Remove("requestId");
+
+        if (!string.IsNullOrEmpty(problem.Detail))
+        {
+            problem.Detail += $" (Request ID: {context.TraceIdentifier})";
+        }
+        else
+        {
+            problem.Detail = $"Request ID: {context.TraceIdentifier}";
+        }
+
+        problem.Extensions["TraceId"] = context.TraceIdentifier;
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = problem.Status.Value;
@@ -256,12 +396,13 @@ public class ExceptionMiddleware
         var localizedException = exception switch
         {
             BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(
-                exceptionName, baseException.Args),
-            BaseException => _exceptionsLocalizer.GetString(exceptionName),
+                exceptionName, baseException.Args).Value,
+            BaseException => _exceptionsLocalizer.GetString(exceptionName).Value,
             _ => exception.Message
         };
 
         var message = localizedException == exceptionName ? exception.Message : localizedException;
+        
         builder.Append(message);
 
         if (exception.InnerException is not null)

@@ -1,10 +1,32 @@
-﻿using System;
+using System;
 using NodaTime;
 
 namespace HEAppE.Utils;
 
 public static class DateTimeZoneExtension
 {
+    private static string NormalizeZone(string zone)
+    {
+        if (string.IsNullOrEmpty(zone)) return zone;
+        var z = zone.Trim();
+        if (string.Equals(z, "CEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "CET", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Europe/Prague";
+        }
+        if (string.Equals(z, "EEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "EET", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Europe/Helsinki";
+        }
+        if (string.Equals(z, "WEST", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(z, "WET", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Europe/London";
+        }
+        return z;
+    }
+
     /// <summary>
     ///     Convert date with specific zone to UTC
     ///     Available zones https://nodatime.org/TimeZones
@@ -14,11 +36,57 @@ public static class DateTimeZoneExtension
     /// <returns></returns>
     public static DateTime Convert(this DateTime dateInZone, string zone)
     {
-        var timeZone = DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone);
-        if (timeZone == null) throw new ArgumentException("Argument 'zone' could not find in zones");
+        zone = NormalizeZone(zone);
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
 
-        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneStrictly(timeZone).ToDateTimeUtc();
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
+
+        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneLeniently(timeZone).ToDateTimeUtc();
         return utcTime;
+    }
+
+    /// <summary>
+    ///     Convert UTC date to local date in specific timezone
+    /// </summary>
+    public static DateTime? ConvertUtcToLocal(this DateTime? utcTime, string zone)
+    {
+        if (!utcTime.HasValue) return null;
+        zone = NormalizeZone(zone);
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
+
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
+
+        var instant = Instant.FromDateTimeUtc(DateTime.SpecifyKind(utcTime.Value, DateTimeKind.Utc));
+        return instant.InZone(timeZone).ToDateTimeUnspecified();
+    }
+
+    /// <summary>
+    ///     Convert UTC date to local date in specific timezone
+    /// </summary>
+    public static DateTime ConvertUtcToLocal(this DateTime utcTime, string zone)
+    {
+        zone = NormalizeZone(zone);
+        var timeZone = string.IsNullOrEmpty(zone)
+            ? DateTimeZoneProviders.Bcl.GetSystemDefault()
+            : (DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZoneProviders.Bcl.GetZoneOrNull(zone));
+
+        if (timeZone == null)
+        {
+            timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
+        }
+
+        var instant = Instant.FromDateTimeUtc(DateTime.SpecifyKind(utcTime, DateTimeKind.Utc));
+        return instant.InZone(timeZone).ToDateTimeUnspecified();
     }
 
     /// <summary>
@@ -29,7 +97,7 @@ public static class DateTimeZoneExtension
     public static DateTime Convert(this DateTime dateInZone)
     {
         var timeZone = DateTimeZoneProviders.Bcl.GetSystemDefault();
-        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneStrictly(timeZone).ToDateTimeUtc();
+        var utcTime = LocalDateTime.FromDateTime(dateInZone).InZoneLeniently(timeZone).ToDateTimeUtc();
         return utcTime;
     }
 

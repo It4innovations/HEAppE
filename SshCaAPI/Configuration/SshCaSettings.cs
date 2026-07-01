@@ -1,11 +1,11 @@
-﻿namespace SshCaAPI.Configuration
+namespace SshCaAPI.Configuration
 {
     public class SshCaSettings
     {
         /// <summary>
         ///     Client base URI
         /// </summary>
-        public static string BaseUri { get; set; } = "localhost";
+        public static string BaseUri { get; set; } = "http://localhost";
         
         /// <summary>
         ///    Use certificate authority for authentication

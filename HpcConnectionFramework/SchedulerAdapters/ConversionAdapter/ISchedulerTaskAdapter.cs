@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
@@ -45,9 +45,17 @@ public interface ISchedulerTaskAdapter
 
     string ExtendedAllocationCommand { set; }
 
+    string Reservation { set; }
+
+    public long? Memory { set; }
+
+    public long? MemoryPerCPU { set; }
+
+    public long? MemoryPerGPU { set; }
+
     void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation);
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation);
 
     void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
 

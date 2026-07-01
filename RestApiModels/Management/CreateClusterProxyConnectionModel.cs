@@ -1,7 +1,8 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.Management;

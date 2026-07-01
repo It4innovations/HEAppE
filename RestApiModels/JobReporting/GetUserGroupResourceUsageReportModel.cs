@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.RestApiModels.AbstractModels;
+
+using System.ComponentModel.DataAnnotations;
 
 namespace HEAppE.RestApiModels.JobReporting;
 
@@ -17,7 +19,8 @@ public class UserGroupResourceUsageReportModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "GroupId")]
     [Description("Group id")]
-    public long GroupId { get; set; }
+    [Required]
+    public long? GroupId { get; set; }
 
     /// <summary>
     /// Start time

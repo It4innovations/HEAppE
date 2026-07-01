@@ -7,6 +7,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Authorization;
@@ -44,9 +45,9 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// <param name="httpContextKeys"></param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
+        IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
     #endregion

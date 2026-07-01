@@ -1,0 +1,714 @@
+GSS-API DEFINITIONS ::=
+
+BEGIN
+
+MechType ::= OBJECT IDENTIFIER
+-- representing Kerberos V5 mechanism
+
+GSSAPI-Token ::= [APPLICATION 0] IMPLICIT SEQUENCE {
+	 thisMech MechType,
+	 innerToken ANY DEFINED BY thisMech
+		-- contents mechanism-specific
+		-- ASN.1 structure not required
+}
+
+END
+
+SPNEGOASNOneSpec {
+  iso(1) identified-organization(3) dod(6) internet(1)
+  security(5) mechanism(5) snego (2) modules(4) spec2(2)
+} DEFINITIONS EXPLICIT TAGS ::= BEGIN
+
+MechType ::= OBJECT IDENTIFIER
+   -- OID represents each security mechanism as suggested by
+   -- [RFC2743]
+
+MechTypeList ::= SEQUENCE OF MechType
+
+NegotiationToken ::= CHOICE {
+   negTokenInit    [0] NegTokenInit,
+   negTokenResp    [1] NegTokenResp
+}
+
+NegTokenInit ::= SEQUENCE {
+   mechTypes       [0] MechTypeList,
+   reqFlags        [1] ContextFlags  OPTIONAL,
+	 -- inherited from RFC 2478 for backward compatibility,
+	 -- RECOMMENDED to be left out
+   mechToken       [2] OCTET STRING  OPTIONAL,
+   mechListMIC     [3] OCTET STRING  OPTIONAL,
+   ...
+}
+NegTokenResp ::= SEQUENCE {
+   negState       [0] ENUMERATED {
+	   accept-completed    (0),
+	   accept-incomplete   (1),
+	   reject              (2),
+	   request-mic         (3)
+   }                                 OPTIONAL,
+	 -- REQUIRED in the first reply from the target
+   supportedMech   [1] MechType      OPTIONAL,
+	 -- present only in the first reply from the target
+   responseToken   [2] OCTET STRING  OPTIONAL,
+   mechListMIC     [3] OCTET STRING  OPTIONAL,
+   ...
+}
+
+ContextFlags ::= BIT STRING {
+   delegFlag       (0),
+   mutualFlag      (1),
+   replayFlag      (2),
+   sequenceFlag    (3),
+   anonFlag        (4),
+   confFlag        (5),
+   integFlag       (6)
+} (SIZE (32))
+
+END
+
+KerberosV5Spec2 {
+        iso(1) identified-organization(3) dod(6) internet(1)
+        security(5) kerberosV5(2) modules(4) krb5spec2(2)
+} DEFINITIONS EXPLICIT TAGS ::= BEGIN
+
+-- OID arc for KerberosV5
+--
+-- This OID may be used to identify Kerberos protocol messages
+-- encapsulated in other protocols.
+--
+-- This OID also designates the OID arc for KerberosV5-related OIDs.
+--
+-- NOTE: RFC 1510 had an incorrect value (5) for "dod" in its OID.
+id-krb5         OBJECT IDENTIFIER ::= {
+        iso(1) identified-organization(3) dod(6) internet(1)
+        security(5) kerberosV5(2)
+}
+
+Int32           ::= INTEGER (-2147483648..2147483647)
+                    -- signed values representable in 32 bits
+
+UInt32          ::= INTEGER (0..4294967295)
+                    -- unsigned 32 bit values
+
+Microseconds    ::= INTEGER (0..999999)
+                    -- microseconds
+
+KerberosString  ::= GeneralString (IA5String)
+
+Realm           ::= KerberosString
+
+PrincipalName   ::= SEQUENCE {
+        name-type       [0] Int32,
+        name-string     [1] SEQUENCE OF KerberosString
+}
+
+KerberosTime    ::= GeneralizedTime -- with no fractional seconds
+
+HostAddress     ::= SEQUENCE  {
+        addr-type       [0] Int32,
+        address         [1] OCTET STRING
+}
+
+-- NOTE: HostAddresses is always used as an OPTIONAL field and
+-- should not be empty.
+HostAddresses   -- NOTE: subtly different from rfc1510,
+                -- but has a value mapping and encodes the same
+        ::= SEQUENCE OF HostAddress
+
+-- NOTE: AuthorizationData is always used as an OPTIONAL field and
+-- should not be empty.
+AuthorizationData       ::= SEQUENCE OF SEQUENCE {
+        ad-type         [0] Int32,
+        ad-data         [1] OCTET STRING
+}
+
+PA-DATA         ::= SEQUENCE {
+        -- NOTE: first tag is [1], not [0]
+        padata-type     [1] Int32,
+        padata-value    [2] OCTET STRING -- might be encoded AP-REQ
+}
+
+KerberosFlags   ::= BIT STRING (SIZE (32..MAX))
+                    -- minimum number of bits shall be sent,
+                    -- but no fewer than 32
+
+EncryptedData   ::= SEQUENCE {
+        etype   [0] Int32 -- EncryptionType --,
+        kvno    [1] UInt32 OPTIONAL,
+        cipher  [2] OCTET STRING -- ciphertext
+}
+
+EncryptionKey   ::= SEQUENCE {
+        keytype         [0] Int32 -- actually encryption type --,
+        keyvalue        [1] OCTET STRING
+}
+
+Checksum        ::= SEQUENCE {
+        cksumtype       [0] Int32,
+        checksum        [1] OCTET STRING
+}
+
+Ticket          ::= [APPLICATION 1] SEQUENCE {
+        tkt-vno         [0] INTEGER (5),
+        realm           [1] Realm,
+        sname           [2] PrincipalName,
+        enc-part        [3] EncryptedData -- EncTicketPart
+}
+
+-- Encrypted part of ticket
+EncTicketPart   ::= [APPLICATION 3] SEQUENCE {
+        flags                   [0] TicketFlags,
+        key                     [1] EncryptionKey,
+        crealm                  [2] Realm,
+        cname                   [3] PrincipalName,
+        transited               [4] TransitedEncoding,
+        authtime                [5] KerberosTime,
+        starttime               [6] KerberosTime OPTIONAL,
+        endtime                 [7] KerberosTime,
+        renew-till              [8] KerberosTime OPTIONAL,
+        caddr                   [9] HostAddresses OPTIONAL,
+        authorization-data      [10] AuthorizationData OPTIONAL
+}
+
+-- encoded Transited field
+TransitedEncoding       ::= SEQUENCE {
+        tr-type         [0] Int32 -- must be registered --,
+        contents        [1] OCTET STRING
+}
+
+TicketFlags     ::= KerberosFlags
+        -- reserved(0),
+        -- forwardable(1),
+        -- forwarded(2),
+        -- proxiable(3),
+        -- proxy(4),
+        -- may-postdate(5),
+        -- postdated(6),
+        -- invalid(7),
+        -- renewable(8),
+        -- initial(9),
+        -- pre-authent(10),
+        -- hw-authent(11),
+-- the following are new since 1510
+        -- transited-policy-checked(12),
+        -- ok-as-delegate(13)
+
+AS-REQ          ::= [APPLICATION 10] KDC-REQ
+
+TGS-REQ         ::= [APPLICATION 12] KDC-REQ
+
+KDC-REQ         ::= SEQUENCE {
+        -- NOTE: first tag is [1], not [0]
+        pvno            [1] INTEGER (5) ,
+        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
+        padata          [3] SEQUENCE OF PA-DATA OPTIONAL
+                            -- NOTE: not empty --,
+        req-body        [4] KDC-REQ-BODY
+}
+
+KDC-REQ-BODY    ::= SEQUENCE {
+        kdc-options             [0] KDCOptions,
+        cname                   [1] PrincipalName OPTIONAL
+                                    -- Used only in AS-REQ --,
+        realm                   [2] Realm
+                                    -- Server's realm
+                                    -- Also client's in AS-REQ --,
+        sname                   [3] PrincipalName OPTIONAL,
+        from                    [4] KerberosTime OPTIONAL,
+        till                    [5] KerberosTime,
+        rtime                   [6] KerberosTime OPTIONAL,
+        nonce                   [7] UInt32,
+        etype                   [8] SEQUENCE OF Int32 -- EncryptionType
+                                    -- in preference order --,
+        addresses               [9] HostAddresses OPTIONAL,
+        enc-authorization-data  [10] EncryptedData OPTIONAL
+                                    -- AuthorizationData --,
+        additional-tickets      [11] SEQUENCE OF Ticket OPTIONAL
+                                        -- NOTE: not empty
+}
+
+KDCOptions      ::= KerberosFlags
+        -- reserved(0),
+        -- forwardable(1),
+        -- forwarded(2),
+        -- proxiable(3),
+        -- proxy(4),
+        -- allow-postdate(5),
+        -- postdated(6),
+        -- unused7(7),
+        -- renewable(8),
+        -- unused9(9),
+        -- unused10(10),
+        -- opt-hardware-auth(11),
+        -- unused12(12),
+        -- unused13(13),
+-- 15 is reserved for canonicalize
+        -- unused15(15),
+-- 26 was unused in 1510
+        -- disable-transited-check(26),
+--
+        -- renewable-ok(27),
+        -- enc-tkt-in-skey(28),
+        -- renew(30),
+        -- validate(31)
+
+AS-REP          ::= [APPLICATION 11] KDC-REP
+
+TGS-REP         ::= [APPLICATION 13] KDC-REP
+
+KDC-REP         ::= SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (11 -- AS -- | 13 -- TGS --),
+        padata          [2] SEQUENCE OF PA-DATA OPTIONAL
+                                -- NOTE: not empty --,
+        crealm          [3] Realm,
+        cname           [4] PrincipalName,
+        ticket          [5] Ticket,
+        enc-part        [6] EncryptedData
+                                -- EncASRepPart or EncTGSRepPart,
+                                -- as appropriate
+}
+
+EncASRepPart    ::= [APPLICATION 25] EncKDCRepPart
+
+EncTGSRepPart   ::= [APPLICATION 26] EncKDCRepPart
+
+EncKDCRepPart   ::= SEQUENCE {
+        key             [0] EncryptionKey,
+        last-req        [1] LastReq,
+        nonce           [2] UInt32,
+        key-expiration  [3] KerberosTime OPTIONAL,
+        flags           [4] TicketFlags,
+        authtime        [5] KerberosTime,
+        starttime       [6] KerberosTime OPTIONAL,
+        endtime         [7] KerberosTime,
+        renew-till      [8] KerberosTime OPTIONAL,
+        srealm          [9] Realm,
+        sname           [10] PrincipalName,
+        caddr           [11] HostAddresses OPTIONAL
+}
+
+LastReq         ::=     SEQUENCE OF SEQUENCE {
+        lr-type         [0] Int32,
+        lr-value        [1] KerberosTime
+}
+
+AP-REQ          ::= [APPLICATION 14] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (14),
+        ap-options      [2] APOptions,
+        ticket          [3] Ticket,
+        authenticator   [4] EncryptedData -- Authenticator
+}
+
+APOptions       ::= KerberosFlags
+        -- reserved(0),
+        -- use-session-key(1),
+        -- mutual-required(2)
+
+-- Unencrypted authenticator
+Authenticator   ::= [APPLICATION 2] SEQUENCE  {
+        authenticator-vno       [0] INTEGER (5),
+        crealm                  [1] Realm,
+        cname                   [2] PrincipalName,
+        cksum                   [3] Checksum OPTIONAL,
+        cusec                   [4] Microseconds,
+        ctime                   [5] KerberosTime,
+        subkey                  [6] EncryptionKey OPTIONAL,
+        seq-number              [7] UInt32 OPTIONAL,
+        authorization-data      [8] AuthorizationData OPTIONAL
+}
+
+AP-REP          ::= [APPLICATION 15] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (15),
+        enc-part        [2] EncryptedData -- EncAPRepPart
+}
+
+EncAPRepPart    ::= [APPLICATION 27] SEQUENCE {
+        ctime           [0] KerberosTime,
+        cusec           [1] Microseconds,
+        subkey          [2] EncryptionKey OPTIONAL,
+        seq-number      [3] UInt32 OPTIONAL
+}
+
+KRB-SAFE        ::= [APPLICATION 20] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (20),
+        safe-body       [2] KRB-SAFE-BODY,
+        cksum           [3] Checksum
+}
+
+KRB-SAFE-BODY   ::= SEQUENCE {
+        user-data       [0] OCTET STRING,
+        timestamp       [1] KerberosTime OPTIONAL,
+        usec            [2] Microseconds OPTIONAL,
+        seq-number      [3] UInt32 OPTIONAL,
+        s-address       [4] HostAddress,
+        r-address       [5] HostAddress OPTIONAL
+}
+
+KRB-PRIV        ::= [APPLICATION 21] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (21),
+                        -- NOTE: there is no [2] tag
+        enc-part        [3] EncryptedData -- EncKrbPrivPart
+}
+
+EncKrbPrivPart  ::= [APPLICATION 28] SEQUENCE {
+        user-data       [0] OCTET STRING,
+        timestamp       [1] KerberosTime OPTIONAL,
+        usec            [2] Microseconds OPTIONAL,
+        seq-number      [3] UInt32 OPTIONAL,
+        s-address       [4] HostAddress -- sender's addr --,
+        r-address       [5] HostAddress OPTIONAL -- recip's addr
+}
+
+KRB-CRED        ::= [APPLICATION 22] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (22),
+        tickets         [2] SEQUENCE OF Ticket,
+        enc-part        [3] EncryptedData -- EncKrbCredPart
+}
+
+EncKrbCredPart  ::= [APPLICATION 29] SEQUENCE {
+        ticket-info     [0] SEQUENCE OF KrbCredInfo,
+        nonce           [1] UInt32 OPTIONAL,
+        timestamp       [2] KerberosTime OPTIONAL,
+        usec            [3] Microseconds OPTIONAL,
+        s-address       [4] HostAddress OPTIONAL,
+        r-address       [5] HostAddress OPTIONAL
+}
+
+KrbCredInfo     ::= SEQUENCE {
+        key             [0] EncryptionKey,
+        prealm          [1] Realm OPTIONAL,
+        pname           [2] PrincipalName OPTIONAL,
+        flags           [3] TicketFlags OPTIONAL,
+        authtime        [4] KerberosTime OPTIONAL,
+        starttime       [5] KerberosTime OPTIONAL,
+        endtime         [6] KerberosTime OPTIONAL,
+        renew-till      [7] KerberosTime OPTIONAL,
+        srealm          [8] Realm OPTIONAL,
+        sname           [9] PrincipalName OPTIONAL,
+        caddr           [10] HostAddresses OPTIONAL
+}
+
+KRB-ERROR       ::= [APPLICATION 30] SEQUENCE {
+        pvno            [0] INTEGER (5),
+        msg-type        [1] INTEGER (30),
+        ctime           [2] KerberosTime OPTIONAL,
+        cusec           [3] Microseconds OPTIONAL,
+        stime           [4] KerberosTime,
+        susec           [5] Microseconds,
+        error-code      [6] Int32,
+        crealm          [7] Realm OPTIONAL,
+        cname           [8] PrincipalName OPTIONAL,
+        realm           [9] Realm -- service realm --,
+        sname           [10] PrincipalName -- service name --,
+        e-text          [11] KerberosString OPTIONAL,
+        e-data          [12] OCTET STRING OPTIONAL
+}
+
+METHOD-DATA     ::= SEQUENCE OF PA-DATA
+
+TYPED-DATA      ::= SEQUENCE SIZE (1..MAX) OF SEQUENCE {
+        data-type       [0] Int32,
+        data-value      [1] OCTET STRING OPTIONAL
+}
+
+-- preauth stuff follows
+
+PA-ENC-TIMESTAMP        ::= EncryptedData -- PA-ENC-TS-ENC
+
+PA-ENC-TS-ENC           ::= SEQUENCE {
+        patimestamp     [0] KerberosTime -- client's time --,
+        pausec          [1] Microseconds OPTIONAL
+}
+
+ETYPE-INFO-ENTRY        ::= SEQUENCE {
+        etype           [0] Int32,
+        salt            [1] OCTET STRING OPTIONAL
+}
+
+ETYPE-INFO              ::= SEQUENCE OF ETYPE-INFO-ENTRY
+
+ETYPE-INFO2-ENTRY       ::= SEQUENCE {
+        etype           [0] Int32,
+        salt            [1] KerberosString OPTIONAL,
+        s2kparams       [2] OCTET STRING OPTIONAL
+}
+
+ETYPE-INFO2             ::= SEQUENCE SIZE (1..MAX) OF ETYPE-INFO2-ENTRY
+
+AD-IF-RELEVANT          ::= AuthorizationData
+
+AD-KDCIssued            ::= SEQUENCE {
+        ad-checksum     [0] Checksum,
+        i-realm         [1] Realm OPTIONAL,
+        i-sname         [2] PrincipalName OPTIONAL,
+        elements        [3] AuthorizationData
+}
+
+AD-AND-OR               ::= SEQUENCE {
+        condition-count [0] Int32,
+        elements        [1] AuthorizationData
+}
+
+AD-MANDATORY-FOR-KDC    ::= AuthorizationData
+
+END
+
+KerberosV5-PK-INIT-SPEC {
+	   iso(1) identified-organization(3) dod(6) internet(1)
+	   security(5) kerberosV5(2) modules(4) pkinit(5)
+} DEFINITIONS EXPLICIT TAGS ::= BEGIN
+
+IMPORTS
+
+   SubjectPublicKeyInfo, AlgorithmIdentifier
+	   FROM PKIX1Explicit88 { iso (1)
+		 identified-organization (3) dod (6) internet (1)
+		 security (5) mechanisms (5) pkix (7) id-mod (0)
+		 id-pkix1-explicit (18) }
+		 -- As defined in RFC 3280.
+
+   KerberosTime, PrincipalName, Realm, EncryptionKey, Checksum
+	   FROM KerberosV5Spec2 { iso(1) identified-organization(3)
+		 dod(6) internet(1) security(5) kerberosV5(2)
+		 modules(4) krb5spec2(2) };
+		 -- as defined in RFC 4120.
+
+id-pkinit OBJECT IDENTIFIER ::=
+ { iso(1) identified-organization(3) dod(6) internet(1)
+   security(5) kerberosv5(2) pkinit (3) }
+
+id-pkinit-authData      OBJECT IDENTIFIER  ::= { id-pkinit 1 }
+id-pkinit-DHKeyData     OBJECT IDENTIFIER  ::= { id-pkinit 2 }
+id-pkinit-rkeyData      OBJECT IDENTIFIER  ::= { id-pkinit 3 }
+id-pkinit-KPClientAuth  OBJECT IDENTIFIER  ::= { id-pkinit 4 }
+id-pkinit-KPKdc         OBJECT IDENTIFIER  ::= { id-pkinit 5 }
+
+id-pkinit-san OBJECT IDENTIFIER ::=
+ { iso(1) org(3) dod(6) internet(1) security(5) kerberosv5(2)
+   x509SanAN (2) }
+
+pa-pk-as-req INTEGER ::=                  16
+pa-pk-as-rep INTEGER ::=                  17
+
+ad-initial-verified-cas INTEGER ::=        9
+
+td-trusted-certifiers INTEGER ::=        104
+td-invalid-certificates INTEGER ::=      105
+td-dh-parameters INTEGER ::=             109
+
+PA-PK-AS-REQ ::= SEQUENCE {
+  signedAuthPack          [0] IMPLICIT OCTET STRING,
+		   -- Contains a CMS type ContentInfo encoded
+		   -- according to [RFC3852].
+		   -- The contentType field of the type ContentInfo
+		   -- is id-signedData (1.2.840.113549.1.7.2),
+		   -- and the content field is a SignedData.
+		   -- The eContentType field for the type SignedData is
+		   -- id-pkinit-authData (1.3.6.1.5.2.3.1), and the
+		   -- eContent field contains the DER encoding of the
+		   -- type AuthPack.
+		   -- AuthPack is defined below.
+  trustedCertifiers       [1] SEQUENCE OF
+			  ExternalPrincipalIdentifier OPTIONAL,
+		   -- Contains a list of CAs, trusted by the client,
+		   -- that can be used to certify the KDC.
+		   -- Each ExternalPrincipalIdentifier identifies a CA
+		   -- or a CA certificate (thereby its public key).
+		   -- The information contained in the
+		   -- trustedCertifiers SHOULD be used by the KDC as
+		   -- hints to guide its selection of an appropriate
+		   -- certificate chain to return to the client.
+  kdcPkId                 [2] IMPLICIT OCTET STRING
+							  OPTIONAL,
+		   -- Contains a CMS type SignerIdentifier encoded
+		   -- according to [RFC3852].
+		   -- Identifies, if present, a particular KDC
+		   -- public key that the client already has.
+  ...
+}
+
+DHNonce ::= OCTET STRING
+
+ExternalPrincipalIdentifier ::= SEQUENCE {
+  subjectName            [0] IMPLICIT OCTET STRING OPTIONAL,
+		   -- Contains a PKIX type Name encoded according to
+		   -- [RFC3280].
+		   -- Identifies the certificate subject by the
+		   -- distinguished subject name.
+		   -- REQUIRED when there is a distinguished subject
+		   -- name present in the certificate.
+ issuerAndSerialNumber   [1] IMPLICIT OCTET STRING OPTIONAL,
+		   -- Contains a CMS type IssuerAndSerialNumber encoded
+		   -- according to [RFC3852].
+		   -- Identifies a certificate of the subject.
+		   -- REQUIRED for TD-INVALID-CERTIFICATES and
+		   -- TD-TRUSTED-CERTIFIERS.
+ subjectKeyIdentifier    [2] IMPLICIT OCTET STRING OPTIONAL,
+		   -- Identifies the subject's public key by a key
+		   -- identifier.  When an X.509 certificate is
+		   -- referenced, this key identifier matches the X.509
+		   -- subjectKeyIdentifier extension value.  When other
+		   -- certificate formats are referenced, the documents
+		   -- that specify the certificate format and their use
+		   -- with the CMS must include details on matching the
+		   -- key identifier to the appropriate certificate
+		   -- field.
+		   -- RECOMMENDED for TD-TRUSTED-CERTIFIERS.
+  ...
+}
+
+AuthPack ::= SEQUENCE {
+  pkAuthenticator         [0] PKAuthenticator,
+  clientPublicValue       [1] SubjectPublicKeyInfo OPTIONAL,
+		   -- Type SubjectPublicKeyInfo is defined in
+		   -- [RFC3280].
+		   -- Specifies Diffie-Hellman domain parameters
+		   -- and the client's public key value [IEEE1363].
+		   -- The DH public key value is encoded as a BIT
+		   -- STRING according to [RFC3279].
+		   -- This field is present only if the client wishes
+		   -- to use the Diffie-Hellman key agreement method.
+  supportedCMSTypes       [2] SEQUENCE OF AlgorithmIdentifier
+							  OPTIONAL,
+		   -- Type AlgorithmIdentifier is defined in
+		   -- [RFC3280].
+		   -- List of CMS algorithm [RFC3370] identifiers
+		   -- that identify key transport algorithms, or
+		   -- content encryption algorithms, or signature
+		   -- algorithms supported by the client in order of
+		   -- (decreasing) preference.
+  clientDHNonce           [3] DHNonce OPTIONAL,
+		   -- Present only if the client indicates that it
+		   -- wishes to reuse DH keys or to allow the KDC to
+		   -- do so.
+  ...
+}
+
+PKAuthenticator ::= SEQUENCE {
+  cusec                   [0] INTEGER (0..999999),
+  ctime                   [1] KerberosTime,
+		   -- cusec and ctime are used as in [RFC4120], for
+		   -- replay prevention.
+  nonce                   [2] INTEGER (0..4294967295),
+		   -- Chosen randomly; this nonce does not need to
+		   -- match with the nonce in the KDC-REQ-BODY.
+  paChecksum              [3] OCTET STRING OPTIONAL,
+		   -- MUST be present.
+		   -- Contains the SHA1 checksum, performed over
+		   -- KDC-REQ-BODY.
+  ...
+}
+
+TD-TRUSTED-CERTIFIERS ::= SEQUENCE OF
+			  ExternalPrincipalIdentifier
+		   -- Identifies a list of CAs trusted by the KDC.
+		   -- Each ExternalPrincipalIdentifier identifies a CA
+		   -- or a CA certificate (thereby its public key).
+
+TD-INVALID-CERTIFICATES ::= SEQUENCE OF
+			  ExternalPrincipalIdentifier
+		   -- Each ExternalPrincipalIdentifier identifies a
+		   -- certificate (sent by the client) with an invalid
+		   -- signature.
+
+KRB5PrincipalName ::= SEQUENCE {
+   realm                   [0] Realm,
+   principalName           [1] PrincipalName
+}
+
+AD-INITIAL-VERIFIED-CAS ::= SEQUENCE OF
+			  ExternalPrincipalIdentifier
+		   -- Identifies the certification path based on which
+		   -- the client certificate was validated.
+		   -- Each ExternalPrincipalIdentifier identifies a CA
+		   -- or a CA certificate (thereby its public key).
+
+PA-PK-AS-REP ::= CHOICE {
+  dhInfo                  [0] DHRepInfo,
+		   -- Selected when Diffie-Hellman key exchange is
+		   -- used.
+  encKeyPack              [1] IMPLICIT OCTET STRING,
+		   -- Selected when public key encryption is used.
+		   -- Contains a CMS type ContentInfo encoded
+		   -- according to [RFC3852].
+		   -- The contentType field of the type ContentInfo is
+		   -- id-envelopedData (1.2.840.113549.1.7.3).
+		   -- The content field is an EnvelopedData.
+		   -- The contentType field for the type EnvelopedData
+		   -- is id-signedData (1.2.840.113549.1.7.2).
+		   -- The eContentType field for the inner type
+		   -- SignedData (when unencrypted) is
+		   -- id-pkinit-rkeyData (1.3.6.1.5.2.3.3) and the
+		   -- eContent field contains the DER encoding of the
+		   -- type ReplyKeyPack.
+		   -- ReplyKeyPack is defined below.
+  ...
+}
+
+DHRepInfo ::= SEQUENCE {
+  dhSignedData            [0] IMPLICIT OCTET STRING,
+		   -- Contains a CMS type ContentInfo encoded according
+		   -- to [RFC3852].
+		   -- The contentType field of the type ContentInfo is
+		   -- id-signedData (1.2.840.113549.1.7.2), and the
+		   -- content field is a SignedData.
+		   -- The eContentType field for the type SignedData is
+		   -- id-pkinit-DHKeyData (1.3.6.1.5.2.3.2), and the
+		   -- eContent field contains the DER encoding of the
+		   -- type KDCDHKeyInfo.
+		   -- KDCDHKeyInfo is defined below.
+  serverDHNonce           [1] DHNonce OPTIONAL,
+		   -- Present if and only if dhKeyExpiration is
+		   -- present.
+  ...
+}
+
+KDCDHKeyInfo ::= SEQUENCE {
+  subjectPublicKey        [0] BIT STRING,
+		   -- The KDC's DH public key.
+		   -- The DH public key value is encoded as a BIT
+		   -- STRING according to [RFC3279].
+  nonce                   [1] INTEGER (0..4294967295),
+		   -- Contains the nonce in the pkAuthenticator field
+		   -- in the request if the DH keys are NOT reused,
+		   -- 0 otherwise.
+  dhKeyExpiration         [2] KerberosTime OPTIONAL,
+		   -- Expiration time for KDC's key pair,
+		   -- present if and only if the DH keys are reused.
+		   -- If present, the KDC's DH public key MUST not be
+		   -- used past the point of this expiration time.
+		   -- If this field is omitted then the serverDHNonce
+		   -- field MUST also be omitted.
+  ...
+}
+
+ReplyKeyPack ::= SEQUENCE {
+  replyKey                [0] EncryptionKey,
+		   -- Contains the session key used to encrypt the
+		   -- enc-part field in the AS-REP, i.e., the
+		   -- AS reply key.
+  asChecksum              [1] Checksum,
+		  -- Contains the checksum of the AS-REQ
+		  -- corresponding to the containing AS-REP.
+		  -- The checksum is performed over the type AS-REQ.
+		  -- The protocol key [RFC3961] of the checksum is the
+		  -- replyKey and the key usage number is 6.
+		  -- If the replyKey's enctype is "newer" [RFC4120]
+		  -- [RFC4121], the checksum is the required
+		  -- checksum operation [RFC3961] for that enctype.
+		  -- The client MUST verify this checksum upon receipt
+		  -- of the AS-REP.
+  ...
+}
+
+TD-DH-PARAMETERS ::= SEQUENCE OF AlgorithmIdentifier
+		   -- Each AlgorithmIdentifier specifies a set of
+		   -- Diffie-Hellman domain parameters [IEEE1363].
+		   -- This list is in decreasing preference order.
+END

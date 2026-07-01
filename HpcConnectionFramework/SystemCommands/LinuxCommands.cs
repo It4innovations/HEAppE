@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands;
@@ -23,9 +24,9 @@ internal class LinuxCommands : ICommands
     /// <summary>
     ///     Constructor
     /// </summary>
-    internal LinuxCommands()
+    internal LinuxCommands(ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(LinuxCommands));
+        _logger = logger;
     }
 
     #endregion
@@ -52,7 +53,7 @@ internal class LinuxCommands : ICommands
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     Interpreter command
@@ -70,12 +71,12 @@ internal class LinuxCommands : ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="userScriptPath">Generic script path</param>
     /// <returns></returns>
-    public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+    public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath)
     {
         var genericCommandParameters = new List<string>();
         var shellCommand = $"cat {userScriptPath}";
-        var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-        _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
+        var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
+        _logger.LogInformation($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
         foreach (Match match in Regex.Matches(sshCommand.Result,
                      @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n",
@@ -92,14 +93,17 @@ internal class LinuxCommands : ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
+    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
-        var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}/.";
-        var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
-        var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}");
-        _log.Info(
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        var inputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}Temp/{hash}/.";
+        var outputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
+        var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
+            $"{clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}",
+            _logger);
+        _logger.LogInformation(
             $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
     }
 
@@ -109,18 +113,21 @@ internal class LinuxCommands : ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
     /// <param name="hash">Hash</param>
-    public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
-        var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}/{path}";
+        var inputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}/{path}";
         inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
-        var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}";
+        var outputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}Temp/{hash}";
 
-        var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}");
-        _log.Info(
+        var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
+            $"{clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}",
+            _logger);
+        _logger.LogInformation(
             $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
     }
 
@@ -130,14 +137,16 @@ internal class LinuxCommands : ICommands
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKey">Public key</param>
     /// <param name="jobInfo">Job information</param>
-    public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo)
     {
         publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-        string remoteCmd3Path = HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, "remote-cmd3.sh");
-        var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}");
-        _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+        var clusterConfig3 = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        string remoteCmd3Path = clusterConfig3.GetPathToScript(jobInfo.Project.AccountingString, "remote-cmd3.sh");
+        var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
+            $"{clusterConfig3.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}",
+            _logger);
+        _logger.LogInformation($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
     /// <summary>
@@ -145,7 +154,7 @@ internal class LinuxCommands : ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
         SshCommandWrapper sshCommand;
         var adapter = new SshClientAdapter((SshClient)connectorClient);
@@ -157,8 +166,8 @@ internal class LinuxCommands : ICommands
 
             if (cmdBuilder.Length + cmdText.Length > 55000)
             {
-                sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString());
-                _log.Info(
+                sshCommand = await SshCommandUtils.RunSshCommandAsync(adapter, cmdBuilder.ToString(), _logger);
+                _logger.LogInformation(
                     $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
                 cmdBuilder.Clear();
             }
@@ -168,8 +177,8 @@ internal class LinuxCommands : ICommands
 
         if (cmdBuilder.Length > 0)
         {
-            sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString());
-            _log.Info(
+            sshCommand = await SshCommandUtils.RunSshCommandAsync(adapter, cmdBuilder.ToString(), _logger);
+            _logger.LogInformation(
                 $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
     }
@@ -182,15 +191,17 @@ internal class LinuxCommands : ICommands
     /// <param name="jobInfo">Job information</param>
     /// <param name="localBasePath"></param>
     /// <param name="sharedAccountsPoolMode"></param>
-    public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
         string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
 
         localBasePath = localBasePath.TrimEnd('/');
+        var clusterConfig4 = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var cmdBuilder =
             new StringBuilder(
-                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
         foreach (var task in jobInfo.Tasks)
         {
             var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
@@ -198,14 +209,14 @@ internal class LinuxCommands : ICommands
                 : string.Empty;
 
             cmdBuilder.Append(
-                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
-        _log.Info($"Create job directory command: \"{cmdBuilder}\"");
+        _logger.LogInformation($"Create job directory command: \"{cmdBuilder}\"");
         
         var sshCommand =
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-        _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+            await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString(), _logger);
+        _logger.LogInformation($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
     /// <summary>
@@ -213,19 +224,22 @@ internal class LinuxCommands : ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="jobInfo">Job information</param>
-    public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.ClusterUser.Username}/{jobInfo.Specification.Id}";
+        string account = jobInfo.Specification.ClusterUser.Username;
+        localBasePath = ExpandPath(localBasePath, jobInfo, account);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        var shellCommand = $"rm -Rf {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         try
         {
             var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-            _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
+                await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
+            _logger.LogInformation($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
             return true;
         }
         catch (SshCommandException ex)
         {
-            _log.Error($"Job directory \"{jobInfo.Specification.Id}\" was not deleted. Error: \"{ex.Message}\"");
+            _logger.LogError($"Job directory \"{jobInfo.Specification.Id}\" was not deleted. Error: \"{ex.Message}\"");
             return false;
         }
     }
@@ -239,19 +253,22 @@ internal class LinuxCommands : ICommands
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
         if (isServiceAccount) return true;
 
-        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+        localBasepath = ExpandPathSimple(localBasepath, account);
+
+        var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
+        var rootDir = Path.Combine(clusterConfig.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
         string bashSafeRootDir = rootDir.StartsWith("~/") 
             ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
             : "\"" + rootDir + "\"";
         
         var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
         var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
-        var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
+        var sedReplacement = $"{localBasepath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}";
 
         var cmdBuilder = new StringBuilder();
         cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && cd {bashSafeRootDir} && ");
@@ -290,25 +307,24 @@ internal class LinuxCommands : ICommands
 
         try
         {
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
-            
+            var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString(), _logger);
             if (sshCommand.ExitStatus != 0)
             {
-                _log.Error($"Initialization failed: {sshCommand.Result}");
+                _logger.LogError($"Initialization failed: {sshCommand.Result}");
                 return false;
             }
             return true;
         }
         catch (Exception ex)
         {
-            _log.Error($"Exception: {ex.Message}");
+            _logger.LogError($"Exception: {ex.Message}");
             return false;
         }
     }
 
-    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
+    public async Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
-        _log.Info($"Copying job files to cluster");
+        _logger.LogInformation($"Copying job files to cluster");
         var cmdBuilder = new StringBuilder();
 
         var clusterProject = jobInfo.Specification.Cluster.ClusterProjects
@@ -319,12 +335,15 @@ internal class LinuxCommands : ICommands
             var projectBasePath = string.IsNullOrEmpty(clusterProject.ProjectStoragePath) 
                 ? clusterProject.ScratchStoragePath 
                 : clusterProject.ProjectStoragePath;
-
-            var heappeJobsDir = $"{_scripts.InstanceIdentifierPath.TrimStart('/')}/{_scripts.JobLogArchiveSubPath.TrimStart('/')}";
+            
             string account = jobInfo.Specification.ClusterUser.Username;
+            projectBasePath = ExpandPath(projectBasePath, jobInfo, account);
+
+            var copyFilesClusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+            var heappeJobsDir = $"{copyFilesClusterConfig.InstanceIdentifierPath.TrimStart('/')}/{copyFilesClusterConfig.JobLogArchiveSubPath.TrimStart('/')}";
 
             cmdBuilder.Append(
-                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
 
             foreach (var task in jobInfo.Tasks)
             {
@@ -333,7 +352,7 @@ internal class LinuxCommands : ICommands
                     : string.Empty;
 
                 cmdBuilder.Append(
-                    $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                    $"{copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
             }
         }
 
@@ -344,19 +363,29 @@ internal class LinuxCommands : ICommands
 
         try
         {
-            _log.Info($"Copy job files command: \"{cmdBuilder}\"");
+            _logger.LogInformation($"Copy job files command: \"{cmdBuilder}\"");
             var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection),
-                    cmdBuilder.ToString());
-            _log.Info($"Copy job files result: \"{sshCommand.Result}\"");
+                await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection),
+                    cmdBuilder.ToString(), _logger);
+            _logger.LogInformation($"Copy job files result: \"{sshCommand.Result}\"");
         }
         catch (SshCommandException ex)
         {
-            _log.Error($"Copy job files failed: \"{ex.Message}\"");
+            _logger.LogError($"Copy job files failed: \"{ex.Message}\"");
             return false;
         }
 
         return true;
+    }
+
+    private static string ExpandPathSimple(string path, string username)
+    {
+        return HEAppE.Utils.FileSystemUtils.ExpandRemotePath(path, username);
+    }
+
+    private string ExpandPath(string path, SubmittedJobInfo jobInfo, string username)
+    {
+        return HEAppE.Utils.FileSystemUtils.ExpandRemotePath(path, username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
     }
 
     #endregion

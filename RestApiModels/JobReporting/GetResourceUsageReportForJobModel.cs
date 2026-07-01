@@ -1,6 +1,8 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.RestApiModels.AbstractModels;
+
+using System.ComponentModel.DataAnnotations;
 
 namespace HEAppE.RestApiModels.JobReporting;
 
@@ -16,7 +18,8 @@ public class ResourceUsageReportForJobModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "JobId")]
     [Description("Job id")]
-    public long JobId { get; set; }
+    [Required]
+    public long? JobId { get; set; }
 
     public override string ToString()
     {

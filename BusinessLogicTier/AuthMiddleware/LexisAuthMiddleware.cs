@@ -6,51 +6,52 @@ using System.Text;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public class LexisAuthMiddleware
 {
     private readonly RequestDelegate _next;
-    private static readonly ILog Log = LogManager.GetLogger(typeof(LexisAuthMiddleware));
+    private readonly ILogger _logger;
 
-    public LexisAuthMiddleware(RequestDelegate next)
+    public LexisAuthMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
     {
         _next = next;
+        _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.LexisAuthMiddleware");
     }
 
-    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
+    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService, IExpirioService expirioService)
     {
-        Log.Info($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
-
+        // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
-            Log.Info("AuthMiddleware: Anonymous endpoint detected.");
+            _logger.LogInformation("AuthMiddleware: Anonymous endpoint detected.");
             await _next(context);
             return;
         }
 
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        Log.Info($"Auth Check - UseBearer: {LexisAuthenticationConfiguration.UseBearerAuth}, IntrospectionEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, HeaderPresent: {authHeader != null}");
+        _logger.LogInformation($"Auth Check - UseBearer: {LexisAuthenticationConfiguration.UseBearerAuth}, IntrospectionEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, HeaderPresent: {authHeader != null}");
 
         if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && authHeader?.StartsWith("Bearer ") == true)
         {
-            Log.Info("AuthMiddleware: Processing Bearer token.");
+            _logger.LogInformation("AuthMiddleware: Processing Bearer token.");
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
             
             try
             {
-                await keys.Authorize(sshCaService, userOrgService);
+                await keys.Authorize(sshCaService, userOrgService, expirioService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
-                Log.Info("AuthMiddleware: Internal Authorize success.");
+                _logger.LogInformation("AuthMiddleware: Internal Authorize success.");
 
                 // Add to LogContext early so Auth logs also get the user
                 HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
@@ -58,15 +59,43 @@ public class LexisAuthMiddleware
             }
             catch (Exception ex)
             {
-                Log.Error($"AuthMiddleware: Internal Authorize failed: {ex.Message}");
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized");
+                _logger.LogError(ex, $"AuthMiddleware: Internal Authorize failed: {ex.Message}");
+
+                var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Title = "Internal Server Error",
+                    Detail = "An unexpected error occurred during authorization."
+                };
+
+                if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+                {
+                    problem.Status = StatusCodes.Status401Unauthorized;
+                    problem.Title = authEx.ServiceName != null ? $"Unauthorized Access ({authEx.ServiceName})" : "Unauthorized Access";
+                    problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+                }
+                else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
+                {
+                    problem.Status = StatusCodes.Status502BadGateway;
+                    problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"External Problem ({externalEx.ServiceName})" : "External Problem";
+                    problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                }
+                else if (ex is UnauthorizedAccessException)
+                {
+                    problem.Status = StatusCodes.Status401Unauthorized;
+                    problem.Title = "Unauthorized Access";
+                    problem.Detail = ex.Message;
+                }
+
+                context.Response.ContentType = "application/json";
+                context.Response.StatusCode = problem.Status.Value;
+                await context.Response.WriteAsJsonAsync(problem);
                 return;
             }
         }
         else
         {
-            Log.Info("AuthMiddleware: Falling back to LocalScheme.");
+            _logger.LogInformation("AuthMiddleware: Falling back to LocalScheme.");
             var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
             context.User = new ClaimsPrincipal(identity);
         }

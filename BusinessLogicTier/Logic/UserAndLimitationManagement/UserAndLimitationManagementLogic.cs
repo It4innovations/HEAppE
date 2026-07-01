@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -29,9 +29,13 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
-using log4net;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
+using HEAppE.Utils;
 using SshCaAPI;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
@@ -39,13 +43,15 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                              IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
     }
 
     #endregion
@@ -60,9 +66,14 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     private readonly IUserOrgService _userOrgService;
+
+    /// <summary>
+    /// Expirio service
+    /// </summary>
+    private readonly IExpirioService _expirioService;
 
     /// <summary>
     ///     Session code expiration in seconds
@@ -78,18 +89,36 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
-        bool hasFIPOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) 
+        bool hasIdpOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) 
                                   || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
 
-        if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        if (!hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
-            _log.Info("Authenticating local user with session code.");
+            _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);
         }
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            if (cache != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                {
+                    _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
+                    return cachedUser;
+                }
+            }
+
+            var user = _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+
+            if (cache != null && user != null)
+            {
+                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+            }
+            return user;
         }
 
         return AuthenticateLocalSession(sessionCode);
@@ -97,6 +126,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
+        var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        if (cache != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
+            {
+                if (cached.ExpirationTime > DateTime.UtcNow)
+                {
+                    return cached.User;
+                }
+            }
+        }
+
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null)
             throw new UnauthorizedAccessException("Unauthorized");
@@ -108,11 +150,42 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             );
 
-        session.LastAccessTime = DateTime.UtcNow;
-        _unitOfWork.SessionCodeRepository.Update(session);
-        _unitOfWork.Save();
+        var now = DateTime.UtcNow;
+        if (session.LastAccessTime < now.AddSeconds(-30))
+        {
+            bool shouldUpdate = true;
+            if (cache != null)
+            {
+                string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
+                if (cache.TryGetValue(updateCacheKey, out _))
+                {
+                    shouldUpdate = false;
+                }
+                else
+                {
+                    cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                }
+            }
 
-        return session.User;
+            if (shouldUpdate)
+            {
+                session.LastAccessTime = now;
+                _unitOfWork.SessionCodeRepository.Update(session);
+                _unitOfWork.Save();
+            }
+        }
+
+        var user = session.User;
+        if (cache != null && user != null)
+        {
+            string sessionCacheKey = $"SessionUser_{sessionCode}";
+            var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
+            var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
+            var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
+            cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+        }
+
+        return user;
     }
     
     public AdaptorUser GetUserById(long id)
@@ -122,22 +195,28 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
     {
-        return credentials switch
+        switch (credentials)
         {
-            PasswordCredentials => AuthenticateUserWithPassword(credentials as PasswordCredentials),
-            DigitalSignatureCredentials => AuthenticateUserWithDigitalSignature(
-                credentials as DigitalSignatureCredentials),
-            OpenIdCredentials => CreateSessionCode(
-                await HandleOpenIdAuthenticationAsync(credentials as OpenIdCredentials)).UniqueCode,
-            LexisCredentials => CreateSessionCode(
-                await HandleTokenAsApiKeyAuthenticationAsync(credentials as LexisCredentials)).UniqueCode,
-            _ => throw new AuthenticationTypeException("NotSupportedAuthentication")
-        };
+            case PasswordCredentials passwordCredentials:
+                return AuthenticateUserWithPassword(passwordCredentials);
+            case DigitalSignatureCredentials digitalSignatureCredentials:
+                return AuthenticateUserWithDigitalSignature(digitalSignatureCredentials);
+            case OpenIdCredentials openIdCredentials:
+                var openIdUser = await HandleOpenIdAuthenticationAsync(openIdCredentials);
+                credentials.Username = openIdUser.Username;
+                return CreateSessionCode(openIdUser).UniqueCode;
+            case LexisCredentials lexisCredentials:
+                var lexisUser = await HandleTokenAsApiKeyAuthenticationAsync(lexisCredentials);
+                credentials.Username = lexisUser.Username;
+                return CreateSessionCode(lexisUser).UniqueCode;
+            default:
+                throw new AuthenticationTypeException("NotSupportedAuthentication");
+        }
     }
 
     public async Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials)
     {
-        _log.Info($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
+        _logger.LogInformation("OpenId: Authenticating user to the OpenStack using token.");
 
         var user = await HandleOpenIdAuthenticationAsync(credentials);
         return user;
@@ -155,7 +234,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _log.Info(
+            _logger.LogInformation(
                 $"OpenId: user \"{adaptorUser.Username}\" wants to authenticate to the OpenStack project \"{projectId}\".");
 
             if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
@@ -188,7 +267,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             _unitOfWork.OpenStackSessionRepository.Insert(openStackSession);
             _unitOfWork.Save();
 
-            _log.Info(
+            _logger.LogInformation(
                 $"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
             return openStackCredentials;
         }
@@ -206,7 +285,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo, bool isAdminOverride = false)
     {
-        if (isAdminOverride)
+        if (isAdminOverride || (loggedUser.AdaptorUserUserGroupRoles?.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator) ?? false))
         {
             return true;
         }
@@ -215,6 +294,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo, bool checkSharedJobInfoAccess = false)
     {
+        if (loggedUser.AdaptorUserUserGroupRoles?.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator) ?? false)
+        {
+            return true;
+        }
         bool isOwner = taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
         if (isOwner) 
             return true;
@@ -227,9 +310,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -250,9 +333,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         IEnumerable<Project> projects)
     {
         var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
-        foreach (var project in projects)
+        if (!projectList.Any())
+        {
+            return result;
+        }
+
+        var projectIds = projectList.Select(p => p.Id).Distinct().ToList();
+        var templatesByProject = _unitOfWork.CommandTemplateRepository
+            .GetCommandTemplatesByProjectIds(projectIds)
+            .GroupBy(t => t.ProjectId)
+            .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+        foreach (var project in projectList)
         {
             ProjectResourceUsage usage = new()
             {
@@ -268,32 +363,33 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 NodeTypes = new List<ClusterNodeTypeResourceUsage>()
             };
 
-            var projectCommandTemplates =
-                _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
-            foreach (var nodeType in nodeTypes)
+            if (templatesByProject.TryGetValue(project.Id, out var projectCommandTemplates))
             {
-                var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
-                NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).Where(n => n != null).Distinct().ToList();
+                foreach (var nodeType in nodeTypes)
                 {
-                    CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
-                    NodeType = nodeType
-                };
-                ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
-                {
-                    Id = nodeType.Id,
-                    Name = nodeType.Name,
-                    Cluster = nodeType.Cluster,
-                    ClusterAllocationName = nodeType.ClusterAllocationName,
-                    CoresPerNode = nodeType.CoresPerNode,
-                    Description = nodeType.Description,
-                    FileTransferMethod = nodeType.FileTransferMethod,
-                    MaxWalltime = nodeType.MaxWalltime,
-                    NumberOfNodes = nodeType.NumberOfNodes,
-                    Queue = nodeType.Queue,
-                    NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
-                };
-                usage.NodeTypes.Add(clusterNodeTypeUsage);
+                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType != null && x.NodeType.Id == nodeType.Id);
+                    NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
+                    {
+                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        NodeType = nodeType
+                    };
+                    ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
+                    {
+                        Id = nodeType.Id,
+                        Name = nodeType.Name,
+                        Cluster = nodeType.Cluster,
+                        ClusterAllocationName = nodeType.ClusterAllocationName,
+                        CoresPerNode = nodeType.CoresPerNode,
+                        Description = nodeType.Description,
+                        FileTransferMethod = nodeType.FileTransferMethod,
+                        MaxWalltime = nodeType.MaxWalltime,
+                        NumberOfNodes = nodeType.NumberOfNodes,
+                        Queue = nodeType.Queue,
+                        NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
+                    };
+                    usage.NodeTypes.Add(clusterNodeTypeUsage);
+                }
             }
 
             result.Add(usage);
@@ -356,7 +452,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             var offline_token = (await openIdClient.ExchangeTokenAsync(openIdCredentials.OpenIdAccessToken))
                 .AccessToken;
             var userInfo = await openIdClient.GetUserInfoAsync(offline_token);
-            return GetOrRegisterNewOpenIdUser(userInfo.Convert());
+            var userOpenId = userInfo.Convert();
+
+            _logger.LogInformation($"OpenId: User \"{userOpenId.UserName}\" wants to authenticate to the system.");
+            return GetOrRegisterNewOpenIdUser(userOpenId);
         }
         catch (AuthenticationTypeException)
         {
@@ -368,9 +467,22 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
-            return GetOrRegisterLexisCredentials(result);
+            _logger.LogInformation("LEXIS AAI: Authenticating user using token.");
+            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
+            
+            string username = result.UserName;
+            if (string.IsNullOrEmpty(username))
+            {
+                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Email;
+            }
+            if (string.IsNullOrEmpty(username))
+            {
+                username = StringUtils.GenerateUsername(result.Id.ToString());
+            }
+
+            _logger.LogInformation($"LEXIS AAI: User \"{username}\" wants to authenticate to the system.");
+            return await GetOrRegisterLexisCredentialsAsync(result);
         }
         catch (HttpRequestException )
         {
@@ -382,11 +494,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     /// <summary>
     ///     Get existing or create new HEAppE user, from the OpenId credentials.
+    ///     Roles are synchronised to the DB only when they differ from the current state,
+    ///     eliminating row-lock contention under concurrent bearer-token requests.
+    ///     Uses a lean async DB query (groups + project only, no clusters/templates/users).
     /// </summary>
-    /// <param name="lexisUser"></param>
-    /// <returns>Newly created or existing HEAppE account.</returns>
-    /// <exception cref="AuthenticationTypeException"></exception>
-    private AdaptorUser GetOrRegisterLexisCredentials(UserInfoExtendedModel lexisUser)
+    private async Task<AdaptorUser> GetOrRegisterLexisCredentialsAsync(UserInfoExtendedModel lexisUser)
     {
         var lexisProjects = lexisUser.SystemRoles
             .Where(w => !string.IsNullOrEmpty(w.ProjectShortName))
@@ -395,10 +507,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 x.ProjectShortName,
                 ProjectResourceNames = x.ProjectResources.Select(r => r.Name).Distinct(),
                 Permissions = x.SystemPermissionTypes
-            });
+            })
+            .ToList();
 
-        IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+        // Lean async query: filter by LEXIS prefix in SQL, join only Project — no clusters/templates/users
+        var userLEXISGroups = await _unitOfWork.AdaptorUserGroupRepository
+            .GetGroupsByPrefixWithActiveProjectsAsync(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
 
         DateTime changedTime = DateTime.UtcNow;
         if (string.IsNullOrEmpty(lexisUser.Email))
@@ -406,12 +520,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+        string username = lexisUser.UserName;
+        if (string.IsNullOrEmpty(username))
+        {
+            username = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Email;
+        }
+
+        if (string.IsNullOrEmpty(username))
+        {
+            username = StringUtils.GenerateUsername(lexisUser.Id.ToString());
+        }
         
         if (user is null)
         {
             try 
             {
-                string username = $"{LexisAuthenticationConfiguration.HEAppEUserPrefix}{lexisUser.KeycloakSid}_{lexisUser.UserName}";
                 user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             catch (Exception)
@@ -420,37 +543,72 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 if (user is null) throw;
             }
         }
+        else
+        {
+            user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+        }
 
-        var hasUserGroup = false;
+        // Build desired (groupId, roleId) set and resolved role map from UserOrg data
+        var desiredRoles = new HashSet<(long GroupId, long RoleId)>();
+        var projectRoleMap = new List<(List<AdaptorUserGroup> Groups, AdaptorUserRole Role)>();
 
+        foreach (var lexisProject in lexisProjects)
+        {
+            var groupsWithProject = userLEXISGroups
+                .Where(x => lexisProject.ProjectResourceNames.Any(a =>
+                    string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)))
+                .ToList();
+
+            if (!groupsWithProject.Any()) continue;
+
+            var roleNames = lexisProject.Permissions
+                .Where(RoleMapping.MappingRoles.ContainsKey)
+                .Select(s => RoleMapping.MappingRoles[s])
+                .ToList();
+
+            if (!roleNames.Any()) continue;
+
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+            projectRoleMap.Add((groupsWithProject, userRole));
+
+            foreach (var group in groupsWithProject)
+                desiredRoles.Add((group.Id, (long)userRole.RoleType));
+        }
+
+        if (desiredRoles.Count == 0)
+            throw new AuthenticationTypeException("NoUserGroup", user.Username);
+
+        // Compare desired roles with current active roles already in DB
+        var currentActiveRoles = user.AdaptorUserUserGroupRoles
+            .Where(r => !r.IsDeleted)
+            .Select(r => (r.AdaptorUserGroupId, r.AdaptorUserRoleId))
+            .ToHashSet();
+
+        if (desiredRoles.SetEquals(currentActiveRoles))
+        {
+            // Roles are identical — skip DB write to avoid row-lock contention under concurrent load
+            _logger.LogDebug($"LEXIS AAI: Roles for user \"{user.Username}\" unchanged — skipping DB synchronization.");
+            return user;
+        }
+
+        _logger.LogInformation($"LEXIS AAI: Roles for user \"{user.Username}\" changed — synchronizing to DB.");
+
+        // Soft-delete all current roles and re-apply desired set
         user.AdaptorUserUserGroupRoles.ForEach(f =>
         {
             f.IsDeleted = true;
             f.ModifiedAt = changedTime;
         });
 
-        foreach (var lexisProject in lexisProjects)
+        foreach (var (groups, role) in projectRoleMap)
         {
-            var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
-                string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
-
-            if (groupsWithProject is null || !groupsWithProject.Any()) continue;
-
-            var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
-                .Select(s => RoleMapping.MappingRoles[s]);
-                
-            if (roleNames is null || !roleNames.Any()) continue;
-
-            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-            foreach (var prefixedGroup in groupsWithProject)
-                user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
-
-            hasUserGroup = true;
+            foreach (var group in groups)
+                user.CreateSpecificUserRoleForUser(group, role.RoleType);
         }
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
         
-        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+        return user;
     }
 
     /// <summary>
@@ -468,7 +626,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             try
             {
                 user = CreateUser(openIdUser.UserName, openIdUser.Email, changedTime, AdaptorUserType.OpenId);
-                _log.Info($"OpenId: Created new HEAppE account for user: \"{user}\"");
+                _logger.LogInformation($"OpenId: Created new HEAppE account for user: \"{user}\"");
             }
             catch (Exception)
             {
@@ -489,7 +647,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
             {
-                _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                _logger.LogWarning($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
                 continue;
             }
 
@@ -497,7 +655,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
 
             hasUserGroup = true;
-            _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
+            _logger.LogInformation($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
         }
 
         _unitOfWork.Save();
@@ -524,6 +682,17 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             UserType = adaptorUserType
         };
         _unitOfWork.AdaptorUserRepository.Insert(user);
+        _unitOfWork.Save();
+        return user;
+    }
+
+    private AdaptorUser UpdateUser(AdaptorUser user, string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
+    {
+        user.Username = username;
+        user.Email = email;
+        user.ModifiedAt = changedTime;
+        user.UserType = adaptorUserType;
+        _unitOfWork.AdaptorUserRepository.Update(user);
         _unitOfWork.Save();
         return user;
     }
@@ -577,19 +746,35 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         // Verify digital signature
-        using RSACryptoServiceProvider rsa = new(2048);
-        // TODO: Verify
-        rsa.FromXmlString(user.PublicKey);
-        RSAPKCS1SignatureDeformatter rsaDeformatter = new(rsa);
-        rsaDeformatter.SetHashAlgorithm("SHA256");
-        return rsaDeformatter.VerifySignature(hash, credentials.DigitalSignature)
+        using var rsa = RSA.Create();
+        ImportXmlPublicKey(rsa, user.PublicKey);
+        
+        return rsa.VerifyHash(hash, credentials.DigitalSignature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
             ? CreateSessionCode(user).UniqueCode
             : throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
     }
 
+    private static void ImportXmlPublicKey(RSA rsa, string xmlString)
+    {
+        var parameters = new RSAParameters();
+        
+        var modulusMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Modulus>(.*?)</Modulus>");
+        var exponentMatch = System.Text.RegularExpressions.Regex.Match(xmlString, @"<Exponent>(.*?)</Exponent>");
+        
+        if (!modulusMatch.Success || !exponentMatch.Success)
+        {
+            throw new InvalidOperationException("Invalid XML RSA public key format.");
+        }
+        
+        parameters.Modulus = Convert.FromBase64String(modulusMatch.Groups[1].Value);
+        parameters.Exponent = Convert.FromBase64String(exponentMatch.Groups[1].Value);
+        
+        rsa.ImportParameters(parameters);
+    }
+
     private AdaptorUser GetActiveUser(string username)
     {
-        _log.Info($"User \"{username}\" wants to authenticate to the system.");
+        _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
         return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
                throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
     }
@@ -638,27 +823,60 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         );
     
         var allGroupRoles = loggedUser.AdaptorUserUserGroupRoles
-            .Where(x => !x.IsDeleted);
+            .Where(x => !x.IsDeleted)
+            .ToList();
+
+        if (!allGroupRoles.Any())
+        {
+            return projectReferences;
+        }
+
+        var allActiveGroups = _unitOfWork.AdaptorUserGroupRepository
+            .GetAllWithAdaptorUserGroupsAndActiveProjects()
+            .ToDictionary(g => g.Id);
+
+        var projectsToLoad = new List<Project>();
+        var projectGroupRoles = new List<(AdaptorUserUserGroupRole GroupRole, Project Project)>();
 
         foreach (var groupRole in allGroupRoles)
         {
-            var project = _unitOfWork.AdaptorUserGroupRepository
-                .GetAllWithAdaptorUserGroupsAndActiveProjects()
-                .FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
-
-            if (project is null || !validProjectIds.Contains(project.Id)) 
+            if (allActiveGroups.TryGetValue(groupRole.AdaptorUserGroupId, out var group) && group.Project != null)
             {
-                continue;
+                var project = group.Project;
+                if (validProjectIds.Contains(project.Id))
+                {
+                    projectGroupRoles.Add((groupRole, project));
+                    projectsToLoad.Add(project);
+                }
             }
-        
-            var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-            project.CommandTemplates = commandTemplates.ToList();
+        }
 
-            projectReferences.Add(new ProjectReference
+        if (projectsToLoad.Any())
+        {
+            var uniqueProjectIds = projectsToLoad.Select(p => p.Id).Distinct().ToList();
+            var templatesByProject = _unitOfWork.CommandTemplateRepository
+                .GetCommandTemplatesByProjectIds(uniqueProjectIds)
+                .GroupBy(t => t.ProjectId)
+                .ToDictionary(g => g.Key ?? 0, g => g.ToList());
+
+            foreach (var item in projectGroupRoles)
             {
-                Role = groupRole.AdaptorUserRole,
-                Project = project
-            });
+                var project = item.Project;
+                if (templatesByProject.TryGetValue(project.Id, out var templates))
+                {
+                    project.CommandTemplates = templates;
+                }
+                else
+                {
+                    project.CommandTemplates = new List<CommandTemplate>();
+                }
+
+                projectReferences.Add(new ProjectReference
+                {
+                    Role = item.GroupRole.AdaptorUserRole,
+                    Project = project
+                });
+            }
         }
 
         return projectReferences;

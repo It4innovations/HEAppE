@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -10,6 +11,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using SshCaAPI;
 
@@ -61,21 +63,24 @@ public abstract class LogicFactory
     public abstract IAdminUserManagementLogic CreateAdminUserManagementLogic(IUnitOfWork unitOfWork);
 
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
     public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
-    public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
+    public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork, ILogger logger);
 
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,
         IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
-        IHttpContextKeys httpContextKeys);
+        IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
 
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
+
+    public abstract ICredentialProvisioningLogic CreateCredentialProvisioningLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger);
 
     #endregion
 }

@@ -1,10 +1,3 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +5,14 @@ using System.Linq;
 using System.Runtime;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 
@@ -35,7 +36,7 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
     /// <summary>
     ///     Constructor
     /// </summary>
-    public LinuxLocalDataConvertor() : base(null)
+    public LinuxLocalDataConvertor(ILogger logger) : base(null, logger)
     {
     }
 
@@ -155,8 +156,9 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
                 task.CommandTemplate.TemplateParameters,
                 task.CommandParameterValues
             );
+            var executableFile = ResolveExecutableFile(task.CommandTemplate, jobSpecification);
             taskCommandLine.Append(ReplaceTemplateDirectivesInCommand(
-                $"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}",
+                $"{executableFile} {task.CommandTemplate.CommandParameters}",
                 commandParameterDictionary));
 
             if (!string.IsNullOrEmpty(task.StandardOutputFile))
@@ -169,13 +171,14 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
         var localBasePath = $"{jobSpecification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath}";
         
-        var jobDir = Path.Join(localBasePath, _scripts.InstanceIdentifierPath, 
-            HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
+        var jobDir = Path.Join(localBasePath, clusterConfig.InstanceIdentifierPath, 
+            clusterConfig.SubExecutionsPath,
             jobSpecification.ClusterUser.Username,
             jobSpecification.Id.ToString()).Replace('\\', '/');
         //preparation script, prepares job info file to the job directory at local linux "cluster"
         return
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
+            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
     }
 
     #endregion

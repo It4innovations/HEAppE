@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
@@ -88,7 +88,7 @@ public class ExtendedClusterExt
     [DataMember(Name = "ProxyConnection")]
     [Description("Proxy connection")]
     public virtual ClusterProxyConnectionExt ProxyConnection { get; set; }
-    
+
     /// <summary>
     /// File transfer id
     /// </summary>
@@ -102,6 +102,13 @@ public class ExtendedClusterExt
     [DataMember(Name = "NodeTypes")]
     [Description("Array of node types")]
     public ClusterNodeTypeExt[] NodeTypes { get; set; }
+
+    /// <summary>
+    /// Custom configuration
+    /// </summary>
+    [DataMember(Name = "CustomConfiguration")]
+    [Description("Custom configuration")]
+    public Dictionary<string, string>? CustomConfiguration { get; set; }
 
     public override string ToString()
     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -8,58 +8,106 @@ using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
 using HEAppE.DataAccessTier.Vault;
-using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
-    private readonly ILog _log;
-    private readonly VaultConnector _vaultConnector = new VaultConnector();
+    private readonly ILogger _logger;
+    private readonly VaultConnector _vaultConnector;
     private readonly DatabaseFullBackupConfiguration _configuration;
 
-    public DatabaseFullBackupBackgroundService(DatabaseFullBackupConfiguration configuration)
+    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory, DatabaseFullBackupConfiguration configuration)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseFullBackupBackgroundService");
+        _vaultConnector = new VaultConnector(_logger);
         _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
+        _logger.LogInformation("DatabaseFullBackupBackgroundService started.");
+
+        // Run initial retention policy check on startup to clean up obsolete/old backups
+        try
+        {
+            if (Directory.Exists(_configuration.LocalPath))
+            {
+                ApplyRetentionPolicy(_configuration.LocalPath);
+            }
+            if (!string.IsNullOrEmpty(_configuration.NASPath) && Directory.Exists(_configuration.NASPath))
+            {
+                ApplyRetentionPolicy(_configuration.NASPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during initial database full backup retention cleanup on startup: ");
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                bool backupCanBeDone = _configuration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
-                
-                if (backupCanBeDone)
+                if (!_configuration.ScheduledBackupEnabled)
+                {
+                    _logger.LogDebug("Database full backup is disabled in configuration.");
+                }
+                else
                 {
                     DateTime now = DateTime.Now;
                     TimeSpan scheduledTime = TimeSpan.Parse(_configuration.ScheduledRuntime, new CultureInfo("en-US"));
+                    _logger.LogDebug($"Checking backup schedule. Current time of day: {now.TimeOfDay}, scheduled time: {scheduledTime}.");
 
-                    if (now.TimeOfDay >= scheduledTime && now.TimeOfDay < scheduledTime.Add(TimeSpan.FromMinutes(2)))
+                    if (now.TimeOfDay >= scheduledTime)
                     {
-                        await DoFullBackupAsync();
-
-                        ApplyRetentionPolicy(_configuration.LocalPath);
-                        if (!string.IsNullOrEmpty(_configuration.NASPath))
+                        _logger.LogDebug("Current time is past scheduled runtime. Checking if backup is needed.");
+                        if (!BackupForTodayExists(_configuration.LocalPath))
                         {
-                            ApplyRetentionPolicy(_configuration.NASPath);
+                            _logger.LogDebug("No backup found for today. Checking if backup can be performed.");
+                            if (await DatabaseFullBackupCanBeDone())
+                            {
+                                _logger.LogInformation("Starting scheduled database full backup...");
+                                await DoFullBackupAsync();
+
+                                ApplyRetentionPolicy(_configuration.LocalPath);
+                                if (!string.IsNullOrEmpty(_configuration.NASPath))
+                                {
+                                    ApplyRetentionPolicy(_configuration.NASPath);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Database full backup cannot be performed (DatabaseFullBackupCanBeDone returned false).");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug("Database full backup for today already exists. Skipping execution.");
                         }
 
                         DateTime tomorrow = DateTime.Today.AddDays(1).Add(scheduledTime);
-                        await Task.Delay(tomorrow - DateTime.Now, stoppingToken);
-                        continue;
+                        TimeSpan delay = tomorrow - DateTime.Now;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            _logger.LogInformation($"Next database full backup scheduled in {delay.TotalHours:F2} hours at {tomorrow:yyyy-MM-dd HH:mm:ss}.");
+                            await Task.Delay(delay, stoppingToken);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug($"Current time {now.TimeOfDay} is before scheduled time {scheduledTime}. Will check again in 1 minute.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _log.Error("An error occured during execution of the DatabaseFullBackup background service: ", ex);
+                _logger.LogError(ex, "An error occured during execution of the DatabaseFullBackup background service: ");
             }
 
             try
@@ -72,24 +120,52 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
         }
     }
 
+    private bool BackupForTodayExists(string folder)
+    {
+        try
+        {
+            _logger.LogDebug($"Checking if backup for today exists in folder: '{folder}'");
+            if (!Directory.Exists(folder))
+            {
+                _logger.LogDebug($"Folder '{folder}' does not exist.");
+                return false;
+            }
+            string dateStr = DateTime.Now.ToString("yyyyMMdd");
+            string searchPattern = $"{_configuration.BackupFileNamePrefix}_FULL_{dateStr}*.bak";
+            _logger.LogDebug($"Searching for files matching pattern: '{searchPattern}'");
+            var files = Directory.GetFiles(folder, searchPattern);
+            bool exists = files.Any();
+            _logger.LogDebug($"Backup files found: {files.Length}. Today's backup exists: {exists}");
+            return exists;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Failed to check if backup for today exists in '{folder}': ");
+            return false;
+        }
+    }
+
     private async Task<bool> DatabaseFullBackupCanBeDone()
     {
         try
         {
+            _logger.LogDebug($"Checking if full database backup can be performed. ConnectionString: '{MiddlewareContextSettings.ConnectionString}'");
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
+            _logger.LogDebug($"Opened database connection successfully. Database: '{conn.Database}'");
 
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db " +
-                "AND d.recovery_model_desc IN ('FULL', 'BULK_LOGGED')";
+            cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db";
             cmd.Parameters.AddWithValue("@db", conn.Database);
 
             var result = await cmd.ExecuteScalarAsync();
-            return result != null && (int)result > 0;
+            bool canBeDone = result != null && (int)result > 0;
+            _logger.LogDebug($"Database existence check in sys.databases returned: {canBeDone}");
+            return canBeDone;
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during check if full database backup can be performed: ", ex);
+            _logger.LogError(ex, "An error occured during check if full database backup can be performed: ");
             return false;
         }
     }
@@ -113,13 +189,13 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
 
-            _log.Info($"Database backup file was created to: {backupPath}");
+            _logger.LogInformation($"Database backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
                 string nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _log.Info($"Database backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
             }
             
             if (Directory.Exists(confsDirectory))
@@ -166,12 +242,12 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _log.Error($"Vault backup failed: {ex.Message}");
+                _logger.LogError(ex, $"Vault backup failed: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during execution of the database backup: ", ex);
+            _logger.LogError(ex, "An error occured during execution of the database backup: ");
         }
     }
 
@@ -179,33 +255,43 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
-            var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
+            var grouped = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
                              .Select(f => new FileInfo(f))
-                             .OrderByDescending(f => f.CreationTime)
-                             .ToList();
-
-            var grouped = files.Select(f => new
-                {
-                    File = f,
-                    Date = ParseDateFromFileName(f.Name),
-                    RetentionCategory = GetRetentionCategory(ParseDateFromFileName(f.Name))
-                })
-                .Where(x => x.Date != null)
-                .GroupBy(x => x.RetentionCategory);
+                             .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false })
+                             .Concat(Directory.GetDirectories(folder, "confs_*backup_*")
+                                     .Select(d => new DirectoryInfo(d))
+                                     .Select(d => new { File = (FileSystemInfo)d, IsDirectory = true }))
+                             .Concat(Directory.GetFiles(folder, "vault_snapshot_*.tar")
+                                     .Select(f => new FileInfo(f))
+                                     .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false }))
+                             .Select(x => new
+                             {
+                                 x.File,
+                                 x.IsDirectory,
+                                 Date = ParseDateFromFileName(x.File.Name),
+                                 RetentionCategory = GetRetentionCategory(ParseDateFromFileName(x.File.Name))
+                             })
+                             .Where(x => x.Date != null)
+                             .OrderByDescending(x => x.Date)
+                             .GroupBy(x => x.RetentionCategory);
 
             foreach (var group in grouped)
             {
                 int keep = GetNumberOfFilesToKeepByRetentionCategory(group.Key);
                 foreach (var item in group.Skip(keep))
                 {
-                    try { item.File.Delete(); }
-                    catch (Exception ex) { _log.Warn($"Failed to delete backup file '{item.File.FullName}'", ex); }
+                    try 
+                    { 
+                        if (item.IsDirectory) Directory.Delete(item.File.FullName, true);
+                        else item.File.Delete(); 
+                    }
+                    catch (Exception ex) { _logger.LogWarning(ex, $"Failed to delete backup {(item.IsDirectory ? "directory" : "file")} '{item.File.FullName}'"); }
                 }
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured while removing older database backup files: ", ex);
+            _logger.LogError(ex, "An error occured while removing older database backup files. ");
         }
     }
 
@@ -213,9 +299,11 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
-            var parts = fileName.Split('_');
-            var datePart = parts[^1].Replace(".bak", "");
-            return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            var parts = Path.GetFileNameWithoutExtension(fileName).Split('_');
+            var datePart = parts[^1];
+            if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
+            if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            return null;
         }
         catch { return null; }
     }

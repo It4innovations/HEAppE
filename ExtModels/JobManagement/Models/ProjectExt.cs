@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Models;
@@ -80,6 +81,7 @@ public class ProjectExt
     public bool IsOneToOneMapping { get; set; }
     
     /// <summary>
+
     /// Key scripts directory path
     /// </summary>
     [DataMember(Name = "KeyScriptsDirectoryPath")]

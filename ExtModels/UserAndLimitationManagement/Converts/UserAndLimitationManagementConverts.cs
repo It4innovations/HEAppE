@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -39,9 +39,11 @@ public static class UserAndLimitationManagementConverts
             Id = userGroup.Id,
             Name = userGroup.Name,
             Description = userGroup.Description,
-            Project = userGroup.Project.ConvertIntToExt(),
-            Roles = userGroup.AdaptorUserUserGroupRoles?.Where(r=>!r.IsDeleted && r.AdaptorUser.Id == user.Id).Select(r => r.AdaptorUserRole.Name)
-                .ToArray()
+            Project = userGroup.Project?.ConvertIntToExt(),
+            Roles = userGroup.AdaptorUserUserGroupRoles?
+                .Where(r => !r.IsDeleted && r.AdaptorUserId == user.Id && r.AdaptorUserRole != null)
+                .Select(r => r.AdaptorUserRole.Name)
+                .ToArray() ?? System.Array.Empty<string>()
         };
         return convert;
     }
@@ -146,7 +148,7 @@ public static class UserAndLimitationManagementConverts
     private static FileTransferCipherType ConvertFileTransferMethodExtToInt(
         FileTransferCipherTypeExt? fileTransferMethod)
     {
-        if (!fileTransferMethod.HasValue) throw new InputValidationException("The file transfer method has to be set.");
+        if (!fileTransferMethod.HasValue) throw new InputValidationException("FileTransferMethodMustBeSet");
 
         return fileTransferMethod switch
         {

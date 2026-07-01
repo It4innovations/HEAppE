@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -92,7 +92,7 @@ public abstract class AbstractValidator
     protected static bool ContainsIllegalCharactersForPath(string text)
     {
         if (!string.IsNullOrEmpty(text))
-            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.\~]+", RegexOptions.Compiled);
+            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.\~\$]+", RegexOptions.Compiled);
         return false;
     }
 

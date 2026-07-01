@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -10,6 +11,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Services.Expirio;
 using HEAppE.Utils.Validation;
 using SshCaAPI;
 
@@ -19,7 +21,9 @@ internal class JobManagementValidator : AsyncAbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly ILogger _logger;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
 
     #region Constructors
 
@@ -27,12 +31,15 @@ internal class JobManagementValidator : AsyncAbstractValidator
     ///     Constructor
     /// </summary>
     /// <param name="validationObj">Validation Object</param>
-    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                    IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
         : base(validationObj)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
+        _logger = logger;
     }
 
     #endregion
@@ -156,7 +163,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
             if (string.IsNullOrEmpty(parameter.Query) &&
                 (task.CommandParameterValues == null ||
                  !task.CommandParameterValues.Any(
-                     w => w.TemplateParameter == parameter && w.TemplateParameter.IsEnabled)))
+                     w => w.TemplateParameter?.Id == parameter.Id && w.TemplateParameter.IsEnabled)))
                 _ = _messageBuilder.AppendLine(
                     $"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
 
@@ -181,7 +188,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateWallTimeLimit(TaskSpecification task)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetClusterNodeTypeById(task.ClusterNodeTypeId);
         if (clusterNodeType == null)
         {
@@ -207,7 +214,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateRequestedCluster(JobSpecification job)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetClusterById(job.ClusterId);
 
         if (clusterNodeType == null)
@@ -257,9 +264,9 @@ internal class JobManagementValidator : AsyncAbstractValidator
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
-            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
-                .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList();
+                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, _logger);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
+            return (await scheduler.GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)).ToList();
         }
         catch (Exception)
         {
@@ -267,6 +274,13 @@ internal class JobManagementValidator : AsyncAbstractValidator
             return Enumerable.Empty<string>();
         }
     }
+
+#pragma warning disable IDE1006
+    private string _expirioToken
+    {
+        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+    }
+#pragma warning restore IDE1006
 
     #endregion
 }

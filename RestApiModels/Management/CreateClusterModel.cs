@@ -1,7 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.Management;
@@ -42,14 +42,14 @@ public class CreateClusterModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "SchedulerType", IsRequired = true)]
     [Description("Scheduler type")]
-    public SchedulerType SchedulerType { get; set; }
+    public SchedulerTypeExt SchedulerType { get; set; }
 
     /// <summary>
     /// Connection protocol
     /// </summary>
     [DataMember(Name = "ConnectionProtocol", IsRequired = true)]
     [Description("Connection protocol")]
-    public ClusterConnectionProtocol ConnectionProtocol { get; set; }
+    public ClusterConnectionProtocolExt ConnectionProtocol { get; set; }
 
     /// <summary>
     /// Time zone
@@ -87,4 +87,11 @@ public class CreateClusterModel : SessionCodeModel
     [DataMember(Name = "ProxyConnectionId", IsRequired = true)]
     [Description("Proxy connection id")]
     public long? ProxyConnectionId { get; set; }
+
+    /// <summary>
+    /// Custom configuration
+    /// </summary>
+    [DataMember(Name = "CustomConfiguration", IsRequired = false)]
+    [Description("Custom configuration")]
+    public System.Collections.Generic.Dictionary<string, string>? CustomConfiguration { get; set; }
 }

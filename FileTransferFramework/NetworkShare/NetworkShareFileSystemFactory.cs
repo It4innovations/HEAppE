@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -10,9 +11,9 @@ public class NetworkShareFileSystemFactory : FileSystemFactory
 {
     #region Override Methods
 
-    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
-        return new NetworkShareFileSystemManager(_logger, configuration, this);
+        return new NetworkShareFileSystemManager(logger, configuration, this);
     }
 
     internal override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification syncFile,
@@ -28,7 +29,7 @@ public class NetworkShareFileSystemFactory : FileSystemFactory
     /// <summary>
     ///     File system connector is not necessary for the network shared file system because no connection pool is needed.
     /// </summary>
-    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         throw new NotImplementedException();
     }

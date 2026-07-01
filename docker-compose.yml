@@ -10,12 +10,17 @@ services:
       - "${HOST_SSHAGENT_HOST_MAP_FOLD_PATH}:${HOST_SSHAGENT_CONTAINER_MAP_FOLD_PATH}"
       - app_volume:/app/shared
     environment:
-      TZ: "Europe/Prague"
+      TZ: "UTC"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
     networks:
       - sshagent_internal_network
     profiles:
       - sshagent
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -27,17 +32,28 @@ services:
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:
-      - "${HOST_MSSQL_PORT}:1433"
+      - "${HOST_MSSQL_PORT:-6000}:1433"
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_PID: "Express"
-      TZ: "Europe/Prague"
+      MSSQL_PID: "${HOST_MSSQL_PID:-Developer}"
+      MSSQL_MEMORY_LIMIT_MB: "${HOST_MSSQL_MEMORY_LIMIT_MB:-4096}"
+      TZ: "UTC"
       SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${HOST_MSSQL_CPUS:-4}"
+          memory: "${HOST_MSSQL_MEMORY:-6G}"
     networks:
       - db_internal_network
       - external_network
     profiles:
       - db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   datastagingapi:
     image: "${DOCKER_REGISTRY-}datastagingapi"
@@ -51,16 +67,25 @@ services:
       - app_volume:/app/shared
       - "${HOST_DATA_STAGING_HOST_MAP_FOLD_NAME}:${HOST_DATA_STAGING_CONTAINER_MAP_FOLD_PATH}"
     ports:
-      - "${HOST_DATA_STAGING_PORT}:8080"
+      - "${HOST_DATA_STAGING_PORT:-5001}:8080"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
-      TZ: "Europe/Prague"
+      TZ: "UTC"
+      OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]-datastagingapi
+      OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
     networks:
       - db_internal_network
       - external_network
       - vaultNet
+      - otelnet
     profiles:
       - staging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   heappe:
     image: "${DOCKER_REGISTRY-}heappe"
@@ -74,21 +99,85 @@ services:
       - app_volume:/app/shared
       - vault-volume:/opt/vault-backup-access:ro
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
+      - "${HOST_KRB5_CONF_PATH:-./docker-compose.yml}:/etc/krb5.conf:ro"
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:
-      - "${HOST_APP_PORT}:80"
+      - "${HOST_APP_PORT:-5000}:80"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
-      TZ: "Europe/Prague"
+      TZ: "UTC"
+      OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
+      OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
     networks:
       - sshagent_internal_network
       - db_internal_network
       - external_network
       - vaultNet
+      - otelnet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+  
+  otel-collector-init:
+    image: busybox:1.37.0
+    container_name: "${INSTANCE_NAME}_otel-collector-init"
+    command: sh -c "chown -R 10001:10001 /var/log/otel"
+    volumes:
+      - /var/log/otel:/var/log/otel
+    profiles:
+      - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+  
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.151.0
+    container_name: "${INSTANCE_NAME}_otel-collector"
+    depends_on:
+      otel-collector-init:
+        condition: service_completed_successfully
+    environment:
+      OTEL_HOST_GRPC_PORT: "${OTEL_HOST_GRPC_PORT:-4317}"
+    volumes:
+      - ./otel-configs/otel-config.yaml:/etc/otel/config.yaml
+      - /var/log/otel:/var/log/otel
+    command: --config /etc/otel/config.yaml
+    restart: unless-stopped
+    ports:
+      - "${OTEL_HOST_GRPC_PORT:-4317}:${OTEL_HOST_GRPC_PORT:-4317}"
+    networks:
+      - otelnet
+    profiles:
+      - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+  
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.17.0
+    container_name: "${INSTANCE_NAME}_jaeger"
+    ports:
+      - "${OTEL_JAEGER_CLIENT_PORT:-16686}:16686"
+    networks:
+      - otelnet
+    profiles:
+      - telemetry
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault:
     image: hashicorp/vault:1.17.3
@@ -105,6 +194,11 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vaultagent:
     image: hashicorp/vault:1.17.3
@@ -120,6 +214,11 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault_init:
     build:
@@ -140,6 +239,11 @@ services:
       - vaultNet
     profiles:
       - initVault
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   vault_unseal:
     build:
@@ -159,6 +263,11 @@ services:
     networks:
       - vaultNet
     command: /opt/unsealOrInitHVault.sh
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   app_volume:
@@ -175,3 +284,5 @@ networks:
     internal: true
   vaultNet:
     internal: true
+  otelnet:
+    driver: bridge

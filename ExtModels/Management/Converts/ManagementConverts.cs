@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -25,6 +26,10 @@ public static class ManagementConverts
                 return UsageType.CoreHours;
             case UsageTypeExt.NodeHours:
                 return UsageType.NodeHours;
+            case UsageTypeExt.Credits:
+                return UsageType.Credits;
+            case UsageTypeExt.QPUSeconds:
+                return UsageType.QPUSeconds;
             default:
                 return UsageType.CoreHours;
         }
@@ -75,6 +80,21 @@ public static class ManagementConverts
         return convert;
     }
 
+    public static CredentialResponseExt ConvertIntToExt(this CredentialResponse credential)
+    {
+        var convert = new CredentialResponseExt
+        {
+            Id = credential.Id,
+            Username = credential.Username,
+            AuthType = credential.AuthType,
+            IsGenerated = credential.IsGenerated,
+            PublicKeyFingerprint = credential.PublicKeyFingerprint,
+            PublicKeyExt = credential.PublicKeyExt,
+            AdaptorUserId = credential.AdaptorUserId,
+        };
+        return convert;
+    }
+
     public static ClusterInitReportExt ConvertIntToExt(this ClusterInitReport report)
     {
         var convert = new ClusterInitReportExt
@@ -116,7 +136,9 @@ public static class ManagementConverts
             ScratchStoragePath = cp.ScratchStoragePath,
             ProjectStoragePath = cp.ProjectStoragePath,
             CreatedAt = cp.CreatedAt,
-            ModifiedAt = cp.ModifiedAt
+            ModifiedAt = cp.ModifiedAt,
+            PreferredAuthType = cp.PreferredAuthType.ConvertIntToExt(),
+            AdaptorUserId = cp.ClusterProjectCredentials.FirstOrDefault(x => !x.IsDeleted)?.AdaptorUserId
         };
         return convert;
     }

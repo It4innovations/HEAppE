@@ -12,6 +12,12 @@ public class UserContextPropertyConverter : PatternLayoutConverter
 {
     protected override void Convert(TextWriter writer, LoggingEvent loggingEvent)
     {
+        var requestId = loggingEvent.LookupProperty("requestId");
+        if (requestId != null)
+        {
+            writer.Write($"[{requestId}] ");
+        }
+
         var userId = loggingEvent.LookupProperty("userId");
         var userName = loggingEvent.LookupProperty("userName");
         var userEmail = loggingEvent.LookupProperty("userEmail");

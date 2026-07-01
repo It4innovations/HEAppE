@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
@@ -16,9 +17,27 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     #region Instances
 
     /// <summary>
+    ///     Build script instead of command line parameters
+    /// </summary>
+    protected bool _pbs;
+
+    /// <summary>
     ///     Task allocation command builder
     /// </summary>
-    protected StringBuilder _taskBuilder;
+    protected StringBuilder _taskAppender;
+
+    /// <summary>
+    ///     Append parameter to builder
+    /// </summary>
+    protected void DoAppend(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+        if (_pbs)
+            _taskAppender.AppendLine("#PBS " + value);
+        else
+            _taskAppender.Append(value);
+    }
 
     #endregion
 
@@ -30,7 +49,10 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <param name="taskSource">Basic allocation command</param>
     public PbsProTaskAdapter(string taskSource)
     {
-        _taskBuilder = new StringBuilder(taskSource);
+        _pbs = taskSource.StartsWith("#!");
+        _taskAppender = new StringBuilder(taskSource);
+        if (_pbs)
+            _taskAppender.AppendLine();
     }
 
     #endregion
@@ -107,14 +129,14 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <summary>
     ///     Task allocation command
     /// </summary>
-    public object AllocationCmd => _taskBuilder.ToString();
+    public object AllocationCmd => _taskAppender.ToString();
 
     /// <summary>
     ///     Task priority
     /// </summary>
     public TaskPriority Priority
     {
-        set => _taskBuilder.Append($" -p {(int)Math.Round(2047 / 8f * (int)value) - 1024}");
+        set => DoAppend($" -p {(int)Math.Round(2047 / 8f * (int)value) - 1024}");
     }
 
     /// <summary>
@@ -122,7 +144,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Queue
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -q {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -q {value}" : string.Empty);
     }
 
     /// <summary>
@@ -144,11 +166,19 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     }
 
     /// <summary>
+    ///     Reservation
+    /// </summary>
+    public string Reservation
+    {
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -U {value}" : string.Empty);
+    }
+
+    /// <summary>
     ///     Task CPU Hyper Threading
     /// </summary>
     public bool CpuHyperThreading
     {
-        set => _taskBuilder.Append(value ? " -l cpu_hyper_threading=true" : string.Empty);
+        set => DoAppend(value ? " -l cpu_hyper_threading=true" : string.Empty);
     }
 
     /// <summary>
@@ -156,7 +186,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string JobArrays
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -J {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -J {value}" : string.Empty);
     }
 
     /// <summary>
@@ -164,7 +194,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Name
     {
-        set => _taskBuilder.Append($" -N {value}");
+        set => DoAppend($" -N {value}");
     }
 
     /// <summary>
@@ -172,7 +202,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string Project
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
     }
 
     /// <summary>
@@ -184,9 +214,15 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         {
             if (value != null && value.Any())
             {
+                if (_pbs)
+                    _taskAppender.Append("#SBATCH");
+
                 var builder = new StringBuilder(" -W depend=afterok");
                 value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}"));
-                _taskBuilder.Append(builder);
+                _taskAppender.Append(builder);
+
+                if (_pbs)
+                    _taskAppender.AppendLine();
             }
         }
     }
@@ -196,7 +232,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsExclusive
     {
-        set => _taskBuilder.Append(value ? " -l place=free:excl" : string.Empty);
+        set => DoAppend(value ? " -l place=free:excl" : string.Empty);
     }
 
     /// <summary>
@@ -204,7 +240,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public bool IsRerunnable
     {
-        set => _taskBuilder.Append(value ? " -r y" : " -r n");
+        set => DoAppend(value ? " -r y" : " -r n");
     }
 
     /// <summary>
@@ -215,7 +251,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set
         {
             var wallTime = TimeSpan.FromSeconds(value);
-            _taskBuilder.Append($" -l walltime={wallTime:hh\\:mm\\:ss}");
+            DoAppend($" -l walltime={wallTime:hh\\:mm\\:ss}");
         }
     }
 
@@ -224,7 +260,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdErrFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
     }
 
     /// <summary>
@@ -241,7 +277,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string StdOutFilePath
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
     }
 
     /// <summary>
@@ -253,7 +289,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         set
         {
-            //_taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -d {value}" : string.Empty);
+            //DoAppend(!string.IsNullOrEmpty(value) ? $" -d {value}" : string.Empty);
         }
     }
 
@@ -262,7 +298,22 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// </summary>
     public string ExtendedAllocationCommand
     {
-        set => _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+        set => DoAppend(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+    }
+
+    public long? Memory
+    {
+        set => DoAppend(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerCPU
+    {
+        set => DoAppend(value != null ? $" -l mem={value}mb" : string.Empty);
+    }
+
+    public long? MemoryPerGPU
+    {
+        set => DoAppend(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
     }
 
     /// <summary>
@@ -276,61 +327,109 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <param name="maxCores">Task max cores</param>
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
-        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
+        int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
+        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
+
         var allocationCmdBuilder = new StringBuilder(" -l select=");
 
-        //For specific node names
-        if (requiredNodes?.Count > 0)
+        if (isGpuAllocation)
         {
-            var requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
-            var remainingCores = maxCores - requiredNodesMaxCores;
-            var cpusPerHost = maxCores > requiredNodesMaxCores ? coresPerNode : maxCores / requiredNodes.Count;
+            int nodes = gpuNodes ?? 1;
+            int gpuCount = gpuCores ?? 1;
+            int gpusPerNode = gpuCount / nodes;
+            if (gpusPerNode == 0) gpusPerNode = 1;
 
-            var parSpecsForReqNodes = paralizationSpecs
-                .Where(w => w.MaxCores % coresPerNode == 0 && w.MaxCores / coresPerNode == 1)
-                .ToList();
-
-            var i = 0;
-            var first = true;
-            foreach (var hostname in requiredNodes)
+            if (requiredNodes?.Count > 0)
             {
-                var parSpec = parSpecsForReqNodes?.ElementAtOrDefault(i);
-                allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}");
-                if (parSpec != null)
+                nodes = requiredNodes.Count;
+                gpusPerNode = gpuCount / nodes;
+                if (gpusPerNode == 0) gpusPerNode = 1;
+
+                var first = true;
+                foreach (var hostname in requiredNodes)
                 {
-                    allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue
-                        ? $":mpiprocs={parSpec.MPIProcesses.Value}"
-                        : string.Empty);
-                    allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue
-                        ? $":ompthreads={parSpec.OpenMPThreads.Value}"
-                        : string.Empty);
+                    allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}:ngpus={gpusPerNode}");
+                    first = false;
+                }
+            }
+            else
+            {
+                var reqNodeGroupsCmd = string.Empty;
+                if (requestedNodeGroups.Any())
+                {
+                    var builder = new StringBuilder();
+                    foreach (var nodeGroup in requestedNodeGroups) builder.Append($":{nodeGroup}=true");
+                    reqNodeGroupsCmd = builder.ToString();
                 }
 
-                allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy)
-                    ? string.Empty
-                    : $" -l place={placementPolicy}");
-
-                i++;
-                if (first)
-                    first = false;
-            }
-
-            if (remainingCores > 0)
-            {
-                allocationCmdBuilder.Append('+');
-                allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                    paralizationSpecs.Except(parSpecsForReqNodes).ToList(), remainingCores, coresPerNode));
+                int cpusPerChunk = gpuNodes.HasValue && gpuNodes.Value > 0 ? coresPerNode : 1;
+                allocationCmdBuilder.Append($"{nodes}{reqNodeGroupsCmd}:ncpus={cpusPerChunk}:ngpus={gpusPerNode}");
             }
         }
         else
         {
-            allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
-                paralizationSpecs, maxCores, coresPerNode));
+            if (gpuCores.HasValue || gpuNodes.HasValue)
+            {
+                throw new HEAppE.Exceptions.External.InputValidationException("GpuAllocationNotSupportedForCpuNodeType");
+            }
+
+            if (!maxCores.HasValue || maxCores <= 0)
+                throw new ArgumentException("Argument 'maxCores' have to be specified for PbsPro CPU task.");
+
+            //For specific node names
+            if (requiredNodes?.Count > 0)
+            {
+                var requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
+                var remainingCores = maxCores - requiredNodesMaxCores;
+                var cpusPerHost = maxCores > requiredNodesMaxCores ? coresPerNode : maxCores / requiredNodes.Count;
+
+                var parSpecsForReqNodes = paralizationSpecs
+                    .Where(w => w.MaxCores % coresPerNode == 0 && w.MaxCores / coresPerNode == 1)
+                    .ToList();
+
+                var i = 0;
+                var first = true;
+                foreach (var hostname in requiredNodes)
+                {
+                    var parSpec = parSpecsForReqNodes?.ElementAtOrDefault(i);
+                    allocationCmdBuilder.Append($"{(first ? string.Empty : "+")}1:host={hostname}:ncpus={coresPerNode}");
+                    if (parSpec != null)
+                    {
+                        allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue
+                            ? $":mpiprocs={parSpec.MPIProcesses.Value}"
+                            : string.Empty);
+                        allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue
+                            ? $":ompthreads={parSpec.OpenMPThreads.Value}"
+                            : string.Empty);
+                    }
+
+                    i++;
+                    if (first)
+                        first = false;
+                }
+
+                if (remainingCores > 0)
+                {
+                    allocationCmdBuilder.Append('+');
+                    allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
+                        paralizationSpecs.Except(parSpecsForReqNodes).ToList(), (int)remainingCores, coresPerNode));
+                }
+            }
+            else
+            {
+                allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
+                    paralizationSpecs, (int)maxCores, coresPerNode));
+            }
         }
 
-        _taskBuilder.Append(allocationCmdBuilder);
+        if (!string.IsNullOrEmpty(placementPolicy))
+        {
+            allocationCmdBuilder.Append($" -l place={placementPolicy}");
+        }
+
+        DoAppend(allocationCmdBuilder.ToString());
     }
 
     /// <summary>
@@ -341,9 +440,16 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         if (variables != null && variables.Any())
         {
-            _taskBuilder.Append(" -v ");
-            foreach (var variable in variables) _taskBuilder.Append($"{variable.Name}={variable.Value},");
-            _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
+            if (_pbs)
+                _taskAppender.Append("#PBS ");
+            
+            _taskAppender.Append(" -v ");
+            foreach (var variable in variables)
+                _taskAppender.Append($"{variable.Name}={variable.Value},");
+            _taskAppender.Remove(_taskAppender.Length - 1, 1);
+
+            if (_pbs)
+                _taskAppender.AppendLine();
         }
     }
 
@@ -360,7 +466,9 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         var nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
         var taskSourceSb = new StringBuilder();
-        taskSourceSb.Append($"echo 'cd {nodefileDir};cd {workDir};");
+        if (!_pbs)
+            taskSourceSb.Append($"echo '");
+        taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
         taskSourceSb.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
@@ -381,10 +489,18 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 : commandLine.Last().Equals(';')
                     ? commandLine
                     : $"{commandLine};");
-
-        taskSourceSb.Append($"' | {_taskBuilder}");
-        //taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
-        _taskBuilder = taskSourceSb;
+        if (!_pbs)
+        {
+            taskSourceSb.Append($"'");
+            taskSourceSb.Append($" | {_taskAppender}");
+            //taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
+            _taskAppender = taskSourceSb;
+        }
+        else
+        {
+            _taskAppender.AppendLine();
+            _taskAppender.Append(taskSourceSb.ToString());
+        }
     }
 
     #endregion

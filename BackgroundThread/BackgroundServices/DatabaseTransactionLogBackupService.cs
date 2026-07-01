@@ -1,30 +1,48 @@
-﻿using System;
+using HEAppE.BackgroundThread.Configuration;
+using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DataAccessTier.Configuration.Shared;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using HEAppE.DataAccessTier;
-using HEAppE.DataAccessTier.Configuration;
-using HEAppE.DataAccessTier.Configuration.Shared;
-using log4net;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Hosting;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
+    private readonly ILogger _logger;
     private readonly DatabaseTransactionLogBackupConfiguration _configuration;
-    private readonly ILog _log;
 
-    public DatabaseTransactionLogBackupService(DatabaseTransactionLogBackupConfiguration configuration)
+    public DatabaseTransactionLogBackupService(ILoggerFactory loggerFactory, DatabaseTransactionLogBackupConfiguration configuration)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseTransactionLogBackupService");
         _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Run initial retention policy check on startup to clean up obsolete/old log backups
+        try
+        {
+            if (Directory.Exists(_configuration.LocalPath))
+            {
+                ApplyRetentionPolicy(_configuration.LocalPath);
+            }
+            if (!string.IsNullOrEmpty(_configuration.NASPath) && Directory.Exists(_configuration.NASPath))
+            {
+                ApplyRetentionPolicy(_configuration.NASPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during initial database transaction log backup retention cleanup on startup: ");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -44,7 +62,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             }
             catch (Exception ex)
             {
-                _log.Error("An error occured during execution of the DatabaseTransactionLogBackup background service: ", ex);
+                _logger.LogError(ex, "An error occured during execution of the DatabaseTransactionLogBackup background service: ");
             }
 
             try
@@ -75,7 +93,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during check if database transaction logs backup can be performed: ", ex);
+            _logger.LogError(ex, "An error occured during check if database transaction logs backup can be performed.");
             return false;
         }
     }
@@ -95,18 +113,18 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
 
-            _log.Info($"Transaction logs backup file was created to: {backupPath}");
+            _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
                 var nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _log.Info($"Transaction logs backup file was copied to NAS: {nasFile}");
+                _logger.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during execution of the transaction logs backup: ", ex);
+            _logger.LogError(ex, "An error occured during execution of the transaction logs backup.");
         }
     }
 
@@ -116,7 +134,6 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         {
             var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_LOGS_*.trn")
                              .Select(f => new FileInfo(f))
-                             .OrderByDescending(f => f.CreationTime)
                              .ToList();
 
             var grouped = files.Select(f => new
@@ -126,6 +143,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                 RetentionCategory = GetRetentionCategory(ParseDateFromFileName(f.Name))
             })
                 .Where(x => x.Date != null)
+                .OrderByDescending(x => x.Date)
                 .GroupBy(x => x.RetentionCategory);
 
             foreach (var group in grouped)
@@ -139,14 +157,14 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        _log.Warn($"Failed to delete transaction logs backup '{item.File.FullName}'", ex);
+                        _logger.LogWarning(ex, $"Failed to delete transaction logs backup '{item.File.FullName}'");
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured while removing older transaction logs backups: ", ex);
+            _logger.LogError(ex, "An error occured while removing older transaction logs backups.");
         }
     }
 
@@ -154,9 +172,11 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
     {
         try
         {
-            var parts = fileName.Split('_');
-            var datePart = parts[^1].Replace(".trn", "");
-            return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            var parts = Path.GetFileNameWithoutExtension(fileName).Split('_');
+            var datePart = parts[^1];
+            if (datePart.Length == 14) return DateTime.ParseExact(datePart, "yyyyMMddHHmmss", null);
+            if (datePart.Length == 12) return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
+            return null;
         }
         catch
         {

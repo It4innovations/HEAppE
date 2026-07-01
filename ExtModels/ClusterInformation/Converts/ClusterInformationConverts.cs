@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -17,7 +18,6 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts;
 public static class ClusterInformationConverts
 {
     #region Private Methods
-
     private static ProxyTypeExt ConvertProxyTypeIntToExt(ProxyType? proxyType)
     {
         if (!proxyType.HasValue) throw new InputValidationException("EnumValueMustBeSet", "Proxy type");
@@ -39,6 +39,7 @@ public static class ClusterInformationConverts
             Id = cluster.Id,
             Name = cluster.Name,
             Description = cluster.Description,
+            MasterNodeName = cluster.MasterNodeName,
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
@@ -63,7 +64,8 @@ public static class ClusterInformationConverts
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
-                .ToArray()
+                .ToArray(),
+            CustomConfiguration = cluster.CustomConfiguration
         };
         return convert;
     }
@@ -76,20 +78,43 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+            SchedulerType.FirecRestSlurm => SchedulerTypeExt.FirecRestSlurm,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Scheduler type",
+                $"<{string.Join(", ", Enum.GetValues(typeof(SchedulerTypeExt)).Cast<int>())}>"
+            )
         };
+    }
+    
+    public static SchedulerType ConvertExtToInt(this SchedulerTypeExt schedulerTypeExt)
+    {
+        return (SchedulerType)schedulerTypeExt;
+    }
+    
+    public static ClusterConnectionProtocol ConvertExtToInt(this ClusterConnectionProtocolExt connectionProtocolExt)
+    {
+        return (ClusterConnectionProtocol)connectionProtocolExt;
     }
     
     public static ClusterConnectionProtocolExt ConvertIntToExt(this ClusterConnectionProtocol connectionProtocol)
     {
         return connectionProtocol switch
         {
+            ClusterConnectionProtocol.None => ClusterConnectionProtocolExt.None,
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
+            ClusterConnectionProtocol.Http => ClusterConnectionProtocolExt.Http,
+            ClusterConnectionProtocol.Https => ClusterConnectionProtocolExt.Https,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Connection protocol",
+                $"<{string.Join(", ", Enum.GetValues(typeof(ClusterConnectionProtocolExt)).Cast<int>())}>"
+            )
         };
     }
+
 
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
     {
@@ -412,8 +437,19 @@ public static class ClusterInformationConverts
                 ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate,
             ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy =>
                 ClusterAuthenticationCredentialsAuthTypeExt.SshCertificateViaProxy,
+            ClusterAuthenticationCredentialsAuthType.Kerberos =>
+                ClusterAuthenticationCredentialsAuthTypeExt.Kerberos,
+            ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio =>
+                ClusterAuthenticationCredentialsAuthTypeExt.FirecRestIdpViaExpirio,
             _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
         };
+    }
+
+    public static ClusterAuthenticationCredentialsAuthType ConvertExtToInt(
+        this ClusterAuthenticationCredentialsAuthTypeExt type)
+    {
+        _ = Enum.TryParse(type.ToString(), out ClusterAuthenticationCredentialsAuthType convert);
+        return convert;
     }
 
     #endregion

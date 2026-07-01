@@ -1,0 +1,840 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Detailed Job Reporting",
+    "version": "v6.4.0"
+  },
+  "paths": {
+    "/heappe/JobReporting/AggregatedUserGroupResourceUsageReport": {
+      "get": {
+        "tags": [
+          "JobReporting"
+        ],
+        "summary": "Get aggregated resource report usage for user groups",
+        "parameters": [
+          {
+            "name": "StartTime",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "EndTime",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "UserId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectAggregatedReportExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobReporting/JobsDetailedReport": {
+      "get": {
+        "tags": [
+          "JobReporting"
+        ],
+        "summary": "Get job detailed report",
+        "parameters": [
+          {
+            "name": "SubProjects",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "TimeFrom",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "TimeTo",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "UserId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDetailedReportExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BadRequestResult": {
+        "type": "object",
+        "properties": {
+          "StatusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterAggregatedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "ClusterNodeTypesAggregations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterNodeTypeAggregatedReportExt"
+            },
+            "description": "List of cluster node type aggregated reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterDetailedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "Description": {
+            "type": "string",
+            "description": "Description",
+            "nullable": true
+          },
+          "ClusterNodeTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterNodeTypeDetailedReportExt"
+            },
+            "description": "List of cluster node type detailed reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterNodeTypeAggregatedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Id",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "ClusterNodeTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterNodeTypeReportExt"
+            },
+            "description": "List of cluster node type reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterNodeTypeDetailedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "Description": {
+            "type": "string",
+            "description": "Description",
+            "nullable": true
+          },
+          "QueueName": {
+            "type": "string",
+            "description": "Queue name",
+            "nullable": true
+          },
+          "Jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobDetailedReportExt"
+            },
+            "description": "List of job detailed reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterNodeTypeReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "Jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobReportExt"
+            },
+            "description": "List of job reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobDetailedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/JobStateExt"
+          },
+          "CreationTime": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time"
+          },
+          "SubmitTime": {
+            "type": "string",
+            "description": "Submit time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Submitter": {
+            "type": "string",
+            "description": "Submitter",
+            "nullable": true
+          },
+          "Tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailedReportExt"
+            },
+            "description": "List of task detailed reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "SubProject": {
+            "type": "string",
+            "description": "Sub project",
+            "nullable": true
+          },
+          "Tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskReportExt"
+            },
+            "description": "List of task reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobStateExt": {
+        "enum": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "ProjectAggregatedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "AccountingString": {
+            "type": "string",
+            "description": "Accounting string",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "UsageType": {
+            "$ref": "#/components/schemas/UsageTypeExt"
+          },
+          "SubProjects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubProjectAggregatedReportExt"
+            },
+            "description": "List of sub project aggregated reports",
+            "nullable": true
+          },
+          "Clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterAggregatedReportExt"
+            },
+            "description": "List of cluster aggregated reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectDetailedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "Description": {
+            "type": "string",
+            "description": "Description",
+            "nullable": true
+          },
+          "AccountingString": {
+            "type": "string",
+            "description": "Accounting string",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "UsageType": {
+            "$ref": "#/components/schemas/UsageTypeExt"
+          },
+          "StartDate": {
+            "type": "string",
+            "description": "Start date",
+            "format": "date-time"
+          },
+          "EndDate": {
+            "type": "string",
+            "description": "End date",
+            "format": "date-time"
+          },
+          "Clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterDetailedReportExt"
+            },
+            "description": "List of cluster detailed reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubProjectAggregatedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "TotalUsage": {
+            "type": "number",
+            "description": "Total usage",
+            "format": "double",
+            "nullable": true
+          },
+          "Clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterAggregatedReportExt"
+            },
+            "description": "List of cluster aggregated reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskDetailedReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "ScheduledJobId": {
+            "type": "string",
+            "description": "Scheduled job id",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/TaskStateExt"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CommandTemplateId": {
+            "type": "integer",
+            "description": "Command template id",
+            "format": "int64"
+          },
+          "CommandTemplateName": {
+            "type": "string",
+            "description": "Command template name",
+            "nullable": true
+          },
+          "Usage": {
+            "type": "number",
+            "description": "Usage",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskReportExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "Usage": {
+            "type": "number",
+            "description": "Usage",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskStateExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "UsageTypeExt": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "type": "apiKey",
+        "name": "X-API-Key",
+        "in": "header"
+      },
+      "Bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "ServiceApiKey": [ ]
+    },
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation;
 [Flags]
 public enum TaskState
 {
+    Unknown = 0,
     Configuring = 1,
     Submitted = 2,
     Queued = 4,
@@ -12,5 +13,6 @@ public enum TaskState
     Finished = 16,
     Failed = 32,
     Canceled = 64,
+    Paused = 128,
     Deleted = 256
 }

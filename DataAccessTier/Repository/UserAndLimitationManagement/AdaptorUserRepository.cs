@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,22 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .FirstOrDefault(w => w.Username == username);
     }
 
+    public async Task<AdaptorUser> GetByNameAsync(string username)
+    {
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserRole)
+
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .ThenInclude(ug => ug.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+        
+            .FirstOrDefaultAsync(w => w.Username == username);
+    }
+
     public AdaptorUser GetByApiKey(string apiKey)
     {
         return _dbSet
@@ -49,6 +66,19 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .SingleOrDefault(u => u.Password == apiKey);
     }
 
+    public async Task<AdaptorUser> GetByApiKeyAsync(string apiKey)
+    {
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .ThenInclude(ug => ug.Project)
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+            .SingleOrDefaultAsync(u => u.Password == apiKey);
+    }
 
     public override AdaptorUser GetById(long id)
     {
@@ -67,27 +97,68 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByNameIgnoreQueryFilters(string username)
     {
         return _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Username == username);
+    }
+
+    public async Task<AdaptorUser> GetByNameIgnoreQueryFiltersAsync(string username)
+    {
+        return await _dbSet
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .IgnoreQueryFilters() 
+            .FirstOrDefaultAsync(w => w.Username == username);
     }
     
     public AdaptorUser GetByEmailIgnoreQueryFilters(string email)
     {
         return _dbSet
-            .Include(x=>x.AdaptorUserUserGroupRoles)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Email == email);
+    }
+
+    public async Task<AdaptorUser> GetByEmailIgnoreQueryFiltersAsync(string email)
+    {
+        return await _dbSet
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .IgnoreQueryFilters() 
+            .FirstOrDefaultAsync(w => w.Email == email);
     }
 
     public List<AdaptorUser> GetAllUsersInGroup(long groupId)
     {
         return _dbSet
             .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                    .ThenInclude(g => g.Project)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Where(u => u.AdaptorUserUserGroupRoles
+                .Any(ugr => ugr.AdaptorUserGroupId == groupId))
+            .ToList();
+    }
+
+    public async Task<List<AdaptorUser>> GetAllUsersInGroupAsync(long groupId)
+    {
+        return await _dbSet
+            .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .Where(u => u.AdaptorUserUserGroupRoles
                 .Any(ugr => ugr.AdaptorUserGroup.Id == groupId))
-            .ToList();
+            .ToListAsync();
     }
 
     public IQueryable<AdaptorUser> GetQueryableWithoutFilters()
@@ -100,9 +171,11 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     {
         return _dbSet.FirstOrDefault(w => w.Email == email);
     }
-    
-    
 
+    public async Task<AdaptorUser> GetByEmailAsync(string email)
+    {
+        return await _dbSet.FirstOrDefaultAsync(w => w.Email == email);
+    }
 
     #endregion
 }

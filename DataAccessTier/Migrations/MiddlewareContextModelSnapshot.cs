@@ -18,9 +18,6 @@ namespace HEAppE.DataAccessTier.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.8")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -35,6 +32,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("ConnectionProtocol")
                         .HasColumnType("int");
+
+                    b.Property<string>("CustomConfiguration")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -473,6 +473,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PreferredAuthType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
+
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
@@ -779,15 +784,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<long?>("TaskSpecificationId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Value")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.HasKey("Id");
 
@@ -948,7 +953,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AllParameters")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("AllocatedCores")
                         .HasColumnType("int");
@@ -958,6 +963,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<double?>("AllocatedTime")
                         .HasColumnType("float");
+
+                    b.Property<string>("CallbackSecret")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
@@ -1075,6 +1084,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Reservation")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<long?>("SubProjectId")
                         .HasColumnType("bigint");
@@ -1330,6 +1343,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool?>("CpuHyperThreading")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("GpuCores")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GpuNodes")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsExclusive")
                         .HasColumnType("bit");
 
@@ -1352,6 +1371,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int?>("MaxCores")
                         .HasColumnType("int");
+
+                    b.Property<long?>("Memory")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerCPU")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MemoryPerGPU")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("MinCores")
                         .HasColumnType("int");

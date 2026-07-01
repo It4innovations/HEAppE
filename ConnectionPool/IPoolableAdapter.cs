@@ -1,17 +1,16 @@
 ﻿using System;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.ConnectionPool;
 
 public interface IPoolableAdapter
 {
-    
-    object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials,
-        ClusterProxyConnection proxy, string sshCaToken, int? port);
+    Task<object> CreateConnectionObjectAsync(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials,
+        Cluster cluster, string sshCaToken, string lexisToken, int? port);
 
-    void Connect(object connection);
-
-    void Disconnect(object connection);
+    Task ConnectAsync(object connection);
+    Task DisconnectAsync(object connection);
     
     bool IsConnected(object connection);
 }

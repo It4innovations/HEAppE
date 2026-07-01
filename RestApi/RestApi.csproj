@@ -1,8 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <DockerTargetOS>Linux</DockerTargetOS>
         <UserSecretsId>a72f16e1-281e-4278-a259-fe4b1a9cef3a</UserSecretsId>
+        <ServerGarbageCollection>false</ServerGarbageCollection>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -35,7 +37,11 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Authentication\Authentication.csproj" />
@@ -48,6 +54,8 @@
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
         <ProjectReference Include="..\SshCaAPI\SshCaAPI.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
+        <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
+        <ProjectReference Include="..\Tmds.Ssh\src\Tmds.Ssh\Tmds.Ssh.csproj" />
     </ItemGroup>
     <ItemGroup>
         <Content Update="appsettings.default.json">
@@ -57,4 +65,32 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
+    <PropertyGroup>
+        <ChangelogContent>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../CHANGELOG.md'))</ChangelogContent>
+        <HeappeVersion>$([System.Text.RegularExpressions.Regex]::Match($(ChangelogContent), '(?m)(?&lt;=^##\s*[vV]?)[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*'))</HeappeVersion>
+    </PropertyGroup>
+    <Target Name="GenerateVersionInfoFile" BeforeTargets="BeforeBuild;CoreCompile" Inputs="$(MSBuildThisFileDirectory)../CHANGELOG.md" Outputs="$(IntermediateOutputPath)VersionInfo.g.cs">
+        <PropertyGroup>
+            <VersionFileContent>
+// &lt;auto-generated /&gt;
+namespace HEAppE.RestApi
+{
+    public static class VersionInfo
+    {
+        public const string Version = "v$(HeappeVersion)"%3b
+    }
+}
+            </VersionFileContent>
+        </PropertyGroup>
+        <WriteLinesToFile File="$(IntermediateOutputPath)VersionInfo.g.cs" Lines="$(VersionFileContent)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)VersionInfo.g.cs" />
+        </ItemGroup>
+    </Target>
+    <Target Name="GenerateSwagger" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(CI)' != 'true' And '$(TF_BUILD)' != 'true'">
+        <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi.json $(OutputPath)RestApi.dll v$(HeappeVersion)" />
+        <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-DetailedJobReporting.json $(OutputPath)RestApi.dll DetailedJobReporting" />
+        <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-Dictionary.json $(OutputPath)RestApi.dll Dictionary" />
+        <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-py4heappe.json $(OutputPath)RestApi.dll py4heappe" />
+    </Target>
 </Project>

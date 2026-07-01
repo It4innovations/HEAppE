@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
-using System.Net;
 using Microsoft.Extensions.Http;
 using Polly;
 using Polly.Extensions.Http;
@@ -55,12 +55,12 @@ using Microsoft.OpenApi.Models;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
-using Services.Expirio;
-using Services.Expirio.Configuration;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
-using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
+using HEAppE.Services.FirecRest;
 
 namespace HEAppE.RestApi;
 
@@ -90,10 +90,12 @@ public class Startup
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
         Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
+        ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+        Configuration.Bind("MigrationSettings", new MigrationSettings());
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());
@@ -105,28 +107,20 @@ public class Startup
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
         services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+            sp.GetRequiredService<IHttpClientFactory>(),
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
             SshCaSettings.ConnectionTimeoutInSeconds
         ));
-
+        
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-
-        var retryPolicy = HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (outcome, timespan, retryCount, context) =>
-                {
-                    LogManager.GetLogger("RetryPolicy").Warn($"Retry {retryCount} after {timespan.TotalSeconds}s: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
-                });
 
         services.ConfigureAll<HttpClientFactoryOptions>(options =>
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
             {
-                builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(retryPolicy));
+                builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy));
             });
         });
 
@@ -147,11 +141,13 @@ public class Startup
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
             {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-                conf.Timeout = TimeSpan.FromSeconds(60);
+                conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
-        });
+        })
+        .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
-        services.AddScoped<IExpirioService, ExpirioService>();
+        services.AddSingleton<IExpirioService, ExpirioService>();
+        services.AddSingleton<IFirecRestTokenService, FirecRestTokenService>();
 
         services.AddHttpClient("ExpirioClient", conf =>
         {
@@ -159,8 +155,14 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
-        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)));
+        .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
+        services.AddHttpClient("SshCaClient")
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+        services.AddHttpClient("FirecREST")
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+        
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
@@ -176,9 +178,12 @@ public class Startup
                     .AllowAnyMethod();
             });
         });
-
-        services.AddHttpClient("LexisTokenExchangeClient");
-        services.AddSingleton<ILexisTokenService, LexisTokenService>();
+        
+        services.AddHttpClient("LexisTokenExchangeClient", conf => 
+        {
+            conf.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.ConnectionTimeoutInSeconds);
+        });
+        services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
         {
@@ -200,7 +205,7 @@ public class Startup
                     Array.Empty<string>()
                 }
             });
-
+            
             gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
@@ -223,17 +228,19 @@ public class Startup
             
             gen.ParameterFilter<PascalCaseParameterFilter>();
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo { Title = SwaggerConfiguration.Title, Version = SwaggerConfiguration.Version });
-            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo { Title = "Detailed Job Reporting API", Version = SwaggerConfiguration.Version });
+            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo { Title = SwaggerConfiguration.DetailedJobReportingTitle, Version = SwaggerConfiguration.Version });
+            gen.SwaggerDoc("Dictionary", new OpenApiInfo { Title = SwaggerConfiguration.DictionaryTitle, Version = SwaggerConfiguration.Version });
             gen.SwaggerDoc("py4heappe", new OpenApiInfo { Title = "py4heappe API", Version = SwaggerConfiguration.Version });
-
+            
             gen.DocInclusionPredicate((documentName, apiDescription) =>
             {
                 if (documentName == "DetailedJobReporting") return apiDescription.GroupName == "DetailedJobReporting";
+                if (documentName == "Dictionary") return apiDescription.GroupName == "Dictionary";
                 if (documentName == SwaggerConfiguration.Version) return string.IsNullOrEmpty(apiDescription.GroupName);
                 if (documentName == "py4heappe") return true;
                 return false;
             });
-
+                
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
             gen.IncludeXmlComments(xmlPath);
@@ -253,7 +260,7 @@ public class Startup
             .AddCheck<VaultHealthCheck>("vault");
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         LogicFactory.ServiceProvider = app.ApplicationServices;
         var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
@@ -261,16 +268,20 @@ public class Startup
         GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;
         GlobalContext.Properties["ip"] = DeploymentInformationsConfiguration.DeployedIPAddress;
 
-        if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
-            loggerFactory.AddLog4Net("Logging/log4netDocker.config");
-        else
-            loggerFactory.AddLog4Net("Logging/log4net.config");
+        // log4net is already added in Program.Main before InitializeDatabase to capture seeding logs.
+        // Calling AddLog4Net again here would register a duplicate provider and cause every log
+        // message to appear twice. We only update the log level and DB connection string.
+        ConfigureLog4NetLevel();
 
         AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
+
 
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
+        app.UseRequestLocalization();
+        app.UseMiddleware<RequestResponseLoggingMiddleware>(false);
+        app.UseMiddleware<ExceptionMiddleware>();
         app.UseIpRateLimiting();
         app.UseStatusCodePages();
         app.UseStaticFiles();
@@ -284,24 +295,26 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
         });
-
+        
         app.UseSwaggerUI(swaggerUI =>
         {
             var hostPrefix = string.IsNullOrEmpty(SwaggerConfiguration.HostPostfix) ? string.Empty : "/" + SwaggerConfiguration.HostPostfix;
             swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
-            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", "Detailed Job Reporting API");
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", SwaggerConfiguration.DetailedJobReportingTitle);
+            swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/Dictionary/swagger.json", SwaggerConfiguration.DictionaryTitle);
             swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/py4heappe/swagger.json", "py4heappe API");
             swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             swaggerUI.EnableTryItOutByDefault();
         });
 
-        app.UseRequestLocalization();
         app.UseRouting();
-        app.UseMiddleware<LogUserContextMiddleware>();
+        app.UseCors(_allowSpecificOrigins);
+
         app.UseMiddleware<LexisAuthMiddleware>();
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
-        app.UseMiddleware<ExceptionMiddleware>();
+        app.UseMiddleware<LogUserContextMiddleware>();
+        app.UseMiddleware<RequestResponseLoggingMiddleware>(true);
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
@@ -310,10 +323,29 @@ public class Startup
             endpoints.MapRazorPages();
         });
 
-        app.UseCors(_allowSpecificOrigins);
-
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+    }
+
+    private void ConfigureLog4NetLevel()
+    {
+        var logLevel = Configuration["Logging:LogLevel:Default"];
+        if (string.IsNullOrEmpty(logLevel)) return;
+
+        var repository = LogManager.GetRepository(Assembly.GetEntryAssembly()) as log4net.Repository.Hierarchy.Hierarchy;
+        if (repository == null) return;
+
+        string mappedLevel = logLevel.ToUpper() switch
+        {
+            "INFORMATION" => "INFO",
+            "WARNING" => "WARN",
+            "CRITICAL" => "FATAL",
+            _ => logLevel.ToUpper()
+        };
+
+        log4net.Core.Level level = repository.LevelMap[mappedLevel] ?? log4net.Core.Level.Info;
+        repository.Root.Level = level;
+        repository.RaiseConfigurationChanged(EventArgs.Empty);
     }
 }

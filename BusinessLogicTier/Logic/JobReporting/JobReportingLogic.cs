@@ -12,7 +12,7 @@ using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Project = HEAppE.DomainObjects.JobManagement.Project;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
@@ -20,14 +20,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
 internal class JobReportingLogic : IJobReportingLogic
 {
     protected readonly IUnitOfWork _unitOfWork;
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
 
-    internal JobReportingLogic(IUnitOfWork unitOfWork)
+    internal JobReportingLogic(IUnitOfWork unitOfWork, ILogger logger)
     {
         _unitOfWork = unitOfWork;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
-
     public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
     {
         var enumerable = projects as Project[] ?? projects.ToArray();
@@ -38,6 +37,8 @@ internal class JobReportingLogic : IJobReportingLogic
             .AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(x => x.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Include(x => x.AdaptorUserUserGroupRoles).ThenInclude(r => r.AdaptorUserRole)
             .Where(x => x.ProjectId.HasValue && projectIds.Contains(x.ProjectId.Value))
             .Where(x => x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId))
@@ -129,7 +130,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .ToList();
     }
 
-    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo)
+    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var ids = groupIds?.ToList();
         if (ids == null || !ids.Any()) return Enumerable.Empty<ProjectReport>();
@@ -138,17 +140,21 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .AsNoTracking()
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Where(g => ids.Contains(g.Id))
             .ToList();
 
         var pIds = groups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
-        var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects);
+
+        var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects, limit, offset, clusterId, userId);
 
         return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()))
                      .Where(r => r != null).ToList();
     }
 
-    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime, string[] subProjects)
+    public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null)
     {
         var userGroupIds = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
@@ -160,26 +166,30 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var targetGroupIds = (reporterGroupIds ?? Enumerable.Empty<long>()).Intersect(userGroupIds).ToList();
 
-        return JobsDetailedReport(targetGroupIds, subProjects, startTime, endTime);
+        return JobsDetailedReport(targetGroupIds, subProjects, startTime, endTime, limit, offset, clusterId, userId);
     }
 
-    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string[] subProjects)
+    public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
-        return JobsDetailedReport(new[] { groupId }, subProjects, startTime, endTime).FirstOrDefault();
+        return JobsDetailedReport(new[] { groupId }, subProjects, startTime, endTime, limit, offset, clusterId, userId).FirstOrDefault();
     }
 
-    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime)
+    public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var group = _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
             .AsNoTracking()
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.SubProjects)
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .FirstOrDefault(g => g.Id == groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
 
         if (group.Project == null) return null;
 
-        var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null)[group.Project.Id].ToList();
+        var jobs = GetJobsLookup(new[] { group.Project.Id }, startTime, endTime, null, limit, offset, clusterId, userId)[group.Project.Id].ToList();
 
         var subProjectsReports = group.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
             SubProject = sp,
@@ -205,7 +215,8 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         };
     }
 
-    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+    public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var groupIdsList = groupIds?.ToList() ?? new List<long>();
         if (!groupIdsList.Any()) return Enumerable.Empty<ProjectAggregatedReport>();
@@ -215,49 +226,21 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
             .AsSplitQuery()
             .Include(g => g.Project).ThenInclude(p => p.SubProjects)
             .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.NodeTypes)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.FileTransferMethods)
+            .Include(g => g.Project).ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster).ThenInclude(c => c.ProxyConnection)
             .Where(g => groupIdsList.Contains(g.Id))
             .ToList();
 
         // Group by project ID to avoid duplicates in the response
-        var uniqueProjects = groups
+        return groups
             .Where(g => g.ProjectId.HasValue && g.Project != null)
             .DistinctBy(g => g.ProjectId.Value)
-            .ToList();
-
-        if (!uniqueProjects.Any()) return Enumerable.Empty<ProjectAggregatedReport>();
-
-        var pIds = uniqueProjects.Select(g => g.Project.Id).ToList();
-        var jobsLookup = GetJobsLookup(pIds, startTime, endTime, null);
-
-        return uniqueProjects.Select(g => {
-            var jobs = jobsLookup.Contains(g.Project.Id) ? jobsLookup[g.Project.Id].ToList() : new List<SubmittedJobInfo>();
-
-            var subProjectsReports = g.Project.SubProjects?.Select(sp => new SubProjectAggregatedReport {
-                SubProject = sp,
-                Clusters = BuildClusterAggregatedReports(g.Project, jobs.Where(j => j.Specification?.SubProjectId == sp.Id))
-            }).ToList() ?? new List<SubProjectAggregatedReport>();
-
-            // Check if there are jobs without subproject and non-zero usage
-            var jobsWithoutSubProject = jobs.Where(j => j.Specification?.SubProjectId == null).ToList();
-            var unassignedClusters = BuildClusterAggregatedReports(g.Project, jobsWithoutSubProject);
-            if (unassignedClusters.Any(c => c.TotalUsage > 0))
-            {
-                subProjectsReports.Add(new SubProjectAggregatedReport {
-                    SubProject = new SubProject { Identifier = null },
-                    Clusters = unassignedClusters
-                });
-            }
-
-            return new ProjectAggregatedReport
-            {
-                Project = g.Project,
-                SubProjects = subProjectsReports,
-                Clusters = BuildClusterAggregatedReports(g.Project, jobs)
-            };
-        }).ToList();
+            .Select(g => UserGroupResourceAggregatedUsageReport(g.Id, startTime, endTime, limit, offset, clusterId, userId))
+            .Where(r => r != null).ToList();
     }
 
-    private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects)
+    private ILookup<long, SubmittedJobInfo> GetJobsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end, string[] subProjects,
+        int? limit = null, int? offset = null, long? clusterId = null, long? userId = null)
     {
         var pIds = projectIds?.ToList();
         if (pIds == null || !pIds.Any()) return Enumerable.Empty<SubmittedJobInfo>().ToLookup(x => 0L);
@@ -269,6 +252,20 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         if (subProjects?.Any() == true)
             query = query.Where(j => j.Specification != null && j.Specification.SubProject != null && subProjects.Contains(j.Specification.SubProject.Identifier));
+
+        if (userId.HasValue)
+            query = query.Where(j => j.Submitter != null && j.Submitter.Id == userId.Value);
+
+        if (clusterId.HasValue)
+            query = query.Where(j => j.Tasks.Any(t => t.NodeType != null && t.NodeType.Cluster != null && t.NodeType.Cluster.Id == clusterId.Value));
+
+        query = query.OrderByDescending(j => j.Id);
+
+        if (offset.HasValue)
+            query = query.Skip(offset.Value);
+
+        if (limit.HasValue)
+            query = query.Take(limit.Value);
 
         var jobsData = query.Select(j => new {
             j.Id,

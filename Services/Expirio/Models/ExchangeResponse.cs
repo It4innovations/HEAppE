@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
-namespace Services.Expirio.Models;
+namespace HEAppE.Services.Expirio.Models;
 
 /// <summary>
 /// Exchange response

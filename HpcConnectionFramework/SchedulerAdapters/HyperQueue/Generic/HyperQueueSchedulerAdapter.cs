@@ -13,7 +13,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
@@ -25,12 +25,12 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 {
     #region Constructors
 
-    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _log = LogManager.GetLogger(typeof(HyperQueueSchedulerAdapter));
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
-        _commands = new LinuxCommands();
+        _commands = new LinuxCommands(logger);
     }
 
     #endregion
@@ -50,7 +50,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILog _log;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel
@@ -61,20 +61,21 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 
     #region ISchedulerAdapter Members
 
-    public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
+    public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         var schedulerJobIdClusterAllocationNamePairs =
             new List<(string ScheduledJobId, string ClusterAllocationName)>();
         SshCommandWrapper command = null;
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "hq submit");
-        _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
             //^Job submitted successfully, job ID: (\d+)$
             // implement parser regex
             var jobIdPattern = @"^Job submitted successfully, job ID: (\d+)$";
@@ -87,7 +88,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
             schedulerJobIdClusterAllocationNamePairs.Add((jobId,
                 jobSpecification.Tasks.First().ClusterNodeType.ClusterAllocationName));
 
-            var taskInfo = GetActualHqJobInfo(connectorClient, jobSpecification.Cluster, jobId);
+            var taskInfo = await GetActualHqJobInfoAsync(connectorClient, jobSpecification.Cluster, jobId);
 
             return new List<SubmittedTaskInfo> { taskInfo };
         }
@@ -100,14 +101,14 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    private SubmittedTaskInfo GetActualHqJobInfo(object connectorClient, Cluster cluster, string jobId)
+    private async Task<SubmittedTaskInfo> GetActualHqJobInfoAsync(object connectorClient, Cluster cluster, string jobId)
     {
         //create hq command and send to hq job info 1 --output-mode=json
         var sshCommand = $"ml HyperQueue && hq job info {jobId} --output-mode=json";
         SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
             return _convertor.ReadParametersFromResponse(cluster, command.Result).First();
         }
         catch (FormatException e)
@@ -119,13 +120,13 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksInfoAsync(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var tasksInfo = new List<SubmittedTaskInfo>();
         foreach (var task in submitedTasksInfo)
         {
-            var actualInfo = GetActualHqJobInfo(connectorClient, cluster, task.ScheduledJobId);
+            var actualInfo = await GetActualHqJobInfoAsync(connectorClient, cluster, task.ScheduledJobId);
             if (string.IsNullOrEmpty(actualInfo.ScheduledJobId))
             {
                 task.State = actualInfo.State;
@@ -140,14 +141,14 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         return tasksInfo;
     }
 
-    public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+    public async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
     {
         var sshCommand =
             $"ml HyperQueue && hq job cancel {string.Join(", ", submitedTasksInfo.Select(s => s.ScheduledJobId))}";
         SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            command = await SshCommandUtils.RunSshCommandAsync(connectorClient, sshCommand, _logger);
         }
         catch (FormatException e)
         {
@@ -158,62 +159,62 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+    public Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType)
     {
         throw new NotImplementedException("GetCurrentClusterNodeUsage is not supported for HyperQueue");
     }
 
-    public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
+    public Task<IEnumerable<string>> GetAllocatedNodesAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
         throw new NotImplementedException("GetAllocatedNodes is not supported for HyperQueue");
     }
 
-    public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+    public virtual async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath)
     {
-        return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
+        return await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
     }
 
-    public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey,
         SubmittedJobInfo jobInfo)
     {
-        _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+        await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
     }
 
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
+        await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
     }
 
-    public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+    public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
-        _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
+        await _commands.CreateJobDirectoryAsync(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
     }
 
-    public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        return _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
+        return await _commands.DeleteJobDirectoryAsync(connectorClient, jobInfo, localBasePath);
     }
 
-    public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
+    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path)
     {
-        _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
+        await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
     }
 
-    public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string localBasePath)
+    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string hash, string localBasePath)
     {
-        _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
+        await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
     }
 
-    public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
+    public async Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
     {
-        _sshTunnelUtil.CreateTunnel(connectorClient, taskInfo.Id, nodeHost, nodePort);
+        await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
     }
 
-    public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
+    public async Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
-        _sshTunnelUtil.RemoveTunnel(connectorClient, taskInfo.Id);
+        await _sshTunnelUtil.RemoveTunnelAsync(connectorClient, taskInfo.Id);
     }
 
     public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
@@ -221,16 +222,16 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
     }
 
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory,
-        string localBasepath, string account, bool isServiceAccount)
+        string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
-        return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
+        return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory,
+            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount, customConfiguration);
     }
-    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
+    public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
-        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
+        return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
     }
 
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
@@ -249,7 +250,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
-                SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                SshCommandWrapper command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
                 if (command.ExitStatus == 0)
@@ -284,9 +285,99 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
-    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    public Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
     {
         throw new NotSupportedException("DryRunJob is not supported for HyperQueue");
+    }
+
+    public async Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(
+        object schedulerConnectionConnection, 
+        List<SubmittedTaskInfo> missingTasks,
+        ClusterAuthenticationCredentials account)
+    {
+        if (missingTasks == null || !missingTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var validTasks = missingTasks
+            .Where(t => !string.IsNullOrEmpty(t.ScheduledJobId))
+            .ToList();
+
+        if (!validTasks.Any())
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
+
+        var allHistoricalTasks = new List<SubmittedTaskInfo>();
+
+        var jobIds = validTasks.Select(t => t.ScheduledJobId).Distinct().ToList();
+        
+        string joinedJobIds = string.Join(",", jobIds);
+
+        var sshCommand = $"ml HyperQueue && hq job info {joinedJobIds} --output-mode=json";
+        _logger.LogInformation($"Bulk querying HyperQueue historical tasks via hq job info for jobs: {joinedJobIds}");
+
+        SshCommandWrapper command = null;
+        try
+        {
+            command = await SshCommandUtils.RunSshCommandAsync(schedulerConnectionConnection, sshCommand, _logger);
+            _logger.LogDebug($"Raw HyperQueue bulk response: {command.Result}");
+
+            if (string.IsNullOrWhiteSpace(command.Result))
+            {
+                foreach (var task in validTasks)
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+                return allHistoricalTasks;
+            }
+
+            var historicalTasksFromCluster = _convertor.ReadParametersFromResponse(validTasks.First().Specification.JobSpecification.Cluster, command.Result).ToList();
+
+            foreach (var task in validTasks)
+            {
+                var matchedClusterTask = historicalTasksFromCluster.FirstOrDefault(t => t.ScheduledJobId == task.ScheduledJobId);
+                if (matchedClusterTask != null)
+                {
+                    matchedClusterTask.Id = task.Id;
+                    matchedClusterTask.Specification = task.Specification;
+                    allHistoricalTasks.Add(matchedClusterTask);
+                }
+                else
+                {
+                    allHistoricalTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = task.Id,
+                        ScheduledJobId = task.ScheduledJobId,
+                        State = TaskState.Failed,
+                        Specification = task.Specification
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to bulk retrieve HyperQueue historical tasks info for jobs: {joinedJobIds}.");
+            foreach (var task in validTasks)
+            {
+                allHistoricalTasks.Add(new SubmittedTaskInfo
+                {
+                    Id = task.Id,
+                    ScheduledJobId = task.ScheduledJobId,
+                    State = TaskState.Failed,
+                    Specification = task.Specification
+                });
+            }
+        }
+
+        return allHistoricalTasks;
     }
 
     #endregion

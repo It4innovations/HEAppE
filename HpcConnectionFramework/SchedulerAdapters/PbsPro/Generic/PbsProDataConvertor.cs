@@ -8,6 +8,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 
@@ -22,7 +23,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
+    public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger) : base(conversionAdapterFactory, logger)
     {
     }
 
@@ -75,7 +76,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
     /// <exception cref="PbsException"></exception>
     public override IEnumerable<string> GetJobIds(string responseMessage)
     {
-        var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>.+)\n", RegexOptions.Compiled)
+        var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>[^\s\n]+)", RegexOptions.Compiled)
             .Where(w => w.Success)
             .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
             .ToList();
@@ -113,7 +114,7 @@ public class PbsProDataConvertor : SchedulerDataConvertor
             AllocatedCores = obj.UsedCores,
             State = obj.TaskState,
             TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
-                    { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
+                    { AllocationNodeId = s }) // ID will be set by Entity Framework / Logic merging
                 .ToList(),
             ErrorMessage = default,
             AllParameters = obj.IsJobArrayJob
@@ -135,15 +136,14 @@ public class PbsProDataConvertor : SchedulerDataConvertor
         var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
         PbsProJobInfo aggregateResultObj = null;
 
-        var jobResponseMessages = Regex.Split(response, @"\n\n", RegexOptions.Compiled)
-            .Where(w => !string.IsNullOrEmpty(w))
-            .Select(s => s.Replace("\n\t", string.Empty))
+        var jobResponseMessages = Regex.Split(response, @"\r?\n\s*\r?\n", RegexOptions.Compiled)
+            .Where(w => !string.IsNullOrEmpty(w.Trim()))
             .ToList();
         foreach (var jobResponseMessage in jobResponseMessages)
         {
             //For each HPC scheduler job
             var parameters = Regex
-                .Matches(jobResponseMessage, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
+                .Matches(jobResponseMessage, @"(?m)^\s*(?<Key>[^\s].*?)( = |: )(?<Value>.*)", RegexOptions.Compiled)
                 .Where(w => w.Success)
                 .Select(s => new
                 {

@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 using Microsoft.EntityFrameworkCore;
@@ -28,15 +29,32 @@ internal class ProjectClusterNodeTypeAggregationRepository : IProjectClusterNode
         return _dbSet.Find(projectId, clusterNodeTypeAggregationId);
     }
 
+    public async Task<ProjectClusterNodeTypeAggregation> GetByIdAsync(long projectId, long clusterNodeTypeAggregationId)
+    {
+        return await _dbSet.FindAsync(projectId, clusterNodeTypeAggregationId);
+    }
+
     public List<ProjectClusterNodeTypeAggregation> GetAllByProjectId(long projectId)
     {
         return _dbSet.Where(c => c.ProjectId == projectId).ToList();
+    }
+
+    public async Task<List<ProjectClusterNodeTypeAggregation>> GetAllByProjectIdAsync(long projectId)
+    {
+        return await _dbSet.Where(c => c.ProjectId == projectId).ToListAsync();
     }
 
     public ProjectClusterNodeTypeAggregation GetByIdIncludeSoftDeleted(long projectId,
         long clusterNodeTypeAggregationId)
     {
         return _dbSet.IgnoreQueryFilters().FirstOrDefault(c =>
+            c.ProjectId == projectId && c.ClusterNodeTypeAggregationId == clusterNodeTypeAggregationId);
+    }
+
+    public async Task<ProjectClusterNodeTypeAggregation> GetByIdIncludeSoftDeletedAsync(long projectId,
+        long clusterNodeTypeAggregationId)
+    {
+        return await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(c =>
             c.ProjectId == projectId && c.ClusterNodeTypeAggregationId == clusterNodeTypeAggregationId);
     }
 

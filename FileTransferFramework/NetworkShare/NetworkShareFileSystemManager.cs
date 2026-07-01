@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -35,35 +35,40 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
-    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
+    public override Task<byte[]> DownloadFileFromClusterAsync(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
-    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
+    public override async Task DeleteSessionFromClusterAsync(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
-        var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
-        UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
-        Directory.Delete(jobClusterDirectoryPath, true);
+        await Task.Run(() =>
+        {
+            var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+            var jobClusterDirectoryPath =
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath,
+                    clusterConfig.SubExecutionsPath);
+            UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
+            Directory.Delete(jobClusterDirectoryPath, true);
+        });
     }
 
-    protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
+    protected override async Task CopyAllAsync(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit,
-        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
-        FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
+        await Task.Run(() => FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles));
     }
 
-    protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
+    protected override Task<ICollection<FileInformation>> ListChangedFilesForTaskAsync(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? jobSubmitTime,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials, string sshCaToken)
+        ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         return _synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
     }
@@ -85,30 +90,30 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
             }
     }
 
-    public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath, string sshCaToken)
+    public override Task<byte[]> DownloadFileFromClusterByAbsolutePathAsync(JobSpecification jobSpecification,
+        string absoluteFilePath, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
-    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    public override async Task<bool> UploadFileToClusterByAbsolutePathAsync(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         try
         {
             using var stream = File.OpenWrite(absoluteFilePath);
-            fileStream.CopyTo(stream);
+            await fileStream.CopyToAsync(stream);
+            return true;
         }
-        catch (Exception )
+        catch (Exception)
         {
             return false;
         }
-        return true;
     }
     
-    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+    public override Task<bool> ModifyAbsolutePathFileAttributesAsync(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null)
     {
-        return false;
+        return Task.FromResult(false);
     }
 
     #endregion

@@ -24,12 +24,22 @@ public sealed class SwaggerConfiguration
     /// <summary>
     ///     API Title
     /// </summary>
-    public static string Title { get; set; }
+    private static string _title = "HEAppE Web API";
+    public static string Title
+    {
+        get => _title;
+        set => _title = string.IsNullOrEmpty(value) ? "HEAppE Web API" : value;
+    }
 
     /// <summary>
     ///     Detailed Job Reporting API Title
     /// </summary>
-    public static string DetailedJobReportingTitle { get; set; }
+    public static string DetailedJobReportingTitle { get; set; } = "Detailed Job Reporting";
+
+    /// <summary>
+    ///     Dictionary API Title
+    /// </summary>
+    public static string DictionaryTitle { get; set; } = "Enum Dictionary";
 
     /// <summary>
     ///     API Description

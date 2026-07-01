@@ -5,9 +5,11 @@ WORKDIR /app
 RUN mkdir /sftp
 RUN chmod 700 /sftp
 
-RUN apt-get update 
-RUN apt-get install -y --no-install-recommends curl 
-RUN apt-get install -y --no-install-recommends openssh-client
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    openssh-client \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 80
 
@@ -30,6 +32,7 @@ COPY ["Utils/Utils.csproj", "Utils/"]
 COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "ExternalAuthentication/"]
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestUtils/RestUtils.csproj", "RestUtils/"]
+COPY ["CHANGELOG.md", "CHANGELOG.md"]
 
 RUN dotnet restore "RestApi/RestApi.csproj"
 COPY . .
@@ -44,5 +47,26 @@ FROM base AS final
 WORKDIR /app
 
 COPY --from=publish /app/publish .
+
+# install OpenTelemetry .NET Automatic Instrumentation
+ARG OTEL_VERSION=1.14.1
+ENV OTEL_DOTNET_AUTO_HOME=/otel-dotnet-auto
+ADD https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/download/v${OTEL_VERSION}/otel-dotnet-auto-install.sh otel-dotnet-auto-install.sh
+RUN apt-get update && apt-get install -y unzip && \
+    sh otel-dotnet-auto-install.sh
+RUN chmod +x /otel-dotnet-auto/instrument.sh
+
+# set OTEL variables
+ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+ENV OTEL_TRACES_EXPORTER=otlp
+# enable Head Sampling on trace signals
+#ENV OTEL_TRACES_SAMPLER=traceidratio
+#ENV OTEL_TRACES_SAMPLER_ARG=0.5
+
+# disable metrics
+ENV OTEL_DOTNET_AUTO_METRICS_INSTRUMENTATION_ENABLED=false
+# disable logs
+ENV OTEL_DOTNET_AUTO_LOGS_INSTRUMENTATION_ENABLED=false
+
 # nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
-ENTRYPOINT ["dotnet", "RestApi.dll"]
+ENTRYPOINT ["/otel-dotnet-auto/instrument.sh", "dotnet", "RestApi.dll"]

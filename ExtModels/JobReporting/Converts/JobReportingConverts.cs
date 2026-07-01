@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -31,7 +31,7 @@ public static class JobReportingConverts
         return convert;
     }
 
-    public static TaskExtendedReportExt ConvertIntToExtendedExt(this TaskReport report)
+    public static TaskExtendedReportExt ConvertIntToExtendedExt(this TaskReport report, string timezone)
     {
         var convert = new TaskExtendedReportExt
         {
@@ -48,7 +48,7 @@ public static class JobReportingConverts
     }
 
 
-    public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report)
+    public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report, string timezone)
     {
         var convert = new TaskDetailedReportExt
         {
@@ -81,11 +81,14 @@ public static class JobReportingConverts
 
     public static JobExtendedReportExt ConvertIntToExtendedExt(this JobReport report)
     {
+        string timezone = report.SubmittedJobInfo.Specification?.Cluster?.TimeZone 
+            ?? report.SubmittedJobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         var convert = new JobExtendedReportExt
         {
             Id = report.SubmittedJobInfo.Id,
             Name = report.SubmittedJobInfo.Name,
-            Tasks = report.Tasks.Select(x => x.ConvertIntToExtendedExt()).ToList(),
+            Tasks = report.Tasks.Select(x => x.ConvertIntToExtendedExt(timezone)).ToList(),
             State = report.SubmittedJobInfo.State.ConvertIntToExt()
         };
 
@@ -94,15 +97,18 @@ public static class JobReportingConverts
 
     public static JobDetailedReportExt ConvertIntToDetailedExt(this JobReport report)
     {
+        string timezone = report.SubmittedJobInfo.Specification?.Cluster?.TimeZone 
+            ?? report.SubmittedJobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         var convert = new JobDetailedReportExt
         {
             Id = report.SubmittedJobInfo.Id,
             Name = report.SubmittedJobInfo.Name,
-            Tasks = report.Tasks.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+            Tasks = report.Tasks.Select(x => x.ConvertIntToDetailedExt(timezone)).ToList(),
             State = report.SubmittedJobInfo.State.ConvertIntToExt(),
-            CreationTime = report.SubmittedJobInfo.CreationTime,
+            CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.CreationTime, timezone),
             StartTime = report.SubmittedJobInfo.StartTime,
-            SubmitTime = report.SubmittedJobInfo.SubmitTime,
+            SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.SubmitTime, timezone),
             EndTime = report.SubmittedJobInfo.EndTime,
             Submitter = report.SubmittedJobInfo.Submitter.Username
         };

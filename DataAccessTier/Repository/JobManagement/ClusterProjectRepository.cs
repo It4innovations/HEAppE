@@ -27,23 +27,50 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     {
         return _context.ClusterProjects
             .Include(x => x.ClusterProjectCredentials)
+            .Include(x => x.Cluster)
+            .Include(x => x.Project)
             .Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
             .FirstOrDefault();
+    }
+
+    public async Task<ClusterProject> GetClusterProjectForClusterAndProjectAsync(long clusterId, long projectId)
+    {
+        return await _context.ClusterProjects
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
+            .FirstOrDefaultAsync();
     }
     
     public ClusterProject GetClusterProjectForClusterAndProjectIncludingDeleted(long clusterId, long projectId)
     {
         return _context.ClusterProjects
             .IgnoreQueryFilters() 
-            .Include(x => x.ClusterProjectCredentials) // <--- TOTO CHYBĚLO
+            .Include(x => x.ClusterProjectCredentials)
             .FirstOrDefault(x => x.ClusterId == clusterId && x.ProjectId == projectId);
     }
+
+    public async Task<ClusterProject> GetClusterProjectForClusterAndProjectIncludingDeletedAsync(long clusterId, long projectId)
+    {
+        return await _context.ClusterProjects
+            .IgnoreQueryFilters() 
+            .Include(x => x.ClusterProjectCredentials)
+            .FirstOrDefaultAsync(x => x.ClusterId == clusterId && x.ProjectId == projectId);
+    }
+
     public List<ClusterProject> GetClusterProjectForProject(long projectId)
     {
         return _context.ClusterProjects
             .Include(x => x.ClusterProjectCredentials)
             .Where(cp => cp.ProjectId == projectId)
             .ToList();
+    }
+
+    public async Task<List<ClusterProject>> GetClusterProjectForProjectAsync(long projectId)
+    {
+        return await _context.ClusterProjects
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId)
+            .ToListAsync();
     }
     
     public List<ClusterProject> GetClusterProjectForProjectIncludeDeleted(long projectId)
@@ -54,12 +81,26 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .Where(cp => cp.ProjectId == projectId)
             .ToList();
     }
+
+    public async Task<List<ClusterProject>> GetClusterProjectForProjectIncludeDeletedAsync(long projectId)
+    {
+        return await _context.ClusterProjects
+            .IgnoreQueryFilters()
+            .Include(x => x.ClusterProjectCredentials)
+            .Where(cp => cp.ProjectId == projectId)
+            .ToListAsync();
+    }
     
     public IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId)
     {
         return _context.ClusterProjects
             .Include(x => x.ClusterProjectCredentials)
             .Where(cp => cp.ProjectId == projectId);
+    }
+
+    public IQueryable<ClusterProject> AsQueryable()
+    {
+        return _dbSet.AsQueryable();
     }
 
     public IQueryable<ClusterProjectCredentialCheckLog> GetAllClusterProjectCredentialsCheckLogForProject(long projectId, DateTime? timeFrom, DateTime? timeTo)
@@ -98,11 +139,29 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .Include(cpc => cpc.ClusterProject.Cluster)
             .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
             .Include(cpc => cpc.ClusterProject.Project)
+            .Include(cpc => cpc.AdaptorUser)
             .Where(cpc => cpc.ClusterProject.Project.EndDate > DateTime.UtcNow &&
                           cpc.ClusterProject.Project.StartDate <= DateTime.UtcNow)
             .Include(cpc => cpc.ClusterAuthenticationCredentials)
             .AsNoTracking()
             .ToList();
+        return result;
+    }
+
+    public async Task<List<ClusterProjectCredential>> GetAllActiveClusterProjectCredentialsUntrackedAsync()
+    {
+        var result = await _context.ClusterProjectCredentials
+            .AsSplitQuery()
+            .Include(cpc => cpc.ClusterProject)
+            .Include(cpc => cpc.ClusterProject.Cluster)
+            .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
+            .Include(cpc => cpc.ClusterProject.Project)
+            .Include(cpc => cpc.AdaptorUser)
+            .Where(cpc => cpc.ClusterProject.Project.EndDate > DateTime.UtcNow &&
+                          cpc.ClusterProject.Project.StartDate <= DateTime.UtcNow)
+            .Include(cpc => cpc.ClusterAuthenticationCredentials)
+            .AsNoTracking()
+            .ToListAsync();
         return result;
     }
 

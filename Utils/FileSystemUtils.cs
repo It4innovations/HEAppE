@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -13,25 +13,53 @@ public class FileSystemUtils
 {
     private const int WAITING_TIME_FOR_SCHEDULER_CLOSING_OUTPUT_AND_ERROR_FILE_STREAMS = 1500;
 
+    private static string GetHomeDirectory(JobSpecification jobSpecification, string clusterUser)
+    {
+        var homeDirTemplate = string.Empty;
+        if (jobSpecification.Cluster?.CustomConfiguration != null &&
+            jobSpecification.Cluster.CustomConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            homeDirTemplate = template;
+        }
+
+        return homeDirTemplate
+            .Replace("{username}", clusterUser)
+            .Replace("{USER}", clusterUser)
+            .Replace("$USER", clusterUser);
+    }
+
     public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
+        var clusterUser = jobSpecification.ClusterUser.Username;
+        var homeDir = GetHomeDirectory(jobSpecification, clusterUser);
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.ScratchStoragePath;
-        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+            ?.ScratchStoragePath
+            ?.Replace("$USER", clusterUser)
+            ?.Replace("${USER}", clusterUser)
+            ?.Replace("$HOME", homeDir);
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
 
     public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
+        var clusterUser = jobSpecification.ClusterUser.Username;
+        var homeDir = GetHomeDirectory(jobSpecification, clusterUser);
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.ProjectStoragePath;
+            ?.ProjectStoragePath
+            ?.Replace("$USER", clusterUser)
+            ?.Replace("${USER}", clusterUser)
+            ?.Replace("$HOME", homeDir);
         if (string.IsNullOrEmpty(basePath))
         {
             basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-                ?.ScratchStoragePath;
+                ?.ScratchStoragePath
+                ?.Replace("$USER", clusterUser)
+                ?.Replace("${USER}", clusterUser)
+                ?.Replace("$HOME", homeDir);
         }
-        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{clusterUser}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
@@ -58,12 +86,10 @@ public class FileSystemUtils
     public static string ReadStreamContentFromSpecifiedOffset(Stream stream, long offset)
     {
         stream.Seek(offset, SeekOrigin.Begin);
-        var synchronizedContent = new StringBuilder();
-        var buffer = new byte[1024];
-        int bytesRead;
-        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
-            synchronizedContent.Append(Encoding.Default.GetString(buffer, 0, bytesRead));
-        return synchronizedContent.ToString();
+        using (var reader = new StreamReader(stream, Encoding.Default, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true))
+        {
+            return reader.ReadToEnd();
+        }
     }
 
     public static string WriteStreamToLocalFile(Stream stream, string destinationPath)
@@ -71,17 +97,17 @@ public class FileSystemUtils
         EnsureThatDestinationPathExists(destinationPath);
         using (Stream destinationStream =
                new FileStream(destinationPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+        using (var ms = new MemoryStream())
         {
-            var synchronizedContent = new StringBuilder();
-            var buffer = new byte[1024];
+            var buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
             {
                 destinationStream.Write(buffer, 0, bytesRead);
-                synchronizedContent.Append(Encoding.Default.GetString(buffer, 0, bytesRead));
+                ms.Write(buffer, 0, bytesRead);
             }
 
-            return synchronizedContent.ToString();
+            return Encoding.Default.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         }
     }
 
@@ -188,35 +214,76 @@ public class FileSystemUtils
         return result;
     }
 
-    public static bool AddConfigurationFiles(string[] confsDirs, string[] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
+    public static bool AddConfigurationFiles(string[] confsDirs, (string, bool) [] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
     {
+        // go through all directories
         foreach (var confDir in confsDirs)
         {
+            // all configuration files must be in the same directory
             bool configFound = true;
             foreach (var confFile in confFiles)
             {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                // skip optional files
+                if (confFile.Item2)
+                    continue;
+                // if any configuration file is missing...
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile.Item1}";
                 if (!File.Exists(confPath))
                 {
                     configFound = false;
                     break;
                 }
             }
+            // ...the directory is rejected as a whole
             if (!configFound)
                 continue;
 
+            // add all found configuration files
             foreach (var confFile in confFiles)
             {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile.Item1}";
+                if (!File.Exists(confPath))
+                    continue;
                 if (confPath.EndsWith(".json"))
                     addJsonFile?.Invoke(confPath);
                 else if (confPath.EndsWith(".njson"))
                     addNotJson?.Invoke(confPath);
             }
-
+            // succeeded
             return true;
         }
-
+        // failed
         return false;
+    }
+
+    /// <summary>
+    /// Expands path variables (like $USER, ~) based on home directory templates.
+    /// </summary>
+    public static string ExpandRemotePath(string path, string username, string? homeDir = null, Dictionary<string, string>? customConfiguration = null)
+    {
+        if (string.IsNullOrEmpty(path)) return string.Empty;
+
+        string? resolvedHomeDir = null;
+        if (customConfiguration != null && customConfiguration.TryGetValue("HomeDirectoryTemplate", out var template))
+        {
+            resolvedHomeDir = template
+                .Replace("{username}", username)
+                .Replace("{USER}", username)
+                .Replace("$USER", username);
+        }
+
+        var result = path;
+        if (customConfiguration != null && customConfiguration.ContainsKey("HomeDirectoryTemplate") && result.StartsWith("~"))
+        {
+            result = resolvedHomeDir + result.Substring(1);
+        }
+
+        result = result
+            .Replace("$USER", username)
+            .Replace("${USER}", username)
+            .Replace("$HOME", resolvedHomeDir)
+            .Replace("${HOME}", resolvedHomeDir);
+
+        return result;
     }
 }

@@ -2,17 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
+using log4net;
+using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using HEAppE.Utils;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi;
 
@@ -21,6 +25,35 @@ public class Program
     public static void Main(string[] args)
     {
         var host = CreateWebHostBuilder(args).Build();
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+
+            // Configure log4net early so that seeding logs are captured in the log output.
+            // Normally log4net is added in Startup.Configure(), which runs during host.Run() —
+            // too late to capture InitializeDatabase logs.
+            var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+            loggerFactory.AddLog4Net(localRunEnv == "Docker"
+                ? "Logging/log4netDocker.config"
+                : "Logging/log4net.config");
+
+            AdoNetAppenderHelper.SetConnectionString(
+                host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging"));
+
+            var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
+            try
+            {
+                logger.LogInformation("Checking database compatibility, migrations and seeding...");
+                HEAppE.DataAccessTier.MiddlewareContext.InitializeDatabase(logger);
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "An error occurred during database initialization.");
+                throw;
+            }
+        }
+
         host.Run();
     }
 
@@ -29,18 +62,21 @@ public class Program
         IWebHostBuilder builder;
         var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
         if (localRunEnv == "Docker")
-            // Docker run
             builder = WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:80") //For docker
+                .UseUrls("http://*:80")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, true);
                     config.AddNotJson("/opt/heappe/confs/seed.njson");
                 })
-                .UseKestrel()
+                .UseKestrel(options =>
+                {
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
+                    options.Limits.MinRequestBodyDataRate = null;
+                    options.Limits.MinResponseDataRate = null;
+                })
                 .UseStartup<Startup>();
         else
-            // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
                 .UseUrls("http://*:5005")
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -52,13 +88,19 @@ public class Program
                             "P:\\source\\localHEAppE\\confs"
                         ],
                         confFiles: [
-                            "appsettings.json",
-                            "seed.njson"
+                            ("appsettings.json", true),
+                            ("seed.njson", true)
                         ],
                         addJsonFile: confPath => config.AddJsonFile(confPath, false, true),
                         addNotJson: confPath => config.AddNotJson(confPath))
                     )
                         throw new Exception("Configuration files not found!");
+                })
+                .UseKestrel(options =>
+                {
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
+                    options.Limits.MinRequestBodyDataRate = null;
+                    options.Limits.MinResponseDataRate = null;
                 })
                 .UseStartup<Startup>();
         return builder;

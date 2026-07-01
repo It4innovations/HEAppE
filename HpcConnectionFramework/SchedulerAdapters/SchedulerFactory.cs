@@ -1,17 +1,20 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent; // NOVÉ: Pro ConcurrentDictionary
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using HEAppE.Services.Expirio;
 using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -30,10 +33,12 @@ public abstract class SchedulerFactory
     {
         lock (_schedulerFactoryPoolSingletons)
         {
-            if (_schedulerFactoryPoolSingletons.ContainsKey(type)) return _schedulerFactoryPoolSingletons[type];
+            if (_schedulerFactoryPoolSingletons.ContainsKey(type))
+                return _schedulerFactoryPoolSingletons[type];
 
             SchedulerFactory factoryInstance = type switch
             {
+                SchedulerType.FirecRestSlurm => new FirecRestSchedulerFactory(type),
                 SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
@@ -52,13 +57,19 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
-    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,long? adaptorUserId)
+    protected IConnectionPool GetSchedulerConnectionPool(
+        Cluster clusterConf, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService,
+        long? adaptorUserId,
+        IExpirioService expirio, ILogger logger)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
-            clusterConf.SchedulerType, adaptorUserId);
+            clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId);
+
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
             key => 
@@ -73,6 +84,7 @@ public abstract class SchedulerFactory
 
                 var connectionPoolMinSize = 0;
                 var connectionPoolMaxSize = _connectionPoolSettings.MaxConnectionsPerUser;
+                var connectionPoolMaxSessions = _connectionPoolSettings.MaxSessionsPerConnection;
                 
                 if (adaptorUserId != null)
                 {
@@ -82,7 +94,7 @@ public abstract class SchedulerFactory
                         .Any(cpc => currentAdaptorUserId.HasValue ? cpc.AdaptorUserId == currentAdaptorUserId : cpc.AdaptorUserId == null);
 
                     if (!hasCredentials)
-                        throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
+                        throw new SchedulerException("NoOneToOneCredentials");
                 }
                 
                 return new ConnectionPool.ConnectionPool(
@@ -90,12 +102,14 @@ public abstract class SchedulerFactory
                     clusterConf.TimeZone,
                     connectionPoolMinSize,
                     connectionPoolMaxSize,
+                    connectionPoolMaxSessions,
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
+                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio, logger),
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
-                    clusterConf.Port);
+                    clusterConf.Port,
+                    logger);
             });
     }
 
@@ -110,6 +124,11 @@ public abstract class SchedulerFactory
     private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =
         HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
 
+    public ISchedulerDataConvertor GetDataConvertor(ILogger logger)
+    {
+        return CreateDataConvertor(logger);
+    }
+
     #endregion
 
     #region Abstract Methods
@@ -117,22 +136,29 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
+    public abstract IRexScheduler CreateScheduler(
+        Cluster configuration, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        long? adaptorUserId,
+        IExpirioService expirio,
+        string token,
+        ILogger logger);
 
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected abstract ISchedulerAdapter CreateSchedulerAdapter();
+    protected abstract ISchedulerAdapter CreateSchedulerAdapter(ILogger logger);
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected abstract ISchedulerDataConvertor CreateDataConvertor();
+    protected abstract ISchedulerDataConvertor CreateDataConvertor(ILogger logger);
 
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
+    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio, ILogger logger);
 
     #endregion
 }

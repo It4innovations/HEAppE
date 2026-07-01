@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -57,7 +57,8 @@ public static class JobManagementConverts
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             FileTransferMethodId = jobSpecification.FileTransferMethodId,
-            ClusterId = jobSpecification.ClusterId ?? 0
+            ClusterId = jobSpecification.ClusterId ?? 0,
+            Reservation = jobSpecification.Reservation,
         };
 
         //Same Reference for DependOn tasks
@@ -96,6 +97,8 @@ public static class JobManagementConverts
             Name = taskSpecificationExt.Name,
             MinCores = taskSpecificationExt.MinCores,
             MaxCores = taskSpecificationExt.MaxCores,
+            GpuCores = taskSpecificationExt.GpuCores,
+            GpuNodes = taskSpecificationExt.GpuNodes,
             WalltimeLimit = taskSpecificationExt.WalltimeLimit,
             PlacementPolicy = taskSpecificationExt.PlacementPolicy,
             RequiredNodes = taskSpecificationExt.RequiredNodes?
@@ -131,6 +134,9 @@ public static class JobManagementConverts
             EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
+            Memory = taskSpecificationExt.Memory,
+            MemoryPerCPU = taskSpecificationExt.MemoryPerCPU,
+            MemoryPerGPU = taskSpecificationExt.MemoryPerGPU,
             CpuHyperThreading = taskSpecificationExt.CpuHyperThreading,
             JobSpecification = jobSpecification,
             TaskParalizationSpecifications = taskSpecificationExt.TaskParallelizationParameters?
@@ -186,18 +192,21 @@ public static class JobManagementConverts
 
     public static SubmittedJobInfoExt ConvertIntToExt(this SubmittedJobInfo jobInfo)
     {
+        string timezone = jobInfo.Specification?.Cluster?.TimeZone 
+            ?? jobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
         SubmittedJobInfoExt convert = new()
         {
             Id = jobInfo.Id,
             Name = jobInfo.Name,
             State = jobInfo.State.ConvertIntToExt(),
-            CreationTime = jobInfo.CreationTime,
-            SubmitTime = jobInfo.SubmitTime,
+            CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
+            SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
             StartTime = jobInfo.StartTime,
             EndTime = jobInfo.EndTime,
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             SubProject = jobInfo.Specification.SubProject?.Identifier,
-            Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt())
+            Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt(timezone))
                 .ToArray()
         };
         return convert;
@@ -233,7 +242,7 @@ public static class JobManagementConverts
         return convert;
     }
 
-    private static SubmittedTaskInfoExt ConvertIntToExt(this SubmittedTaskInfo task)
+    private static SubmittedTaskInfoExt ConvertIntToExt(this SubmittedTaskInfo task, string timezone)
     {
         SubmittedTaskInfoExt convert = new()
         {
@@ -273,7 +282,10 @@ public static class JobManagementConverts
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
-            KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
+            KeyScriptsDirectoryPath = ClusterRuntimeConfiguration.For(
+                project.ClusterProjects?.FirstOrDefault(x => !x.IsDeleted)?.Cluster?.CustomConfiguration
+            ).GetPathToScript(project.AccountingString, string.Empty),
+
             CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray(),
             ClusterProjectStoragePaths = GetClusterProjectStoragePathsSafe(project)
         };
@@ -312,6 +324,10 @@ public static class JobManagementConverts
                 return UsageTypeExt.NodeHours;
             case UsageType.CoreHours:
                 return UsageTypeExt.CoreHours;
+            case UsageType.Credits:
+                return UsageTypeExt.Credits;
+            case UsageType.QPUSeconds:
+                return UsageTypeExt.QPUSeconds;
             default:
                 return UsageTypeExt.NodeHours;
         }

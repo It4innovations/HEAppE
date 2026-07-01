@@ -120,6 +120,9 @@
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
     <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem '{1}'.</value>
   </data>
+  <data name="AdaptorUserNotAuthorizedForJobException_ClusterOperationRequiresOwner" xml:space="preserve">
+    <value>Přihlášený uživatel '{0}' nemůže provést tuto operaci nad jobem '{1}'. Tuto operaci na clusteru může provést pouze vlastník úlohy.</value>
+  </data>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s taskem '{1}'.</value>
   </data>
@@ -206,6 +209,9 @@
   </data>
   <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
     <value>Soubor s privátním klíčem umístěný na '{0}' neexistuje.</value>
+  </data>
+  <data name="ClusterAuthenticationException_MissingKrb5Config" xml:space="preserve">
+    <value>Chybí konfigurační soubor Kerberos (krb5.conf). Kontaktujte prosím administrátora.</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>Cluster s tímto projektem neexistuje v HEAppE.</value>

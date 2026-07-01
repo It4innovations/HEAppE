@@ -5,6 +5,7 @@ using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
+using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -21,24 +22,25 @@ using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.UserOrg;
+using HEAppE.Services.FirecRest;
 using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
-using Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
-using HEAppE.BackgroundThread.Configuration;
-using HEAppE.RestApi.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -60,8 +62,8 @@ else
             "P:\\source\\localHEAppE\\confs"
         ],
         confFiles: [
-            "appsettings.json",
-            "appsettings-data.json",
+            ("appsettings.json", true),
+            ("appsettings-data.json", true)
         ],
         addJsonFile: confPath => builder.Configuration.AddJsonFile(confPath, false, false))
     )
@@ -84,21 +86,11 @@ builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
 
-
-var globalRetryPolicy = HttpPolicyExtensions
-    .HandleTransientHttpError()
-    .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-        onRetry: (outcome, timespan, retryCount, context) =>
-        {
-            LogManager.GetLogger("RetryPolicy").Warn($"Retry {retryCount} after {timespan.TotalSeconds}s: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
-        });
-
 builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
 {
     options.HttpMessageHandlerBuilderActions.Add(builder =>
     {
-        builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(globalRetryPolicy));
+        builder.AdditionalHandlers.Add(new PolicyHttpMessageHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy));
     });
 });
 
@@ -125,6 +117,7 @@ builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>()
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
 builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+    sp.GetRequiredService<IHttpClientFactory>(),
     SshCaSettings.BaseUri,
     SshCaSettings.CAName,
     SshCaSettings.ConnectionTimeoutInSeconds
@@ -139,23 +132,30 @@ var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
 
 builder.Services.AddScoped<IExpirioService, ExpirioService>();
+builder.Services.AddScoped<IFirecRestTokenService, FirecRestTokenService>();
 
 builder.Services.AddHttpClient("ExpirioClient", conf =>
 {
     conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
     conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
     conf.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+})
+.AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
-builder.Services.AddScoped<FileTransferService>();
-builder.Services.AddBackgroundServices(builder.Configuration);
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-});
+})
+.AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+builder.Services.AddHttpClient("SshCaClient")
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
+builder.Services.AddHttpClient("FirecREST")
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddHttpClient("LexisTokenExchangeClient");
@@ -308,9 +308,14 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseCors("HEAppEDefaultOrigins");
-app.UseMiddleware<RequestSizeMiddleware>();
+
+app.UseRequestLocalization();
+app.UseMiddleware<RequestResponseLoggingMiddleware>(false);
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
+app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseSwagger(swagger =>
 {
@@ -329,10 +334,10 @@ app.UseSwaggerUI(swaggerUI =>
 });
 
 app.UseMiddleware<LogUserContextMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>(true);
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.RegisterApiRoutes();

@@ -18,7 +18,6 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
-using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -31,15 +30,19 @@ public class MiddlewareContext : DbContext
 {
     #region Constructors
 
-    private readonly ILogger _logger;
+    public MiddlewareContext() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<MiddlewareContext>.Instance)
+    {
+    }
 
-    public MiddlewareContext(ILogger logger) : this()
+    public MiddlewareContext(ILogger logger)
     {
         _logger = logger;
     }
 
-    public MiddlewareContext()
+    public static void InitializeDatabase(ILogger logger)
     {
+        if (logger.GetType().Name.Contains("NullLogger") || Environment.GetCommandLineArgs().Any(a => a.Contains("ef"))) return;
+
         if (!string.IsNullOrEmpty(MiddlewareContextSettings.ConnectionString) && !_isMigrated)
             lock (_lockObject)
             {
@@ -49,62 +52,81 @@ public class MiddlewareContext : DbContext
                         var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
                         if (localRunEnv != "LocalWindows")
                         {
-                            // Connection to Database works and Database not exist
-                            if (!Database.CanConnect())
+                            using (var context = new MiddlewareContext(logger))
                             {
-                                _log.Info("Starting migration and seeding into the new database.");
-                                Database.Migrate();
-                                try
+                                if (!context.Database.CanConnect())
                                 {
-                                    var dbName = Database.GetDbConnection().Database;
-                                    if (!string.IsNullOrEmpty(dbName))
+                                    logger.LogInformation("Starting migration and seeding into the new database.");
+                                    context.Database.Migrate();
+                                    try
                                     {
+                                        var dbName = context.Database.GetDbConnection().Database;
+                                        if (!string.IsNullOrEmpty(dbName))
+                                        {
+                                            var builder = new SqlCommandBuilder();
+                                            var safeDbName = builder.QuoteIdentifier(dbName);
 #pragma warning disable EF1002
-                                        Database.ExecuteSqlRaw($"ALTER DATABASE [{dbName}] SET READ_COMMITTED_SNAPSHOT ON;");
+                                            // nosemgrep: security_code_scan.SCS0002-1
+                                            context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
 #pragma warning restore EF1002
-                                        _log.Info($"RCSI isolation level has been successfully enabled for database: {dbName}");
+                                            logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
+                                        }
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _log.Warn($"Could not automatically set RCSI on database creation: {ex.Message}");
-                                }
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
-                            }
-                            else
-                            {
-                                var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-                                _log.Info(
-                                    $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
-                                
-                                if (lastAppliedMigration is null)
-                                {
-                                    _log.Info("Starting migration into the new database.");
-                                    Database.Migrate();
-                                    lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                }
-                                else if (DatabaseMigrationSettings.AutoMigrateDatabase &&
-                                         lastAppliedMigration != lastDefinedMigration)
-                                {
-                                    _log.Info("Applying newer migrations to the database.");
-                                    Database.Migrate();
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
+                                    }
+                                    context.EnsureDatabaseSeeded();
                                     _isMigrated = true;
                                 }
-                                else if (lastAppliedMigration != lastDefinedMigration)
+                                else
                                 {
-                                    throw new DbContextException("MigrationMismatch");
+                                    var appliedMigrations = context.Database.GetAppliedMigrations().ToList();
+                                    var definedMigrations = context.Database.GetMigrations().ToList();
+                                    var lastApplied = appliedMigrations.LastOrDefault();
+                                    var lastDefined = definedMigrations.LastOrDefault();
+                                    var appliedCount = appliedMigrations.Count;
+                                    var definedCount = definedMigrations.Count;
+
+                                    logger.LogInformation($"Database status - Applied: {appliedCount} (last: {lastApplied}), Defined: {definedCount} (last: {lastDefined})");
+
+                                    if (appliedCount == 0 || lastApplied != lastDefined || appliedCount != definedCount)
+                                    {
+                                        if (DatabaseMigrationSettings.AutoMigrateDatabase)
+                                        {
+                                            logger.LogInformation("Applying migrations to the database.");
+                                            context.Database.Migrate();
+
+                                            appliedMigrations = context.Database.GetAppliedMigrations().ToList();
+                                            lastApplied = appliedMigrations.LastOrDefault();
+                                            appliedCount = appliedMigrations.Count;
+
+                                            if (appliedCount != definedCount || lastApplied != lastDefined)
+                                            {
+                                                var extraInDb = appliedMigrations.Except(definedMigrations).ToList();
+                                                var missingInDb = definedMigrations.Except(appliedMigrations).ToList();
+                                                logger.LogWarning($"Migration count still mismatching after migrate: {appliedCount} applied vs {definedCount} defined. Last in DB: {lastApplied}, Last in code: {lastDefined}");
+                                                if (extraInDb.Any()) logger.LogWarning($"Extra in DB: {string.Join(", ", extraInDb)}");
+                                                if (missingInDb.Any()) logger.LogWarning($"Missing in DB: {string.Join(", ", missingInDb)}");
+                                            }
+
+                                            _isMigrated = true;
+                                        }
+                                        else if (lastApplied != lastDefined || appliedCount < definedCount)
+                                        {
+                                            throw new DbContextException("MigrationMismatch");
+                                        }
+                                    }
+
+                                    logger.LogInformation("Application and database migrations are compatible. Seeding data...");
+                                    context.EnsureDatabaseSeeded();
+                                    _isMigrated = true;
                                 }
-
-                                if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
-                                    throw new DbContextException("MigrationCountMismatch");
-
-                                _log.Info(
-                                    "Application and database migrations are the same. Starting seeding data into the database.");
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
                             }
+                        }
+                        else
+                        {
+                            _isMigrated = true;
                         }
                     }
                     catch (SqlException ex)
@@ -120,7 +142,7 @@ public class MiddlewareContext : DbContext
 
     private static readonly object _lockObject = new();
     private static volatile bool _isMigrated;
-    private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+    private readonly ILogger _logger;
 
     #endregion
 
@@ -128,15 +150,29 @@ public class MiddlewareContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseLazyLoadingProxies();
-        optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString ?? "Server=localhost;Database=dummy;TrustServerCertificate=true");
+        var connectionString = MiddlewareContextSettings.ConnectionString;
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            if (!builder.MultipleActiveResultSets)
+            {
+                builder.MultipleActiveResultSets = true;
+            }
+            if (!builder.TrustServerCertificate)
+            {
+                builder.TrustServerCertificate = true;
+            }
+            connectionString = builder.ConnectionString;
+        }
+
+        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;");
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        //M:N relations for AdaptorUserUserGroupRole
         modelBuilder.Entity<AdaptorUserUserGroupRole>()
             .HasKey(ug => new { ug.AdaptorUserId, ug.AdaptorUserGroupId, ug.AdaptorUserRoleId });
         modelBuilder.Entity<AdaptorUserUserGroupRole>()
@@ -154,7 +190,6 @@ public class MiddlewareContext : DbContext
 
         modelBuilder.Entity<AdaptorUserRole>().HasAlternateKey(x => x.Name);
 
-        //M:N relations for OpenStackAuthenticationCredentialDomain
         modelBuilder.Entity<OpenStackAuthenticationCredentialDomain>()
             .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackDomainId });
         modelBuilder.Entity<OpenStackAuthenticationCredentialDomain>()
@@ -166,7 +201,6 @@ public class MiddlewareContext : DbContext
             .WithMany(g => g.OpenStackAuthenticationCredentialDomains)
             .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
 
-        //M:N relations for OpenStackAuthenticationCredentialProject
         modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
             .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectId });
         modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
@@ -178,8 +212,6 @@ public class MiddlewareContext : DbContext
             .WithMany(g => g.OpenStackAuthenticationCredentialProjects)
             .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
 
-        //M:N relations for TaskDependency for same table TaskSpecification
-        //Cascade delete or update are not allowed
         modelBuilder.Entity<TaskDependency>()
             .HasKey(td => new { td.TaskSpecificationId, td.ParentTaskSpecificationId });
         modelBuilder.Entity<TaskDependency>()
@@ -193,7 +225,6 @@ public class MiddlewareContext : DbContext
             .HasForeignKey(td => new { td.TaskSpecificationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        //M:N relations for ClusterProject and unique constraint
         modelBuilder.Entity<ClusterProject>()
             .HasIndex(cp => new { cp.ClusterId, cp.ProjectId }).IsUnique();
         modelBuilder.Entity<ClusterProject>()
@@ -205,7 +236,10 @@ public class MiddlewareContext : DbContext
             .WithMany(p => p.ClusterProjects)
             .HasForeignKey(cp => new { cp.ProjectId });
 
-        //M:N relations for ClusterProjectCredentials
+        modelBuilder.Entity<ClusterProject>()
+            .Property(p => p.PreferredAuthType)
+            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
+
         modelBuilder.Entity<ClusterProjectCredential>()
             .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
         modelBuilder.Entity<ClusterProjectCredential>()
@@ -225,16 +259,12 @@ public class MiddlewareContext : DbContext
             .WithMany(cpc => cpc.ClusterProjectCredentialsCheckLog)
             .HasForeignKey(cpccl => new { cpccl.ClusterProjectId, cpccl.ClusterAuthenticationCredentialsId });
 
-        //M:N ClusterProjectCredentials ignore Vault properties
         modelBuilder.Entity<ClusterAuthenticationCredentials>()
-            //.Ignore(c => c.AuthenticationType)
-            //.Ignore(p => p.CipherType)
             .Ignore(p => p.Password)
             .Ignore(p => p.PrivateKey)
             .Ignore(p => p.PrivateKeyPassphrase)
             .Ignore(p => p.PrivateKeyCertificate);
 
-        //M:N relations for ProjectContact
         modelBuilder.Entity<ProjectContact>()
             .HasKey(pc => new { pc.ProjectId, pc.ContactId });
         modelBuilder.Entity<ProjectContact>()
@@ -251,13 +281,11 @@ public class MiddlewareContext : DbContext
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
-        //Subproject Identifier and ProjectId unique constraint
         modelBuilder.Entity<SubProject>()
             .HasIndex(sp => new { sp.Identifier, sp.ProjectId })
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
-        //M:N relations for ClusterNodeTypeAggregationAccounting
         modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
             .HasKey(cna => new { cna.ClusterNodeTypeAggregationId, cna.AccountingId });
         modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
@@ -265,7 +293,6 @@ public class MiddlewareContext : DbContext
             .WithMany(cna => cna.ClusterNodeTypeAggregationAccountings)
             .HasForeignKey(cna => cna.ClusterNodeTypeAggregationId);
 
-        //M:N relations for ProjectClusterNodeTypeAggregation
         modelBuilder.Entity<ProjectClusterNodeTypeAggregation>()
             .HasKey(pcna => new { pcna.ProjectId, pcna.ClusterNodeTypeAggregationId });
         modelBuilder.Entity<ProjectClusterNodeTypeAggregation>()
@@ -275,6 +302,9 @@ public class MiddlewareContext : DbContext
 
         modelBuilder.Entity<AdaptorUser>()
             .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
+
+        modelBuilder.Entity<Cluster>()
+            .Property(p => p.CustomConfiguration).HasJsonConversion();
 
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
@@ -362,22 +392,24 @@ public class MiddlewareContext : DbContext
             .HasIndex(s => s.UniqueCode)
             .IsUnique();
     }
-
     #endregion
 
     #region Seeding methods
 
-    //Should not be called from more instances on one database -> concurrency issues
-    //Does not contain modification of existing data or adding new records
     private void EnsureDatabaseSeeded()
     {
-        _log.Info("Seed data into tha database started.");
+        EnsureDatabaseSeededAsync().GetAwaiter().GetResult();
+    }
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
+    private async Task EnsureDatabaseSeededAsync()
+    {
+        _logger.LogInformation("Seed data into tha database started.");
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserRoles);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUsers);
+
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProxyConnections);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
         {
             ConnectionProtocol = c.ConnectionProtocol,
             Description = c.Description,
@@ -393,7 +425,7 @@ public class MiddlewareContext : DbContext
             ProxyConnectionId = c.ProxyConnectionId
         }));
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc =>
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc =>
             new ClusterAuthenticationCredentials
             {
                 Id = cc.Id,
@@ -406,52 +438,84 @@ public class MiddlewareContext : DbContext
                 AuthenticationType = cc.AuthenticationType
             }));
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.FileTransferMethods);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Accountings);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregations);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Accountings);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregations);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
 
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterNodeTypes);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Projects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.SubProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AccountingStates);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.SubProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AccountingStates);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.Contacts);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ProjectContacts, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserGroups);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.CommandTemplates);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.CommandTemplateParameters);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackInstances);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackDomains);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackProjectDomains);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackProjects);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
+        await InsertOrUpdateSeedDataAsync(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
 
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
-        InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
+        var defaultAccounting = await Set<Accounting>().FirstOrDefaultAsync(a => a.Formula == "1" && !a.IsDeleted);
+        if (defaultAccounting == null)
+        {
+            defaultAccounting = new Accounting
+            {
+                Formula = "1",
+                CreatedAt = DateTime.UtcNow,
+                ValidityFrom = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsDeleted = false
+            };
+            Set<Accounting>().Add(defaultAccounting);
+            SaveChanges();
+        }
+
+        var aggregationsWithoutAccounting = await Set<ClusterNodeTypeAggregation>()
+            .Where(a => !a.IsDeleted && !Set<ClusterNodeTypeAggregationAccounting>().Any(cna => cna.ClusterNodeTypeAggregationId == a.Id && !cna.IsDeleted))
+            .ToListAsync();
+
+        foreach (var agg in aggregationsWithoutAccounting)
+        {
+            Set<ClusterNodeTypeAggregationAccounting>().Add(new ClusterNodeTypeAggregationAccounting
+            {
+                ClusterNodeTypeAggregationId = agg.Id,
+                AccountingId = defaultAccounting.Id,
+                IsDeleted = false
+            });
+        }
+        if (aggregationsWithoutAccounting.Any())
+        {
+            SaveChanges();
+        }
 
         ValidateSeed();
 
         SaveChanges();
 
         var entries = ChangeTracker.Entries();
-        //Prevents duplicit entries in memory when items updated
         entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
-        //Update Authentication type
+        var clusterAuthCredWithVaultData = await WithVaultDataAsync(await ClusterAuthenticationCredentials
+            .Include(x => x.ClusterProjectCredentials)
+                .ThenInclude(x => x.ClusterProject)
+                    .ThenInclude(x => x.Cluster)
+            .ToListAsync());
 
-        var clusterAuthCredWithVaultData = WithVaultData(ClusterAuthenticationCredentials);
-
-        clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
+        foreach (var clusterAuthenticationCredential in clusterAuthCredWithVaultData)
         {
             var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                 .Select(x => x.ClusterProject.Cluster)
@@ -460,79 +524,78 @@ public class MiddlewareContext : DbContext
                 clusterAuthenticationCredential.AuthenticationType =
                     ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
                         clusterAuthenticationCredential, clusters.First());
-        });
+        }
         SaveChanges();
-        _log.Info("Seed data into the database completed.");
+        _logger.LogInformation("Seed data into the database completed.");
     }
 
     private void ValidateSeed()
     {
-        _log.Info("Seed validation has started.");
+        _logger.LogInformation("Seed validation has started.");
         ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates,
             MiddlewareContextSettings.ClusterProjects);
         ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings
             .ClusterAuthenticationCredentials);
         ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
-        _log.Info("Seed validation completed.");
+        _logger.LogInformation("Seed validation completed.");
     }
 
-    private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(
+    private async Task<List<ClusterAuthenticationCredentials>> WithVaultDataAsync(
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
-        if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
-        var _vaultConnector = new VaultConnector();
-        foreach (var item in credentials)
+        if (credentials == null) return new List<ClusterAuthenticationCredentials>();
+        var materialized = credentials.ToList();
+        var _vaultConnector = new VaultConnector(_logger);
+        foreach (var item in materialized)
         {
-            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
+            var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
         }
 
-        return credentials;
+        return materialized;
     }
 
-    /// <summary>
-    ///     Validate CommandTemplate to Project reference
-    /// </summary>
-    /// <param name="projectContacts"></param>
-    /// <exception cref="NotImplementedException"></exception>
     private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
     {
         foreach (var projectContact in projectContacts.GroupBy(x => x.ProjectId))
-            //if project contact has more than one PI throw exception
             if (projectContact.Count(x => x.IsPI) > 1)
                 throw new DbContextException("MaxPICount", projectContact.Key);
     }
 
-    /// <summary>
-    ///     Validate ClusterAuthenticationCredentials to used clusters same proxy connection
-    /// </summary>
-    /// <param name="clusterAuthenticationCredentials"></param>
-    /// <exception cref="ApplicationException"></exception>
     private void ValidateClusterAuthenticationCredentialsClusterReference(
         List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials)
     {
-        foreach (var clusterAuthenticationCredential in clusterAuthenticationCredentials)
+        var clusterProjectById = MiddlewareContextSettings.ClusterProjects
+            .ToDictionary(cp => cp.Id);
+        var clusterById = MiddlewareContextSettings.Clusters
+            .ToDictionary(c => c.Id);
+
+        foreach (var cred in clusterAuthenticationCredentials)
         {
-            var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
-                .Select(x => x.ClusterProject.Cluster).ToList();
-            if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
-                throw new DbContextException("CredentialsProxyMismatch", clusterAuthenticationCredential.Id);
+            var credClusterIds = MiddlewareContextSettings.ClusterProjectCredentials
+                .Where(cpc => cpc.ClusterAuthenticationCredentialsId == cred.Id)
+                .Select(cpc => cpc.ClusterProjectId)
+                .Distinct()
+                .Select(cpId => clusterProjectById.TryGetValue(cpId, out var cp) ? (long?)cp.ClusterId : null)
+                .Where(cId => cId.HasValue)
+                .Select(cId => cId!.Value)
+                .ToList();
+
+            var proxyIds = credClusterIds
+                .Select(cId => clusterById.TryGetValue(cId, out var cl) ? cl.ProxyConnectionId : null)
+                .Distinct()
+                .ToList();
+
+            if (proxyIds.Count > 1)
+                throw new DbContextException("CredentialsProxyMismatch", cred.Id);
         }
     }
 
-    /// <summary>
-    ///     Validate CommandTemplate to Projectcross reference to ClusterProject mapping
-    /// </summary>
-    /// <param name="commandTemplates">All Command Templates</param>
-    /// <param name="clusterProjects">All ClusterProject</param>
-    /// <exception cref="ApplicationException"></exception>
     private void ValidateCommandTemplateToProjectReference(List<CommandTemplate> commandTemplates,
         List<ClusterProject> clusterProjects)
     {
-        //check if exists ClusterProject reference if CommandTemplate is referenced to some project
         var commandTemplatesWithProjectReference = commandTemplates.Where(x => x.ProjectId.HasValue);
         foreach (var commandTemplate in commandTemplatesWithProjectReference)
-            //if does not exist Cluster to Project reference, throw exception
             if (!clusterProjects.Any(x =>
                     x.ClusterId == commandTemplate.ClusterNodeType.ClusterId &&
                     x.ProjectId == commandTemplate.ProjectId))
@@ -540,18 +603,18 @@ public class MiddlewareContext : DbContext
                     commandTemplate.ProjectId);
     }
 
-    //sqlserver specific because of identity
-    private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
+    private async Task InsertOrUpdateSeedDataAsync<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
     {
-        if (items == null || items.Count() == 0) return;
+        if (items == null || !items.Any()) return;
 
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
-        _log.Info($"Inserting or updating seed data into {tableName} is initiated.");
+        _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
-        Database.OpenConnection();
+        await Database.OpenConnectionAsync();
         try
         {
-            foreach (var item in items) AddOrUpdateItem(item);
+            foreach (var item in items)
+                await AddOrUpdateItem(item);
 
             if (useSetIdentity)
             {
@@ -573,7 +636,7 @@ public class MiddlewareContext : DbContext
                 }
                 catch (Exception ex)
                 {
-                    _log.Error($"Error inserting seed data with IDENTITY_INSERT for {tableName}", ex);
+                    _logger.LogError(ex, $"Error inserting seed data with IDENTITY_INSERT for {tableName}");
                     transaction.Rollback();
                     throw;
                 }
@@ -585,13 +648,13 @@ public class MiddlewareContext : DbContext
         }
         catch (Exception e)
         {
-            Database.CloseConnection();
-            _log.Error($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
+            await Database.CloseConnectionAsync();
+            _logger.LogError($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
         }
         finally
         {
-            Database.CloseConnection();
-            _log.Info($"Inserting or updating seed into {tableName} is completed.");
+            await Database.CloseConnectionAsync();
+            _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
     }
 
@@ -620,11 +683,11 @@ public class MiddlewareContext : DbContext
 
                 if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
-                    var vaultConnector = new VaultConnector();
+                    var vaultConnector = new VaultConnector(_logger);
                     var vaultData = await vaultConnector
                         .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id);
 
-                    _log.Info(vaultData.Id > 0
+                    _logger.LogInformation(vaultData.Id > 0
                         ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
                         : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
                     var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
@@ -636,8 +699,6 @@ public class MiddlewareContext : DbContext
 
             case AdaptorUserUserGroupRole userGroupItem:
             {
-                //var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId,
-                //     userGroupItem.AdaptorUserRoleId);
                 var entity = Set<T>().OfType<AdaptorUserUserGroupRole>().IgnoreQueryFilters().FirstOrDefault(c =>
                     c.AdaptorUserId == userGroupItem.AdaptorUserId &&
                     c.AdaptorUserGroupId == userGroupItem.AdaptorUserGroupId &&
@@ -647,8 +708,6 @@ public class MiddlewareContext : DbContext
             }
             case OpenStackAuthenticationCredentialProject openstackCredProject:
             {
-                //var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId,
-                //    openstackCredProject.OpenStackProjectId);
                 var entity = Set<T>().OfType<OpenStackAuthenticationCredentialProject>().IgnoreQueryFilters().FirstOrDefault(c =>
                     c.OpenStackAuthenticationCredentialId == openstackCredProject.OpenStackAuthenticationCredentialId &&
                     c.OpenStackProjectId == openstackCredProject.OpenStackProjectId);
@@ -657,8 +716,6 @@ public class MiddlewareContext : DbContext
             }
             case OpenStackAuthenticationCredentialDomain openstackCredDomain:
             {
-                //var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId,
-                //    openstackCredDomain.OpenStackDomainId);
                 var entity = Set<T>().OfType<OpenStackAuthenticationCredentialDomain>().IgnoreQueryFilters().FirstOrDefault(c =>
                     c.OpenStackAuthenticationCredentialId == openstackCredDomain.OpenStackAuthenticationCredentialId &&
                     c.OpenStackDomainId == openstackCredDomain.OpenStackDomainId);
@@ -675,7 +732,6 @@ public class MiddlewareContext : DbContext
             }
             case ProjectContact projectContact:
             {
-                //var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
                 var entity = Set<T>().OfType<ProjectContact>().IgnoreQueryFilters().FirstOrDefault(c =>
                     c.ProjectId == projectContact.ProjectId && c.ContactId == projectContact.ContactId);
                 UpdateEntityOrAddItem((T)(object)entity, item);

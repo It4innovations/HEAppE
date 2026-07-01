@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 
@@ -569,6 +571,8 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
+        ValidateFirecrestCustomConfiguration(model.SchedulerType.ConvertExtToInt(), model.CustomConfiguration);
+
         return _messageBuilder.ToString();
     }
 
@@ -580,7 +584,22 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ProxyConnectionId.HasValue) ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
 
+        ValidateFirecrestCustomConfiguration(model.SchedulerType.ConvertExtToInt(), model.CustomConfiguration);
+
         return _messageBuilder.ToString();
+    }
+
+    private void ValidateFirecrestCustomConfiguration(SchedulerType schedulerType, System.Collections.Generic.Dictionary<string, string>? customConfiguration)
+    {
+        if (schedulerType.HasFlag(SchedulerType.FirecRestSlurm))
+        {
+            if (customConfiguration == null || 
+                !customConfiguration.TryGetValue("ExpirioSecretName", out var secretName) || 
+                string.IsNullOrEmpty(secretName))
+            {
+                _messageBuilder.AppendLine("`CustomConfiguration` must contain a non-empty `ExpirioSecretName` key when `SchedulerType` is `FirecRestSlurm`.");
+            }
+        }
     }
 
     private string ValidateRemoveClusterModel(RemoveClusterModel model)
@@ -648,9 +667,14 @@ public class ManagementValidator : AbstractValidator
     private string ValidateCreateClusterProxyConnectionModel(CreateClusterProxyConnectionModel model)
     {
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        if (!sessionCodeValidation.IsValid)
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
-        if (model.Port <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        if (string.IsNullOrEmpty(model.Host))
+            _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null or empty");
+
+        if (model.Port <= 0)
+            _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
 
         return _messageBuilder.ToString();
     }
@@ -662,7 +686,11 @@ public class ManagementValidator : AbstractValidator
 
         ValidateId(model.Id, "Id");
 
-        if (model.Port <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+        if (string.IsNullOrEmpty(model.Host))
+            _messageBuilder.AppendLine($"`{nameof(model.Host)}` must not be null or empty");
+
+        if (model.Port <= 0)
+            _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
 
         return _messageBuilder.ToString();
     }

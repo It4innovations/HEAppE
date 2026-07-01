@@ -1,5 +1,7 @@
-﻿using System;
+#nullable enable
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -50,15 +52,30 @@ public interface IManagementLogic
     Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
         string newPassword, long projectId, long? adaptorUserId, bool isAdministrator);
     Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
-        long? adaptorUserId);
+        long? adaptorUserId, ClusterAuthenticationCredentialsAuthType? preferredAuthType = null);
+    
     Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId, bool isAdministrator);
+    
     Task RemoveSecureShellKey(string publicKey, long projectId, bool isAdministrator);
+
+    Task<CredentialResponse> CreateCredential(string? username, string? password, ClusterAuthenticationCredentialsAuthType? authType, 
+                                              bool? generateNewKey, string? privateKey, string? passphrase, long projectId, long? adaptorUserId);
+
+    Task<List<CredentialResponse>> GetCredentials(long projectId, long? adaptorUserId, bool isAdministrator);
+
+    //Task<List<CredentialResponse>> ModifyCredential(string username, string? password, ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, 
+    //                                                string? privateKey, string? passphrase, long projectId, long? adaptorUserId, bool isAdministrator);
+    Task<List<CredentialResponse>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, 
+                                                    long? adaptorUserId, bool isAdministrator);
+
+    Task RemoveCredential(string username, long projectId, long? adaptorUserId = null, bool isAdministrator = false);
+
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string  projectStoragePath);
+        string  projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string projectStoragePath);
+        string projectStoragePath, ClusterAuthenticationCredentialsAuthType preferredAuthType);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
 
     Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
@@ -93,11 +110,13 @@ public interface IManagementLogic
 
     Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        Dictionary<string, string>? customConfiguration);
 
     Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        Dictionary<string, string>? customConfiguration);
 
     void RemoveCluster(long id);
 
@@ -185,6 +204,8 @@ public interface IManagementLogic
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
     void RestoreDatabase(string backupFileName, bool includeLogs);
+    Task<byte[]> ExportMigrationPackage(string? passphrase);
+    Task ImportMigrationPackage(Stream encryptedPackageStream, string? passphrase);
 
     Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
 

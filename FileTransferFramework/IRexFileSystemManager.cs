@@ -11,32 +11,32 @@ namespace HEAppE.FileTransferFramework;
 
 public interface IRexFileSystemManager
 {
-    void CopyInputFilesToCluster(SubmittedJobInfo jobSpecification, string localJobDirectory, string sshCaToken);
+    Task CopyInputFilesToClusterAsync(SubmittedJobInfo jobSpecification, string localJobDirectory, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    Task<ICollection<JobFileContent>> CopyStdOutputFilesFromClusterAsync(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    Task<ICollection<JobFileContent>> CopyStdErrorFilesFromClusterAsync(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    Task<ICollection<JobFileContent>> CopyProgressFilesFromClusterAsync(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    Task<ICollection<JobFileContent>> CopyLogFilesFromClusterAsync(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskSpecification,
-        SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken);
+    Task<ICollection<JobFileContent>> DownloadPartOfJobFileFromClusterAsync(SubmittedTaskInfo taskSpecification,
+        SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken, string lexisToken);
 
-    void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime, string sshCaToken);
+    Task CopyCreatedFilesFromClusterAsync(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
 
-    ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken);
-    ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken);
+    Task<ICollection<FileInformation>> ListChangedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
+    Task<ICollection<FileInformation>> ListArchivedFilesForJobAsync(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
 
-    byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken);
+    Task<byte[]> DownloadFileFromClusterAsync(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken);
 
-    byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath, string sshCaToken);
+    Task<byte[]> DownloadFileFromClusterByAbsolutePathAsync(JobSpecification jobSpecification, string absoluteFilePath, string sshCaToken, string lexisToken);
 
-    void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    Task DeleteSessionFromClusterAsync(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
     
-    bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken);
+    Task<bool> UploadFileToClusterByAbsolutePathAsync(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken);
     
-    bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+    Task<bool> ModifyAbsolutePathFileAttributesAsync(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null);
 }
