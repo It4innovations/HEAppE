@@ -228,18 +228,15 @@ public class FileTransferController : BaseController<FileTransferController>
         var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
         var validator = new UploadFileToClusterModelValidator();
         validator.ValidateAndThrow(model);
-        long jobSpecificationId;
-        long? taskSpecificationId = null;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                       throw new Exception("NotExistingJob");
-            jobSpecificationId = job.Specification.Id;
             //check if task belongs to job
             if (taskId.HasValue)
             {
-                taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ??
-                                      throw new Exception("TaskDoesNotBelongToJob");
+                if (job.Tasks.Any(t => t.Id == taskId.Value) == false)
+                    throw new Exception("TaskDoesNotBelongToJob");
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
                                 _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
@@ -249,7 +246,7 @@ public class FileTransferController : BaseController<FileTransferController>
 
         List<Task<dynamic>> tasks = new List<Task<dynamic>>();
         foreach (var file in files)
-            tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+            tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobId, taskId, sessionCode));
 
         List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
         return Ok(result);

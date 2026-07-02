@@ -172,27 +172,27 @@ public class FileTransferService : IFileTransferService
         }
     }
     
-    public Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode)
+    public Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long submittedJobInfoId, long? submittedTaskInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var job = unitOfWork.JobSpecificationRepository.GetByIdWithTasksAndSubmitter(createdJobInfoId) ??
-                      throw new InputValidationException("NotExistingJob", createdJobInfoId);
+            var jobInfo = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(submittedJobInfoId) ??
+                      throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             // Validate that the task belongs to the job
-            if(createdTaskInfoId.HasValue)
+            if(submittedTaskInfoId.HasValue)
             {
-                if(job.Tasks.Any(t => t.Id == createdTaskInfoId.Value) == false)
+                if(jobInfo.Tasks.Any(t => t.Id == submittedTaskInfoId.Value) == false)
                 {
-                    throw new InputValidationException("TaskDoesNotBelongToJob", createdTaskInfoId.Value);
+                    throw new InputValidationException("TaskDoesNotBelongToJob", submittedTaskInfoId.Value);
                 }
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                            _logger, AdaptorUserRoleType.Submitter, job.ProjectId, _expirioService);
-            if (job.Submitter.Id != loggedUser.Id)
+                            _logger, AdaptorUserRoleType.Submitter, jobInfo.Specification.ProjectId, _expirioService);
+            if (jobInfo.Submitter.Id != loggedUser.Id)
                 throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
-                    loggedUser.GetLogIdentification(), job.Id);
+                    loggedUser.GetLogIdentification(), jobInfo.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return fileTransferLogic.UploadFileToJobExecutionDirAsync(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
+            return fileTransferLogic.UploadFileToJobExecutionDirAsync(fileStream, fileName, submittedJobInfoId, submittedTaskInfoId, loggedUser);
         }
     }
 
