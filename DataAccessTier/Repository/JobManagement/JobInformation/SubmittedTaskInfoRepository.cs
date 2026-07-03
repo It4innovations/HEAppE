@@ -113,6 +113,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         var task = _dbSet
             .AsSplitQuery()
             .Include(t => t.Project)
+            .Include(t => t.TaskAllocationNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)
                     .ThenInclude(ct => ct.TemplateParameters)
@@ -174,6 +175,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     {
         var task = await _dbSet
             .Include(t => t.Project)
+            .Include(t => t.TaskAllocationNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)
                     .ThenInclude(ct => ct.TemplateParameters)

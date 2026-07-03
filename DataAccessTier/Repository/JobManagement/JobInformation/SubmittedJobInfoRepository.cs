@@ -596,7 +596,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var templates = _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
-            .AsNoTracking()
             .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionary(ct => ct.Id);
@@ -624,7 +623,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var templates = await _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
-            .AsNoTracking()
             .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionaryAsync(ct => ct.Id);
