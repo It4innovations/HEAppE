@@ -21,12 +21,26 @@ internal class OpenStackProjectRepository : GenericRepository<OpenStackProject>,
 
     public OpenStackProject GetOpenStackProjectByProjectId(long projectId)
     {
-        return _dbSet.FirstOrDefault(f => f.AdaptorUserGroup.ProjectId == projectId);
+        return _dbSet
+            .Include(p => p.AdaptorUserGroup)
+            .Include(p => p.OpenStackProjectDomain)
+            .Include(p => p.OpenStackDomain)
+                .ThenInclude(d => d.OpenStackInstance)
+            .Include(p => p.OpenStackAuthenticationCredentialProjects)
+                .ThenInclude(cp => cp.OpenStackAuthenticationCredential)
+            .FirstOrDefault(f => f.AdaptorUserGroup.ProjectId == projectId);
     }
 
     public async Task<OpenStackProject> GetOpenStackProjectByProjectIdAsync(long projectId)
     {
-        return await _dbSet.FirstOrDefaultAsync(f => f.AdaptorUserGroup.ProjectId == projectId);
+        return await _dbSet
+            .Include(p => p.AdaptorUserGroup)
+            .Include(p => p.OpenStackProjectDomain)
+            .Include(p => p.OpenStackDomain)
+                .ThenInclude(d => d.OpenStackInstance)
+            .Include(p => p.OpenStackAuthenticationCredentialProjects)
+                .ThenInclude(cp => cp.OpenStackAuthenticationCredential)
+            .FirstOrDefaultAsync(f => f.AdaptorUserGroup.ProjectId == projectId);
     }
 
     #endregion

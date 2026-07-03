@@ -1272,7 +1272,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(modelProjectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", modelProjectId);
-        var clusterNodeType = await _unitOfWork.ClusterNodeTypeRepository.GetByIdAsync(modelClusterNodeTypeId)
+        var clusterNodeType = await _unitOfWork.ClusterNodeTypeRepository.GetByIdWithClusterAndProjectsAsync(modelClusterNodeTypeId)
                               ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists",
                                   modelClusterNodeTypeId);
         var cluster = clusterNodeType.Cluster;
