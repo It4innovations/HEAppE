@@ -616,7 +616,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand, _logger);
         
         var regex = new Regex(
-            @"Job (\d+) to start at ([0-9T:-]+) using (\d+) processors on nodes (\S+) in partition (\S+)");
+            @"Job (\d+) to start at ([0-9T:-]+).*?using (\d+) processors on nodes (\S+) in partition (\S+)");
         //result goes to error stream in dry-run mode
         var match = regex.Match(command.Error);
 
@@ -637,7 +637,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         {
             var info = new DryRunJobInfo
             {
-                Message = command.Result
+                Message = !string.IsNullOrEmpty(command.Error) ? command.Error : command.Result
             };
             return info;
         }
