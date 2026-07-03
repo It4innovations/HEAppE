@@ -92,7 +92,7 @@ public abstract class FileSystemFactory
                     configuration.Cluster.TimeZone,
                     0, // MinSize
                     poolSettings.MaxConnectionsPerUser,
-                    poolSettings.MaxSessionsPerConnection,
+                    1, // MaxSessionsPerConnection is always 1 for filesystem transfers because SftpClient is not thread safe
                     poolSettings.ConnectionPoolCleaningInterval,
                     poolSettings.ConnectionPoolMaxUnusedInterval,
                     CreateFileSystemConnector(configuration, sshCertificateAuthorityService, logger),
