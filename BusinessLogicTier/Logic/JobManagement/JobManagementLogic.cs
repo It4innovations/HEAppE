@@ -1284,7 +1284,7 @@ internal class JobManagementLogic : IJobManagementLogic
             Nodes = modelNodes,
             TasksPerNode = modelTasksPerNode,
             WallTimeInMinutes = modelWallTimeInMinutes,
-            IsGpuPartition = clusterNodeType.ClusterNodeTypeAggregation != null && (clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")),
+            IsGpuPartition = clusterNodeType.ClusterNodeTypeAggregation != null && (clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase)),
             ClusterUser = await LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
                 .GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id)
         };
