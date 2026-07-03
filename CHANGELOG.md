@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.1
+
+### Fixed
+- Fixed concurrent file upload failures by setting `MaxSessionsPerConnection` to `1` for SFTP file transfer connection pools, as `SftpClient` is not thread-safe.
+- Prevented `InvalidOperationException` (stream position changed unexpectedly) during multi-file uploads by rewriting file upload endpoints (`UploadFilesToJobExecutionDir`, `UploadFilesToProjectDir`, and `UploadJobScriptsToProjectDir`) to read and process incoming multipart file streams sequentially instead of concurrently.
+- Eagerly load `FileTransferTemporaryKeys` in repository queries (`GetByIdWithTasks` and `GetByIdWithTasksAsync` in `SubmittedJobInfoRepository`), resolving public key mismatch errors when calling `CloseFileTransfer` and fixing the key generation limit check.
+- Made GPU/ACN partition allocation type checks (`ACN` and `GPU`) case-insensitive across the codebase to correctly match lowercase database entries.
+- Added `--gpus` parameter support to Slurm sbatch dry-run and credential checking commands for GPU partitions.
+- Updated the Slurm dry-run output parser regex to be resilient to extra formatting/characters (like AM/PM or timezone suffixes) in the scheduler's start time output, and configured it to return the raw stderr warning/error message as a fallback instead of an empty string.
+
 ## V6.4.0
 
 ### Added
