@@ -160,11 +160,31 @@ public class DataStagingEndpoint : IApiRoute
 
                     CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager, expirioService);
 
-                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
-                        .UploadFileToProjectDirAsync(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode)).ToList();
-                    
-                    await Task.WhenAll(tasks);
-                    return Results.Ok(await doExtractFilesUploadResult(files, tasks));
+                    var result = new List<FileUploadResultExt>();
+                    foreach (var file in files)
+                    {
+                        var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false };
+                        result.Add(item);
+
+                        try
+                        {
+                            using (var stream = file.OpenReadStream())
+                            {
+                                var transferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
+                                dynamic tr = await transferService.UploadFileToProjectDirAsync(stream, file.FileName, projectId, clusterId, sessionCode);
+                                if (tr != null)
+                                {
+                                    item.Succeeded = tr["Succeeded"];
+                                    item.Path = tr["Path"];
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Failed to upload file '{file.FileName}' sequentially.");
+                        }
+                    }
+                    return Results.Ok(result);
                 })
             .Accepts<IFormFileCollection>("multipart/form-data")
             .Produces<ICollection<FileUploadResultExt>>()
@@ -195,11 +215,32 @@ public class DataStagingEndpoint : IApiRoute
 
                     CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager, expirioService);
 
-                    var tasks = files.Select(file => new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger)
-                        .UploadJobScriptToProjectDirAsync(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode)).ToList();
+                    var result = new List<JobUploadResultExt>();
+                    foreach (var file in files)
+                    {
+                        var item = new JobUploadResultExt() { FileName = file.FileName, Succeeded = false };
+                        result.Add(item);
 
-                    await Task.WhenAll(tasks);
-                    return Results.Ok(await doExtractJobsUploadResult(files, tasks));
+                        try
+                        {
+                            using (var stream = file.OpenReadStream())
+                            {
+                                var transferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
+                                dynamic tr = await transferService.UploadJobScriptToProjectDirAsync(stream, file.FileName, projectId, clusterId, sessionCode);
+                                if (tr != null)
+                                {
+                                    item.Succeeded = tr["Succeeded"];
+                                    item.Path = tr["Path"];
+                                    if (tr.TryGetValue("AttributesSet", out dynamic? val)) item.AttributesSet = val;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Failed to upload job script '{file.FileName}' sequentially.");
+                        }
+                    }
+                    return Results.Ok(result);
                 })
             .Accepts<IFormFileCollection>("multipart/form-data")
             .Produces<ICollection<FileUploadResultExt>>()

@@ -244,11 +244,30 @@ public class FileTransferController : BaseController<FileTransferController>
                 throw new Exception("LoggedUserIsNotSubmitterOfJob");
         }
 
-        List<Task<dynamic>> tasks = new List<Task<dynamic>>();
+        List<FileUploadResultExt> result = new List<FileUploadResultExt>();
         foreach (var file in files)
-            tasks.Add(_service.UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobId, taskId, sessionCode));
+        {
+            var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false, Path = null };
+            result.Add(item);
+            
+            try
+            {
+                using (var stream = file.OpenReadStream())
+                {
+                    dynamic taskResult = await _service.UploadFileToJobExecutionDir(stream, file.FileName, jobId, taskId, sessionCode);
+                    if (taskResult != null)
+                    {
+                        item.Succeeded = taskResult["Succeeded"];
+                        item.Path = taskResult["Path"];
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to upload file '{file.FileName}' sequentially.");
+            }
+        }
 
-        List<FileUploadResultExt> result = await doExtractFilesUploadResult(files, tasks);
         return Ok(result);
     }
 
