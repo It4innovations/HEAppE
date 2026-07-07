@@ -64,20 +64,32 @@ public class Program
                                 cmd.ExecuteNonQuery();
                             }
 
+                            bool tableExists;
                             using (var cmd = conn.CreateCommand())
                             {
-                                cmd.CommandTimeout = 0; // Infinite timeout
-                                cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
-                                                  "BEGIN " +
-                                                  "    DECLARE @Deleted INT; " +
-                                                  "    SET @Deleted = 1; " +
-                                                  "    WHILE (@Deleted > 0) " +
-                                                  "    BEGIN " +
-                                                  "        DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
-                                                  "        SET @Deleted = @@ROWCOUNT; " +
-                                                  "    END " +
-                                                  "END";
-                                cmd.ExecuteNonQuery();
+                                cmd.CommandText = "SELECT OBJECT_ID('Log', 'U')";
+                                var res = cmd.ExecuteScalar();
+                                tableExists = res != null && res != DBNull.Value;
+                            }
+
+                            if (tableExists)
+                            {
+                                var totalDeleted = 0;
+                                var deletedInBatch = 1;
+                                while (deletedInBatch > 0)
+                                {
+                                    using (var cmd = conn.CreateCommand())
+                                    {
+                                        cmd.CommandTimeout = 120;
+                                        cmd.CommandText = "DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE());";
+                                        deletedInBatch = cmd.ExecuteNonQuery();
+                                    }
+                                    if (deletedInBatch > 0)
+                                    {
+                                        totalDeleted += deletedInBatch;
+                                        logger.LogInformation($"Deleted {totalDeleted} log records from database so far...");
+                                    }
+                                }
                             }
 
                             using (var cmd = conn.CreateCommand())

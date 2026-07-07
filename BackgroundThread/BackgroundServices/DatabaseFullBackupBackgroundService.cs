@@ -262,20 +262,32 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                     var cmdBuilder = new SqlCommandBuilder();
                     var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
 
+                    bool tableExists;
                     using (var loggingCmd = loggingConn.CreateCommand())
                     {
-                        loggingCmd.CommandTimeout = 0; // Infinite timeout
-                        loggingCmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
-                                                 "BEGIN " +
-                                                 "    DECLARE @Deleted INT; " +
-                                                 "    SET @Deleted = 1; " +
-                                                 "    WHILE (@Deleted > 0) " +
-                                                 "    BEGIN " +
-                                                 "        DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
-                                                 "        SET @Deleted = @@ROWCOUNT; " +
-                                                 "    END " +
-                                                 "END";
-                        await loggingCmd.ExecuteNonQueryAsync();
+                        loggingCmd.CommandText = "SELECT OBJECT_ID('Log', 'U')";
+                        var res = await loggingCmd.ExecuteScalarAsync();
+                        tableExists = res != null && res != DBNull.Value;
+                    }
+
+                    if (tableExists)
+                    {
+                        var totalDeleted = 0;
+                        var deletedInBatch = 1;
+                        while (deletedInBatch > 0)
+                        {
+                            using (var loggingCmd = loggingConn.CreateCommand())
+                            {
+                                loggingCmd.CommandTimeout = 120;
+                                loggingCmd.CommandText = "DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE());";
+                                deletedInBatch = await loggingCmd.ExecuteNonQueryAsync();
+                            }
+                            if (deletedInBatch > 0)
+                            {
+                                totalDeleted += deletedInBatch;
+                                _logger.LogInformation($"Deleted {totalDeleted} log records from database so far...");
+                            }
+                        }
                     }
 
                     using (var loggingCmd = loggingConn.CreateCommand())
