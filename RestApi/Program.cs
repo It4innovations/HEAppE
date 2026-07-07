@@ -38,8 +38,40 @@ public class Program
                 ? "Logging/log4netDocker.config"
                 : "Logging/log4net.config");
 
-            AdoNetAppenderHelper.SetConnectionString(
-                host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging"));
+            var loggingConnString = host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging");
+            AdoNetAppenderHelper.SetConnectionString(loggingConnString);
+
+            if (!string.IsNullOrEmpty(loggingConnString))
+            {
+                try
+                {
+                    using (var conn = new Microsoft.Data.SqlClient.SqlConnection(loggingConnString))
+                    {
+                        conn.Open();
+                        var dbName = conn.Database;
+                        var cmdBuilder = new Microsoft.Data.SqlClient.SqlCommandBuilder();
+                        var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = $"ALTER DATABASE {safeDbName} SET RECOVERY SIMPLE;";
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = "DECLARE @logName NVARCHAR(256); " +
+                                              "SELECT @logName = name FROM sys.database_files WHERE type_desc = 'LOG'; " +
+                                              "IF @logName IS NOT NULL EXEC('DBCC SHRINKFILE([' + @logName + '], 100) WITH NO_INFOMSGS;');";
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fail-safe: do not crash if the logging database does not exist yet or connection fails
+                }
+            }
 
             var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
             try
