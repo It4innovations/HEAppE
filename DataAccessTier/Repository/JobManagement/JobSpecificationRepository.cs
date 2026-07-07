@@ -37,6 +37,9 @@ internal class JobSpecificationRepository : GenericRepository<JobSpecification>,
         return _dbSet
             .Include(js => js.Tasks)
             .Include(js => js.Submitter)
+            .Include(js => js.Cluster)
+            .Include(js => js.ClusterUser)
+            .Include(js => js.FileTransferMethod)
             .FirstOrDefault(js => js.Id == id);
     }
 
@@ -45,6 +48,9 @@ internal class JobSpecificationRepository : GenericRepository<JobSpecification>,
         return await _dbSet
             .Include(js => js.Tasks)
             .Include(js => js.Submitter)
+            .Include(js => js.Cluster)
+            .Include(js => js.ClusterUser)
+            .Include(js => js.FileTransferMethod)
             .FirstOrDefaultAsync(js => js.Id == id);
     }
 

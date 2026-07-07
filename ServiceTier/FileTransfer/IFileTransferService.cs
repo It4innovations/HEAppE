@@ -1,4 +1,4 @@
-﻿using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.FileTransfer.Models;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -18,6 +18,6 @@ public interface IFileTransferService
 
     Task<dynamic> UploadFileToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
     Task<dynamic> UploadJobScriptToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode);
-    Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode);
+    Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long submittedJobInfoId, long? submittedTaskInfoId, string sessionCode);
     Task<FileTransferMethodExt> ProvideCredentialsAsync(long modelProjectId, long modelClusterId);
 }

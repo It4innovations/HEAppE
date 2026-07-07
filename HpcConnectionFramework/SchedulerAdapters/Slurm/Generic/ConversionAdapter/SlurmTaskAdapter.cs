@@ -276,7 +276,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         var parSpec = paralizationSpecs.FirstOrDefault();
 
         bool isPartialAllocation = aggregation != null && aggregation.AllocationType.Contains("partial-allocation", StringComparison.OrdinalIgnoreCase);
-        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
+        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || aggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase));
         
         // GPU allocation
         if (isGpuAllocation)

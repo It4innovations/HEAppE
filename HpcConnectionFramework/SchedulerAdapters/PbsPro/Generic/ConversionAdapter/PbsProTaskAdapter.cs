@@ -330,7 +330,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
+        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || aggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase));
 
         var allocationCmdBuilder = new StringBuilder(" -l select=");
 

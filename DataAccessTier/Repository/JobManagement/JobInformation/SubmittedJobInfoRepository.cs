@@ -310,6 +310,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
+            .Include(j => j.FileTransferTemporaryKeys)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
@@ -375,6 +376,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
+            .Include(j => j.FileTransferTemporaryKeys)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.ResourceConsumed)
             .Include(j => j.Tasks)
@@ -596,7 +598,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var templates = _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
-            .AsNoTracking()
             .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionary(ct => ct.Id);
@@ -624,7 +625,6 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var templates = await _context.Set<CommandTemplate>()
             .IgnoreQueryFilters()
-            .AsNoTracking()
             .Include(ct => ct.TemplateParameters)
             .Where(ct => missingIds.Contains(ct.Id))
             .ToDictionaryAsync(ct => ct.Id);

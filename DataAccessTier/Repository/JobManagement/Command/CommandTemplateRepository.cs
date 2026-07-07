@@ -22,6 +22,8 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
     {
         return _dbSet
             .Include(i => i.TemplateParameters)
+            .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.Cluster)
             .FirstOrDefault(f => f.Id == id);
     }
 
@@ -31,6 +33,9 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .AsNoTracking()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.Cluster)
+            .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.FileTransferMethod)
             .Include(i => i.TemplateParameters)
             .ToList();
     }
@@ -42,6 +47,9 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .AsNoTracking()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.Cluster)
+            .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.FileTransferMethod)
             .Include(i => i.TemplateParameters)
             .ToList();
     }
@@ -53,6 +61,9 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
             .AsSplitQuery()
             .Include(i => i.Project)
             .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.Cluster)
+            .Include(i => i.ClusterNodeType)
+                .ThenInclude(cnt => cnt.FileTransferMethod)
             .Include(i => i.TemplateParameters)
             .ToListAsync();
     }

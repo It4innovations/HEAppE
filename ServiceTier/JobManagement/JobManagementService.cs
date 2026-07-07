@@ -384,27 +384,11 @@ public class JobManagementService : IJobManagementService
 
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
-        string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}";
-
-        // --- Fast path: check cache before opening any DB connection ---
-        if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
-        {
-            _logger.LogDebug("Returning cached job info for job {JobId}", submittedJobInfoId);
-            return cachedJobInfo;
-        }
-
         // Serialize concurrent requests for the same job to avoid N parallel DB/SSH calls
         var semaphore = _jobSemaphores.GetOrAdd(submittedJobInfoId, _ => new SemaphoreSlim(1, 1));
         await semaphore.WaitAsync();
         try
         {
-            // Double-check after acquiring semaphore
-            if (_cache.TryGetValue(cacheKey, out cachedJobInfo))
-            {
-                _logger.LogDebug("Returning cached job info for job {JobId} after acquiring lock", submittedJobInfoId);
-                return cachedJobInfo;
-            }
-
             SubmittedJobInfo job;
             AdaptorUser loggedUser;
             bool isAdmin;
@@ -420,6 +404,20 @@ public class JobManagementService : IJobManagementService
                 long projectId = job.Project?.Id ?? 0;
                 isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
                 isJobOwner = job.Submitter.Id == loggedUser.Id;
+
+                if (!isJobOwner && !isAdmin)
+                {
+                    throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                        loggedUser.GetLogIdentification(), job.Id);
+                }
+
+                // Check cache using user-specific key
+                string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}_{loggedUser.Id}";
+                if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
+                {
+                    _logger.LogDebug("Returning cached job info for job {JobId} for user {UserId}", submittedJobInfoId, loggedUser.Id);
+                    return cachedJobInfo;
+                }
 
                 bool needSshRefresh = JwtTokenIntrospectionConfiguration.IsEnabled
                                       && SshCaSettings.UseCertificateAuthorityForAuthentication

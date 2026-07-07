@@ -150,7 +150,7 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
         IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        if (placementPolicy.Contains("gpus") || aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"))
+        if ((placementPolicy != null && placementPolicy.Contains("gpus", StringComparison.OrdinalIgnoreCase)) || (aggregation != null && (aggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || aggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase))))
         {
             // only temporary solution until LEXIS systems implement new gpu core/node parameters
             // then remove this and use logic in else statement

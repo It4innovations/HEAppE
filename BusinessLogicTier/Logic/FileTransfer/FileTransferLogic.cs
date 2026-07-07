@@ -573,13 +573,15 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public async Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser)
+    public async Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long submittedJobInfoId, long? submittedTaskInfoId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
         
-        var jobSpecification = _unitOfWork.JobSpecificationRepository.GetByIdWithTasksAndSubmitter(createdJobInfoId);
-        if (jobSpecification.Submitter.Id != loggedUser.Id)
-            throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), createdJobInfoId);
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+            .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        VerifyOwner(jobInfo, loggedUser);
+
+        var jobSpecification = jobInfo.Specification;
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath = FileSystemUtils
             .GetJobClusterDirectoryPath(jobSpecification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
@@ -587,9 +589,12 @@ public class FileTransferLogic : IFileTransferLogic
             throw new Exception("Error: jobClusterDirectoryPath is not set!");
 
         string absoluteFilePath = string.Empty;
-        if (createdTaskInfoId.HasValue)
+        if (submittedTaskInfoId.HasValue)
         {
-            string path = Path.Combine(jobClusterDirectoryPath, createdTaskInfoId.Value.ToString());
+            var taskInfo = jobInfo.Tasks.FirstOrDefault(t => t.Id == submittedTaskInfoId.Value) ??
+                           throw new Exception("TaskDoesNotBelongToJob");
+            var taskSpecificationId = taskInfo.Specification.Id;
+            string path = Path.Combine(jobClusterDirectoryPath, taskSpecificationId.ToString());
             absoluteFilePath = FileSystemUtils.ConcatenatePaths(path, FileSystemUtils.SanitizeFileName(fileName));
         }
         else

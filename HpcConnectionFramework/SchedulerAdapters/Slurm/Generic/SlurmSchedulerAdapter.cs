@@ -515,6 +515,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --partition=" + partition;
         result += " --nodes=" + nodes;
         result += " --ntasks-per-node=" + ntasks_per_node;
+        if (isGpuPartition)
+        {
+            result += " --gpus=" + Math.Max(1, nodes);
+        }
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
         result += " --error=" + error;
@@ -547,7 +551,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 time: TimeSpan.FromSeconds(1),
                 output: "dummy.out",
                 error: "dummy.err",
-                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU"))
+                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase))
             ) + "\n";
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -612,7 +616,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand, _logger);
         
         var regex = new Regex(
-            @"Job (\d+) to start at ([0-9T:-]+) using (\d+) processors on nodes (\S+) in partition (\S+)");
+            @"Job (\d+) to start at ([0-9T:-]+).*?using (\d+) processors on nodes (\S+) in partition (\S+)");
         //result goes to error stream in dry-run mode
         var match = regex.Match(command.Error);
 
@@ -633,7 +637,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         {
             var info = new DryRunJobInfo
             {
-                Message = command.Result
+                Message = !string.IsNullOrEmpty(command.Error) ? command.Error : command.Result
             };
             return info;
         }

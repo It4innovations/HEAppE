@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.FileTransfer;
@@ -26,6 +26,6 @@ public interface IFileTransferLogic
         AdaptorUser loggedUser);
     Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
         AdaptorUser loggedUser);
-    Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
+    Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long submittedJobInfoId, long? submittedTaskInfoId, AdaptorUser loggedUser);
     Task<FileTransferMethod> ProvideCredentials(long modelProjectId, long modelClusterId, AdaptorUser loggedUser);
 }

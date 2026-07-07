@@ -113,6 +113,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         var task = _dbSet
             .AsSplitQuery()
             .Include(t => t.Project)
+            .Include(t => t.TaskAllocationNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)
                     .ThenInclude(ct => ct.TemplateParameters)
@@ -134,6 +135,9 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
             .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.Cluster)
+            .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Cluster)
                         .ThenInclude(c => c.ProxyConnection)
@@ -145,6 +149,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                     .ThenInclude(js => js.Project)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
             .FirstOrDefault(t => t.Id == id);
 
         if (task == null) return null;
@@ -174,6 +179,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     {
         var task = await _dbSet
             .Include(t => t.Project)
+            .Include(t => t.TaskAllocationNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.CommandTemplate)
                     .ThenInclude(ct => ct.TemplateParameters)
@@ -194,6 +200,9 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.Cluster)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Cluster)
