@@ -7,8 +7,6 @@ variables:
   SSHAGENT_IMAGE_NAME: sshagent
   
 
-services:
-  - docker:dind
 
 stages:
   - prepare_release
@@ -41,6 +39,8 @@ release_msg_job:
 heappe_build:
   stage: build
   image: docker:latest
+  services:
+    - docker:dind
   needs:
     - job: release_msg_job
       artifacts: true     
@@ -68,6 +68,8 @@ heappe_build:
 sshagent_build:
   stage: build
   image: docker:latest
+  services:
+    - docker:dind
   needs:
     - job: release_msg_job
       artifacts: true     

@@ -115,6 +115,20 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             _logger.LogInformation($"Transaction logs backup file was created to: {backupPath}");
 
+            try
+            {
+                using var shrinkCmd = conn.CreateCommand();
+                shrinkCmd.CommandText = "DECLARE @logName NVARCHAR(256); " +
+                                        "SELECT @logName = name FROM sys.database_files WHERE type_desc = 'LOG'; " +
+                                        "EXEC('DBCC SHRINKFILE([' + @logName + '], 1000) WITH NO_INFOMSGS;');";
+                await shrinkCmd.ExecuteNonQueryAsync();
+                _logger.LogInformation("Database transaction log was shrunk.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "An error occurred during database transaction log shrink execution.");
+            }
+
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
                 var nasFile = Path.Combine(_configuration.NASPath, backupFileName);
