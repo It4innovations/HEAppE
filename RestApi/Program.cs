@@ -45,51 +45,55 @@ public class Program
 
             if (!string.IsNullOrEmpty(loggingConnString))
             {
-                try
+                // Run in a background thread so it doesn't block application startup
+                _ = System.Threading.Tasks.Task.Run(() =>
                 {
-                    logger.LogInformation("Performing startup logging database maintenance...");
-                    using (var conn = new Microsoft.Data.SqlClient.SqlConnection(loggingConnString))
+                    try
                     {
-                        conn.Open();
-                        var dbName = conn.Database;
-                        var cmdBuilder = new Microsoft.Data.SqlClient.SqlCommandBuilder();
-                        var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
-
-                        using (var cmd = conn.CreateCommand())
+                        logger.LogInformation("Performing startup logging database maintenance...");
+                        using (var conn = new Microsoft.Data.SqlClient.SqlConnection(loggingConnString))
                         {
-                            cmd.CommandText = $"ALTER DATABASE {safeDbName} SET RECOVERY SIMPLE;";
-                            cmd.ExecuteNonQuery();
-                        }
+                            conn.Open();
+                            var dbName = conn.Database;
+                            var cmdBuilder = new Microsoft.Data.SqlClient.SqlCommandBuilder();
+                            var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
 
-                        using (var cmd = conn.CreateCommand())
-                        {
-                            cmd.CommandTimeout = 300;
-                            cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
-                                              "BEGIN " +
-                                              "    DECLARE @Deleted INT; " +
-                                              "    SET @Deleted = 1; " +
-                                              "    WHILE (@Deleted > 0) " +
-                                              "    BEGIN " +
-                                              "        DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
-                                              "        SET @Deleted = @@ROWCOUNT; " +
-                                              "    END " +
-                                              "END";
-                            cmd.ExecuteNonQuery();
-                        }
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = $"ALTER DATABASE {safeDbName} SET RECOVERY SIMPLE;";
+                                cmd.ExecuteNonQuery();
+                            }
 
-                        using (var cmd = conn.CreateCommand())
-                        {
-                            cmd.CommandTimeout = 300;
-                            cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
-                            cmd.ExecuteNonQuery();
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandTimeout = 300;
+                                cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
+                                                  "BEGIN " +
+                                                  "    DECLARE @Deleted INT; " +
+                                                  "    SET @Deleted = 1; " +
+                                                  "    WHILE (@Deleted > 0) " +
+                                                  "    BEGIN " +
+                                                  "        DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
+                                                  "        SET @Deleted = @@ROWCOUNT; " +
+                                                  "    END " +
+                                                  "END";
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandTimeout = 300;
+                                cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
+                                cmd.ExecuteNonQuery();
+                            }
                         }
+                        logger.LogInformation("Startup logging database maintenance completed successfully.");
                     }
-                    logger.LogInformation("Startup logging database maintenance completed successfully.");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning($"Could not configure logging database on startup: {ex.Message}");
-                }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning($"Could not configure logging database on startup: {ex.Message}");
+                    }
+                });
             }
 
             try
