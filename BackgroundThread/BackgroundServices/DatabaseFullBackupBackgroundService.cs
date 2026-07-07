@@ -9,6 +9,7 @@ using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
 using HEAppE.DataAccessTier.Vault;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -19,12 +20,14 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     private readonly ILogger _logger;
     private readonly VaultConnector _vaultConnector;
     private readonly DatabaseFullBackupConfiguration _configuration;
+    private readonly IConfiguration _appConfiguration;
 
-    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory, DatabaseFullBackupConfiguration configuration)
+    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory, DatabaseFullBackupConfiguration configuration, IConfiguration appConfiguration)
     {
         _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseFullBackupBackgroundService");
         _vaultConnector = new VaultConnector(_logger);
         _configuration = configuration;
+        _appConfiguration = appConfiguration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -243,6 +246,42 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Vault backup failed: {ex.Message}");
+            }
+
+            // Perform daily logging database maintenance (prune logs older than 30 days and shrink)
+            try
+            {
+                var loggingConnString = _appConfiguration.GetConnectionString("Logging");
+                if (!string.IsNullOrEmpty(loggingConnString))
+                {
+                    _logger.LogInformation("Starting daily logging database maintenance (pruning logs older than 30 days and shrinking)...");
+                    using var loggingConn = new SqlConnection(loggingConnString);
+                    await loggingConn.OpenAsync();
+
+                    var dbName = loggingConn.Database;
+                    var cmdBuilder = new SqlCommandBuilder();
+                    var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
+
+                    using (var loggingCmd = loggingConn.CreateCommand())
+                    {
+                        loggingCmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
+                                                 "BEGIN " +
+                                                 "    DELETE FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
+                                                 "END";
+                        await loggingCmd.ExecuteNonQueryAsync();
+                    }
+
+                    using (var loggingCmd = loggingConn.CreateCommand())
+                    {
+                        loggingCmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
+                        await loggingCmd.ExecuteNonQueryAsync();
+                    }
+                    _logger.LogInformation("Daily logging database maintenance completed successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "An error occurred during daily logging database maintenance.");
             }
         }
         catch (Exception ex)
