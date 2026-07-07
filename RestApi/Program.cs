@@ -63,15 +63,23 @@ public class Program
 
                         using (var cmd = conn.CreateCommand())
                         {
+                            cmd.CommandTimeout = 300;
                             cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
                                               "BEGIN " +
-                                              "    DELETE FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
+                                              "    DECLARE @Deleted INT; " +
+                                              "    SET @Deleted = 1; " +
+                                              "    WHILE (@Deleted > 0) " +
+                                              "    BEGIN " +
+                                              "        DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
+                                              "        SET @Deleted = @@ROWCOUNT; " +
+                                              "    END " +
                                               "END";
                             cmd.ExecuteNonQuery();
                         }
 
                         using (var cmd = conn.CreateCommand())
                         {
+                            cmd.CommandTimeout = 300;
                             cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
                             cmd.ExecuteNonQuery();
                         }
