@@ -264,7 +264,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
                     using (var loggingCmd = loggingConn.CreateCommand())
                     {
-                        loggingCmd.CommandTimeout = 300;
+                        loggingCmd.CommandTimeout = 0; // Infinite timeout
                         loggingCmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
                                                  "BEGIN " +
                                                  "    DECLARE @Deleted INT; " +
@@ -280,7 +280,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
                     using (var loggingCmd = loggingConn.CreateCommand())
                     {
-                        loggingCmd.CommandTimeout = 300;
+                        loggingCmd.CommandTimeout = 0; // Infinite timeout
                         loggingCmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
                         await loggingCmd.ExecuteNonQueryAsync();
                     }

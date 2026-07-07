@@ -66,7 +66,7 @@ public class Program
 
                             using (var cmd = conn.CreateCommand())
                             {
-                                cmd.CommandTimeout = 300;
+                                cmd.CommandTimeout = 0; // Infinite timeout
                                 cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
                                                   "BEGIN " +
                                                   "    DECLARE @Deleted INT; " +
@@ -82,7 +82,7 @@ public class Program
 
                             using (var cmd = conn.CreateCommand())
                             {
-                                cmd.CommandTimeout = 300;
+                                cmd.CommandTimeout = 0; // Infinite timeout
                                 cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
                                 cmd.ExecuteNonQuery();
                             }
