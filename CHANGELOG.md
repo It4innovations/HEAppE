@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.2
+
+### Fixed
+- Added automatic transaction log shrinking (`DBCC SHRINKFILE` to 1000 MB) immediately after successful database transaction log backups, preventing `.ldf` files from growing indefinitely in `FULL` recovery mode.
+
 ## V6.4.1
 
 ### Fixed

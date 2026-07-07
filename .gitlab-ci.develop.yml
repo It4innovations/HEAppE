@@ -5,6 +5,8 @@ variables:
 heappe_build_development:
   stage: build
   image: docker:latest
+  services:
+    - docker:dind
   before_script:
     - docker --version
     - docker image prune -f
@@ -29,6 +31,8 @@ heappe_build_development:
 sshagent_build_development:
   stage: build
   image: docker:latest
+  services:
+    - docker:dind
   before_script:
     - docker --version
     - docker image prune -f

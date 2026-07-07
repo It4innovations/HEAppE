@@ -38,10 +38,76 @@ public class Program
                 ? "Logging/log4netDocker.config"
                 : "Logging/log4net.config");
 
-            AdoNetAppenderHelper.SetConnectionString(
-                host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging"));
+            var loggingConnString = host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging");
+            AdoNetAppenderHelper.SetConnectionString(loggingConnString);
 
             var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
+
+            if (!string.IsNullOrEmpty(loggingConnString))
+            {
+                // Run in a background thread so it doesn't block application startup
+                _ = System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        logger.LogInformation("Performing startup logging database maintenance...");
+                        using (var conn = new Microsoft.Data.SqlClient.SqlConnection(loggingConnString))
+                        {
+                            conn.Open();
+                            var dbName = conn.Database;
+                            var cmdBuilder = new Microsoft.Data.SqlClient.SqlCommandBuilder();
+                            var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
+
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = $"ALTER DATABASE {safeDbName} SET RECOVERY SIMPLE;";
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            bool tableExists;
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = "SELECT OBJECT_ID('Log', 'U')";
+                                var res = cmd.ExecuteScalar();
+                                tableExists = res != null && res != DBNull.Value;
+                            }
+
+                            if (tableExists)
+                            {
+                                var totalDeleted = 0;
+                                var deletedInBatch = 1;
+                                while (deletedInBatch > 0)
+                                {
+                                    using (var cmd = conn.CreateCommand())
+                                    {
+                                        cmd.CommandTimeout = 120;
+                                        cmd.CommandText = "DELETE TOP (10000) FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE());";
+                                        deletedInBatch = cmd.ExecuteNonQuery();
+                                    }
+                                    if (deletedInBatch > 0)
+                                    {
+                                        totalDeleted += deletedInBatch;
+                                        logger.LogInformation($"Deleted {totalDeleted} log records from database so far...");
+                                    }
+                                }
+                            }
+
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandTimeout = 0; // Infinite timeout
+                                cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        logger.LogInformation("Startup logging database maintenance completed successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning($"Could not configure logging database on startup: {ex.Message}");
+                    }
+                });
+            }
+
             try
             {
                 logger.LogInformation("Checking database compatibility, migrations and seeding...");
