@@ -41,10 +41,13 @@ public class Program
             var loggingConnString = host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging");
             AdoNetAppenderHelper.SetConnectionString(loggingConnString);
 
+            var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
+
             if (!string.IsNullOrEmpty(loggingConnString))
             {
                 try
                 {
+                    logger.LogInformation("Performing startup logging database maintenance...");
                     using (var conn = new Microsoft.Data.SqlClient.SqlConnection(loggingConnString))
                     {
                         conn.Open();
@@ -60,20 +63,27 @@ public class Program
 
                         using (var cmd = conn.CreateCommand())
                         {
-                            cmd.CommandText = "DECLARE @logName NVARCHAR(256); " +
-                                              "SELECT @logName = name FROM sys.database_files WHERE type_desc = 'LOG'; " +
-                                              "IF @logName IS NOT NULL EXEC('DBCC SHRINKFILE([' + @logName + '], 100) WITH NO_INFOMSGS;');";
+                            cmd.CommandText = "IF OBJECT_ID('Log', 'U') IS NOT NULL " +
+                                              "BEGIN " +
+                                              "    DELETE FROM Log WHERE [Date] < DATEADD(day, -30, GETUTCDATE()); " +
+                                              "END";
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
                             cmd.ExecuteNonQuery();
                         }
                     }
+                    logger.LogInformation("Startup logging database maintenance completed successfully.");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Fail-safe: do not crash if the logging database does not exist yet or connection fails
+                    logger.LogWarning($"Could not configure logging database on startup: {ex.Message}");
                 }
             }
 
-            var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
             try
             {
                 logger.LogInformation("Checking database compatibility, migrations and seeding...");
