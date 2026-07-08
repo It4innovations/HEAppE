@@ -1762,23 +1762,21 @@ public class ManagementLogic : IManagementLogic
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
 
-        string? tokenValue = null;
-        if (customConfiguration != null && customConfiguration.TryGetValue("QSchedulerNotifyToken", out var rawToken))
+        var secretsToSave = new Dictionary<string, string>();
+        if (customConfigurationVaultToggles != null && customConfiguration != null)
         {
-            tokenValue = rawToken;
+            foreach (var key in customConfigurationVaultToggles.Keys)
+            {
+                if (customConfigurationVaultToggles[key] && customConfiguration.TryGetValue(key, out var val))
+                {
+                    if (!string.IsNullOrEmpty(val))
+                    {
+                        secretsToSave[key] = val;
+                    }
+                    customConfiguration[key] = "";
+                }
+            }
         }
-
-        bool storeInVault = customConfigurationVaultToggles != null && 
-                            customConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggled) && 
-                            toggled;
-
-        if (storeInVault && customConfiguration != null)
-        {
-            // Token will be stored in Vault after cluster is saved (we need the ID)
-            // Clear from DB so it's not stored twice
-            customConfiguration["QSchedulerNotifyToken"] = "";
-        }
-        // If not Vault, token stays as-is in customConfiguration (plain text in DB)
 
         var cluster = new Cluster
         {
@@ -1798,10 +1796,10 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
 
-        if (storeInVault && !string.IsNullOrEmpty(tokenValue))
+        if (secretsToSave.Count > 0)
         {
             var vaultConnector = new VaultConnector(_logger);
-            await vaultConnector.SetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken", tokenValue);
+            await vaultConnector.SetClusterSecretsAsync(cluster.Id, secretsToSave);
         }
 
         return cluster;
@@ -1892,66 +1890,119 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
-        // --- QScheduler Notify Token Management ---
-        string? tokenValue = null;
-        if (customConfiguration != null && customConfiguration.TryGetValue("QSchedulerNotifyToken", out var rawToken))
+        // --- Generic Custom Configuration Vault Management ---
+        var vaultConnector = new VaultConnector(_logger);
+        var existingVaultSecrets = await vaultConnector.GetClusterSecretsAsync(existingCluster.Id) ?? new Dictionary<string, string>();
+        var updatedVaultSecrets = new Dictionary<string, string>(existingVaultSecrets);
+        bool vaultSecretsModified = false;
+
+        var allKeys = new HashSet<string>();
+        if (customConfiguration != null) allKeys.UnionWith(customConfiguration.Keys);
+        if (customConfigurationVaultToggles != null) allKeys.UnionWith(customConfigurationVaultToggles.Keys);
+        if (existingCluster.CustomConfiguration != null) allKeys.UnionWith(existingCluster.CustomConfiguration.Keys);
+        if (existingCluster.CustomConfigurationVaultToggles != null) allKeys.UnionWith(existingCluster.CustomConfigurationVaultToggles.Keys);
+
+        foreach (var key in allKeys)
         {
-            tokenValue = rawToken;
+            bool storeInVault = customConfigurationVaultToggles != null && 
+                                customConfigurationVaultToggles.TryGetValue(key, out bool toggled) && 
+                                toggled;
+
+            string? newValue = null;
+            customConfiguration?.TryGetValue(key, out newValue);
+
+            if (storeInVault)
+            {
+                if (newValue == "********")
+                {
+                    // Leave what's in Vault
+                }
+                else if (string.IsNullOrEmpty(newValue))
+                {
+                    // Remove from Vault
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+                else
+                {
+                    // Update/add in Vault
+                    updatedVaultSecrets[key] = newValue;
+                    vaultSecretsModified = true;
+                }
+
+                // Ensure it is empty in DB
+                if (customConfiguration != null)
+                {
+                    customConfiguration[key] = "";
+                }
+            }
+            else // DB Storage
+            {
+                if (newValue == "********")
+                {
+                    // Check if it was previously stored in Vault
+                    bool previouslyInVault = existingCluster.CustomConfigurationVaultToggles != null && 
+                                             existingCluster.CustomConfigurationVaultToggles.TryGetValue(key, out bool prevToggled) && 
+                                             prevToggled;
+
+                    if (previouslyInVault)
+                    {
+                        // Restore value from Vault to DB
+                        if (existingVaultSecrets.TryGetValue(key, out var vaultVal))
+                        {
+                            if (customConfiguration != null) customConfiguration[key] = vaultVal;
+                        }
+                        
+                        // Remove from Vault since it is now stored in DB
+                        if (updatedVaultSecrets.Remove(key))
+                        {
+                            vaultSecretsModified = true;
+                        }
+                    }
+                    else
+                    {
+                        // Restore existing value from DB to dictionary if present
+                        if (existingCluster.CustomConfiguration != null && existingCluster.CustomConfiguration.TryGetValue(key, out var existingToken))
+                        {
+                            if (customConfiguration != null) customConfiguration[key] = existingToken;
+                        }
+                    }
+                }
+                else if (string.IsNullOrEmpty(newValue))
+                {
+                    // Clear in DB and ensure removed from Vault
+                    if (customConfiguration != null) customConfiguration[key] = "";
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+                else
+                {
+                    // New plain value - stored in DB as-is (already in customConfiguration)
+                    // Ensure removed from Vault
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+            }
         }
 
-        bool storeInVault = customConfigurationVaultToggles != null && 
-                            customConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggled) && 
-                            toggled;
-
-        if (storeInVault)
+        if (vaultSecretsModified)
         {
-            if (tokenValue == "********")
+            if (updatedVaultSecrets.Count == 0)
             {
-                // Leave what's in Vault
-            }
-            else if (string.IsNullOrEmpty(tokenValue))
-            {
-                // Delete from Vault
-                var vaultConnector = new VaultConnector(_logger);
                 await vaultConnector.DeleteClusterSecretsAsync(existingCluster.Id);
             }
             else
             {
-                // Write new value to Vault
-                var vaultConnector = new VaultConnector(_logger);
-                await vaultConnector.SetClusterSecretAsync(existingCluster.Id, "QSchedulerNotifyToken", tokenValue);
-            }
-
-            if (customConfiguration != null)
-            {
-                customConfiguration["QSchedulerNotifyToken"] = "";
+                await vaultConnector.SetClusterSecretsAsync(existingCluster.Id, updatedVaultSecrets);
             }
         }
-        else // DB storage
-        {
-            if (tokenValue == "********")
-            {
-                // Restore existing value from DB to dictionary if present
-                if (existingCluster.CustomConfiguration != null && existingCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var existingToken))
-                {
-                    if (customConfiguration != null) customConfiguration["QSchedulerNotifyToken"] = existingToken;
-                }
-            }
-            else if (string.IsNullOrEmpty(tokenValue))
-            {
-                // Clear in DB
-                if (customConfiguration != null) customConfiguration["QSchedulerNotifyToken"] = "";
-            }
-            else
-            {
-                // New plain value - store as-is in DB
-                if (customConfiguration != null)
-                {
-                    customConfiguration["QSchedulerNotifyToken"] = tokenValue;
-                }
-            }
-        }
-        // ------------------------------------------
+        // ------------------------------------------------------
 
         existingCluster.Name = name;
         existingCluster.Description = description;
