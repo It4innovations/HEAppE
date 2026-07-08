@@ -108,15 +108,15 @@ public interface IManagementLogic
     Cluster GetClusterById(long clusterId);
     Cluster GetByIdWithProxyConnection(long clusterId);
 
-    Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<Cluster> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles);
 
-    Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<Cluster> ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles);
 
     void RemoveCluster(long id);
 

@@ -116,15 +116,15 @@ public interface IManagementService
     ExtendedClusterExt GetClusterById(long clusterId, string sessionCode);
     List<ExtendedClusterExt> GetClusters(string sessionCode);
 
-    ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode);
 
-    ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    Task<ExtendedClusterExt> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);
 

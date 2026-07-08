@@ -12,10 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full adapter lifecycle: session creation, task submission, task state polling, and integration into the existing `SchedulerFactory` / `RexSchedulerWrapper` / connection-pool architecture.
   - `QSchedulerDataConvertor` parses JSON state responses (`waiting`, `running`, `finished`, `failed`, `error`, `cancelled`) into HEAppE `TaskState` values.
   - Unit tests for `QSchedulerDataConvertor` covering all state transitions, error field extraction, and malformed input handling.
+  - Added support for asynchronous wait state-machine during QScheduler session activation, direct task submissions, and active SSH polling bypass when notify callbacks are active.
 - Added two new REST API endpoints under `heappe/ClusterInformation`:
   - `GET /heappe/ClusterInformation/MachineArchitecture` — returns the hardware topology/architecture of a QScheduler machine.
   - `GET /heappe/ClusterInformation/MachineCalibration` — returns calibration data for a specified machine and calibration endpoint.
 - Added input models `GetMachineArchitectureModel` and `GetMachineCalibrationModel` with full validation in `ClusterInformationValidator`.
+- Added unified webhook status callback endpoint `POST /heappe/JobManagement/TaskCallback` to receive job/task status updates directly from cluster schedulers without polling.
+- Added support for storing custom configuration secrets (like `QSchedulerNotifyToken`) in HashiCorp Vault, with dynamic API masking (`"********"`) for all vault-toggled custom configuration values in cluster information responses.
+- Added migration and backup package support for exporting and restoring HashiCorp Vault-stored cluster secrets in `cluster_secrets.json` within encrypted ZIP packages.
 
 ## V6.4.2
 

@@ -1745,10 +1745,10 @@ public class ManagementLogic : IManagementLogic
     /// <param name="proxyConnectionId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    public async Task<Cluster> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles)
     {
         if (proxyConnectionId.HasValue)
         {
@@ -1762,6 +1762,24 @@ public class ManagementLogic : IManagementLogic
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
         }
 
+        string? tokenValue = null;
+        if (customConfiguration != null && customConfiguration.TryGetValue("QSchedulerNotifyToken", out var rawToken))
+        {
+            tokenValue = rawToken;
+        }
+
+        bool storeInVault = customConfigurationVaultToggles != null && 
+                            customConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggled) && 
+                            toggled;
+
+        if (storeInVault && customConfiguration != null)
+        {
+            // Token will be stored in Vault after cluster is saved (we need the ID)
+            // Clear from DB so it's not stored twice
+            customConfiguration["QSchedulerNotifyToken"] = "";
+        }
+        // If not Vault, token stays as-is in customConfiguration (plain text in DB)
+
         var cluster = new Cluster
         {
             Name = name,
@@ -1774,10 +1792,17 @@ public class ManagementLogic : IManagementLogic
             UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
             DomainName = domainName,
             ProxyConnectionId = proxyConnectionId,
-            CustomConfiguration = customConfiguration
+            CustomConfiguration = customConfiguration,
+            CustomConfigurationVaultToggles = customConfigurationVaultToggles
         };
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
+
+        if (storeInVault && !string.IsNullOrEmpty(tokenValue))
+        {
+            var vaultConnector = new VaultConnector(_logger);
+            await vaultConnector.SetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken", tokenValue);
+        }
 
         return cluster;
     }
@@ -1796,12 +1821,14 @@ public class ManagementLogic : IManagementLogic
     /// <param name="updateJobStateByServiceAccount"></param>
     /// <param name="domainName"></param>
     /// <param name="proxyConnectionId"></param>
+    /// <param name="customConfiguration"></param>
+    /// <param name="customConfigurationVaultToggles"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
+    public async Task<Cluster> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
@@ -1865,6 +1892,67 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
+        // --- QScheduler Notify Token Management ---
+        string? tokenValue = null;
+        if (customConfiguration != null && customConfiguration.TryGetValue("QSchedulerNotifyToken", out var rawToken))
+        {
+            tokenValue = rawToken;
+        }
+
+        bool storeInVault = customConfigurationVaultToggles != null && 
+                            customConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggled) && 
+                            toggled;
+
+        if (storeInVault)
+        {
+            if (tokenValue == "********")
+            {
+                // Leave what's in Vault
+            }
+            else if (string.IsNullOrEmpty(tokenValue))
+            {
+                // Delete from Vault
+                var vaultConnector = new VaultConnector(_logger);
+                await vaultConnector.DeleteClusterSecretsAsync(existingCluster.Id);
+            }
+            else
+            {
+                // Write new value to Vault
+                var vaultConnector = new VaultConnector(_logger);
+                await vaultConnector.SetClusterSecretAsync(existingCluster.Id, "QSchedulerNotifyToken", tokenValue);
+            }
+
+            if (customConfiguration != null)
+            {
+                customConfiguration["QSchedulerNotifyToken"] = "";
+            }
+        }
+        else // DB storage
+        {
+            if (tokenValue == "********")
+            {
+                // Restore existing value from DB to dictionary if present
+                if (existingCluster.CustomConfiguration != null && existingCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var existingToken))
+                {
+                    if (customConfiguration != null) customConfiguration["QSchedulerNotifyToken"] = existingToken;
+                }
+            }
+            else if (string.IsNullOrEmpty(tokenValue))
+            {
+                // Clear in DB
+                if (customConfiguration != null) customConfiguration["QSchedulerNotifyToken"] = "";
+            }
+            else
+            {
+                // New plain value - store as-is in DB
+                if (customConfiguration != null)
+                {
+                    customConfiguration["QSchedulerNotifyToken"] = tokenValue;
+                }
+            }
+        }
+        // ------------------------------------------
+
         existingCluster.Name = name;
         existingCluster.Description = description;
         existingCluster.MasterNodeName = masterNodeName;
@@ -1876,6 +1964,7 @@ public class ManagementLogic : IManagementLogic
         existingCluster.DomainName = domainName;
         existingCluster.ProxyConnectionId = proxyConnectionId;
         existingCluster.CustomConfiguration = customConfiguration;
+        existingCluster.CustomConfigurationVaultToggles = customConfigurationVaultToggles;
         _unitOfWork.ClusterRepository.Update(existingCluster);
         _unitOfWork.Save();
 

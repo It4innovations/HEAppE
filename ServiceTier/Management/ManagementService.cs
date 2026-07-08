@@ -1036,10 +1036,10 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    public async Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode)
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1047,17 +1047,17 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
+            var cluster = await managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
 
-    public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    public async Task<ExtendedClusterExt> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode)
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -1065,9 +1065,9 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
+            var cluster = await managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
             return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }

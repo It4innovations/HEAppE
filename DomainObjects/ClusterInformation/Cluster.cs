@@ -59,5 +59,7 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     public Dictionary<string, string>? CustomConfiguration { get; set; }
 
+    public Dictionary<string, bool>? CustomConfigurationVaultToggles { get; set; }
+
     #endregion
 }

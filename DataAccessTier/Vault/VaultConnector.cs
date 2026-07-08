@@ -4,6 +4,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Vault.Settings;
@@ -157,5 +160,116 @@ public class VaultConnector : IVaultConnector
             _logger.LogError($"TAR backup failed: {ex.Message}");
             return Array.Empty<byte>();
         }
+    }
+
+    public async Task<string?> GetClusterSecretAsync(long clusterId, string secretKey)
+    {
+        var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
+        try
+        {
+            var responseStr = await _httpClient.GetStringAsync(path);
+            using var doc = JsonDocument.Parse(responseStr);
+            if (doc.RootElement.TryGetProperty("data", out var level1) &&
+                level1.TryGetProperty("data", out var level2) &&
+                level2.TryGetProperty(secretKey, out var valueProp))
+            {
+                return valueProp.GetString();
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogWarning($"Vault secret for Cluster {clusterId} key {secretKey} not found: {e.Message}");
+        }
+        return null;
+    }
+
+    public async Task<bool> SetClusterSecretAsync(long clusterId, string secretKey, string secretValue)
+    {
+        var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
+        
+        // Fetch existing secrets under this cluster path first to prevent overwriting other keys!
+        var secrets = new Dictionary<string, string>();
+        try
+        {
+            var responseStr = await _httpClient.GetStringAsync(path);
+            using var doc = JsonDocument.Parse(responseStr);
+            if (doc.RootElement.TryGetProperty("data", out var level1) &&
+                level1.TryGetProperty("data", out var level2))
+            {
+                foreach (var prop in level2.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        secrets[prop.Name] = prop.Value.GetString() ?? string.Empty;
+                    }
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            // Path doesn't exist yet, which is fine
+        }
+
+        secrets[secretKey] = secretValue;
+
+        var content = JsonSerializer.Serialize(new { data = secrets });
+        var payload = new StringContent(content, Encoding.UTF8, "application/json");
+
+        _logger.LogDebug($"Updating vault ClusterSecret with ID: {clusterId}");
+        var result = await _httpClient.PostAsync(path, payload);
+        return result.IsSuccessStatusCode;
+    }
+
+    public async Task DeleteClusterSecretsAsync(long clusterId)
+    {
+        var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
+        var result = await _httpClient.DeleteAsync(path);
+        if (result.IsSuccessStatusCode)
+        {
+            _logger.LogDebug($"Deleted vault ClusterSecrets with ID: {clusterId}");
+        }
+        else
+        {
+            _logger.LogWarning($"Failed to delete vault ClusterSecrets with ID: {clusterId}");
+        }
+    }
+
+    public async Task<Dictionary<string, string>?> GetClusterSecretsAsync(long clusterId)
+    {
+        var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
+        try
+        {
+            var responseStr = await _httpClient.GetStringAsync(path);
+            using var doc = JsonDocument.Parse(responseStr);
+            if (doc.RootElement.TryGetProperty("data", out var level1) &&
+                level1.TryGetProperty("data", out var level2))
+            {
+                var secrets = new Dictionary<string, string>();
+                foreach (var prop in level2.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        secrets[prop.Name] = prop.Value.GetString() ?? string.Empty;
+                    }
+                }
+                return secrets;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogWarning($"Vault secrets for Cluster {clusterId} not found: {e.Message}");
+        }
+        return null;
+    }
+
+    public async Task<bool> SetClusterSecretsAsync(long clusterId, Dictionary<string, string> secrets)
+    {
+        var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
+        var content = JsonSerializer.Serialize(new { data = secrets });
+        var payload = new StringContent(content, Encoding.UTF8, "application/json");
+
+        _logger.LogDebug($"Updating all vault ClusterSecrets with ID: {clusterId}");
+        var result = await _httpClient.PostAsync(path, payload);
+        return result.IsSuccessStatusCode;
     }
 }

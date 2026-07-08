@@ -83,12 +83,30 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
 
         // Group tasks by their target machine (ClusterNodeType.Queue is used as machine_id).
-        // Each group creates its own session because a QScheduler session is scoped to a single machine_id.
         var taskGroups = jobSpecification.Tasks
-            .GroupBy(t => int.TryParse(t.ClusterNodeType.Queue, out int mid) ? mid : 1)
+            .GroupBy(t => t.ClusterNodeType.Queue)
             .ToList();
 
         _logger.LogInformation($"SubmitJobAsync: {jobSpecification.Tasks.Count} task(s) grouped into {taskGroups.Count} machine group(s).");
+
+        // Determine if we should use sessions
+        bool useSessions = false;
+        if (jobSpecification.Cluster.CustomConfiguration != null &&
+            jobSpecification.Cluster.CustomConfiguration.TryGetValue("QSchedulerUseSessions", out var useSessionsStr) &&
+            useSessionsStr == "true")
+        {
+            useSessions = true;
+        }
+
+        var firstTask = jobSpecification.Tasks.FirstOrDefault();
+        if (firstTask != null && firstTask.EnvironmentVariables != null)
+        {
+            var envVar = firstTask.EnvironmentVariables.FirstOrDefault(e => e.Name == "HEAPPE_QSCHEDULER_USE_SESSIONS");
+            if (envVar != null)
+            {
+                useSessions = (envVar.Value == "true");
+            }
+        }
 
         var submittedTasks = new List<SubmittedTaskInfo>();
 
@@ -96,85 +114,71 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         {
             var machineId = group.Key;
 
-            // Session logic is currently commented out as requested.
-            /*
-            // Walltime limit for the session must cover the longest task in this group,
-            // so the session stays open until all tasks in it finish.
-            var walltimeSecs = group.Max(t => Convert.ToInt32(t.WalltimeLimit));
-            if (walltimeSecs <= 0) walltimeSecs = 3600; // default 1 hour
-
-            _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
-
-            // 1. Create session for this machine group
-            var sessionCmd = $"curl -s -X POST \"http://localhost:{port}/sessions?machine_id={machineId}&time_limit_secs={walltimeSecs}\"";
-            _logger.LogInformation($"Creating QScheduler session. Command: \"{sessionCmd}\"");
-            var sessionCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionCmd, _logger);
-            var sessionIdStr = sessionCommandResult.Result.Trim();
-            if (!long.TryParse(sessionIdStr, out long sessionId))
+            if (useSessions)
             {
-                _logger.LogError($"Failed to parse sessionId for machine {machineId}. Command output: '{sessionCommandResult.Result}', Command error: '{sessionCommandResult.Error}'");
-                throw new Exception($"Failed to create QScheduler session for machine {machineId}. Output: {sessionCommandResult.Result}, Error: {sessionCommandResult.Error}");
-            }
-            _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
+                // Walltime limit for the session must cover the longest task in this group,
+                // so the session stays open until all tasks in it finish.
+                var walltimeSecs = group.Max(t => Convert.ToInt32(t.WalltimeLimit));
+                if (walltimeSecs <= 0) walltimeSecs = 3600; // default 1 hour
 
-            // Poll session status until it transitions from "waiting" to "open"
-            var sessionStatusCmd = $"curl -s http://localhost:{port}/sessions/{sessionId}";
-            var sessionState = "waiting";
-            int maxAttempts = 30; // 30 attempts, 1 second wait each
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                _logger.LogInformation($"Checking status of session {sessionId} (Attempt {attempt}/{maxAttempts}). Command: \"{sessionStatusCmd}\"");
-                var statusResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionStatusCmd, _logger);
-                sessionState = statusResult.Result.Trim().Replace("\"", ""); // strip quotes
-                _logger.LogInformation($"Session {sessionId} status: '{sessionState}'");
+                _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
 
-                if (sessionState == "open")
+                // 1. Create session for this machine group
+                var sessionCmd = $"curl -s -X POST \"http://localhost:{port}/sessions?machine_id={machineId}&time_limit_secs={walltimeSecs}\"";
+                _logger.LogInformation($"Creating QScheduler session. Command: \"{sessionCmd}\"");
+                var sessionCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionCmd, _logger);
+                var sessionIdStr = sessionCommandResult.Result.Trim();
+                if (!long.TryParse(sessionIdStr, out long sessionId))
                 {
-                    break;
+                    _logger.LogError($"Failed to parse sessionId for machine {machineId}. Command output: '{sessionCommandResult.Result}', Command error: '{sessionCommandResult.Error}'");
+                    throw new Exception($"Failed to create QScheduler session for machine {machineId}. Output: {sessionCommandResult.Result}, Error: {sessionCommandResult.Error}");
                 }
-                if (sessionState == "closed")
+                _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
+
+                foreach (var taskSpec in group)
                 {
-                    throw new Exception($"Session {sessionId} closed prematurely.");
+                    submittedTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = taskSpec.Id,
+                        Name = taskSpec.Id.ToString(),
+                        ScheduledJobId = $"session:{sessionId}",
+                        State = TaskState.Submitted,
+                        Specification = taskSpec
+                    });
                 }
-
-                await Task.Delay(1000); // Wait 1 second before next poll
             }
-
-            if (sessionState != "open")
+            else
             {
-                throw new Exception($"QScheduler session {sessionId} did not start within the timeout limit. Current state: {sessionState}");
-            }
-            */
-
-            // 2. Submit each task in this group directly to the machine (no session)
-            foreach (var taskSpec in group)
-            {
-                var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
-                var payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
-                    ? $"{taskDir}/payload.json"
-                    : $"{taskDir}/{taskSpec.StandardInputFile}";
-
-                // Wrap path in single quotes to prevent shell injection through special characters in filenames.
-                var quotedPayloadPath = ShellQuotePath(payloadPath);
-                var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}\"";
-                _logger.LogInformation($"Submitting task {taskSpec.Id} to QScheduler machine {machineId} (no session). Command: \"{submitCmd}\"");
-                var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
-                var taskIdStr = taskCommandResult.Result.Trim();
-                if (!long.TryParse(taskIdStr, out long taskId))
+                // 2. Submit each task in this group directly to the machine (no session)
+                foreach (var taskSpec in group)
                 {
-                    _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Command output: '{taskCommandResult.Result}', Command error: '{taskCommandResult.Error}'");
-                    throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
+                    var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                    var payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
+                        ? $"{taskDir}/payload.json"
+                        : $"{taskDir}/{taskSpec.StandardInputFile}";
+
+                    // Wrap path in single quotes to prevent shell injection through special characters in filenames.
+                    var quotedPayloadPath = ShellQuotePath(payloadPath);
+                    var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}\"";
+                    _logger.LogInformation($"Submitting task {taskSpec.Id} to QScheduler machine {machineId} (no session). Command: \"{submitCmd}\"");
+                    var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
+                    var taskIdStr = taskCommandResult.Result.Trim();
+                    if (!long.TryParse(taskIdStr, out long taskId))
+                    {
+                        _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Command output: '{taskCommandResult.Result}', Command error: '{taskCommandResult.Error}'");
+                        throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
+                    }
+
+                    _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Machine: {machineId}");
+                    submittedTasks.Add(new SubmittedTaskInfo
+                    {
+                        Id = taskSpec.Id,
+                        Name = taskSpec.Id.ToString(),
+                        ScheduledJobId = $"task:{taskId}",
+                        State = TaskState.Submitted,
+                        Specification = taskSpec
+                    });
                 }
-
-                _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Machine: {machineId}");
-                submittedTasks.Add(new SubmittedTaskInfo
-                {
-                    Id = taskSpec.Id,
-                    Name = taskSpec.Id.ToString(),
-                    ScheduledJobId = taskId.ToString(),
-                    State = TaskState.Submitted,
-                    Specification = taskSpec
-                });
             }
         }
 
@@ -188,6 +192,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation("GetActualTasksInfoAsync started for QScheduler.");
         var port = GetQSchedulerPort(cluster);
         var results = new List<SubmittedTaskInfo>();
+        var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+
         foreach (var taskInfo in submitedTasksInfo)
         {
             if (string.IsNullOrEmpty(taskInfo.ScheduledJobId))
@@ -196,31 +202,108 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 results.Add(taskInfo);
                 continue;
             }
-            var cmd = $"curl -s http://localhost:{port}/tasks/{taskInfo.ScheduledJobId}";
-            _logger.LogInformation($"Querying QScheduler task {taskInfo.ScheduledJobId} status on port {port}. Command: \"{cmd}\"");
-            try
+
+            if (taskInfo.ScheduledJobId.StartsWith("session:"))
             {
-                var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
-                _logger.LogDebug($"QScheduler status response for task {taskInfo.ScheduledJobId}: '{commandResult.Result}'");
-                var parsed = _convertor.ReadParametersFromResponse(cluster, commandResult.Result).FirstOrDefault();
-                if (parsed != null)
+                var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
+                var sessionStatusCmd = $"curl -s http://localhost:{port}/sessions/{sessionId}";
+                _logger.LogInformation($"Checking status of session {sessionId}. Command: \"{sessionStatusCmd}\"");
+                
+                try
                 {
-                    _logger.LogInformation($"Parsed task {taskInfo.ScheduledJobId} state: {parsed.State}, ErrorMessage: '{parsed.ErrorMessage}'");
-                    taskInfo.State = parsed.State;
-                    taskInfo.ErrorMessage = parsed.ErrorMessage;
+                    var statusResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionStatusCmd, _logger);
+                    var sessionState = statusResult.Result.Trim().Replace("\"", "").ToLower();
+                    _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
+
+                    if (sessionState == "open" || sessionState == "running")
+                    {
+                        // Session is active! Now submit the task payload to this session!
+                        var machineId = taskInfo.Specification.ClusterNodeType.Queue;
+                        var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                        var payloadPath = string.IsNullOrEmpty(taskInfo.Specification.StandardInputFile)
+                            ? $"{taskDir}/payload.json"
+                            : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
+
+                        var quotedPayloadPath = ShellQuotePath(payloadPath);
+                        var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}&session_id={sessionId}\"";
+                        _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}. Command: \"{submitCmd}\"");
+                        
+                        var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
+                        var taskIdStr = taskCommandResult.Result.Trim();
+                        if (!long.TryParse(taskIdStr, out long taskId))
+                        {
+                            _logger.LogError($"Failed to parse QScheduler task ID for task {taskInfo.Id}. Command output: '{taskCommandResult.Result}', Command error: '{taskCommandResult.Error}'");
+                            throw new Exception($"Failed to submit QScheduler task {taskInfo.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
+                        }
+
+                        _logger.LogInformation($"QScheduler task {taskInfo.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
+                        
+                        // Transition ScheduledJobId to the task ID
+                        taskInfo.ScheduledJobId = $"task:{taskId}";
+                        taskInfo.State = TaskState.Submitted;
+                    }
+                    else if (sessionState == "closed")
+                    {
+                        _logger.LogError($"Session {sessionId} closed before task could be submitted.");
+                        taskInfo.State = TaskState.Failed;
+                        taskInfo.ErrorMessage = "Session closed before task could be submitted.";
+                    }
+                    // If waiting, keep it in Submitted/Queued state
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning($"QScheduler converter returned empty results for task {taskInfo.ScheduledJobId} response.");
+                    _logger.LogError(ex, $"Failed to query QScheduler session state for {sessionId}");
                 }
+                results.Add(taskInfo);
             }
-            catch (Exception ex)
+            else // Starts with "task:" or plain taskId (direct mode)
             {
-                _logger.LogError(ex, $"Failed to query QScheduler task state for {taskInfo.ScheduledJobId}");
-                taskInfo.State = TaskState.Failed;
-                taskInfo.ErrorMessage = ex.Message;
+                var taskId = taskInfo.ScheduledJobId.StartsWith("task:") 
+                    ? taskInfo.ScheduledJobId.Substring("task:".Length) 
+                    : taskInfo.ScheduledJobId;
+
+                // Check if callback token is configured
+                bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
+                                        cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
+                                        inVault) || 
+                                       (cluster.CustomConfiguration != null && 
+                                        cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
+                                        !string.IsNullOrEmpty(token));
+
+                if (callbackEnabled)
+                {
+                    // Bypass active SSH polling - just keep current DB state!
+                    _logger.LogInformation($"Callback is configured. Bypassing SSH polling for task {taskId}. State remains: {taskInfo.State}");
+                    results.Add(taskInfo);
+                    continue;
+                }
+
+                // Call active SSH polling
+                var cmd = $"curl -s http://localhost:{port}/tasks/{taskId}";
+                _logger.LogInformation($"Querying QScheduler task {taskId} status on port {port}. Command: \"{cmd}\"");
+                try
+                {
+                    var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
+                    _logger.LogDebug($"QScheduler status response for task {taskId}: '{commandResult.Result}'");
+                    var parsed = _convertor.ReadParametersFromResponse(cluster, commandResult.Result).FirstOrDefault();
+                    if (parsed != null)
+                    {
+                        _logger.LogInformation($"Parsed task {taskId} state: {parsed.State}, ErrorMessage: '{parsed.ErrorMessage}'");
+                        taskInfo.State = parsed.State;
+                        taskInfo.ErrorMessage = parsed.ErrorMessage;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"QScheduler converter returned empty results for task {taskId} response.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to query QScheduler task state for {taskId}");
+                    taskInfo.State = TaskState.Failed;
+                }
+                results.Add(taskInfo);
             }
-            results.Add(taskInfo);
         }
         _logger.LogInformation("GetActualTasksInfoAsync finished for QScheduler.");
         return results;

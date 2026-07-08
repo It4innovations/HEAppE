@@ -1,3 +1,4 @@
+using System;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
@@ -300,6 +301,42 @@ public class JobManagementController : BaseController<JobManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(await _service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
+    }
+
+    /// <summary>
+    ///     Update task status callback
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("TaskCallback")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TaskCallback([FromBody] TaskCallbackModel model)
+    {
+        if (model == null || string.IsNullOrEmpty(model.Token) || string.IsNullOrEmpty(model.ScheduledJobId))
+        {
+            return BadRequest("Invalid callback payload. TaskId and Token are required.");
+        }
+
+        try
+        {
+            await _service.ProcessTaskCallbackAsync(model.ScheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
+            return Ok("Task status updated successfully.");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     #endregion

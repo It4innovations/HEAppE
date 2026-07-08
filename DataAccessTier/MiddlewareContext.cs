@@ -305,6 +305,8 @@ public class MiddlewareContext : DbContext
 
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfiguration).HasJsonConversion();
+        modelBuilder.Entity<Cluster>()
+            .Property(p => p.CustomConfigurationVaultToggles).HasJsonConversion();
 
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()

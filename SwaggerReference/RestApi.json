@@ -3141,6 +3141,76 @@
         }
       }
     },
+    "/heappe/JobManagement/TaskCallback": {
+      "post": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "Update task status callback",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCallbackModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCallbackModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCallbackModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/JobReporting/ListAdaptorUserGroups": {
       "get": {
         "tags": [
@@ -14392,6 +14462,14 @@
             },
             "description": "Custom configuration",
             "nullable": true
+          },
+          "CustomConfigurationVaultToggles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Custom configuration vault toggles",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -15631,6 +15709,14 @@
             },
             "description": "Custom configuration",
             "nullable": true
+          },
+          "CustomConfigurationVaultToggles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Custom configuration vault toggles",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -16727,6 +16813,14 @@
               "nullable": true
             },
             "description": "Custom configuration",
+            "nullable": true
+          },
+          "CustomConfigurationVaultToggles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Custom configuration vault toggles",
             "nullable": true
           }
         },
@@ -18465,6 +18559,34 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "TaskCallbackModel": {
+        "required": [
+          "task_id",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "raw_response": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "TaskExtendedReportExt": {
         "type": "object",

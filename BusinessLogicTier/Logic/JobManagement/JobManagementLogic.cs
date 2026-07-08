@@ -28,6 +28,8 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
+using HEAppE.DataAccessTier.Vault;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
@@ -1325,6 +1327,98 @@ internal class JobManagementLogic : IJobManagementLogic
         if (jobSpec.Submitter.Id != loggedUser.Id)
         {
             throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), jobSpec.Id);
+        }
+    }
+
+    public async Task ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
+    {
+        // 1. Find Task in DB by ScheduledJobId
+        var dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync(scheduledJobId);
+
+        if (dbTask == null)
+        {
+            throw new KeyNotFoundException($"Task with scheduler ID {scheduledJobId} not found.");
+        }
+
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(dbTask.Specification.JobSpecification.Id);
+        if (jobInfo == null)
+        {
+            throw new KeyNotFoundException($"Job not found.");
+        }
+
+        var cluster = jobInfo.Specification.Cluster;
+
+        // 2. Security validation based on scheduler type
+        if (cluster.SchedulerType == SchedulerType.QScheduler)
+        {
+            bool toggled = cluster.CustomConfigurationVaultToggles != null &&
+                           cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
+                           toggledValue;
+            bool storeInVault = toggled;
+
+            string? expectedToken = null;
+            if (storeInVault)
+            {
+                var vaultConnector = new VaultConnector(_logger);
+                expectedToken = await vaultConnector.GetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken");
+                if (string.IsNullOrEmpty(expectedToken))
+                {
+                    throw new UnauthorizedAccessException("Authentication failed: QSchedulerNotifyToken not configured in Vault.");
+                }
+            }
+            else
+            {
+                if (cluster.CustomConfiguration == null || !cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken) || string.IsNullOrEmpty(expectedToken))
+                {
+                    throw new UnauthorizedAccessException("Authentication failed: QSchedulerNotifyToken not configured in cluster.");
+                }
+            }
+
+            if (expectedToken != token)
+            {
+                throw new UnauthorizedAccessException("Authentication failed: Invalid cluster callback token.");
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(dbTask.CallbackSecret) || dbTask.CallbackSecret != token)
+            {
+                throw new UnauthorizedAccessException("Authentication failed: Invalid task callback token.");
+            }
+        }
+
+        // 3. Prepare rawPayload
+        string? rawPayload = rawResponse;
+        if (cluster.SchedulerType == SchedulerType.QScheduler && !string.IsNullOrEmpty(qSchedulerState))
+        {
+            rawPayload = $"{{\"state\":\"{qSchedulerState.ToLower()}\"}}";
+        }
+
+        if (string.IsNullOrEmpty(rawPayload))
+        {
+            throw new ArgumentException("Callback raw response is empty.");
+        }
+
+        // 4. Parse state via converter
+        var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
+        var parsedTasks = convertor.ReadParametersFromResponse(cluster, rawPayload);
+        var parsedTaskInfo = parsedTasks?.FirstOrDefault();
+
+        if (parsedTaskInfo == null)
+        {
+            throw new Exception("Failed to parse callback payload using the cluster data convertor.");
+        }
+
+        // 5. Update task state in DB and aggregate job status
+        if (parsedTaskInfo.State != TaskState.Unknown && dbTask.State < TaskState.Finished)
+        {
+            dbTask.State = parsedTaskInfo.State;
+            dbTask.ErrorMessage = parsedTaskInfo.ErrorMessage;
+            dbTask.EndTime = parsedTaskInfo.EndTime ?? DateTime.UtcNow;
+
+            UpdateJobStateByTasks(jobInfo);
+
+            await _unitOfWork.SaveAsync();
         }
     }
 

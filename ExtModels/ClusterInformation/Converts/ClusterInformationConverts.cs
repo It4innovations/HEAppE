@@ -65,9 +65,30 @@ public static class ClusterInformationConverts
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray(),
-            CustomConfiguration = cluster.CustomConfiguration
+            CustomConfiguration = MaskCustomConfiguration(cluster),
+            CustomConfigurationVaultToggles = cluster.CustomConfigurationVaultToggles
         };
         return convert;
+    }
+
+    private static Dictionary<string, string>? MaskCustomConfiguration(Cluster cluster)
+    {
+        if (cluster.CustomConfiguration == null) return null;
+        var copy = new Dictionary<string, string>(cluster.CustomConfiguration);
+        
+        // Mask all keys that are toggled to be stored in Vault
+        if (cluster.CustomConfigurationVaultToggles != null)
+        {
+            foreach (var pair in cluster.CustomConfigurationVaultToggles)
+            {
+                if (pair.Value)
+                {
+                    copy[pair.Key] = "********";
+                }
+            }
+        }
+
+        return copy;
     }
     
     public static SchedulerTypeExt ConvertIntToExt(this SchedulerType schedulerType)

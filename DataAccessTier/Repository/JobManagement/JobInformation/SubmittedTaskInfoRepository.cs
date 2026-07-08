@@ -261,5 +261,21 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         return _context.Set<ResourceConsumed>().FirstOrDefault(r => r.SubmittedTaskInfoId == taskId);
     }
 
+    public async Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId)
+    {
+        var taskPrefix = $"task:{scheduledJobId}";
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .FirstOrDefaultAsync(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId);
+    }
+
     #endregion
 }

@@ -23,6 +23,8 @@ using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using HEAppE.ExtModels.JobManagement.Models;
+using HEAppE.DataAccessTier.Vault;
 using SshCaAPI;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -577,6 +579,15 @@ public class JobManagementService : IJobManagementService
             .DryRunJobAsync(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
         return dryRunResult.ConvertIntToExt();
+    }
+
+    public async Task ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            await jobLogic.ProcessTaskCallbackAsync(scheduledJobId, token, rawResponse, qSchedulerState);
+        }
     }
 
 #pragma warning disable IDE1006
