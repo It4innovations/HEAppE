@@ -131,6 +131,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 submittedTasks.Add(new SubmittedTaskInfo
                 {
                     Id = taskSpec.Id,
+                    Name = taskSpec.Id.ToString(),
                     ScheduledJobId = taskId.ToString(),
                     State = TaskState.Submitted,
                     Specification = taskSpec
