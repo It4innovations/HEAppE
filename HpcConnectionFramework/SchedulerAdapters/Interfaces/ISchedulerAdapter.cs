@@ -5,6 +5,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using Cluster = HEAppE.DomainObjects.ClusterInformation.Cluster;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
@@ -57,4 +58,8 @@ public interface ISchedulerAdapter
     Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification);
     
     Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account);
+
+    Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, int machineId);
+
+    Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, int machineId, string calibrationId, string endpoint);
 }

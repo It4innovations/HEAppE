@@ -772,5 +772,15 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         return allHistoricalTasks;
     }
 
+    public Task<string> GetMachineArchitectureAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, int machineId)
+    {
+        throw new NotSupportedException("GetMachineArchitecture is not supported by PBS");
+    }
+
+    public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, int machineId, string calibrationId, string endpoint)
+    {
+        throw new NotSupportedException("GetMachineCalibration is not supported by PBS");
+    }
+
     #endregion
 }

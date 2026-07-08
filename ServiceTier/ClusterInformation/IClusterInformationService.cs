@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.ExtModels.ClusterInformation.Models;
 
@@ -16,4 +16,8 @@ public interface IClusterInformationService
         string userScriptPath, string sessionCode);
 
     Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode);
+
+    Task<string> GetMachineArchitecture(long clusterId, int machineId, long projectId, string sessionCode);
+
+    Task<string> GetMachineCalibration(long clusterId, int machineId, string calibrationId, string endpoint, long projectId, string sessionCode);
 }

@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.4.1"
+    "version": "v6.5.0"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -288,6 +288,230 @@
           },
           "413": {
             "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/ClusterInformation/MachineArchitecture": {
+      "get": {
+        "tags": [
+          "ClusterInformation"
+        ],
+        "summary": "Get QScheduler machine architecture",
+        "parameters": [
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Cluster id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "MachineId",
+            "in": "query",
+            "description": "Machine id in QScheduler",
+            "schema": {
+              "type": "integer",
+              "description": "Machine id in QScheduler",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/ClusterInformation/MachineCalibration": {
+      "get": {
+        "tags": [
+          "ClusterInformation"
+        ],
+        "summary": "Get QScheduler machine calibration",
+        "parameters": [
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Cluster id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "MachineId",
+            "in": "query",
+            "description": "Machine id in QScheduler",
+            "schema": {
+              "type": "integer",
+              "description": "Machine id in QScheduler",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "CalibrationId",
+            "in": "query",
+            "description": "Calibration identifier",
+            "schema": {
+              "type": "string",
+              "description": "Calibration identifier"
+            }
+          },
+          {
+            "name": "Endpoint",
+            "in": "query",
+            "description": "Calibration endpoint",
+            "schema": {
+              "type": "string",
+              "description": "Calibration endpoint"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -19061,7 +19285,8 @@
           2,
           4,
           8,
-          16
+          16,
+          32
         ],
         "type": "integer",
         "format": "int32"

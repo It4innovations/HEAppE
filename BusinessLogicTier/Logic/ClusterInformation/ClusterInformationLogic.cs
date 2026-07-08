@@ -96,6 +96,92 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return await scheduler.GetCurrentClusterNodeUsageAsync(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
+    public async Task<string> GetMachineArchitectureAsync(long clusterId, int machineId, AdaptorUser loggedUser, long projectId)
+    {
+        _logger.LogInformation($"GetMachineArchitectureAsync logic tier call. clusterId: {clusterId}, machineId: {machineId}, userId: {loggedUser?.Id}, projectId: {projectId}");
+        var cluster = GetClusterById(clusterId)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+
+        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
+            throw new InvalidRequestException("UserHasNoGroups", loggedUser);
+
+        var clusterProjectIds = cluster.ClusterProjects?
+            .Where(x => x.ProjectId == projectId)
+            .Select(y => y.ProjectId)
+            .ToList() ?? new List<long>();
+
+        var availableProjectIds = loggedUser.Groups
+            .Where(g => g.ProjectId.HasValue && clusterProjectIds.Contains(g.ProjectId.Value))
+            .Select(g => g.ProjectId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (availableProjectIds.Count == 0)
+            throw new InvalidRequestException("UserNoAccessToCluster", loggedUser, clusterId);
+
+        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+        if (serviceAccount is null)
+            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+
+        var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
+
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
+            ?? throw new InvalidOperationException("SchedulerInitializationFailed");
+
+        var result = await scheduler.GetMachineArchitectureAsync(cluster, machineId, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        _logger.LogInformation($"GetMachineArchitectureAsync logic tier completed. clusterId: {clusterId}, machineId: {machineId}, response size: {result?.Length ?? 0} characters.");
+        return result;
+    }
+
+    public async Task<string> GetMachineCalibrationAsync(long clusterId, int machineId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId)
+    {
+        _logger.LogInformation($"GetMachineCalibrationAsync logic tier call. clusterId: {clusterId}, machineId: {machineId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', userId: {loggedUser?.Id}, projectId: {projectId}");
+        var cluster = GetClusterById(clusterId)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+
+        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
+            throw new InvalidRequestException("UserHasNoGroups", loggedUser);
+
+        var clusterProjectIds = cluster.ClusterProjects?
+            .Where(x => x.ProjectId == projectId)
+            .Select(y => y.ProjectId)
+            .ToList() ?? new List<long>();
+
+        var availableProjectIds = loggedUser.Groups
+            .Where(g => g.ProjectId.HasValue && clusterProjectIds.Contains(g.ProjectId.Value))
+            .Select(g => g.ProjectId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (availableProjectIds.Count == 0)
+            throw new InvalidRequestException("UserNoAccessToCluster", loggedUser, clusterId);
+
+        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+        if (serviceAccount is null)
+            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+
+        var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
+
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
+            ?? throw new InvalidOperationException("SchedulerInitializationFailed");
+
+        var result = await scheduler.GetMachineCalibrationAsync(cluster, machineId, calibrationId, endpoint, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        _logger.LogInformation($"GetMachineCalibrationAsync logic tier completed. clusterId: {clusterId}, machineId: {machineId}, response size: {result?.Length ?? 0} characters.");
+        return result;
+    }
+
     public async Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, AdaptorUser loggedUser)
     {

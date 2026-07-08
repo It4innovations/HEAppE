@@ -137,5 +137,55 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
         return Ok(await _service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
     }
 
+    /// <summary>
+    ///     Get QScheduler machine architecture
+    /// </summary>
+    /// <returns>JSON string with machine architecture topology</returns>
+    [HttpGet("MachineArchitecture")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MachineArchitecture([FromQuery] GetMachineArchitectureModel model)
+    {
+        _logger.LogInformation($"MachineArchitecture API request received. ClusterId: {model?.ClusterId}, MachineId: {model?.MachineId}, ProjectId: {model?.ProjectId}");
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning($"MachineArchitecture validation failed: {validationResult.Message}");
+            throw new InputValidationException(validationResult.Message);
+        }
+
+        var result = await _service.GetMachineArchitecture(model.ClusterId, model.MachineId, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineArchitecture API request completed. ClusterId: {model.ClusterId}, MachineId: {model.MachineId}");
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get QScheduler machine calibration
+    /// </summary>
+    /// <returns>JSON string with machine calibration parameters</returns>
+    [HttpGet("MachineCalibration")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MachineCalibration([FromQuery] GetMachineCalibrationModel model)
+    {
+        _logger.LogInformation($"MachineCalibration API request received. ClusterId: {model?.ClusterId}, MachineId: {model?.MachineId}, CalibrationId: '{model?.CalibrationId}', Endpoint: '{model?.Endpoint}', ProjectId: {model?.ProjectId}");
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning($"MachineCalibration validation failed: {validationResult.Message}");
+            throw new InputValidationException(validationResult.Message);
+        }
+
+        var result = await _service.GetMachineCalibration(model.ClusterId, model.MachineId, model.CalibrationId, model.Endpoint, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineCalibration API request completed. ClusterId: {model.ClusterId}, MachineId: {model.MachineId}");
+        return Ok(result);
+    }
+
     #endregion
 }

@@ -1,4 +1,5 @@
-﻿using HEAppE.RestApiModels.ClusterInformation;
+using System.Text.RegularExpressions;
+using HEAppE.RestApiModels.ClusterInformation;
 using HEAppE.Utils.Validation;
 
 namespace HEAppE.RestApi.InputValidator;
@@ -16,10 +17,45 @@ public class ClusterInformationValidator : AbstractValidator
             CurrentClusterNodeUsageModel ext => ValidateCurrentClusterNodeUsageModel(ext),
             GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
             ListAvailableClustersModel ext => ValidateListAvailableClustersModel(ext),
+            GetMachineArchitectureModel ext => ValidateGetMachineArchitectureModel(ext),
+            GetMachineCalibrationModel ext => ValidateGetMachineCalibrationModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateGetMachineArchitectureModel(GetMachineArchitectureModel model)
+    {
+        ValidateId(model.ClusterId, "ClusterId");
+        ValidateId(model.ProjectId, "ProjectId");
+        if (model.MachineId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("MachineId"));
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetMachineCalibrationModel(GetMachineCalibrationModel model)
+    {
+        ValidateId(model.ClusterId, "ClusterId");
+        ValidateId(model.ProjectId, "ProjectId");
+        if (model.MachineId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("MachineId"));
+
+        // CalibrationId and Endpoint are passed directly into a curl URL path — only safe identifier characters allowed.
+        var safeIdentifier = new Regex(@"^[a-zA-Z0-9_-]+$");
+        if (string.IsNullOrEmpty(model.CalibrationId))
+            _messageBuilder.AppendLine("CalibrationId must be provided.");
+        else if (!safeIdentifier.IsMatch(model.CalibrationId))
+            _messageBuilder.AppendLine("CalibrationId may only contain alphanumeric characters, hyphens, and underscores.");
+
+        if (string.IsNullOrEmpty(model.Endpoint))
+            _messageBuilder.AppendLine("Endpoint must be provided.");
+        else if (!safeIdentifier.IsMatch(model.Endpoint))
+            _messageBuilder.AppendLine("Endpoint may only contain alphanumeric characters, hyphens, and underscores.");
+
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
     }
 
     private string ValidateListAvailableClustersModel(ListAvailableClustersModel ext)

@@ -29,7 +29,7 @@ using HEAppE.Utils;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
-public class FirecRestSchedulerAdapter : ISchedulerAdapter
+public class FirecRestSchedulerAdapter : HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces.ISchedulerAdapter
 {
     #region Instances
 
@@ -951,6 +951,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
         throw new NotSupportedException();
+
+    public Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, int machineId) =>
+        throw new NotSupportedException("GetMachineArchitecture is not supported by FireCrest");
+
+    public Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, int machineId, string calibrationId, string endpoint) =>
+        throw new NotSupportedException("GetMachineCalibration is not supported by FireCrest");
 }
 
 // fortress of lies

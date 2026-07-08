@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.0
+
+### Added
+- Introduced **QScheduler** scheduler adapter (`SchedulerType.QScheduler = 32`) for dispatching quantum computing workloads to remote QScheduler backends (e.g. IQM) over SSH-tunnelled REST API (https://github.com/It4innovations/qscheduler).
+  - Full adapter lifecycle: session creation, task submission, task state polling, and integration into the existing `SchedulerFactory` / `RexSchedulerWrapper` / connection-pool architecture.
+  - `QSchedulerDataConvertor` parses JSON state responses (`waiting`, `running`, `finished`, `failed`, `error`, `cancelled`) into HEAppE `TaskState` values.
+  - Unit tests for `QSchedulerDataConvertor` covering all state transitions, error field extraction, and malformed input handling.
+- Added two new REST API endpoints under `heappe/ClusterInformation`:
+  - `GET /heappe/ClusterInformation/MachineArchitecture` — returns the hardware topology/architecture of a QScheduler machine.
+  - `GET /heappe/ClusterInformation/MachineCalibration` — returns calibration data for a specified machine and calibration endpoint.
+- Added input models `GetMachineArchitectureModel` and `GetMachineCalibrationModel` with full validation in `ClusterInformationValidator`.
+
 ## V6.4.2
 
 ### Fixed

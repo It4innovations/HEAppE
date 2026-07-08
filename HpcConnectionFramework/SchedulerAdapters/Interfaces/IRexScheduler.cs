@@ -59,4 +59,8 @@ public interface IRexScheduler
 
     Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(List<SubmittedTaskInfo> missingTasks,
         ClusterAuthenticationCredentials account, string sshCaToken, string lexisToken);
+
+    Task<string> GetMachineArchitectureAsync(Cluster cluster, int machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+
+    Task<string> GetMachineCalibrationAsync(Cluster cluster, int machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 }

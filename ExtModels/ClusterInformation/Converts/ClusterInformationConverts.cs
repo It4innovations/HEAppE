@@ -79,6 +79,7 @@ public static class ClusterInformationConverts
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
             SchedulerType.FirecRestSlurm => SchedulerTypeExt.FirecRestSlurm,
+            SchedulerType.QScheduler => SchedulerTypeExt.QScheduler,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Scheduler type",

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -10,6 +10,10 @@ public interface IClusterInformationLogic
 {
     IEnumerable<Cluster> ListAvailableClusters();
     Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser, long projectId);
+
+    Task<string> GetMachineArchitectureAsync(long clusterId, int machineId, AdaptorUser loggedUser, long projectId);
+
+    Task<string> GetMachineCalibrationAsync(long clusterId, int machineId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
 
     Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath,

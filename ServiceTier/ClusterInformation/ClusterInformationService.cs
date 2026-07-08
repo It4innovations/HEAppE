@@ -287,6 +287,36 @@ public class ClusterInformationService : IClusterInformationService
         }
     }
 
+    public async Task<string> GetMachineArchitecture(long clusterId, int machineId, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineArchitecture service tier call. clusterId: {clusterId}, machineId: {machineId}, projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineArchitectureAsync(clusterId, machineId, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineArchitecture service tier returning result for clusterId: {clusterId}, machineId: {machineId}");
+            return result;
+        }
+    }
+
+    public async Task<string> GetMachineCalibration(long clusterId, int machineId, string calibrationId, string endpoint, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineCalibration service tier call. clusterId: {clusterId}, machineId: {machineId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineCalibrationAsync(clusterId, machineId, calibrationId, endpoint, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineCalibration service tier returning result for clusterId: {clusterId}, machineId: {machineId}");
+            return result;
+        }
+    }
+
     #region Instances
 
     /// <summary>
