@@ -59,6 +59,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     private static string ShellQuotePath(string path)
     {
+        if (path.StartsWith("~/"))
+        {
+            return "~/" + "'" + path.Substring(2).Replace("'", "'\\''") + "'";
+        }
+        if (path.StartsWith("~"))
+        {
+            return "~" + "'" + path.Substring(1).Replace("'", "'\\''") + "'";
+        }
         // Escape any existing single quotes, then wrap the whole path in single quotes.
         return "'" + path.Replace("'", "'\\''") + "'";
     }
