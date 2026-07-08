@@ -93,31 +93,33 @@ namespace HEAppE.RestApi
         <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-Dictionary.json $(OutputPath)RestApi.dll Dictionary" />
         <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-py4heappe.json $(OutputPath)RestApi.dll py4heappe" />
     </Target>
-        <Target Name="UpdateAppSettingsVersion" BeforeTargets="BeforeBuild" Inputs="$(MSBuildThisFileDirectory)../CHANGELOG.md" Outputs="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp">
-        <PropertyGroup>
-            <PythonScript>
-import sys
-import re
+  <UsingTask TaskName="UpdateVersionInAppSettings" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <AppSettingsPath ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          if (!File.Exists(AppSettingsPath))
+          {
+              Log.LogError("File not found: " + AppSettingsPath);
+              return false;
+          }
+          string fileContent = File.ReadAllText(AppSettingsPath, System.Text.Encoding.UTF8);
+          fileContent = Regex.Replace(fileContent, "(\"Version\"[ \t]*:[ \t]*\")v[^\"]*(\")", "$1v" + Version + "$2");
+          fileContent = Regex.Replace(fileContent, "(\"Description\"[ \t]*:[ \t]*\"HEAppE middleware API )v[^\"]*(\")", "$1v" + Version + "$2");
+          File.WriteAllText(AppSettingsPath, fileContent, new System.Text.UTF8Encoding(false));
+          Log.LogMessage(MessageImportance.High, "[HEAppE] appsettings.example.json updated to v" + Version);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
 
-appsettings_path = sys.argv[1]
-version = sys.argv[2]
-bs = chr(92)
-
-with open(appsettings_path, 'r', encoding='utf-8') as f:
-    content = f.read()
-
-content = re.sub('("Version"[ 	]*:[ 	]*")v[^"]*(")', bs + 'g&lt;1&gt;v' + version + bs + 'g&lt;2&gt;', content)
-content = re.sub('("Description"[ 	]*:[ 	]*"HEAppE middleware API )v[^"]*(")', bs + 'g&lt;1&gt;v' + version + bs + 'g&lt;2&gt;', content)
-
-with open(appsettings_path, 'w', encoding='utf-8') as f:
-    content = content.replace(chr(13) + chr(10), chr(10))
-    f.write(content)
-
-print(f"[HEAppE] appsettings.example.json updated to v{version}")
-            </PythonScript>
-        </PropertyGroup>
-        <WriteLinesToFile File="$(IntermediateOutputPath)update_version.py" Lines="$(PythonScript)" Overwrite="true" />
-        <Exec Command="python3 &quot;$(IntermediateOutputPath)update_version.py&quot; &quot;$(MSBuildThisFileDirectory)appsettings.example.json&quot; &quot;$(HeappeVersion)&quot;" />
-        <Touch Files="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp" AlwaysCreate="true" />
-    </Target>
+  <Target Name="UpdateAppSettingsVersion" BeforeTargets="BeforeBuild" Inputs="$(MSBuildThisFileDirectory)../CHANGELOG.md" Outputs="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp">
+    <UpdateVersionInAppSettings AppSettingsPath="$(MSBuildThisFileDirectory)appsettings.example.json" Version="$(HeappeVersion)" />
+    <Touch Files="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp" AlwaysCreate="true" />
+  </Target>
 </Project>
