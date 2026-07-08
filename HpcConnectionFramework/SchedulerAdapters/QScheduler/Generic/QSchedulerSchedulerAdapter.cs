@@ -88,6 +88,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         {
             var machineId = group.Key;
 
+            // Session logic is currently commented out as requested.
+            /*
             // Walltime limit for the session must cover the longest task in this group,
             // so the session stays open until all tasks in it finish.
             var walltimeSecs = group.Max(t => Convert.ToInt32(t.WalltimeLimit));
@@ -134,8 +136,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             {
                 throw new Exception($"QScheduler session {sessionId} did not start within the timeout limit. Current state: {sessionState}");
             }
+            */
 
-            // 2. Submit each task in this group to the shared session
+            // 2. Submit each task in this group directly to the machine (no session)
             foreach (var taskSpec in group)
             {
                 var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
@@ -145,8 +148,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                 // Wrap path in single quotes to prevent shell injection through special characters in filenames.
                 var quotedPayloadPath = ShellQuotePath(payloadPath);
-                var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}&session_id={sessionId}\"";
-                _logger.LogInformation($"Submitting task {taskSpec.Id} to QScheduler machine {machineId}. Command: \"{submitCmd}\"");
+                var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}\"";
+                _logger.LogInformation($"Submitting task {taskSpec.Id} to QScheduler machine {machineId} (no session). Command: \"{submitCmd}\"");
                 var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
                 var taskIdStr = taskCommandResult.Result.Trim();
                 if (!long.TryParse(taskIdStr, out long taskId))
@@ -155,7 +158,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
                 }
 
-                _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Session: {sessionId}, Machine: {machineId}");
+                _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Machine: {machineId}");
                 submittedTasks.Add(new SubmittedTaskInfo
                 {
                     Id = taskSpec.Id,
