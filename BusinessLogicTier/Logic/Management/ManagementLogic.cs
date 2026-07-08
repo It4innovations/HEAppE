@@ -1891,9 +1891,25 @@ public class ManagementLogic : IManagementLogic
         }
 
         // --- Generic Custom Configuration Vault Management ---
+        bool hasVaultSecrets =
+            (customConfigurationVaultToggles != null && customConfigurationVaultToggles.Values.Any(v => v)) ||
+            (existingCluster.CustomConfigurationVaultToggles != null && existingCluster.CustomConfigurationVaultToggles.Values.Any(v => v));
+
+        Dictionary<string, string> existingVaultSecrets;
+        Dictionary<string, string> updatedVaultSecrets;
         var vaultConnector = new VaultConnector(_logger);
-        var existingVaultSecrets = await vaultConnector.GetClusterSecretsAsync(existingCluster.Id) ?? new Dictionary<string, string>();
-        var updatedVaultSecrets = new Dictionary<string, string>(existingVaultSecrets);
+
+        if (hasVaultSecrets)
+        {
+            existingVaultSecrets = await vaultConnector.GetClusterSecretsAsync(existingCluster.Id) ?? new Dictionary<string, string>();
+            updatedVaultSecrets = new Dictionary<string, string>(existingVaultSecrets);
+        }
+        else
+        {
+            existingVaultSecrets = new Dictionary<string, string>();
+            updatedVaultSecrets = new Dictionary<string, string>();
+        }
+
         bool vaultSecretsModified = false;
 
         var allKeys = new HashSet<string>();

@@ -1081,12 +1081,12 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateCluster(CreateClusterModel model)
+    public async Task<IActionResult> CreateCluster(CreateClusterModel model)
     {
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var cluster = _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName,
+        var cluster = await _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType.ConvertExtToInt(), model.ConnectionProtocol.ConvertExtToInt(),
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.CustomConfiguration, model.CustomConfigurationVaultToggles, model.SessionCode);
@@ -1107,12 +1107,12 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ModifyCluster(ModifyClusterModel model)
+    public async Task<IActionResult> ModifyCluster(ModifyClusterModel model)
     {
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var cluster = _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName,
+        var cluster = await _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName,
             model.SchedulerType.ConvertExtToInt(), model.ConnectionProtocol.ConvertExtToInt(),
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.CustomConfiguration, model.CustomConfigurationVaultToggles, model.SessionCode);
