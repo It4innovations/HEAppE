@@ -107,6 +107,34 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             }
             _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
 
+            // Poll session status until it transitions from "waiting" to "open"
+            var sessionStatusCmd = $"curl -s http://localhost:{port}/sessions/{sessionId}";
+            var sessionState = "waiting";
+            int maxAttempts = 30; // 30 attempts, 1 second wait each
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                _logger.LogInformation($"Checking status of session {sessionId} (Attempt {attempt}/{maxAttempts}). Command: \"{sessionStatusCmd}\"");
+                var statusResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionStatusCmd, _logger);
+                sessionState = statusResult.Result.Trim().Replace("\"", ""); // strip quotes
+                _logger.LogInformation($"Session {sessionId} status: '{sessionState}'");
+
+                if (sessionState == "open")
+                {
+                    break;
+                }
+                if (sessionState == "closed")
+                {
+                    throw new Exception($"Session {sessionId} closed prematurely.");
+                }
+
+                await Task.Delay(1000); // Wait 1 second before next poll
+            }
+
+            if (sessionState != "open")
+            {
+                throw new Exception($"QScheduler session {sessionId} did not start within the timeout limit. Current state: {sessionState}");
+            }
+
             // 2. Submit each task in this group to the shared session
             foreach (var taskSpec in group)
             {
