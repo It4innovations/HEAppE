@@ -61,11 +61,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     {
         if (path.StartsWith("~/"))
         {
-            return "~/" + "'" + path.Substring(2).Replace("'", "'\\''") + "'";
+            return "$HOME/" + "'" + path.Substring(2).Replace("'", "'\\''") + "'";
         }
         if (path.StartsWith("~"))
         {
-            return "~" + "'" + path.Substring(1).Replace("'", "'\\''") + "'";
+            return "$HOME" + "'" + path.Substring(1).Replace("'", "'\\''") + "'";
         }
         // Escape any existing single quotes, then wrap the whole path in single quotes.
         return "'" + path.Replace("'", "'\\''") + "'";
