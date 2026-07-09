@@ -31,7 +31,6 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Configuration;
 using SshCaAPI.Configuration;
-using HEAppE.Utils;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
@@ -181,19 +180,16 @@ public class JobManagementService : IJobManagementService
 
         // SSH call: get actual tasks info
         var cluster = jobInfo.Specification.Cluster;
-        using (ClusterContext.Use(cluster.CustomConfiguration))
-        {
-            var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-                .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
+            .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
-            // Update DB
-            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
-            {
-                var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-                var updatedJob = await jobLogic.CompleteGetActualTasksInfoAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
-                return updatedJob.ConvertIntToExt();
-            }
+        // Update DB
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var updatedJob = await jobLogic.CompleteGetActualTasksInfoAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
+            return updatedJob.ConvertIntToExt();
         }
     }
 
@@ -394,97 +390,90 @@ public class JobManagementService : IJobManagementService
         try
         {
             SubmittedJobInfo job;
+            AdaptorUser loggedUser;
+            bool isAdmin;
+            bool isJobOwner;
+
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
                 job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithProjectAsync(submittedJobInfoId) ??
                           throw new InputValidationException("NotExistingJob", submittedJobInfoId);
-            }
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
 
-            using (ClusterContext.Use(job.Specification.Cluster.CustomConfiguration))
-            {
-                AdaptorUser loggedUser;
-                bool isAdmin;
-                bool isJobOwner;
+                long projectId = job.Project?.Id ?? 0;
+                isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
+                isJobOwner = job.Submitter.Id == loggedUser.Id;
 
-                using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+                if (!isJobOwner && !isAdmin)
                 {
-                    loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                        _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
+                    throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                        loggedUser.GetLogIdentification(), job.Id);
+                }
 
-                    long projectId = job.Project?.Id ?? 0;
-                    isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
-                    isJobOwner = job.Submitter.Id == loggedUser.Id;
+                // Check cache using user-specific key
+                string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}_{loggedUser.Id}";
+                if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
+                {
+                    _logger.LogDebug("Returning cached job info for job {JobId} for user {UserId}", submittedJobInfoId, loggedUser.Id);
+                    return cachedJobInfo;
+                }
 
-                    if (!isJobOwner && !isAdmin)
+                bool needSshRefresh = JwtTokenIntrospectionConfiguration.IsEnabled
+                                      && SshCaSettings.UseCertificateAuthorityForAuthentication
+                                      && isJobOwner
+                                      && (job.State == JobState.Running || job.State == JobState.Queued);
+                
+                if (!needSshRefresh)
+                {
+                    // solution for FirecREST
+                    bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken);
+                    if (hasToken())
                     {
-                        throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
-                            loggedUser.GetLogIdentification(), job.Id);
+                        var jobHelper = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+                            .Include(j => j.Project)
+                                .ThenInclude(p => p.ClusterProjects)
+                                    .ThenInclude(cp => cp.Cluster)
+                            .Where(j => j.Id == submittedJobInfoId).FirstOrDefault();
+                        bool isFirecRestJob() => (job.State == JobState.Running || job.State == JobState.Queued || job.State == JobState.Submitted) && jobHelper.Project.ClusterProjects.Any(cp => !cp.Cluster.IsDeleted && (cp.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm);
+                        if (isFirecRestJob())
+                            needSshRefresh = true;
                     }
+                }
 
-                    // Check cache using user-specific key
-                    string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}_{loggedUser.Id}";
-                    if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
+                if (!needSshRefresh)
+                {
+                    // Kerberos clusters (e.g. Metacentrum) have no background polling — status must
+                    // be fetched on-demand via the scheduler, not served from stale DB state.
+                    if (job.State == JobState.Running || job.State == JobState.Queued || job.State == JobState.Submitted)
                     {
-                        _logger.LogDebug("Returning cached job info for job {JobId} for user {UserId}", submittedJobInfoId, loggedUser.Id);
-                        return cachedJobInfo;
+                        var jobWithSpec = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
+                            .Include(j => j.Specification)
+                                .ThenInclude(s => s.ClusterUser)
+                            .Where(j => j.Id == submittedJobInfoId)
+                            .FirstOrDefault();
+                        if (jobWithSpec?.Specification?.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                            needSshRefresh = true;
                     }
+                }
 
-                    bool needSshRefresh = JwtTokenIntrospectionConfiguration.IsEnabled
-                                          && SshCaSettings.UseCertificateAuthorityForAuthentication
-                                          && isJobOwner
-                                          && (job.State == JobState.Running || job.State == JobState.Queued);
-                    
-                    if (!needSshRefresh)
-                    {
-                        // solution for FirecREST
-                        bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken);
-                        if (hasToken())
-                        {
-                            var jobHelper = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
-                                .Include(j => j.Project)
-                                    .ThenInclude(p => p.ClusterProjects)
-                                        .ThenInclude(cp => cp.Cluster)
-                                .Where(j => j.Id == submittedJobInfoId).FirstOrDefault();
-                            bool isFirecRestJob() => (job.State == JobState.Running || job.State == JobState.Queued || job.State == JobState.Submitted) && jobHelper.Project.ClusterProjects.Any(cp => !cp.Cluster.IsDeleted && (cp.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm);
-                            if (isFirecRestJob())
-                                needSshRefresh = true;
-                        }
-                    }
+                if (!needSshRefresh)
+                {
+                    // DB-only path: use lightweight query - no SSH navigation properties needed
+                    var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+                    var jobInfo = jobLogic.GetSubmittedJobInfoByIdForStatus(submittedJobInfoId, loggedUser, isAdmin);
+                    var result = jobInfo.ConvertIntToExt();
+                    // Cache DB-only responses for 10s to absorb concurrent poll bursts
+                    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(10));
+                    return result;
+                }
+            } // unitOfWork disposed - DB connection released before SSH call
 
-                    if (!needSshRefresh)
-                    {
-                        // Kerberos clusters (e.g. Metacentrum) have no background polling — status must
-                        // be fetched on-demand via the scheduler, not served from stale DB state.
-                        if (job.State == JobState.Running || job.State == JobState.Queued || job.State == JobState.Submitted)
-                        {
-                            var jobWithSpec = unitOfWork.SubmittedJobInfoRepository.GetQueryableWithoutFilters()
-                                .Include(j => j.Specification)
-                                    .ThenInclude(s => s.ClusterUser)
-                                .Where(j => j.Id == submittedJobInfoId)
-                                .FirstOrDefault();
-                            if (jobWithSpec?.Specification?.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-                                needSshRefresh = true;
-                        }
-                    }
-
-                    if (!needSshRefresh)
-                    {
-                        // DB-only path: use lightweight query - no SSH navigation properties needed
-                        var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-                        var jobInfo = jobLogic.GetSubmittedJobInfoByIdForStatus(submittedJobInfoId, loggedUser, isAdmin);
-                        var result = jobInfo.ConvertIntToExt();
-                        // Cache DB-only responses for 10s to absorb concurrent poll bursts
-                        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(10));
-                        return result;
-                    }
-                } // unitOfWork disposed - DB connection released before SSH call
-
-                // SSH path: job is Running/Queued under introspection mode.
-                // NOTE: SSH/HPC scheduler responses are NOT cached — external API results must not be cached.
-                // Concurrent requests for the same job are already serialized by the semaphore above.
-                var sshResult = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
-                return sshResult;
-            }
+            // SSH path: job is Running/Queued under introspection mode.
+            // NOTE: SSH/HPC scheduler responses are NOT cached — external API results must not be cached.
+            // Concurrent requests for the same job are already serialized by the semaphore above.
+            var sshResult = await GetActualTasksInfo(submittedJobInfoId, sessionCode);
+            return sshResult;
         }
         finally
         {
