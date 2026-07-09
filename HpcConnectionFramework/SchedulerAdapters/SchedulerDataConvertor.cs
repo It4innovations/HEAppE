@@ -148,6 +148,9 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                 templateParameters),
             stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
 
+        var allocationCmd = (string)taskAdapter.AllocationCmd;
+        //throw new Exception(allocationCmd);
+        
         return taskAdapter.AllocationCmd;
     }
 
