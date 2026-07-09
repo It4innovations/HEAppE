@@ -1399,6 +1399,47 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new ArgumentException("Callback raw response is empty.");
         }
 
+        // If the task belongs to a QScheduler session and we receive the session "open" event,
+        // trigger the actual task submission to that session.
+        if (cluster.SchedulerType == SchedulerType.QScheduler && 
+            dbTask.ScheduledJobId.StartsWith("session:") && 
+            string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation($"Callback event 'open' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
+            
+            ClusterAuthenticationCredentials credentials;
+            if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+            {
+                credentials = jobInfo.Specification.ClusterUser;
+            }
+            else
+            {
+                credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
+            }
+
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, dbTask.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
+            
+            var tasksToUpdate = jobInfo.Tasks.Where(t => t.ScheduledJobId == dbTask.ScheduledJobId).ToList();
+            var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, "ForceSessionSubmit", _expirioToken);
+            
+            foreach (var updated in updatedTasks)
+            {
+                var t = jobInfo.Tasks.FirstOrDefault(x => x.Id == updated.Id);
+                if (t != null)
+                {
+                    t.ScheduledJobId = updated.ScheduledJobId;
+                    t.State = updated.State;
+                    t.ErrorMessage = updated.ErrorMessage;
+                }
+            }
+            
+            UpdateJobStateByTasks(jobInfo);
+            await _unitOfWork.SaveAsync();
+            return;
+        }
+
         // 4. Parse state via converter
         var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
         var parsedTasks = convertor.ReadParametersFromResponse(cluster, rawPayload);

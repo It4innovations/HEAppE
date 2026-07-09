@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -22,10 +25,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 {
     #region Constructors
 
-    public QSchedulerSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
+    public QSchedulerSchedulerAdapter(ISchedulerDataConvertor convertor, IHttpClientFactory httpClientFactory, ILogger logger)
     {
         _logger = logger;
         _convertor = convertor;
+        _httpClientFactory = httpClientFactory;
         _sshTunnelUtil = new SshTunnelUtils();
         _commands = new LinuxCommands(logger);
     }
@@ -37,6 +41,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     protected ISchedulerDataConvertor _convertor;
     protected ICommands _commands;
     protected ILogger _logger;
+    protected readonly IHttpClientFactory _httpClientFactory;
     protected static SshTunnelUtils _sshTunnelUtil;
 
     #endregion
@@ -71,6 +76,103 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return "'" + path.Replace("'", "'\\''") + "'";
     }
 
+    /// <summary>
+    /// Unified helper to execute a request against the QScheduler REST API
+    /// supporting both direct HTTP/HTTPS and SSH-tunneled curl requests.
+    /// </summary>
+    private async Task<string> ExecuteRequestAsync(
+        object connectorClient, 
+        Cluster cluster, 
+        string method, 
+        string relativeUrl, 
+        byte[] payloadBytes = null,
+        string payloadFilePath = null)
+    {
+        if (connectorClient is ConnectionPool.HttpConnection httpConn)
+        {
+            var baseUri = httpConn.BaseUri;
+            var url = $"{baseUri.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+            _logger.LogInformation($"Executing direct HTTP/HTTPS request: {method} {url}");
+            
+            using var client = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(new HttpMethod(method), url);
+            
+            if (payloadBytes != null)
+            {
+                request.Content = new ByteArrayContent(payloadBytes);
+                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+            }
+            else if (!string.IsNullOrEmpty(payloadFilePath))
+            {
+                byte[] localBytes = System.IO.File.ReadAllBytes(payloadFilePath);
+                request.Content = new ByteArrayContent(localBytes);
+                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            }
+            
+            using var response = await client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+            
+            // Handle project creation Conflict (409) gracefully as success
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict && 
+                method.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
+                relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning($"Project already exists in QScheduler (409 Conflict): {content}");
+                return content;
+            }
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}");
+            }
+            return content;
+        }
+        else
+        {
+            var port = GetQSchedulerPort(cluster);
+            string methodArg = "";
+            if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
+            {
+                methodArg = $"-X {method.ToUpper()} ";
+            }
+            
+            string dataArg = "";
+            if (payloadBytes != null)
+            {
+                var jsonStr = Encoding.UTF8.GetString(payloadBytes);
+                var escapedJson = jsonStr.Replace("'", "'\\''");
+                dataArg = $"-H \"Content-Type: application/json\" -d '{escapedJson}' ";
+            }
+            else if (!string.IsNullOrEmpty(payloadFilePath))
+            {
+                var quotedPath = ShellQuotePath(payloadFilePath);
+                dataArg = $"-H \"Content-Type: application/octet-stream\" --data-binary @{quotedPath} ";
+            }
+            
+            var cmd = $"curl -s {methodArg}{dataArg}\"http://localhost:{port}/{relativeUrl.TrimStart('/')}\"";
+            _logger.LogInformation($"Querying QScheduler via SSH command: \"{cmd}\"");
+            
+            var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
+            
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
+                relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
+            {
+                if (commandResult.Result != null && (commandResult.Result.Contains("Conflict") || commandResult.Result.Contains("already exists")))
+                {
+                    _logger.LogWarning($"Project already exists in QScheduler SSH mode (409 Conflict): {commandResult.Result}");
+                    return commandResult.Result;
+                }
+            }
+            
+            if (string.IsNullOrEmpty(commandResult.Result) && !string.IsNullOrEmpty(commandResult.Error))
+            {
+                throw new Exception($"QScheduler SSH API command failed. Error: {commandResult.Error}");
+            }
+            
+            return commandResult.Result;
+        }
+    }
+
     #endregion
 
     #region ISchedulerAdapter Members
@@ -79,7 +181,32 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         ClusterAuthenticationCredentials credentials)
     {
         _logger.LogInformation($"SubmitJobAsync started for QScheduler. Cluster ID: {jobSpecification.Cluster?.Id}");
-        var port = GetQSchedulerPort(jobSpecification.Cluster);
+        
+        // 1. Dynamic Project Registration
+        if (jobSpecification.Project != null)
+        {
+            var projectName = jobSpecification.Project.AccountingString;
+            if (string.IsNullOrEmpty(projectName))
+            {
+                projectName = jobSpecification.Project.Name;
+            }
+            
+            var aggregation = jobSpecification.Project.ProjectClusterNodeTypeAggregations?
+                .FirstOrDefault(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, "QuantumSeconds", StringComparison.OrdinalIgnoreCase));
+            
+            if (aggregation == null)
+            {
+                throw new ArgumentException($"Cannot submit job. Resource allocation limit for 'QuantumSeconds' node type is not configured for project '{jobSpecification.Project.Name}'.");
+            }
+            
+            var limitMs = aggregation.AllocationAmount * 1000;
+            _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {aggregation.AllocationAmount} QuantumSeconds).");
+            
+            var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
+            await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));
+        }
+
+        // 2. Task Submission
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
 
         // Group tasks by their target machine (ClusterNodeType.Queue is used as machine_id).
@@ -123,15 +250,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                 _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
 
-                // 1. Create session for this machine group
-                var sessionCmd = $"curl -s -X POST \"http://localhost:{port}/sessions?machine_id={machineId}&time_limit_secs={walltimeSecs}\"";
-                _logger.LogInformation($"Creating QScheduler session. Command: \"{sessionCmd}\"");
-                var sessionCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionCmd, _logger);
-                var sessionIdStr = sessionCommandResult.Result.Trim();
+                // Create session for this machine group
+                var relativeUrl = $"sessions?machine_id={machineId}&time_limit_secs={walltimeSecs}";
+                var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
+                var sessionIdStr = sessionResponse.Trim();
                 if (!long.TryParse(sessionIdStr, out long sessionId))
                 {
-                    _logger.LogError($"Failed to parse sessionId for machine {machineId}. Command output: '{sessionCommandResult.Result}', Command error: '{sessionCommandResult.Error}'");
-                    throw new Exception($"Failed to create QScheduler session for machine {machineId}. Output: {sessionCommandResult.Result}, Error: {sessionCommandResult.Error}");
+                    _logger.LogError($"Failed to parse sessionId for machine {machineId}. Response: '{sessionResponse}'");
+                    throw new Exception($"Failed to create QScheduler session for machine {machineId}. Response: {sessionResponse}");
                 }
                 _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
 
@@ -149,7 +275,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             }
             else
             {
-                // 2. Submit each task in this group directly to the machine (no session)
+                // Submit each task in this group directly to the machine (no session)
                 foreach (var taskSpec in group)
                 {
                     var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
@@ -157,16 +283,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         ? $"{taskDir}/payload.json"
                         : $"{taskDir}/{taskSpec.StandardInputFile}";
 
-                    // Wrap path in single quotes to prevent shell injection through special characters in filenames.
-                    var quotedPayloadPath = ShellQuotePath(payloadPath);
-                    var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}\"";
-                    _logger.LogInformation($"Submitting task {taskSpec.Id} to QScheduler machine {machineId} (no session). Command: \"{submitCmd}\"");
-                    var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
-                    var taskIdStr = taskCommandResult.Result.Trim();
+                    var relativeUrl = $"tasks?machine_id={machineId}";
+                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                    var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
                     {
-                        _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Command output: '{taskCommandResult.Result}', Command error: '{taskCommandResult.Error}'");
-                        throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
+                        _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Response: '{taskResponse}'");
+                        throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Response: {taskResponse}");
                     }
 
                     _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Machine: {machineId}");
@@ -190,7 +313,6 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         _logger.LogInformation("GetActualTasksInfoAsync started for QScheduler.");
-        var port = GetQSchedulerPort(cluster);
         var results = new List<SubmittedTaskInfo>();
         var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
 
@@ -206,13 +328,27 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             if (taskInfo.ScheduledJobId.StartsWith("session:"))
             {
                 var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
-                var sessionStatusCmd = $"curl -s http://localhost:{port}/sessions/{sessionId}";
-                _logger.LogInformation($"Checking status of session {sessionId}. Command: \"{sessionStatusCmd}\"");
+                
+                bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
+                                        cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
+                                        inVault) || 
+                                       (cluster.CustomConfiguration != null && 
+                                        cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
+                                        !string.IsNullOrEmpty(token));
+
+                if (callbackEnabled && key != "ForceSessionSubmit")
+                {
+                    _logger.LogInformation($"Callback is configured. Bypassing active polling for session {sessionId}.");
+                    results.Add(taskInfo);
+                    continue;
+                }
+
+                _logger.LogInformation($"Checking status of session {sessionId}.");
                 
                 try
                 {
-                    var statusResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, sessionStatusCmd, _logger);
-                    var sessionState = statusResult.Result.Trim().Replace("\"", "").ToLower();
+                    var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"sessions/{sessionId}");
+                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
                     _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
 
                     if (sessionState == "open" || sessionState == "running")
@@ -224,16 +360,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             ? $"{taskDir}/payload.json"
                             : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
 
-                        var quotedPayloadPath = ShellQuotePath(payloadPath);
-                        var submitCmd = $"curl -s -X POST --data-binary @{quotedPayloadPath} \"http://localhost:{port}/tasks?machine_id={machineId}&session_id={sessionId}\"";
-                        _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}. Command: \"{submitCmd}\"");
+                        var relativeUrl = $"tasks?machine_id={machineId}&session_id={sessionId}";
+                        _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}.");
                         
-                        var taskCommandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, submitCmd, _logger);
-                        var taskIdStr = taskCommandResult.Result.Trim();
+                        var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                        var taskIdStr = taskResponse.Trim();
                         if (!long.TryParse(taskIdStr, out long taskId))
                         {
-                            _logger.LogError($"Failed to parse QScheduler task ID for task {taskInfo.Id}. Command output: '{taskCommandResult.Result}', Command error: '{taskCommandResult.Error}'");
-                            throw new Exception($"Failed to submit QScheduler task {taskInfo.Id}. Output: {taskCommandResult.Result}, Error: {taskCommandResult.Error}");
+                            _logger.LogError($"Failed to parse QScheduler task ID for task {taskInfo.Id}. Response: '{taskResponse}'");
+                            throw new Exception($"Failed to submit QScheduler task {taskInfo.Id}. Response: {taskResponse}");
                         }
 
                         _logger.LogInformation($"QScheduler task {taskInfo.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
@@ -248,7 +383,6 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         taskInfo.State = TaskState.Failed;
                         taskInfo.ErrorMessage = "Session closed before task could be submitted.";
                     }
-                    // If waiting, keep it in Submitted/Queued state
                 }
                 catch (Exception ex)
                 {
@@ -273,19 +407,18 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 if (callbackEnabled)
                 {
                     // Bypass active SSH polling - just keep current DB state!
-                    _logger.LogInformation($"Callback is configured. Bypassing SSH polling for task {taskId}. State remains: {taskInfo.State}");
+                    _logger.LogInformation($"Callback is configured. Bypassing active polling for task {taskId}. State remains: {taskInfo.State}");
                     results.Add(taskInfo);
                     continue;
                 }
 
-                // Call active SSH polling
-                var cmd = $"curl -s http://localhost:{port}/tasks/{taskId}";
-                _logger.LogInformation($"Querying QScheduler task {taskId} status on port {port}. Command: \"{cmd}\"");
+                // Call active polling
+                _logger.LogInformation($"Querying QScheduler task {taskId} status.");
                 try
                 {
-                    var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
-                    _logger.LogDebug($"QScheduler status response for task {taskId}: '{commandResult.Result}'");
-                    var parsed = _convertor.ReadParametersFromResponse(cluster, commandResult.Result).FirstOrDefault();
+                    var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"tasks/{taskId}");
+                    _logger.LogDebug($"QScheduler status response for task {taskId}: '{taskResponse}'");
+                    var parsed = _convertor.ReadParametersFromResponse(cluster, taskResponse).FirstOrDefault();
                     if (parsed != null)
                     {
                         _logger.LogInformation($"Parsed task {taskId} state: {parsed.State}, ErrorMessage: '{parsed.ErrorMessage}'");
@@ -309,39 +442,69 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return results;
     }
 
-    public Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+    public async Task CancelJobAsync(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
     {
-        // QScheduler does not expose a cancel endpoint in its REST API.
-        // Tasks are automatically cancelled when their parent session expires (time_limit_secs).
-        // See: https://github.com/It4innovations/qscheduler
-        _logger.LogError("CancelJobAsync is not supported by QScheduler REST API. Tasks will be cancelled only when their session time limit expires.");
-        throw new NotSupportedException("QScheduler does not support explicit job cancellation via API. Tasks are cancelled automatically when their session expires.");
+        _logger.LogInformation($"CancelJobAsync started for QScheduler. Tasks to cancel: {submitedTasksInfo.Count()}");
+        foreach (var taskInfo in submitedTasksInfo)
+        {
+            if (string.IsNullOrEmpty(taskInfo.ScheduledJobId))
+            {
+                _logger.LogWarning($"Task Info with ID {taskInfo.Id} has no ScheduledJobId. Skipping cancellation.");
+                continue;
+            }
+
+            if (taskInfo.ScheduledJobId.StartsWith("session:"))
+            {
+                var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
+                _logger.LogInformation($"Cancelling QScheduler session {sessionId}.");
+                try
+                {
+                    await ExecuteRequestAsync(connectorClient, taskInfo.NodeType.Cluster, "DELETE", $"sessions/{sessionId}");
+                    _logger.LogInformation($"QScheduler session {sessionId} cancellation requested.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to cancel QScheduler session {sessionId}.");
+                    throw;
+                }
+            }
+            else
+            {
+                var taskId = taskInfo.ScheduledJobId.StartsWith("task:") 
+                    ? taskInfo.ScheduledJobId.Substring("task:".Length) 
+                    : taskInfo.ScheduledJobId;
+                _logger.LogInformation($"Cancelling QScheduler task {taskId}.");
+                try
+                {
+                    await ExecuteRequestAsync(connectorClient, taskInfo.NodeType.Cluster, "DELETE", $"tasks/{taskId}");
+                    _logger.LogInformation($"QScheduler task {taskId} cancellation requested.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to cancel QScheduler task {taskId}.");
+                    throw;
+                }
+            }
+        }
     }
 
     public async Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, int machineId)
     {
         _logger.LogInformation($"GetMachineArchitectureAsync started for machine ID: {machineId}, cluster ID: {cluster.Id}");
-        var port = GetQSchedulerPort(cluster);
-        var cmd = $"curl -s http://localhost:{port}/machine/{machineId}/arch";
-        _logger.LogInformation($"Querying machine architecture via command: \"{cmd}\"");
-        var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
-        // Log at Debug level — the response may be a large JSON topology payload.
-        _logger.LogDebug($"GetMachineArchitectureAsync response for machine ID {machineId}: '{commandResult.Result}'");
-        _logger.LogInformation($"GetMachineArchitectureAsync completed for machine ID {machineId}. Response length: {commandResult.Result?.Length ?? 0} chars.");
-        return commandResult.Result;
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/arch");
+        _logger.LogDebug($"GetMachineArchitectureAsync response for machine ID {machineId}: '{result}'");
+        _logger.LogInformation($"GetMachineArchitectureAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
     }
 
     public async Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, int machineId, string calibrationId, string endpoint)
     {
         _logger.LogInformation($"GetMachineCalibrationAsync started for machine ID: {machineId}, calibration ID: {calibrationId}, endpoint: {endpoint}, cluster ID: {cluster.Id}");
-        var port = GetQSchedulerPort(cluster);
-        var cmd = $"curl -s http://localhost:{port}/machine/{machineId}/calibration/{calibrationId}/{endpoint}";
-        _logger.LogInformation($"Querying machine calibration via command: \"{cmd}\"");
-        var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
-        // Log at Debug level — calibration payloads can be large (readout matrices, gate fidelities, etc.).
-        _logger.LogDebug($"GetMachineCalibrationAsync response for machine ID {machineId}: '{commandResult.Result}'");
-        _logger.LogInformation($"GetMachineCalibrationAsync completed for machine ID {machineId}. Response length: {commandResult.Result?.Length ?? 0} chars.");
-        return commandResult.Result;
+        var relativeUrl = $"machine/{machineId}/calibration/{calibrationId}/{endpoint}";
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", relativeUrl);
+        _logger.LogDebug($"GetMachineCalibrationAsync response for machine ID {machineId}: '{result}'");
+        _logger.LogInformation($"GetMachineCalibrationAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
     }
 
     public Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType)
@@ -412,6 +575,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
+        if (schedulerConnectionConnection is ConnectionPool.HttpConnection)
+        {
+            _logger.LogInformation("Direct HTTP/HTTPS connection mode detected. Skipping cluster directory creation for QScheduler.");
+            return true;
+        }
+        
+        _logger.LogInformation("SSH connection mode detected. Delegating directory initialization to LinuxCommands.");
         return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount, customConfiguration);
     }
 

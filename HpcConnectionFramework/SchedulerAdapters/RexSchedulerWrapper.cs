@@ -42,6 +42,8 @@ public class RexSchedulerWrapper : IRexScheduler
 
     #region Instances
 
+    public Project Project { get; set; }
+
     /// <summary>
     ///     Reference to the scheduler adapter.
     /// </summary>
@@ -443,9 +445,20 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             schedulerConnection = await GetConnectionForUserAsync(clusterAuthCredentials, cluster, sshCaToken, lexisToken);
+            var customConfig = new Dictionary<string, string>(cluster.CustomConfiguration ?? new Dictionary<string, string>());
+            if (Project != null)
+            {
+                customConfig["ProjectAccountingString"] = Project.AccountingString;
+                var aggregation = Project.ProjectClusterNodeTypeAggregations?
+                    .FirstOrDefault(a => a.ClusterNodeTypeAggregation?.Name == "QuantumSeconds");
+                if (aggregation != null)
+                {
+                    customConfig["ProjectQuantumSecondsLimit"] = aggregation.AllocationAmount.ToString();
+                }
+            }
             return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
-                clusterAuthCredentials.Username, isServiceAccount, cluster.CustomConfiguration);
+                clusterAuthCredentials.Username, isServiceAccount, customConfig);
         }
         catch (HEAppE.Exceptions.AbstractTypes.BaseException)
         {
