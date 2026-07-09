@@ -29,7 +29,11 @@ public class ClusterInformationValidator : AbstractValidator
     {
         ValidateId(model.ClusterId, "ClusterId");
         ValidateId(model.ProjectId, "ProjectId");
-        if (model.MachineId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("MachineId"));
+        var safeIdentifier = new Regex(@"^[a-zA-Z0-9_-]+$");
+        if (string.IsNullOrEmpty(model.MachineId))
+            _messageBuilder.AppendLine("MachineId must be provided.");
+        else if (!safeIdentifier.IsMatch(model.MachineId))
+            _messageBuilder.AppendLine("MachineId may only contain alphanumeric characters, hyphens, and underscores.");
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
         return _messageBuilder.ToString();
@@ -39,10 +43,14 @@ public class ClusterInformationValidator : AbstractValidator
     {
         ValidateId(model.ClusterId, "ClusterId");
         ValidateId(model.ProjectId, "ProjectId");
-        if (model.MachineId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("MachineId"));
 
-        // CalibrationId and Endpoint are passed directly into a curl URL path — only safe identifier characters allowed.
+        // MachineId, CalibrationId and Endpoint are passed directly into a curl URL path — only safe identifier characters allowed.
         var safeIdentifier = new Regex(@"^[a-zA-Z0-9_-]+$");
+        if (string.IsNullOrEmpty(model.MachineId))
+            _messageBuilder.AppendLine("MachineId must be provided.");
+        else if (!safeIdentifier.IsMatch(model.MachineId))
+            _messageBuilder.AppendLine("MachineId may only contain alphanumeric characters, hyphens, and underscores.");
+
         if (string.IsNullOrEmpty(model.CalibrationId))
             _messageBuilder.AppendLine("CalibrationId must be provided.");
         else if (!safeIdentifier.IsMatch(model.CalibrationId))

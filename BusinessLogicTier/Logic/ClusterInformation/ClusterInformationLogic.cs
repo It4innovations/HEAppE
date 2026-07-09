@@ -96,7 +96,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return await scheduler.GetCurrentClusterNodeUsageAsync(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
-    public async Task<string> GetMachineArchitectureAsync(long clusterId, int machineId, AdaptorUser loggedUser, long projectId)
+    public async Task<string> GetMachineArchitectureAsync(long clusterId, string machineId, AdaptorUser loggedUser, long projectId)
     {
         _logger.LogInformation($"GetMachineArchitectureAsync logic tier call. clusterId: {clusterId}, machineId: {machineId}, userId: {loggedUser?.Id}, projectId: {projectId}");
         var cluster = GetClusterById(clusterId)
@@ -139,7 +139,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return result;
     }
 
-    public async Task<string> GetMachineCalibrationAsync(long clusterId, int machineId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId)
+    public async Task<string> GetMachineCalibrationAsync(long clusterId, string machineId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId)
     {
         _logger.LogInformation($"GetMachineCalibrationAsync logic tier call. clusterId: {clusterId}, machineId: {machineId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', userId: {loggedUser?.Id}, projectId: {projectId}");
         var cluster = GetClusterById(clusterId)

@@ -23,7 +23,7 @@ public class GetMachineCalibrationModel : SessionCodeModel
     /// </summary>
     [DataMember(Name = "MachineId")]
     [Description("Machine id in QScheduler")]
-    public int MachineId { get; set; }
+    public string MachineId { get; set; }
 
     /// <summary>
     /// Calibration identifier

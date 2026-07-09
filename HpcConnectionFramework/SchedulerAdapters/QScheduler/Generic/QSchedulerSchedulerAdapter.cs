@@ -496,7 +496,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, int machineId)
+    public async Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, string machineId)
     {
         _logger.LogInformation($"GetMachineArchitectureAsync started for machine ID: {machineId}, cluster ID: {cluster.Id}");
         var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/arch");
@@ -505,7 +505,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return result;
     }
 
-    public async Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, int machineId, string calibrationId, string endpoint)
+    public async Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
         _logger.LogInformation($"GetMachineCalibrationAsync started for machine ID: {machineId}, calibration ID: {calibrationId}, endpoint: {endpoint}, cluster ID: {cluster.Id}");
         var relativeUrl = $"machine/{machineId}/calibration/{calibrationId}/{endpoint}";

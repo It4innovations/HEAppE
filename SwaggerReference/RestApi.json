@@ -341,9 +341,8 @@
             "in": "query",
             "description": "Machine id in QScheduler",
             "schema": {
-              "type": "integer",
-              "description": "Machine id in QScheduler",
-              "format": "int32"
+              "type": "string",
+              "description": "Machine id in QScheduler"
             }
           },
           {
@@ -444,9 +443,8 @@
             "in": "query",
             "description": "Machine id in QScheduler",
             "schema": {
-              "type": "integer",
-              "description": "Machine id in QScheduler",
-              "format": "int32"
+              "type": "string",
+              "description": "Machine id in QScheduler"
             }
           },
           {

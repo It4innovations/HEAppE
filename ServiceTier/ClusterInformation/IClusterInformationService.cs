@@ -17,7 +17,7 @@ public interface IClusterInformationService
 
     Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode);
 
-    Task<string> GetMachineArchitecture(long clusterId, int machineId, long projectId, string sessionCode);
+    Task<string> GetMachineArchitecture(long clusterId, string machineId, long projectId, string sessionCode);
 
-    Task<string> GetMachineCalibration(long clusterId, int machineId, string calibrationId, string endpoint, long projectId, string sessionCode);
+    Task<string> GetMachineCalibration(long clusterId, string machineId, string calibrationId, string endpoint, long projectId, string sessionCode);
 }

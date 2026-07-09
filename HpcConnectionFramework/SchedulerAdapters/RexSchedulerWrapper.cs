@@ -615,7 +615,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public async Task<string> GetMachineArchitectureAsync(Cluster cluster, int machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    public async Task<string> GetMachineArchitectureAsync(Cluster cluster, string machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
@@ -628,7 +628,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public async Task<string> GetMachineCalibrationAsync(Cluster cluster, int machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    public async Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try

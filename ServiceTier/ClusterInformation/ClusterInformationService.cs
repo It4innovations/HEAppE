@@ -287,7 +287,7 @@ public class ClusterInformationService : IClusterInformationService
         }
     }
 
-    public async Task<string> GetMachineArchitecture(long clusterId, int machineId, long projectId, string sessionCode)
+    public async Task<string> GetMachineArchitecture(long clusterId, string machineId, long projectId, string sessionCode)
     {
         _logger.LogInformation($"GetMachineArchitecture service tier call. clusterId: {clusterId}, machineId: {machineId}, projectId: {projectId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -302,7 +302,7 @@ public class ClusterInformationService : IClusterInformationService
         }
     }
 
-    public async Task<string> GetMachineCalibration(long clusterId, int machineId, string calibrationId, string endpoint, long projectId, string sessionCode)
+    public async Task<string> GetMachineCalibration(long clusterId, string machineId, string calibrationId, string endpoint, long projectId, string sessionCode)
     {
         _logger.LogInformation($"GetMachineCalibration service tier call. clusterId: {clusterId}, machineId: {machineId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', projectId: {projectId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
