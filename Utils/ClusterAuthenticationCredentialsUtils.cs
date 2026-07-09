@@ -8,7 +8,7 @@ namespace HEAppE.Utils;
 /// </summary>
 public static class ClusterAuthenticationCredentialsUtils
 {
-    public static ClusterAuthenticationCredentialsAuthType ok pushGetCredentialsAuthenticationType(
+    public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(
         ClusterAuthenticationCredentials credential, Cluster cluster)
     {
         using (ClusterContext.Use(cluster?.CustomConfiguration))
