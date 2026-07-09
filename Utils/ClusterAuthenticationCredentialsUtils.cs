@@ -8,105 +8,108 @@ namespace HEAppE.Utils;
 /// </summary>
 public static class ClusterAuthenticationCredentialsUtils
 {
-    public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(
+    public static ClusterAuthenticationCredentialsAuthType ok pushGetCredentialsAuthenticationType(
         ClusterAuthenticationCredentials credential, Cluster cluster)
     {
-        if (credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
+        using (ClusterContext.Use(cluster?.CustomConfiguration))
         {
-            if (cluster != null && (cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
+            if (credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
             {
-                return ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio;
-            }
-        }
-
-        if (cluster.ProxyConnection is null)
-        {
-            //skip if type is >= 13 - other than classic 
-            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                return credential.AuthenticationType;
-            }
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
-
-            if (!string.IsNullOrEmpty(credential.PrivateKey))
-            {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                if (cluster != null && (cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
                 {
-                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
-                }
-                else
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                    return ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio;
                 }
             }
+
+            if (cluster.ProxyConnection is null)
+            {
+                //skip if type is >= 13 - other than classic 
+                if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
+                {
+                    return credential.AuthenticationType;
+                }
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+
+                if (!string.IsNullOrEmpty(credential.PrivateKey))
+                {
+                    if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                    {
+                        return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                    }
+                    else
+                    {
+                        return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                    }
+                }
+                    
+
+                if (!string.IsNullOrEmpty(credential.Password))
+                    switch (cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        case ClusterConnectionProtocol.Ssh:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                        case ClusterConnectionProtocol.Http:
+                        case ClusterConnectionProtocol.Https:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        default:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+                    }
+            }
+            else
+            {
+                //skip if type is >= 13 - other than classic 
+                if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
+                {
+                    return credential.AuthenticationType;
+                }
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
                 
-
-            if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster.ConnectionProtocol)
+                if (!string.IsNullOrEmpty(credential.PrivateKey))
                 {
-                    case ClusterConnectionProtocol.MicrosoftHpcApi:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    case ClusterConnectionProtocol.Ssh:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    case ClusterConnectionProtocol.SshInteractive:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
-
-                    case ClusterConnectionProtocol.Http:
-                    case ClusterConnectionProtocol.Https:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    default:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
+                    if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                    {
+                        return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                    }
+                    else
+                    {
+                        return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+                    }
                 }
-        }
-        else
-        {
-            //skip if type is >= 13 - other than classic 
-            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                return credential.AuthenticationType;
-            }
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-            
-            if (!string.IsNullOrEmpty(credential.PrivateKey))
-            {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
-                {
-                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
-                }
-                else
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
-                }
+
+                if (!string.IsNullOrEmpty(credential.Password))
+                    switch (cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.Ssh:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
+
+                        case ClusterConnectionProtocol.Http:
+                        case ClusterConnectionProtocol.Https:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        default:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+                    }
             }
 
-            if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster.ConnectionProtocol)
-                {
-                    case ClusterConnectionProtocol.MicrosoftHpcApi:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    case ClusterConnectionProtocol.Ssh:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    case ClusterConnectionProtocol.SshInteractive:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
-
-                    case ClusterConnectionProtocol.Http:
-                    case ClusterConnectionProtocol.Https:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    default:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-                }
+            return credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
-
-        return credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-            ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-            : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
     }
 }
