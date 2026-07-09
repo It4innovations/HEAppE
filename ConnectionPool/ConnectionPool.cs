@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Timer = System.Timers.Timer;
 using HEAppE.Exceptions.Internal;
+using HEAppE.Utils;
 
 namespace HEAppE.ConnectionPool
 {
@@ -101,81 +102,147 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            _logger.LogDebug($"[User:{credentials.Id}] Requesting connection.");
-            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
-                _logger.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
-                return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
-            });
-
-            // Restrict maximum concurrent active SSH commands globally per user connection pool.
-            // Use a timeout so that saturated-pool callers fail fast instead of becoming zombie threads.
-            if (!await userContext.ActiveSessionsSemaphore.WaitAsync(_acquireTimeoutMs))
+            using (ClusterContext.Use(cluster.CustomConfiguration))
             {
-                throw new ConnectionPoolExhaustedException(
-                    $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire active-session permit within {_acquireTimeoutMs}ms. " +
-                    $"Current pool: {_maxConnectionsPerUser} connections × {_maxSessionsPerConnection} sessions.");
-            }
-            try
-            {
-                // Fast path: reuse existing active connection by finding the one with minimum load
-                int minRefSlotIndex = -1;
-                int minRefCount = int.MaxValue;
-                ConnectionSlot bestSlot = null;
+                _logger.LogDebug($"[User:{credentials.Id}] Requesting connection.");
+                var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
+                    _logger.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+                    return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
+                });
 
-                for (int i = 0; i < userContext.Slots.Length; i++)
+                // Restrict maximum concurrent active SSH commands globally per user connection pool.
+                // Use a timeout so that saturated-pool callers fail fast instead of becoming zombie threads.
+                if (!await userContext.ActiveSessionsSemaphore.WaitAsync(_acquireTimeoutMs))
                 {
-                    var s = userContext.Slots[i];
-                    await s.SlotSemaphore.WaitAsync();
-                    try
-                    {
-                        if (s.ConnectionInfo != null && _adapter.IsConnected(s.ConnectionInfo.Connection))
-                        {
-                            if (s.ReferenceCount < minRefCount)
-                            {
-                                minRefCount = s.ReferenceCount;
-                                minRefSlotIndex = i;
-                                bestSlot = s;
-                            }
-                        }
-                    }
-                    finally { s.SlotSemaphore.Release(); }
+                    throw new ConnectionPoolExhaustedException(
+                        $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire active-session permit within {_acquireTimeoutMs}ms. " +
+                        $"Current pool: {_maxConnectionsPerUser} connections × {_maxSessionsPerConnection} sessions.");
                 }
-
-                if (bestSlot != null)
+                try
                 {
-                    // Reuse connection if it is under the max sessions limit
-                    if (minRefCount < _maxSessionsPerConnection)
-                    {
-                        await bestSlot.SlotSemaphore.WaitAsync();
-                        try
-                        {
-                            // Double check it wasn't disconnected
-                            if (bestSlot.ConnectionInfo != null && _adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
-                            {
-                                bestSlot.ReferenceCount++;
-                                bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                                _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
-                                return bestSlot.ConnectionInfo;
-                            }
-                        }
-                        finally { bestSlot.SlotSemaphore.Release(); }
-                    }
-                }
+                    // Fast path: reuse existing active connection by finding the one with minimum load
+                    int minRefSlotIndex = -1;
+                    int minRefCount = int.MaxValue;
+                    ConnectionSlot bestSlot = null;
 
-                // Pre-clean any dead/disconnected connections to free up UserSemaphore permits before waiting on it
-                for (int i = 0; i < userContext.Slots.Length; i++)
-                {
-                    var s = userContext.Slots[i];
-                    if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                    for (int i = 0; i < userContext.Slots.Length; i++)
                     {
+                        var s = userContext.Slots[i];
                         await s.SlotSemaphore.WaitAsync();
                         try
                         {
-                            // Double check under lock
-                            if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                            if (s.ConnectionInfo != null && _adapter.IsConnected(s.ConnectionInfo.Connection))
                             {
-                                var oldConnection = s.ConnectionInfo;
-                                s.ConnectionInfo = null;
+                                if (s.ReferenceCount < minRefCount)
+                                {
+                                    minRefCount = s.ReferenceCount;
+                                    minRefSlotIndex = i;
+                                    bestSlot = s;
+                                }
+                            }
+                        }
+                        finally { s.SlotSemaphore.Release(); }
+                    }
+
+                    if (bestSlot != null)
+                    {
+                        // Reuse connection if it is under the max sessions limit
+                        if (minRefCount < _maxSessionsPerConnection)
+                        {
+                            await bestSlot.SlotSemaphore.WaitAsync();
+                            try
+                            {
+                                // Double check it wasn't disconnected
+                                if (bestSlot.ConnectionInfo != null && _adapter.IsConnected(bestSlot.ConnectionInfo.Connection))
+                                {
+                                    bestSlot.ReferenceCount++;
+                                    bestSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                                    _logger.LogDebug($"[User:{credentials.Id}] Reusing existing connection from slot {minRefSlotIndex}. RefCount: {bestSlot.ReferenceCount}");
+                                    return bestSlot.ConnectionInfo;
+                                }
+                            }
+                            finally { bestSlot.SlotSemaphore.Release(); }
+                        }
+                    }
+
+                    // Pre-clean any dead/disconnected connections to free up UserSemaphore permits before waiting on it
+                    for (int i = 0; i < userContext.Slots.Length; i++)
+                    {
+                        var s = userContext.Slots[i];
+                        if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                        {
+                            await s.SlotSemaphore.WaitAsync();
+                            try
+                            {
+                                // Double check under lock
+                                if (s.ConnectionInfo != null && !_adapter.IsConnected(s.ConnectionInfo.Connection))
+                                {
+                                    var oldConnection = s.ConnectionInfo;
+                                    s.ConnectionInfo = null;
+                                    _ = Task.Run(async () =>
+                                    {
+                                        try
+                                        {
+                                            await _adapter.DisconnectAsync(oldConnection.Connection);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogWarning(ex, $"Error while disconnecting connection for user {oldConnection.AuthCredentials.Id}");
+                                        }
+                                        finally
+                                        {
+                                            Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
+                                            userContext.UserSemaphore.Release();
+                                            _logger.LogDebug($"[User:{oldConnection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
+                                        }
+                                    });
+                                }
+                            }
+                            finally { s.SlotSemaphore.Release(); }
+                        }
+                    }
+
+                    _logger.LogDebug($"[User:{credentials.Id}] No idle connection found under session limit. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
+                    
+                    await EnsureVaultDataLoadedAsync(credentials);
+                    if (!await userContext.UserSemaphore.WaitAsync(_acquireTimeoutMs))
+                    {
+                        throw new ConnectionPoolExhaustedException(
+                            $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire connection slot within {_acquireTimeoutMs}ms. " +
+                            $"Pool limit: {_maxConnectionsPerUser} physical connections.");
+                    }
+
+                    try
+                    {
+                        ConnectionSlot slot = null;
+                        // Find an empty slot since we secured a permit to create one
+                        for (int i = 0; i < userContext.Slots.Length; i++)
+                        {
+                            if (userContext.Slots[i].ConnectionInfo == null || !_adapter.IsConnected(userContext.Slots[i].ConnectionInfo.Connection))
+                            {
+                                slot = userContext.Slots[i];
+                                break;
+                            }
+                        }
+
+                        // Fallback (should theoretically not happen since permits == empty slots)
+                        if (slot == null) slot = userContext.GetNextSlot();
+
+                        await slot.SlotSemaphore.WaitAsync();
+                        try
+                        {
+                            if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
+                            {
+                                _logger.LogDebug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
+                                userContext.UserSemaphore.Release();
+                                slot.ReferenceCount++;
+                                return slot.ConnectionInfo;
+                            }
+
+                            if (slot.ConnectionInfo != null)
+                            {
+                                var oldConnection = slot.ConnectionInfo;
+                                slot.ConnectionInfo = null;
                                 _ = Task.Run(async () =>
                                 {
                                     try
@@ -184,7 +251,7 @@ namespace HEAppE.ConnectionPool
                                     }
                                     catch (Exception ex)
                                     {
-                                        _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Id} during pre-cleanup", ex);
+                                        _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Id} during replacement", ex);
                                     }
                                     finally
                                     {
@@ -196,105 +263,38 @@ namespace HEAppE.ConnectionPool
                                 });
                                 Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
                                 userContext.UserSemaphore.Release();
-                                _logger.LogDebug($"[User:{credentials.Id}] Pre-cleaned dead connection in slot {i}. Released UserSemaphore permit.");
                             }
-                        }
-                        finally { s.SlotSemaphore.Release(); }
-                    }
-                }
 
-                _logger.LogDebug($"[User:{credentials.Id}] No idle connection found under session limit. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
-                
-                await EnsureVaultDataLoadedAsync(credentials);
-                if (!await userContext.UserSemaphore.WaitAsync(_acquireTimeoutMs))
-                {
-                    throw new ConnectionPoolExhaustedException(
-                        $"[User:{credentials.Id}] SSH connection pool saturated: could not acquire connection slot within {_acquireTimeoutMs}ms. " +
-                        $"Pool limit: {_maxConnectionsPerUser} physical connections.");
-                }
+                            _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
+                            var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken);
+                            slot.ConnectionInfo = newConnection;
+                            slot.ReferenceCount = 0;
 
-                try
-                {
-                    ConnectionSlot slot = null;
-                    // Find an empty slot since we secured a permit to create one
-                    for (int i = 0; i < userContext.Slots.Length; i++)
-                    {
-                        if (userContext.Slots[i].ConnectionInfo == null || !_adapter.IsConnected(userContext.Slots[i].ConnectionInfo.Connection))
-                        {
-                            slot = userContext.Slots[i];
-                            break;
-                        }
-                    }
+                            Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
+                            if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
+                            {
+                                _logger.LogDebug("Starting cleanup timer.");
+                                poolCleanTimer.Start();
+                            }
 
-                    // Fallback (should theoretically not happen since permits == empty slots)
-                    if (slot == null) slot = userContext.GetNextSlot();
-
-                    await slot.SlotSemaphore.WaitAsync();
-                    try
-                    {
-                        if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
-                        {
-                            _logger.LogDebug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
-                            userContext.UserSemaphore.Release();
                             slot.ReferenceCount++;
                             return slot.ConnectionInfo;
                         }
-
-                        if (slot.ConnectionInfo != null)
-                        {
-                            var oldConnection = slot.ConnectionInfo;
-                            slot.ConnectionInfo = null;
-                            _ = Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    await _adapter.DisconnectAsync(oldConnection.Connection);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Id} during replacement", ex);
-                                }
-                                finally
-                                {
-                                    if (oldConnection.Connection is IDisposable disposable)
-                                    {
-                                        try { disposable.Dispose(); } catch { /* ignore */ }
-                                    }
-                                }
-                            });
-                            Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
-                            userContext.UserSemaphore.Release();
-                        }
-
-                        _logger.LogDebug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
-                        var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken);
-                        slot.ConnectionInfo = newConnection;
-                        slot.ReferenceCount = 0;
-
-                        Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
-                        if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
-                        {
-                            _logger.LogDebug("Starting cleanup timer.");
-                            poolCleanTimer.Start();
-                        }
-
-                        slot.ReferenceCount++;
-                        return slot.ConnectionInfo;
+                        finally { slot.SlotSemaphore.Release(); }
                     }
-                    finally { slot.SlotSemaphore.Release(); }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"[User:{credentials.Id}] Connection setup failed");
+                        userContext.UserSemaphore.Release();
+                        throw;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"[User:{credentials.Id}] Connection setup failed");
-                    userContext.UserSemaphore.Release();
+                    // Release the active session permit if initialization failed
+                    userContext.ActiveSessionsSemaphore.Release();
                     throw;
                 }
-            }
-            catch (Exception ex)
-            {
-                // Release the active session permit if initialization failed
-                userContext.ActiveSessionsSemaphore.Release();
-                throw;
             }
         }
 
