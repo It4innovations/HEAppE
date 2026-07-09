@@ -12,18 +12,11 @@ namespace HEAppE.RestApiModels.ClusterInformation;
 public class GetMachineCalibrationModel : SessionCodeModel
 {
     /// <summary>
-    /// Cluster id
+    /// Cluster node type id
     /// </summary>
-    [DataMember(Name = "ClusterId")]
-    [Description("Cluster id")]
-    public long ClusterId { get; set; }
-
-    /// <summary>
-    /// Machine id in QScheduler
-    /// </summary>
-    [DataMember(Name = "MachineId")]
-    [Description("Machine id in QScheduler")]
-    public string MachineId { get; set; }
+    [DataMember(Name = "ClusterNodeTypeId")]
+    [Description("Cluster node type id")]
+    public long ClusterNodeTypeId { get; set; }
 
     /// <summary>
     /// Calibration identifier
@@ -48,6 +41,6 @@ public class GetMachineCalibrationModel : SessionCodeModel
 
     public override string ToString()
     {
-        return $"GetMachineCalibrationModel({base.ToString()}; ClusterId: {ClusterId}; MachineId: {MachineId}; CalibrationId: {CalibrationId}; Endpoint: {Endpoint}; ProjectId: {ProjectId})";
+        return $"GetMachineCalibrationModel({base.ToString()}; ClusterNodeTypeId: {ClusterNodeTypeId}; CalibrationId: {CalibrationId}; Endpoint: {Endpoint}; ProjectId: {ProjectId})";
     }
 }

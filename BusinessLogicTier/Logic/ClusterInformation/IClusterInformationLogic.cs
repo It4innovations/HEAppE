@@ -11,9 +11,9 @@ public interface IClusterInformationLogic
     IEnumerable<Cluster> ListAvailableClusters();
     Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser, long projectId);
 
-    Task<string> GetMachineArchitectureAsync(long clusterId, string machineId, AdaptorUser loggedUser, long projectId);
+    Task<string> GetMachineArchitectureAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId);
 
-    Task<string> GetMachineCalibrationAsync(long clusterId, string machineId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
+    Task<string> GetMachineCalibrationAsync(long clusterNodeTypeId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
 
     Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath,

@@ -327,22 +327,13 @@
         "summary": "Get QScheduler machine architecture",
         "parameters": [
           {
-            "name": "ClusterId",
+            "name": "ClusterNodeTypeId",
             "in": "query",
-            "description": "Cluster id",
+            "description": "Cluster node type id",
             "schema": {
               "type": "integer",
-              "description": "Cluster id",
+              "description": "Cluster node type id",
               "format": "int64"
-            }
-          },
-          {
-            "name": "MachineId",
-            "in": "query",
-            "description": "Machine id in QScheduler",
-            "schema": {
-              "type": "string",
-              "description": "Machine id in QScheduler"
             }
           },
           {
@@ -429,22 +420,13 @@
         "summary": "Get QScheduler machine calibration",
         "parameters": [
           {
-            "name": "ClusterId",
+            "name": "ClusterNodeTypeId",
             "in": "query",
-            "description": "Cluster id",
+            "description": "Cluster node type id",
             "schema": {
               "type": "integer",
-              "description": "Cluster id",
+              "description": "Cluster node type id",
               "format": "int64"
-            }
-          },
-          {
-            "name": "MachineId",
-            "in": "query",
-            "description": "Machine id in QScheduler",
-            "schema": {
-              "type": "string",
-              "description": "Machine id in QScheduler"
             }
           },
           {

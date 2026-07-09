@@ -12,18 +12,11 @@ namespace HEAppE.RestApiModels.ClusterInformation;
 public class GetMachineArchitectureModel : SessionCodeModel
 {
     /// <summary>
-    /// Cluster id
+    /// Cluster node type id
     /// </summary>
-    [DataMember(Name = "ClusterId")]
-    [Description("Cluster id")]
-    public long ClusterId { get; set; }
-
-    /// <summary>
-    /// Machine id in QScheduler
-    /// </summary>
-    [DataMember(Name = "MachineId")]
-    [Description("Machine id in QScheduler")]
-    public string MachineId { get; set; }
+    [DataMember(Name = "ClusterNodeTypeId")]
+    [Description("Cluster node type id")]
+    public long ClusterNodeTypeId { get; set; }
 
     /// <summary>
     /// Project id
@@ -34,6 +27,6 @@ public class GetMachineArchitectureModel : SessionCodeModel
 
     public override string ToString()
     {
-        return $"GetMachineArchitectureModel({base.ToString()}; ClusterId: {ClusterId}; MachineId: {MachineId}; ProjectId: {ProjectId})";
+        return $"GetMachineArchitectureModel({base.ToString()}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId})";
     }
 }

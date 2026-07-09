@@ -149,7 +149,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> MachineArchitecture([FromQuery] GetMachineArchitectureModel model)
     {
-        _logger.LogInformation($"MachineArchitecture API request received. ClusterId: {model?.ClusterId}, MachineId: {model?.MachineId}, ProjectId: {model?.ProjectId}");
+        _logger.LogInformation($"MachineArchitecture API request received. ClusterNodeTypeId: {model?.ClusterNodeTypeId}, ProjectId: {model?.ProjectId}");
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid)
         {
@@ -157,8 +157,8 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
             throw new InputValidationException(validationResult.Message);
         }
 
-        var result = await _service.GetMachineArchitecture(model.ClusterId, model.MachineId, model.ProjectId, model.SessionCode);
-        _logger.LogInformation($"MachineArchitecture API request completed. ClusterId: {model.ClusterId}, MachineId: {model.MachineId}");
+        var result = await _service.GetMachineArchitecture(model.ClusterNodeTypeId, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineArchitecture API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}");
         return Ok(result);
     }
 
@@ -174,7 +174,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> MachineCalibration([FromQuery] GetMachineCalibrationModel model)
     {
-        _logger.LogInformation($"MachineCalibration API request received. ClusterId: {model?.ClusterId}, MachineId: {model?.MachineId}, CalibrationId: '{model?.CalibrationId}', Endpoint: '{model?.Endpoint}', ProjectId: {model?.ProjectId}");
+        _logger.LogInformation($"MachineCalibration API request received. ClusterNodeTypeId: {model?.ClusterNodeTypeId}, CalibrationId: '{model?.CalibrationId}', Endpoint: '{model?.Endpoint}', ProjectId: {model?.ProjectId}");
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid)
         {
@@ -182,8 +182,8 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
             throw new InputValidationException(validationResult.Message);
         }
 
-        var result = await _service.GetMachineCalibration(model.ClusterId, model.MachineId, model.CalibrationId, model.Endpoint, model.ProjectId, model.SessionCode);
-        _logger.LogInformation($"MachineCalibration API request completed. ClusterId: {model.ClusterId}, MachineId: {model.MachineId}");
+        var result = await _service.GetMachineCalibration(model.ClusterNodeTypeId, model.CalibrationId, model.Endpoint, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineCalibration API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}");
         return Ok(result);
     }
 
