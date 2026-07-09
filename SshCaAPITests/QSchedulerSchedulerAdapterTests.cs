@@ -89,7 +89,7 @@ public class QSchedulerSchedulerAdapterTests
     }
 
     [Fact]
-    public async Task SubmitJobAsync_QuantumSecondsConfigured_RegistersProjectAndSubmitsTask()
+    public async Task SubmitJobAsync_QPUSecondsConfigured_RegistersProjectAndSubmitsTask()
     {
         // Arrange
         var cluster = new Cluster
@@ -109,14 +109,15 @@ public class QSchedulerSchedulerAdapterTests
             Id = 10,
             Name = "MyProject",
             AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
             ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
             {
                 new ProjectClusterNodeTypeAggregation
                 {
-                    AllocationAmount = 5000, // 5000 QuantumSeconds
+                    AllocationAmount = 5000, // 5000 QPUSeconds
                     ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation
                     {
-                        Name = "QuantumSeconds"
+                        Name = "QPUSeconds"
                     }
                 }
             }
@@ -182,7 +183,7 @@ public class QSchedulerSchedulerAdapterTests
     }
 
     [Fact]
-    public async Task SubmitJobAsync_MissingQuantumSeconds_ThrowsArgumentException()
+    public async Task SubmitJobAsync_MissingQPUSeconds_ThrowsArgumentException()
     {
         // Arrange
         var cluster = new Cluster
@@ -197,7 +198,45 @@ public class QSchedulerSchedulerAdapterTests
             Id = 10,
             Name = "MyProject",
             AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
             ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>() // empty limit
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
+        var directConn = new HttpConnection("http://localhost:3000");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _adapter.SubmitJobAsync(directConn, jobSpec, null));
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_WrongUsageType_ThrowsArgumentException()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            ConnectionProtocol = ClusterConnectionProtocol.Http
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.NodeHours,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation
+                    {
+                        Name = "QPUSeconds"
+                    }
+                }
+            }
         };
 
         var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
@@ -223,6 +262,7 @@ public class QSchedulerSchedulerAdapterTests
             Id = 10,
             Name = "MyProject",
             AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
             ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
             {
                 new ProjectClusterNodeTypeAggregation
@@ -230,7 +270,7 @@ public class QSchedulerSchedulerAdapterTests
                     AllocationAmount = 5000,
                     ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation
                     {
-                        Name = "QuantumSeconds"
+                        Name = "QPUSeconds"
                     }
                 }
             }
@@ -281,6 +321,109 @@ public class QSchedulerSchedulerAdapterTests
             // Assert
             Assert.Single(results);
             Assert.Equal("task:123", results.First().ScheduledJobId);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(payloadPath))
+            {
+                System.IO.File.Delete(payloadPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_MultipleQPUSecondsConfigured_SumsAggregationsAndRegistersProject()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 3000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation
+                    {
+                        Name = "QPUSeconds"
+                    }
+                },
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 2000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation
+                    {
+                        Name = "QPUSeconds"
+                    }
+                }
+            }
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
+        var directConn = new HttpConnection("http://localhost:3000");
+
+        // Staging the payload file locally
+        var taskDir = HEAppE.Utils.FileSystemUtils.GetTaskClusterDirectoryPath(jobSpec.Tasks.First(), "Identifier", "HEAppE/Executions").Replace('\\', '/');
+        var payloadPath = $"{taskDir}/payload.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(payloadPath));
+        System.IO.File.WriteAllText(payloadPath, "{}");
+
+        try
+        {
+            // Verify that the limit payload registers 5000000 ms (converted from 3000 + 2000 = 5000 QPUSeconds)
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => 
+                        req.Method == HttpMethod.Post && 
+                        req.RequestUri.AbsolutePath.Contains("/projects") && 
+                        req.Content.ReadAsStringAsync().Result.Contains("\"limit_ms\":5000000")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.Created,
+                    Content = new StringContent("Created")
+                })
+                .Verifiable();
+
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/tasks")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.Created,
+                    Content = new StringContent("123")
+                });
+
+            _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+                .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+            // Act
+            var results = await _adapter.SubmitJobAsync(directConn, jobSpec, null);
+
+            // Assert
+            Assert.Single(results);
+            Assert.Equal("task:123", results.First().ScheduledJobId);
+            _mockHttpMessageHandler.Verify();
         }
         finally
         {

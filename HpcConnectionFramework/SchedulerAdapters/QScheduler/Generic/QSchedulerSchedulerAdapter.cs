@@ -191,16 +191,24 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 projectName = jobSpecification.Project.Name;
             }
             
-            var aggregation = jobSpecification.Project.ProjectClusterNodeTypeAggregations?
-                .FirstOrDefault(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, "QuantumSeconds", StringComparison.OrdinalIgnoreCase));
-            
-            if (aggregation == null)
+            if (jobSpecification.Project.UsageType != HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
             {
-                throw new ArgumentException($"Cannot submit job. Resource allocation limit for 'QuantumSeconds' node type is not configured for project '{jobSpecification.Project.Name}'.");
+                throw new ArgumentException($"Cannot submit job. Project '{jobSpecification.Project.Name}' does not have UsageType configured as QPUSeconds.");
+            }
+
+            var usageTypeName = jobSpecification.Project.UsageType.ToString(); // "QPUSeconds"
+            var aggregations = jobSpecification.Project.ProjectClusterNodeTypeAggregations?
+                .Where(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, usageTypeName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            
+            if (aggregations == null || !aggregations.Any())
+            {
+                throw new ArgumentException($"Cannot submit job. Resource allocation limit for '{usageTypeName}' node type is not configured for project '{jobSpecification.Project.Name}'.");
             }
             
-            var limitMs = aggregation.AllocationAmount * 1000;
-            _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {aggregation.AllocationAmount} QuantumSeconds).");
+            var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
+            var limitMs = totalAllocation * 1000;
+            _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {totalAllocation} {usageTypeName} summed from {aggregations.Count} aggregation(s)).");
             
             var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
             await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));

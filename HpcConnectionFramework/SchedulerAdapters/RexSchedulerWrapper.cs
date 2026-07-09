@@ -449,11 +449,16 @@ public class RexSchedulerWrapper : IRexScheduler
             if (Project != null)
             {
                 customConfig["ProjectAccountingString"] = Project.AccountingString;
-                var aggregation = Project.ProjectClusterNodeTypeAggregations?
-                    .FirstOrDefault(a => a.ClusterNodeTypeAggregation?.Name == "QuantumSeconds");
-                if (aggregation != null)
+                if (Project.UsageType == HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
                 {
-                    customConfig["ProjectQuantumSecondsLimit"] = aggregation.AllocationAmount.ToString();
+                    var aggregations = Project.ProjectClusterNodeTypeAggregations?
+                        .Where(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, "QPUSeconds", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    if (aggregations != null && aggregations.Any())
+                    {
+                        var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
+                        customConfig["ProjectQuantumSecondsLimit"] = totalAllocation.ToString();
+                    }
                 }
             }
             return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection,
