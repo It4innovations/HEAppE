@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## V6.5.0
 
+## V6.4.4
+
+### Changed
+- Aligned error response body `TraceId`, HTTP response headers (`X-Trace-Id` and `X-Request-Id`), and log4net `requestId` to use the active OpenTelemetry Trace ID when OpenTelemetry is enabled, falling back to `HttpContext.TraceIdentifier` when disabled.
+
+## V6.4.3
+
 ### Added
 - Introduced **QScheduler** scheduler adapter (`SchedulerType.QScheduler = 32`) for dispatching quantum computing workloads to remote QScheduler backends (e.g. IQM) over SSH-tunnelled REST API (https://github.com/It4innovations/qscheduler).
   - Full adapter lifecycle: session creation, task submission, task state polling, and integration into the existing `SchedulerFactory` / `RexSchedulerWrapper` / connection-pool architecture.

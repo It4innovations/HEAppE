@@ -110,8 +110,9 @@ namespace HEAppE.RestApi.Logging
                 return;
             }
 
+            var traceId = System.Diagnostics.Activity.Current?.TraceId.ToHexString() ?? context.TraceIdentifier;
             // Set requestId in log4net context so it gets logged properly
-            log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
+            log4net.LogicalThreadContext.Properties["requestId"] = traceId;
 
             // Add Trace ID/traceparent/Request-ID to Response headers
             if (System.Diagnostics.Activity.Current != null)
@@ -120,24 +121,16 @@ namespace HEAppE.RestApi.Logging
                 {
                     context.Response.Headers.Append("traceparent", System.Diagnostics.Activity.Current.Id);
                 }
-                
-                var otelTraceId = System.Diagnostics.Activity.Current.TraceId.ToHexString();
-                if (!context.Response.Headers.ContainsKey("X-Trace-Id"))
-                {
-                    context.Response.Headers.Append("X-Trace-Id", otelTraceId);
-                }
             }
-            else
+
+            if (!context.Response.Headers.ContainsKey("X-Trace-Id"))
             {
-                if (!context.Response.Headers.ContainsKey("X-Trace-Id"))
-                {
-                    context.Response.Headers.Append("X-Trace-Id", context.TraceIdentifier);
-                }
+                context.Response.Headers.Append("X-Trace-Id", traceId);
             }
 
             if (!context.Response.Headers.ContainsKey("X-Request-Id"))
             {
-                context.Response.Headers.Append("X-Request-Id", context.TraceIdentifier);
+                context.Response.Headers.Append("X-Request-Id", traceId);
             }
 
             bool isDebug = _logger.IsEnabled(LogLevel.Debug);

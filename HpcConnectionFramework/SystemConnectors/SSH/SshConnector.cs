@@ -59,8 +59,7 @@ public class SshConnector : IPoolableAdapter
         Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
         ClusterProxyConnection proxy = cluster.ProxyConnection;
-        var resolvedAuthType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credentials, cluster);
-        SshClient sshClient = (SshClient)(resolvedAuthType switch
+        SshClient sshClient = (SshClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
                 => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
