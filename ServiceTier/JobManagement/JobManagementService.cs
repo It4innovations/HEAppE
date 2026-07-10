@@ -160,6 +160,7 @@ public class JobManagementService : IJobManagementService
         {
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var updatedJob = await jobLogic.CompleteJobSubmitAsync(createdJobInfoId, loggedUser, submittedTasks);
+            HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(createdJobInfoId);
             return updatedJob.ConvertIntToExt();
         }
     }
@@ -212,6 +213,7 @@ public class JobManagementService : IJobManagementService
             (jobInfo, credentials, cancelledLocally) = await jobLogic.PrepareCancelJobAsync(submittedJobInfoId, loggedUser);
             if (cancelledLocally)
             {
+                HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(submittedJobInfoId);
                 return jobInfo.ConvertIntToExt();
             }
         } // unitOfWork is disposed here!
@@ -231,6 +233,7 @@ public class JobManagementService : IJobManagementService
         {
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var updatedJob = await jobLogic.CompleteCancelJobAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
+            HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(submittedJobInfoId);
             return updatedJob.ConvertIntToExt();
         }
     }
@@ -280,7 +283,9 @@ public class JobManagementService : IJobManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return await jobLogic.CompleteDeleteJobAsync(submittedJobInfoId, loggedUser, isDeleted);
+            var result = await jobLogic.CompleteDeleteJobAsync(submittedJobInfoId, loggedUser, isDeleted);
+            HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(submittedJobInfoId);
+            return result;
         }
     }
 
@@ -466,7 +471,11 @@ public class JobManagementService : IJobManagementService
                     var jobInfo = jobLogic.GetSubmittedJobInfoByIdForStatus(submittedJobInfoId, loggedUser, isAdmin);
                     var result = jobInfo.ConvertIntToExt();
                     // Cache DB-only responses for 10s to absorb concurrent poll bursts
-                    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(10));
+                    var cts = HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.JobCacheTokens.GetOrAdd(submittedJobInfoId, _ => new System.Threading.CancellationTokenSource());
+                    var cacheEntryOptions = new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions()
+                        .SetAbsoluteExpiration(TimeSpan.FromSeconds(10))
+                        .AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(cts.Token));
+                    _cache.Set(cacheKey, result, cacheEntryOptions);
                     return result;
                 }
             } // unitOfWork disposed - DB connection released before SSH call

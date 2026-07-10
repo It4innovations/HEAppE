@@ -35,6 +35,27 @@ using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
+public static class JobCacheManager
+{
+    public static readonly System.Collections.Concurrent.ConcurrentDictionary<long, System.Threading.CancellationTokenSource> JobCacheTokens = new();
+
+    public static void InvalidateJobCache(long jobId)
+    {
+        if (JobCacheTokens.TryRemove(jobId, out var cts))
+        {
+            try
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            catch (Exception)
+            {
+                // Ignore
+            }
+        }
+    }
+}
+
 internal class JobManagementLogic : IJobManagementLogic
 {
     private readonly ILogger _logger;
@@ -503,6 +524,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     {
                         // UpdateJobStateByTasks(submittedJob);
                         _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob); // TODO: check
+                        JobCacheManager.InvalidateJobCache(submittedJob.Id);
                     }
                 }
                 finally
@@ -888,6 +910,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         UpdateJobStateByTasks(dbJobInfo);
+        JobCacheManager.InvalidateJobCache(dbJobInfo.Id);
         return dbJobInfo;
     }
 
@@ -1330,7 +1353,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
-    public async Task ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
+    public async Task<long> ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
     {
         // 1. Find Task in DB by ScheduledJobId
         var dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync(scheduledJobId);
@@ -1441,7 +1464,8 @@ internal class JobManagementLogic : IJobManagementLogic
             
             UpdateJobStateByTasks(jobInfo);
             await _unitOfWork.SaveAsync();
-            return;
+            JobCacheManager.InvalidateJobCache(jobInfo.Id);
+            return jobInfo.Id;
         }
 
         // 4. Parse state via converter
@@ -1464,7 +1488,10 @@ internal class JobManagementLogic : IJobManagementLogic
             UpdateJobStateByTasks(jobInfo);
 
             await _unitOfWork.SaveAsync();
+            JobCacheManager.InvalidateJobCache(jobInfo.Id);
         }
+
+        return jobInfo.Id;
     }
 
 #pragma warning disable IDE1006
