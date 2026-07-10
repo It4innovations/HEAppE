@@ -215,7 +215,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
             var usageTypeName = jobSpecification.Project.UsageType.ToString(); // "QPUSeconds"
             var aggregations = jobSpecification.Project.ProjectClusterNodeTypeAggregations?
-                .Where(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, usageTypeName, StringComparison.OrdinalIgnoreCase))
+                .Where(a => a.ClusterNodeTypeAggregation != null)
                 .ToList();
             
             if (aggregations == null || !aggregations.Any())

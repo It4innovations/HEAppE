@@ -452,7 +452,7 @@ public class RexSchedulerWrapper : IRexScheduler
                 if (Project.UsageType == HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
                 {
                     var aggregations = Project.ProjectClusterNodeTypeAggregations?
-                        .Where(a => string.Equals(a.ClusterNodeTypeAggregation?.Name, "QPUSeconds", StringComparison.OrdinalIgnoreCase))
+                        .Where(a => a.ClusterNodeTypeAggregation != null)
                         .ToList();
                     if (aggregations != null && aggregations.Any())
                     {
