@@ -199,14 +199,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     {
         _logger.LogInformation($"SubmitJobAsync started for QScheduler. Cluster ID: {jobSpecification.Cluster?.Id}");
         
+        var projectName = jobSpecification.Project?.AccountingString;
+        if (string.IsNullOrEmpty(projectName))
+        {
+            projectName = jobSpecification.Project?.Name;
+        }
+
         // 1. Dynamic Project Registration
         if (jobSpecification.Project != null)
         {
-            var projectName = jobSpecification.Project.AccountingString;
-            if (string.IsNullOrEmpty(projectName))
-            {
-                projectName = jobSpecification.Project.Name;
-            }
             
             if (jobSpecification.Project.UsageType != HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
             {
@@ -283,7 +284,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
 
                 // Create session for this machine group
-                var relativeUrl = $"sessions?machine_id={machineId}&time_limit_secs={walltimeSecs}";
+                var walltimeMs = walltimeSecs * 1000;
+                var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
                 var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
                 var sessionIdStr = sessionResponse.Trim();
                 if (!long.TryParse(sessionIdStr, out long sessionId))
@@ -315,7 +317,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         ? $"{taskDir}/payload.json"
                         : $"{taskDir}/{taskSpec.StandardInputFile}";
 
-                    var relativeUrl = $"tasks?machine_id={machineId}";
+                    var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
+                    var relativeUrl = $"tasks?machine={machineId}&project={projectName}&user={username}";
                     var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
                     var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
@@ -392,7 +395,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             ? $"{taskDir}/payload.json"
                             : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
 
-                        var relativeUrl = $"tasks?machine_id={machineId}&session_id={sessionId}";
+                        var username = taskInfo.Specification?.JobSpecification?.ClusterUser?.Username ?? 
+                                       taskInfo.Specification?.JobSpecification?.Submitter?.Username ?? 
+                                       "heappe";
+                        var relativeUrl = $"tasks?machine={machineId}&session_id={sessionId}&user={username}";
                         _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}.");
                         
                         var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
