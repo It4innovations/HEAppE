@@ -367,7 +367,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 continue;
             }
 
-            if (taskInfo.ScheduledJobId.StartsWith("session:"))
+            if (taskInfo.ScheduledJobId.StartsWith("session:") && !taskInfo.ScheduledJobId.Contains(":task:"))
             {
                 var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
                 
@@ -418,8 +418,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                         _logger.LogInformation($"QScheduler task {taskInfo.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
                         
-                        // Transition ScheduledJobId to the task ID
-                        taskInfo.ScheduledJobId = $"task:{taskId}";
+                        // Transition ScheduledJobId to include session ID and task ID
+                        taskInfo.ScheduledJobId = $"session:{sessionId}:task:{taskId}";
                         taskInfo.State = TaskState.Submitted;
                     }
                     else if (sessionState == "closed")
@@ -435,11 +435,19 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 }
                 results.Add(taskInfo);
             }
-            else // Starts with "task:" or plain taskId (direct mode)
+            else // Starts with "task:" or "session:...:task:" or plain taskId (direct mode)
             {
-                var taskId = taskInfo.ScheduledJobId.StartsWith("task:") 
-                    ? taskInfo.ScheduledJobId.Substring("task:".Length) 
-                    : taskInfo.ScheduledJobId;
+                string taskId;
+                if (taskInfo.ScheduledJobId.StartsWith("session:") && taskInfo.ScheduledJobId.Contains(":task:"))
+                {
+                    taskId = taskInfo.ScheduledJobId.Split(new[] { ":task:" }, StringSplitOptions.None)[1];
+                }
+                else
+                {
+                    taskId = taskInfo.ScheduledJobId.StartsWith("task:") 
+                        ? taskInfo.ScheduledJobId.Substring("task:".Length) 
+                        : taskInfo.ScheduledJobId;
+                }
 
                 // Check if callback token is configured
                 bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added unified webhook status callback endpoint `POST /heappe/JobManagement/TaskCallback` to receive job/task status updates directly from cluster schedulers without polling.
 - Added support for storing custom configuration secrets (like `QSchedulerNotifyToken`) in HashiCorp Vault, with dynamic API masking (`"********"`) for all vault-toggled custom configuration values in cluster information responses.
 - Added migration and backup package support for exporting and restoring HashiCorp Vault-stored cluster secrets in `cluster_secrets.json` within encrypted ZIP packages.
+- Added automatic QScheduler session closure upon final task completion in a job. Sessions are dynamically tracked and closed via `DELETE sessions/{sessionId}` once all tasks assigned to that session reach their final state (Finished, Failed, Canceled, or Deleted).
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).

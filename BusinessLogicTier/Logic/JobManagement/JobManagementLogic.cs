@@ -1191,6 +1191,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         UpdateJobStateByTasks(jobInfo);
         await _unitOfWork.SaveAsync();
+        await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
         return jobInfo;
     }
 
@@ -1520,9 +1521,89 @@ internal class JobManagementLogic : IJobManagementLogic
 
             await _unitOfWork.SaveAsync();
             JobCacheManager.InvalidateJobCache(jobInfo.Id);
+            await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
         }
 
         return jobInfo.Id;
+    }
+
+    private async Task CheckAndCloseQSchedulerSessionsAsync(SubmittedJobInfo jobInfo)
+    {
+        if (jobInfo?.Specification?.Cluster?.SchedulerType != SchedulerType.QScheduler)
+        {
+            return;
+        }
+
+        var sessionsToCheck = new HashSet<string>();
+        foreach (var task in jobInfo.Tasks)
+        {
+            if (!string.IsNullOrEmpty(task.ScheduledJobId) && task.ScheduledJobId.StartsWith("session:"))
+            {
+                string sessionId;
+                if (task.ScheduledJobId.Contains(":task:"))
+                {
+                    sessionId = task.ScheduledJobId.Split(new[] { ":task:" }, StringSplitOptions.None)[0].Substring("session:".Length);
+                }
+                else
+                {
+                    sessionId = task.ScheduledJobId.Substring("session:".Length);
+                }
+                sessionsToCheck.Add(sessionId);
+            }
+        }
+
+        foreach (var sessionId in sessionsToCheck)
+        {
+            var sessionTasks = jobInfo.Tasks.Where(t =>
+                !string.IsNullOrEmpty(t.ScheduledJobId) &&
+                (t.ScheduledJobId == $"session:{sessionId}" || t.ScheduledJobId.StartsWith($"session:{sessionId}:"))
+            ).ToList();
+
+            if (sessionTasks.Any() && sessionTasks.All(t => IsFinalTaskState(t.State)))
+            {
+                _logger.LogInformation($"All tasks in QScheduler session '{sessionId}' have completed. Closing session.");
+                try
+                {
+                    ClusterAuthenticationCredentials credentials;
+                    if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                    {
+                        credentials = jobInfo.Specification.ClusterUser;
+                    }
+                    else
+                    {
+                        credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
+                            adaptorUserId: jobInfo.Specification.Submitter.Id, _logger);
+                    }
+
+                    var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+                        .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
+                            jobInfo.Specification.Submitter.Id, _expirioService, _expirioToken, _logger);
+
+                    var dummyTask = new SubmittedTaskInfo
+                    {
+                        ScheduledJobId = $"session:{sessionId}",
+                        NodeType = new ClusterNodeType { Cluster = jobInfo.Specification.Cluster }
+                    };
+                    await scheduler.CancelJobAsync(new List<SubmittedTaskInfo> { dummyTask }, "Auto-closing completed session.",
+                        credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+                    _logger.LogInformation($"Successfully requested QScheduler session '{sessionId}' closure.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to auto-close completed QScheduler session '{sessionId}'.");
+                }
+            }
+        }
+    }
+
+    private static bool IsFinalTaskState(TaskState state)
+    {
+        return state == TaskState.Finished ||
+               state == TaskState.Failed ||
+               state == TaskState.Canceled ||
+               state == TaskState.Deleted;
     }
 
 #pragma warning disable IDE1006
