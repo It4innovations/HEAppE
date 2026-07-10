@@ -330,24 +330,31 @@ public class ExceptionMiddleware
                 break;
         }
 
-        log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
+        var traceId = GetTraceId(context);
+        log4net.LogicalThreadContext.Properties["requestId"] = traceId;
         _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
         log4net.LogicalThreadContext.Properties.Remove("requestId");
 
         if (!string.IsNullOrEmpty(problem.Detail))
         {
-            problem.Detail += $" (Request ID: {context.TraceIdentifier})";
+            problem.Detail += $" (Request ID: {traceId})";
         }
         else
         {
-            problem.Detail = $"Request ID: {context.TraceIdentifier}";
+            problem.Detail = $"Request ID: {traceId}";
         }
 
-        problem.Extensions["TraceId"] = context.TraceIdentifier;
+        problem.Extensions["TraceId"] = traceId;
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = problem.Status.Value;
         await context.Response.WriteAsJsonAsync(problem);
+    }
+
+
+    private static string GetTraceId(HttpContext context)
+    {
+        return System.Diagnostics.Activity.Current?.TraceId.ToHexString() ?? context.TraceIdentifier;
     }
 
 

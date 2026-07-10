@@ -36,7 +36,8 @@ namespace HEAppE.RestApi.Logging
 
         public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
         {
-            log4net.LogicalThreadContext.Properties["requestId"] = context.TraceIdentifier;
+            var traceId = System.Diagnostics.Activity.Current?.TraceId.ToHexString() ?? context.TraceIdentifier;
+            log4net.LogicalThreadContext.Properties["requestId"] = traceId;
 
             ApplyRequestSizeLimit(context);
 
