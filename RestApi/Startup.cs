@@ -30,6 +30,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.Configuration;
+using HEAppE.RestApi.Events;
 using HEAppE.RestApi.Logging;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using IdentityModel.AspNetCore.OAuth2Introspection;
@@ -166,6 +167,7 @@ public class Startup
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+        services.AddSingleton<IHEAppEEventHub, HEAppEEventHub>();
 
         services.AddSmartAuthentication(Configuration);
 
@@ -307,6 +309,7 @@ public class Startup
             swaggerUI.EnableTryItOutByDefault();
         });
 
+        app.UseWebSockets();
         app.UseRouting();
         app.UseCors(_allowSpecificOrigins);
 

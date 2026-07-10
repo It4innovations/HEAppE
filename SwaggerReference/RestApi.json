@@ -1573,6 +1573,18 @@
         }
       }
     },
+    "/heappe/Events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/heappe/FileTransfer/RequestFileTransfer": {
       "post": {
         "tags": [

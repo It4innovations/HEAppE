@@ -1134,6 +1134,9 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
 
+        var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+        var previousJobState = jobInfo.State;
+
         // Refresh task states from DB, bypassing the EF change-tracking cache.
         // A concurrent callback (separate UnitOfWork) may have already advanced a task
         // to Running/Finished while this UnitOfWork still holds the original Submitted state.
@@ -1153,6 +1156,9 @@ internal class JobManagementLogic : IJobManagementLogic
 
         jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
         await _unitOfWork.SaveAsync();
+
+        await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
         return jobInfo;
     }
 
@@ -1181,6 +1187,9 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var actualUnfinishedSchedulerTasksInfo = actualTasksInfo.ToList();
 
+        var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+        var previousJobState = jobInfo.State;
+
         foreach (var task in jobInfo.Tasks)
         {
             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
@@ -1192,6 +1201,9 @@ internal class JobManagementLogic : IJobManagementLogic
         UpdateJobStateByTasks(jobInfo);
         await _unitOfWork.SaveAsync();
         await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
+
+        await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
         return jobInfo;
     }
 
@@ -1224,6 +1236,9 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var actualUnfinishedSchedulerTasksInfo = actualTasksInfo.ToList();
 
+        var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+        var previousJobState = jobInfo.State;
+
         // O(N) dictionary lookup instead of O(N²) nested foreach.
         // Each DB task is matched to its corresponding cluster task by ScheduledJobId.
         var schedulerTaskByJobId = actualUnfinishedSchedulerTasksInfo
@@ -1238,6 +1253,9 @@ internal class JobManagementLogic : IJobManagementLogic
 
         UpdateJobStateByTasks(jobInfo);
         await _unitOfWork.SaveAsync();
+
+        await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
         return jobInfo;
     }
 
@@ -1466,6 +1484,9 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             _logger.LogInformation($"Callback event 'open/opened' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
             
+            var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+            var previousJobState = jobInfo.State;
+
             ClusterAuthenticationCredentials credentials;
             if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
             {
@@ -1497,6 +1518,16 @@ internal class JobManagementLogic : IJobManagementLogic
             UpdateJobStateByTasks(jobInfo);
             await _unitOfWork.SaveAsync();
             JobCacheManager.InvalidateJobCache(jobInfo.Id);
+            await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
+
+            await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+            {
+                sessionId = dbTask.ScheduledJobId,
+                state = "Open"
+            });
+
+            await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
             return jobInfo.Id;
         }
 
@@ -1513,6 +1544,9 @@ internal class JobManagementLogic : IJobManagementLogic
         // 5. Update task state in DB and aggregate job status
         if (parsedTaskInfo.State != TaskState.Unknown && dbTask.State < TaskState.Finished)
         {
+            var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+            var previousJobState = jobInfo.State;
+
             dbTask.State = parsedTaskInfo.State;
             dbTask.ErrorMessage = parsedTaskInfo.ErrorMessage;
             dbTask.EndTime = parsedTaskInfo.EndTime ?? DateTime.UtcNow;
@@ -1522,6 +1556,8 @@ internal class JobManagementLogic : IJobManagementLogic
             await _unitOfWork.SaveAsync();
             JobCacheManager.InvalidateJobCache(jobInfo.Id);
             await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
+
+            await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
         }
 
         return jobInfo.Id;
@@ -1604,6 +1640,54 @@ internal class JobManagementLogic : IJobManagementLogic
                state == TaskState.Failed ||
                state == TaskState.Canceled ||
                state == TaskState.Deleted;
+    }
+
+    private async Task PublishStateChangesAsync(SubmittedJobInfo jobInfo, Dictionary<long, TaskState> previousTaskStates, JobState previousJobState)
+    {
+        if (jobInfo == null) return;
+        var userId = jobInfo.Specification.Submitter.Id;
+
+        // Check task state changes
+        foreach (var task in jobInfo.Tasks)
+        {
+            var oldState = previousTaskStates.TryGetValue(task.Id, out var state) ? state : TaskState.Unknown;
+            if (task.State != oldState)
+            {
+                await PublishEventAsync(userId, "org.heappe.task.state-changed", "/heappe/tasks", new
+                {
+                    jobId = jobInfo.Id,
+                    taskId = task.Id,
+                    state = task.State.ToString(),
+                    errorMessage = task.ErrorMessage
+                });
+            }
+        }
+
+        // Check job state changes
+        if (jobInfo.State != previousJobState)
+        {
+            await PublishEventAsync(userId, "org.heappe.job.state-changed", "/heappe/jobs", new
+            {
+                jobId = jobInfo.Id,
+                state = jobInfo.State.ToString()
+            });
+        }
+    }
+
+    private async Task PublishEventAsync(long userId, string eventType, string source, object data)
+    {
+        try
+        {
+            var eventHub = (IHEAppEEventHub)LogicFactory.ServiceProvider?.GetService(typeof(IHEAppEEventHub));
+            if (eventHub != null)
+            {
+                await eventHub.PublishEventAsync(userId, eventType, source, data);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"[JobManagementLogic] Failed to publish event '{eventType}': {ex.Message}");
+        }
     }
 
 #pragma warning disable IDE1006
