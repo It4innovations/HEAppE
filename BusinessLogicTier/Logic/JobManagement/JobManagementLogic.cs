@@ -1460,9 +1460,10 @@ internal class JobManagementLogic : IJobManagementLogic
         // trigger the actual task submission to that session.
         if (cluster.SchedulerType == SchedulerType.QScheduler && 
             dbTask.ScheduledJobId.StartsWith("session:") && 
-            string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase))
+            (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
+             string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase)))
         {
-            _logger.LogInformation($"Callback event 'open' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
+            _logger.LogInformation($"Callback event 'open/opened' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
             
             ClusterAuthenticationCredentials credentials;
             if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)

@@ -19680,7 +19680,6 @@
       },
       "TaskCallbackModel": {
         "required": [
-          "task_id",
           "token"
         ],
         "type": "object",
@@ -19688,7 +19687,14 @@
           "task_id": {
             "maxLength": 100,
             "minLength": 0,
-            "type": "string"
+            "type": "string",
+            "nullable": true
+          },
+          "session_id": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
           },
           "token": {
             "maxLength": 100,

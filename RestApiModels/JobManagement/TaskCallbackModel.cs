@@ -49,9 +49,17 @@ public class TaskCallbackModel
     [DataMember(Name = "task_id")]
     [JsonPropertyName("task_id")]
     [JsonConverter(typeof(JsonStringOrNumberConverter))]
-    [Required]
     [StringLength(100)]
-    public string ScheduledJobId { get; set; }
+    public string? ScheduledJobId { get; set; }
+
+    /// <summary>
+    /// Session ID in QScheduler
+    /// </summary>
+    [DataMember(Name = "session_id")]
+    [JsonPropertyName("session_id")]
+    [JsonConverter(typeof(JsonStringOrNumberConverter))]
+    [StringLength(100)]
+    public string? SessionId { get; set; }
 
     /// <summary>
     /// Security token (CallbackSecret or machine token)

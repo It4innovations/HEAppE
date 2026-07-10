@@ -315,14 +315,25 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> TaskCallback([FromBody] TaskCallbackModel model)
     {
-        if (model == null || string.IsNullOrEmpty(model.Token) || string.IsNullOrEmpty(model.ScheduledJobId))
+        if (model == null || string.IsNullOrEmpty(model.Token))
         {
-            return BadRequest("Invalid callback payload. TaskId and Token are required.");
+            return BadRequest("Invalid callback payload. Token is required.");
+        }
+
+        string scheduledJobId = model.ScheduledJobId;
+        if (string.IsNullOrEmpty(scheduledJobId) && !string.IsNullOrEmpty(model.SessionId))
+        {
+            scheduledJobId = $"session:{model.SessionId}";
+        }
+
+        if (string.IsNullOrEmpty(scheduledJobId))
+        {
+            return BadRequest("Invalid callback payload. task_id or session_id is required.");
         }
 
         try
         {
-            await _service.ProcessTaskCallbackAsync(model.ScheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
+            await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
             return Ok("Task status updated successfully.");
         }
         catch (UnauthorizedAccessException ex)
