@@ -149,27 +149,42 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 dataArg = $"-H \"Content-Type: application/octet-stream\" --data-binary @{quotedPath} ";
             }
             
-            var cmd = $"curl -s {methodArg}{dataArg}\"http://localhost:{port}/{relativeUrl.TrimStart('/')}\"";
+            var cmd = $"curl -s -w \"\\nHTTP_STATUS:%{{http_code}}\" {methodArg}{dataArg}\"http://localhost:{port}/{relativeUrl.TrimStart('/')}\"";
             _logger.LogInformation($"Querying QScheduler via SSH command: \"{cmd}\"");
             
             var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
             
+            var result = commandResult.Result;
+            var statusCode = 200;
+            if (result != null && result.Contains("HTTP_STATUS:"))
+            {
+                var idx = result.LastIndexOf("HTTP_STATUS:");
+                var codeStr = result.Substring(idx + "HTTP_STATUS:".Length).Trim();
+                int.TryParse(codeStr, out statusCode);
+                result = result.Substring(0, idx).TrimEnd('\r', '\n');
+            }
+            
             if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
                 relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
             {
-                if (commandResult.Result != null && (commandResult.Result.Contains("Conflict") || commandResult.Result.Contains("already exists")))
+                if (statusCode == 409 || (result != null && (result.Contains("Conflict") || result.Contains("already exists"))))
                 {
-                    _logger.LogWarning($"Project already exists in QScheduler SSH mode (409 Conflict): {commandResult.Result}");
-                    return "CONFLICT: " + commandResult.Result;
+                    _logger.LogWarning($"Project already exists in QScheduler SSH mode (409 Conflict): {result}");
+                    return "CONFLICT: " + result;
                 }
             }
             
-            if (string.IsNullOrEmpty(commandResult.Result) && !string.IsNullOrEmpty(commandResult.Error))
+            if (statusCode < 200 || statusCode >= 300)
+            {
+                throw new Exception($"QScheduler SSH API request failed with status {statusCode}. Details: {result}");
+            }
+            
+            if (string.IsNullOrEmpty(result) && !string.IsNullOrEmpty(commandResult.Error))
             {
                 throw new Exception($"QScheduler SSH API command failed. Error: {commandResult.Error}");
             }
             
-            return commandResult.Result;
+            return result;
         }
     }
 
