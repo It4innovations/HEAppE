@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
@@ -123,7 +125,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}");
+                throw new QSchedulerApiException($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}", response.StatusCode, content);
             }
             return content;
         }
@@ -176,12 +178,12 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             
             if (statusCode < 200 || statusCode >= 300)
             {
-                throw new Exception($"QScheduler SSH API request failed with status {statusCode}. Details: {result}");
+                throw new QSchedulerApiException($"QScheduler SSH API request failed with status {statusCode}. Details: {result}", (HttpStatusCode)statusCode, result);
             }
             
             if (string.IsNullOrEmpty(result) && !string.IsNullOrEmpty(commandResult.Error))
             {
-                throw new Exception($"QScheduler SSH API command failed. Error: {commandResult.Error}");
+                throw new QSchedulerApiException($"QScheduler SSH API command failed. Error: {commandResult.Error}", HttpStatusCode.InternalServerError, commandResult.Error);
             }
             
             return result;

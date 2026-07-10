@@ -219,6 +219,13 @@ public class ExceptionMiddleware
                     : RedactErrorMessage(firecrestApiException.ResponseContent);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case QSchedulerApiException qSchedulerApiException:
+                problem.Title = "QScheduler API Problem";
+                problem.Detail = string.IsNullOrEmpty(qSchedulerApiException.ResponseContent)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(qSchedulerApiException.ResponseContent);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case ExpirioBadRequestException:
                 problem.Title = "Expirio Bad Request";
                 problem.Detail = GetExceptionMessage(exception);
