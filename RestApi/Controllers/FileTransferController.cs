@@ -231,17 +231,17 @@ public class FileTransferController : BaseController<FileTransferController>
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
-                      throw new Exception("NotExistingJob");
+                      throw new InputValidationException("NotExistingJob", jobId);
             //check if task belongs to job
             if (taskId.HasValue)
             {
                 if (job.Tasks.Any(t => t.Id == taskId.Value) == false)
-                    throw new Exception("TaskDoesNotBelongToJob");
+                    throw new InputValidationException("TaskDoesNotBelongToJob", taskId.Value);
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
                                 _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
             if (job.Submitter.Id != loggedUser.Id)
-                throw new Exception("LoggedUserIsNotSubmitterOfJob");
+                throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), job.Id);
         }
 
         List<FileUploadResultExt> result = new List<FileUploadResultExt>();
