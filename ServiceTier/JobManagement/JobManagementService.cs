@@ -418,11 +418,11 @@ public class JobManagementService : IJobManagementService
                         loggedUser.GetLogIdentification(), job.Id);
                 }
 
-                // Check cache using user-specific key
-                string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}_{loggedUser.Id}";
+                // Check cache using job-specific key
+                string cacheKey = $"CurrentInfoForJob_{submittedJobInfoId}";
                 if (_cache.TryGetValue(cacheKey, out SubmittedJobInfoExt cachedJobInfo))
                 {
-                    _logger.LogDebug("Returning cached job info for job {JobId} for user {UserId}", submittedJobInfoId, loggedUser.Id);
+                    _logger.LogDebug("Returning cached job info for job {JobId}", submittedJobInfoId);
                     return cachedJobInfo;
                 }
 
@@ -592,11 +592,17 @@ public class JobManagementService : IJobManagementService
 
     public async Task ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
     {
+        long jobId;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            await jobLogic.ProcessTaskCallbackAsync(scheduledJobId, token, rawResponse, qSchedulerState);
+            jobId = await jobLogic.ProcessTaskCallbackAsync(scheduledJobId, token, rawResponse, qSchedulerState);
         }
+
+        // Directly remove the cache entry so the next poll sees the updated state immediately.
+        // CancellationChangeToken eviction is lazy/async — we need synchronous removal here.
+        _cache.Remove($"CurrentInfoForJob_{jobId}");
+        HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(jobId);
     }
 
 #pragma warning disable IDE1006
