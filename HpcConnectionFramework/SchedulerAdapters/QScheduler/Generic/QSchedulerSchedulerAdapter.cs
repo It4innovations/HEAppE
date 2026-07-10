@@ -266,12 +266,20 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
 
         var firstTask = jobSpecification.Tasks.FirstOrDefault();
+        long? existingSessionId = null;
         if (firstTask != null && firstTask.EnvironmentVariables != null)
         {
             var envVar = firstTask.EnvironmentVariables.FirstOrDefault(e => e.Name == "HEAPPE_QSCHEDULER_USE_SESSIONS");
             if (envVar != null)
             {
                 useSessions = (envVar.Value == "true");
+            }
+
+            var sessionIdVar = firstTask.EnvironmentVariables.FirstOrDefault(e => e.Name == "HEAPPE_QSCHEDULER_SESSION_ID");
+            if (sessionIdVar != null && long.TryParse(sessionIdVar.Value, out var sid))
+            {
+                existingSessionId = sid;
+                useSessions = true;
             }
         }
 
@@ -283,24 +291,33 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
             if (useSessions)
             {
-                // Walltime limit for the session must cover the longest task in this group,
-                // so the session stays open until all tasks in it finish.
-                var walltimeSecs = group.Max(t => Convert.ToInt32(t.WalltimeLimit));
-                if (walltimeSecs <= 0) walltimeSecs = 3600; // default 1 hour
-
-                _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
-
-                // Create session for this machine group
-                var walltimeMs = walltimeSecs * 1000;
-                var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
-                var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
-                var sessionIdStr = sessionResponse.Trim();
-                if (!long.TryParse(sessionIdStr, out long sessionId))
+                long sessionId;
+                if (existingSessionId.HasValue)
                 {
-                    _logger.LogError($"Failed to parse sessionId for machine {machineId}. Response: '{sessionResponse}'");
-                    throw new Exception($"Failed to create QScheduler session for machine {machineId}. Response: {sessionResponse}");
+                    sessionId = existingSessionId.Value;
+                    _logger.LogInformation($"Using existing QScheduler session ID: {sessionId}");
                 }
-                _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
+                else
+                {
+                    // Walltime limit for the session must cover the longest task in this group,
+                    // so the session stays open until all tasks in it finish.
+                    var walltimeSecs = group.Max(t => Convert.ToInt32(t.WalltimeLimit));
+                    if (walltimeSecs <= 0) walltimeSecs = 3600; // default 1 hour
+
+                    _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
+
+                    // Create session for this machine group
+                    var walltimeMs = walltimeSecs * 1000;
+                    var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
+                    var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
+                    var sessionIdStr = sessionResponse.Trim();
+                    if (!long.TryParse(sessionIdStr, out sessionId))
+                    {
+                        _logger.LogError($"Failed to parse sessionId for machine {machineId}. Response: '{sessionResponse}'");
+                        throw new Exception($"Failed to create QScheduler session for machine {machineId}. Response: {sessionResponse}");
+                    }
+                    _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
+                }
 
                 foreach (var taskSpec in group)
                 {
@@ -659,6 +676,25 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     {
         _logger.LogWarning($"GetHistoricalTasksInfoAsync called for QScheduler, but QScheduler REST API does not expose a historical tasks endpoint. Returning empty list for {missingTasks.Count} missing task(s).");
         return Task.FromResult<IEnumerable<SubmittedTaskInfo>>([]);
+    }
+
+    public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, string project, int walltimeLimitSecs)
+    {
+        var walltimeMs = walltimeLimitSecs * 1000;
+        var relativeUrl = $"sessions?machine={machineId}&project={project}&time_limit_ms={walltimeMs}";
+        var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl);
+        var sessionIdStr = sessionResponse.Trim();
+        if (!long.TryParse(sessionIdStr, out long sessionId))
+        {
+            _logger.LogError($"Failed to parse sessionId for machine {machineId}. Response: '{sessionResponse}'");
+            throw new Exception($"Failed to create QScheduler session for machine {machineId}. Response: {sessionResponse}");
+        }
+        return sessionId;
+    }
+
+    public async Task CloseSessionAsync(object connectorClient, Cluster cluster, long sessionId)
+    {
+        await ExecuteRequestAsync(connectorClient, cluster, "DELETE", $"sessions/{sessionId}");
     }
 
     #endregion

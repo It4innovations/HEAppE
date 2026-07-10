@@ -1571,6 +1571,15 @@ internal class JobManagementLogic : IJobManagementLogic
             return;
         }
 
+        // Bypass session closure if this job submitted to an externally managed session
+        var firstTask = jobInfo.Tasks.FirstOrDefault();
+        if (firstTask?.Specification?.EnvironmentVariables != null &&
+            firstTask.Specification.EnvironmentVariables.Any(e => e.Name == "HEAPPE_QSCHEDULER_SESSION_ID"))
+        {
+            _logger.LogInformation($"Job {jobInfo.Id} is submitted to externally managed session. Skipping automatic session closure.");
+            return;
+        }
+
         var sessionsToCheck = new HashSet<string>();
         foreach (var task in jobInfo.Tasks)
         {
@@ -1691,6 +1700,61 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
+    public async Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, AdaptorUser loggedUser)
+    {
+        var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
+            ?? throw new Exceptions.External.InvalidRequestException("NotExistingCluster");
+        var project = await _unitOfWork.ProjectRepository.GetByIdAsync(projectId)
+            ?? throw new Exceptions.External.InvalidRequestException("NotExistingProject");
+
+        if (cluster.SchedulerType != SchedulerType.QScheduler)
+        {
+            throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
+        }
+
+        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
+
+        var sessionId = await scheduler.OpenSessionAsync(cluster, machineId, project.AccountingString, walltimeLimitSecs, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        
+        await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+        {
+            sessionId = $"session:{sessionId}",
+            state = "Open"
+        });
+        
+        return sessionId;
+    }
+
+    public async Task CloseQSchedulerSessionAsync(long clusterId, long projectId, long sessionId, AdaptorUser loggedUser)
+    {
+        var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
+            ?? throw new Exceptions.External.InvalidRequestException("NotExistingCluster");
+        var project = await _unitOfWork.ProjectRepository.GetByIdAsync(projectId)
+            ?? throw new Exceptions.External.InvalidRequestException("NotExistingProject");
+
+        if (cluster.SchedulerType != SchedulerType.QScheduler)
+        {
+            throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
+        }
+
+        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
+
+        await scheduler.CloseSessionAsync(cluster, sessionId, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+        {
+            sessionId = $"session:{sessionId}",
+            state = "Closed"
+        });
+    }
 #pragma warning disable IDE1006
     private string _expirioToken
     {

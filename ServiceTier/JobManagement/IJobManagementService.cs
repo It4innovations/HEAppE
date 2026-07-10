@@ -19,4 +19,6 @@ public interface IJobManagementService
     Task<DryRunJobInfoExt> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
         long modelTasksPerNode, long modelWallTimeInMinutes, string modelSessionCode);
     Task ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState);
+    Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, string sessionCode);
+    Task CloseQSchedulerSessionAsync(long clusterId, long projectId, long sessionId, string sessionCode);
 }

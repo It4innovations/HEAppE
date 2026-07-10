@@ -3203,6 +3203,100 @@
         }
       }
     },
+    "/heappe/JobManagement/OpenQSchedulerSession": {
+      "post": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "Open QScheduler session explicitly",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/CloseQSchedulerSession": {
+      "delete": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "Close QScheduler session explicitly",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/JobReporting/ListAdaptorUserGroups": {
       "get": {
         "tags": [
@@ -13458,6 +13552,34 @@
         },
         "additionalProperties": false
       },
+      "CloseQSchedulerSessionModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster ID",
+            "format": "int64"
+          },
+          "ProjectId": {
+            "type": "integer",
+            "description": "Project ID",
+            "format": "int64"
+          },
+          "SessionId": {
+            "type": "integer",
+            "description": "Session ID to close",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "ClusterAccessReportExt": {
         "type": "object",
         "properties": {
@@ -17485,6 +17607,39 @@
             "minLength": 1,
             "type": "string",
             "description": "OpenId access token"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OpenQSchedulerSessionModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster ID",
+            "format": "int64"
+          },
+          "ProjectId": {
+            "type": "integer",
+            "description": "Project ID",
+            "format": "int64"
+          },
+          "MachineId": {
+            "type": "string",
+            "description": "Target Machine ID",
+            "nullable": true
+          },
+          "WalltimeLimit": {
+            "type": "integer",
+            "description": "Walltime limit for the session in seconds",
+            "format": "int32"
           }
         },
         "additionalProperties": false

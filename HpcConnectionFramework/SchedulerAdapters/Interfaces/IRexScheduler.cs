@@ -63,4 +63,6 @@ public interface IRexScheduler
     Task<string> GetMachineArchitectureAsync(Cluster cluster, string machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 
     Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task<long> OpenSessionAsync(Cluster cluster, string machineId, string project, int walltimeLimitSecs, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 }

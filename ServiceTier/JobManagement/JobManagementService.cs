@@ -605,6 +605,28 @@ public class JobManagementService : IJobManagementService
         HEAppE.BusinessLogicTier.Logic.JobManagement.JobCacheManager.InvalidateJobCache(jobId);
     }
 
+    public async Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, projectId, _expirioService);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            return await jobLogic.OpenQSchedulerSessionAsync(clusterId, projectId, machineId, walltimeLimitSecs, loggedUser);
+        }
+    }
+
+    public async Task CloseQSchedulerSessionAsync(long clusterId, long projectId, long sessionId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, projectId, _expirioService);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            await jobLogic.CloseQSchedulerSessionAsync(clusterId, projectId, sessionId, loggedUser);
+        }
+    }
+
 #pragma warning disable IDE1006
     private string _expirioToken
     {

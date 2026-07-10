@@ -350,5 +350,57 @@ public class JobManagementController : BaseController<JobManagementController>
         }
     }
 
+    /// <summary>
+    /// Open QScheduler session explicitly
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("OpenQSchedulerSession")]
+    [ProducesResponseType(typeof(long), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> OpenQSchedulerSession([FromBody] OpenQSchedulerSessionModel model)
+    {
+        if (model == null)
+        {
+            return BadRequest("Model is empty");
+        }
+
+        try
+        {
+            var sessionId = await _service.OpenQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.MachineId, model.WalltimeLimit, model.SessionCode);
+            return Ok(sessionId);
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Close QScheduler session explicitly
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpDelete("CloseQSchedulerSession")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CloseQSchedulerSession([FromBody] CloseQSchedulerSessionModel model)
+    {
+        if (model == null)
+        {
+            return BadRequest("Model is empty");
+        }
+
+        try
+        {
+            await _service.CloseQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.SessionId, model.SessionCode);
+            return Ok("Session closed successfully.");
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
     #endregion
 }

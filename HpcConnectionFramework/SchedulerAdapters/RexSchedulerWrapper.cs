@@ -640,6 +640,42 @@ public class RexSchedulerWrapper : IRexScheduler
             await ReturnConnectionAsync(schedulerConnection);
         }
     }
+    public async Task<long> OpenSessionAsync(Cluster cluster, string machineId, string project, int walltimeLimitSecs, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.OpenSessionAsync(schedulerConnection.Connection, cluster, machineId, project, walltimeLimitSecs);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        throw new NotSupportedException("OpenSession is only supported by QScheduler.");
+    }
+
+    public async Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                await qScheduler.CloseSessionAsync(schedulerConnection.Connection, cluster, sessionId);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("CloseSession is only supported by QScheduler.");
+        }
+    }
 
     private readonly ConnectionInfo DummyConnectionInfo = new ConnectionInfo { Connection = new object(), AuthCredentials = null, LastUsed = DateTime.Now };
 
