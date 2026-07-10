@@ -110,6 +110,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
@@ -149,6 +151,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToListAsync();
