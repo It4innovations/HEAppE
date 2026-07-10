@@ -1355,63 +1355,71 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<long> ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
     {
-        // 1. Find Task in DB by ScheduledJobId
-        var dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync(scheduledJobId);
-        if (dbTask == null && !scheduledJobId.StartsWith("task:"))
-        {
-            dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync($"task:{scheduledJobId}");
-        }
-
-        if (dbTask == null)
+        // 1. Find all potential candidate tasks matching this scheduledJobId
+        var candidates = await _unitOfWork.SubmittedTaskInfoRepository.GetTasksByScheduledJobIdAsync(scheduledJobId);
+        if (candidates == null || !candidates.Any())
         {
             throw new KeyNotFoundException($"Task with scheduler ID {scheduledJobId} not found.");
         }
 
-        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(dbTask.Specification.JobSpecification.Id);
-        if (jobInfo == null)
+        SubmittedTaskInfo? dbTask = null;
+        SubmittedJobInfo? jobInfo = null;
+        Cluster? cluster = null;
+
+        foreach (var candidate in candidates)
         {
-            throw new KeyNotFoundException($"Job not found.");
-        }
+            var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
+            if (job == null) continue;
 
-        var cluster = jobInfo.Specification.Cluster;
+            var currentCluster = job.Specification.Cluster;
+            bool isAuthenticated = false;
 
-        // 2. Security validation based on scheduler type
-        if (cluster.SchedulerType == SchedulerType.QScheduler)
-        {
-            bool toggled = cluster.CustomConfigurationVaultToggles != null &&
-                           cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
-                           toggledValue;
-            bool storeInVault = toggled;
-
-            string? expectedToken = null;
-            if (storeInVault)
+            if (currentCluster.SchedulerType == SchedulerType.QScheduler)
             {
-                var vaultConnector = new VaultConnector(_logger);
-                expectedToken = await vaultConnector.GetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken");
-                if (string.IsNullOrEmpty(expectedToken))
+                bool toggled = currentCluster.CustomConfigurationVaultToggles != null &&
+                               currentCluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
+                               toggledValue;
+                bool storeInVault = toggled;
+
+                string? expectedToken = null;
+                if (storeInVault)
                 {
-                    throw new UnauthorizedAccessException("Authentication failed: QSchedulerNotifyToken not configured in Vault.");
+                    var vaultConnector = new VaultConnector(_logger);
+                    expectedToken = await vaultConnector.GetClusterSecretAsync(currentCluster.Id, "QSchedulerNotifyToken");
+                }
+                else
+                {
+                    if (currentCluster.CustomConfiguration != null && currentCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
+                    {
+                        // expectedToken populated
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
+                {
+                    isAuthenticated = true;
                 }
             }
             else
             {
-                if (cluster.CustomConfiguration == null || !cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken) || string.IsNullOrEmpty(expectedToken))
+                if (!string.IsNullOrEmpty(candidate.CallbackSecret) && candidate.CallbackSecret == token)
                 {
-                    throw new UnauthorizedAccessException("Authentication failed: QSchedulerNotifyToken not configured in cluster.");
+                    isAuthenticated = true;
                 }
             }
 
-            if (expectedToken != token)
+            if (isAuthenticated)
             {
-                throw new UnauthorizedAccessException("Authentication failed: Invalid cluster callback token.");
+                dbTask = candidate;
+                jobInfo = job;
+                cluster = currentCluster;
+                break;
             }
         }
-        else
+
+        if (dbTask == null || jobInfo == null || cluster == null)
         {
-            if (string.IsNullOrEmpty(dbTask.CallbackSecret) || dbTask.CallbackSecret != token)
-            {
-                throw new UnauthorizedAccessException("Authentication failed: Invalid task callback token.");
-            }
+            throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
         }
 
         // 3. Prepare rawPayload

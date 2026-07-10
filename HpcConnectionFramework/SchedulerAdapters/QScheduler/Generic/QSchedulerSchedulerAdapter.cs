@@ -618,16 +618,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
     }
 
-    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
+    public Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
     {
-        if (schedulerConnectionConnection is ConnectionPool.HttpConnection)
-        {
-            _logger.LogInformation("Direct HTTP/HTTPS connection mode detected. Skipping cluster directory creation for QScheduler.");
-            return true;
-        }
-        
-        _logger.LogInformation("SSH connection mode detected. Delegating directory initialization to LinuxCommands.");
-        return await _commands.InitializeClusterScriptDirectoryAsync(schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount, customConfiguration);
+        _logger.LogInformation("Skipping cluster script directory initialization for QScheduler.");
+        return Task.FromResult(true);
     }
 
     public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)

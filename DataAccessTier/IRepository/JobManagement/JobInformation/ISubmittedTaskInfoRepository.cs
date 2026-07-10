@@ -18,4 +18,5 @@ public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
     Task<SubmittedTaskInfo> GetByIdWithProjectAsync(long id);
     ResourceConsumed GetResourceConsumed(long taskId);
     Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId);
+    Task<List<SubmittedTaskInfo>> GetTasksByScheduledJobIdAsync(string scheduledJobId);
 }
