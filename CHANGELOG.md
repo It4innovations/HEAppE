@@ -7,17 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## V6.5.0
 
-### Fixed
-- Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
-
-
-## V6.4.4
-
-### Changed
-- Aligned error response body `TraceId`, HTTP response headers (`X-Trace-Id` and `X-Request-Id`), and log4net `requestId` to use the active OpenTelemetry Trace ID when OpenTelemetry is enabled, falling back to `HttpContext.TraceIdentifier` when disabled.
-
-## V6.4.3
-
 ### Added
 - Introduced **QScheduler** scheduler adapter (`SchedulerType.QScheduler = 32`) for dispatching quantum computing workloads to remote QScheduler backends (e.g. IQM) over SSH-tunnelled REST API (https://github.com/It4innovations/qscheduler).
   - Full adapter lifecycle: session creation, task submission, task state polling, and integration into the existing `SchedulerFactory` / `RexSchedulerWrapper` / connection-pool architecture.
@@ -31,6 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added unified webhook status callback endpoint `POST /heappe/JobManagement/TaskCallback` to receive job/task status updates directly from cluster schedulers without polling.
 - Added support for storing custom configuration secrets (like `QSchedulerNotifyToken`) in HashiCorp Vault, with dynamic API masking (`"********"`) for all vault-toggled custom configuration values in cluster information responses.
 - Added migration and backup package support for exporting and restoring HashiCorp Vault-stored cluster secrets in `cluster_secrets.json` within encrypted ZIP packages.
+
+### Fixed
+- Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
+
+
+## V6.4.4
+
+### Changed
+- Aligned error response body `TraceId`, HTTP response headers (`X-Trace-Id` and `X-Request-Id`), and log4net `requestId` to use the active OpenTelemetry Trace ID when OpenTelemetry is enabled, falling back to `HttpContext.TraceIdentifier` when disabled.
+
+## V6.4.3
+
+### Fixed
+- Fixed `AggregatedUserGroupResourceUsageReport` endpoint returning zero resource usage by eagerly loading `ClusterNodeTypeAggregation` in the repository queries.
 
 ## V6.4.2
 
