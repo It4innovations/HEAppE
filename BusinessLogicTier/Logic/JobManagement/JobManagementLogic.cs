@@ -1334,6 +1334,10 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         // 1. Find Task in DB by ScheduledJobId
         var dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync(scheduledJobId);
+        if (dbTask == null && !scheduledJobId.StartsWith("task:"))
+        {
+            dbTask = await _unitOfWork.SubmittedTaskInfoRepository.GetByScheduledJobIdAsync($"task:{scheduledJobId}");
+        }
 
         if (dbTask == null)
         {
