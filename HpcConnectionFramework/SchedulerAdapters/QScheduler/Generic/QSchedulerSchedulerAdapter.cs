@@ -378,7 +378,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                                         cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
                                         !string.IsNullOrEmpty(token));
 
-                if (callbackEnabled && key != "ForceSessionSubmit")
+                if (callbackEnabled && !taskInfo.ForceSessionSubmit)
                 {
                     _logger.LogInformation($"Callback is configured. Bypassing active polling for session {sessionId}.");
                     results.Add(taskInfo);

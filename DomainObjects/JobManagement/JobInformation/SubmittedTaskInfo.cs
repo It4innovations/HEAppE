@@ -59,6 +59,8 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
 
     [NotMapped] public Dictionary<string, string> ParsedParameters { get; set; }
 
+    [NotMapped] public bool ForceSessionSubmit { get; set; }
+
     public virtual Project Project { get; set; }
 
     public virtual TaskSpecification Specification { get; set; }

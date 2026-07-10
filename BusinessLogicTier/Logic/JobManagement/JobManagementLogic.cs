@@ -1502,7 +1502,8 @@ internal class JobManagementLogic : IJobManagementLogic
                 .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, dbTask.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
             
             var tasksToUpdate = jobInfo.Tasks.Where(t => t.ScheduledJobId == dbTask.ScheduledJobId).ToList();
-            var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, "ForceSessionSubmit", _expirioToken);
+            tasksToUpdate.ForEach(t => t.ForceSessionSubmit = true);
+            var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
             
             foreach (var updated in updatedTasks)
             {

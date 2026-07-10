@@ -51,7 +51,8 @@ public class EventsController : Controller
         if (_httpContextKeys.Context.AdaptorUserId > 0)
         {
             userId = _httpContextKeys.Context.AdaptorUserId;
-            _logger.LogInformation($"[EventsController] User {userId} authenticated via header/API-key/bearer token for WebSocket handshake.");
+            string authMethod = context.Request.Headers.ContainsKey("X-API-Key") ? "X-API-Key" : "Authorization (Bearer)";
+            _logger.LogInformation($"[EventsController] User {userId} authenticated via {authMethod} for WebSocket handshake.");
         }
         else
         {
