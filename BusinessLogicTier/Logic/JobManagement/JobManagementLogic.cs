@@ -981,7 +981,10 @@ internal class JobManagementLogic : IJobManagementLogic
         dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
         dbTaskInfo.AllocatedCores = clusterTaskInfo.AllocatedCores;
         dbTaskInfo.AllocatedGpus = clusterTaskInfo.AllocatedGpus;
-        dbTaskInfo.State = clusterTaskInfo.State;
+        if (dbTaskInfo.State <= TaskState.Submitted || clusterTaskInfo.State > dbTaskInfo.State)
+        {
+            dbTaskInfo.State = clusterTaskInfo.State;
+        }
         dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
         dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
         dbTaskInfo.Reason = clusterTaskInfo.Reason;
