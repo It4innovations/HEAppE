@@ -19,4 +19,12 @@ public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
     ResourceConsumed GetResourceConsumed(long taskId);
     Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId);
     Task<List<SubmittedTaskInfo>> GetTasksByScheduledJobIdAsync(string scheduledJobId);
+
+    /// <summary>
+    /// Returns only the current State of a task read directly from the database,
+    /// bypassing the EF Core change-tracking cache. Use this when another context
+    /// (e.g. a concurrent callback) may have updated the row since this context
+    /// first loaded the entity.
+    /// </summary>
+    Task<TaskState?> GetCurrentTaskStateAsync(long taskId);
 }

@@ -294,5 +294,18 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .ToListAsync();
     }
 
+    /// <inheritdoc/>
+    public async Task<TaskState?> GetCurrentTaskStateAsync(long taskId)
+    {
+        // AsNoTracking ensures we bypass the EF change-tracking cache and always hit the DB.
+        // This is needed when a concurrent request (e.g. a callback on a separate UnitOfWork)
+        // may have updated the row after this context first loaded the entity.
+        return await _dbSet
+            .AsNoTracking()
+            .Where(t => t.Id == taskId)
+            .Select(t => (TaskState?)t.State)
+            .FirstOrDefaultAsync();
+    }
+
     #endregion
 }

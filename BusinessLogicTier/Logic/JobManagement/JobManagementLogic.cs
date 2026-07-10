@@ -1133,10 +1133,29 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
+
+        // Refresh task states from DB, bypassing the EF change-tracking cache.
+        // A concurrent callback (separate UnitOfWork) may have already advanced a task
+        // to Running/Finished while this UnitOfWork still holds the original Submitted state.
+        // Without this reload, CombineSubmittedTaskInfoFromCluster would see the stale
+        // Submitted state and SaveAsync would overwrite the callback's Finished state in DB.
+        foreach (var task in jobInfo.Tasks)
+        {
+            var freshState = await _unitOfWork.SubmittedTaskInfoRepository.GetCurrentTaskStateAsync(task.Id);
+            if (freshState.HasValue && freshState.Value > task.State)
+            {
+                _logger.LogDebug(
+                    "CompleteJobSubmitAsync: Task {TaskId} state refreshed from EF-tracked {StaleState} to actual DB state {FreshState}.",
+                    task.Id, task.State, freshState.Value);
+                task.State = freshState.Value;
+            }
+        }
+
         jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
         await _unitOfWork.SaveAsync();
         return jobInfo;
     }
+
 
     public async Task<(SubmittedJobInfo JobInfo, ClusterAuthenticationCredentials Credentials)> PrepareGetActualTasksInfoAsync(long submittedJobInfoId, AdaptorUser loggedUser)
     {
