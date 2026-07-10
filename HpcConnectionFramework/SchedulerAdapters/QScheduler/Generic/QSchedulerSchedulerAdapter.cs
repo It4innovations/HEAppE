@@ -118,7 +118,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning($"Project already exists in QScheduler (409 Conflict): {content}");
-                return content;
+                return "CONFLICT: " + content;
             }
             
             if (!response.IsSuccessStatusCode)
@@ -160,7 +160,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 if (commandResult.Result != null && (commandResult.Result.Contains("Conflict") || commandResult.Result.Contains("already exists")))
                 {
                     _logger.LogWarning($"Project already exists in QScheduler SSH mode (409 Conflict): {commandResult.Result}");
-                    return commandResult.Result;
+                    return "CONFLICT: " + commandResult.Result;
                 }
             }
             
@@ -211,7 +211,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {totalAllocation} {usageTypeName} summed from {aggregations.Count} aggregation(s)).");
             
             var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
-            await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));
+            var response = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));
+            
+            if (response != null && response.StartsWith("CONFLICT:", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation($"Project '{projectName}' already exists in QScheduler. Sending PATCH to update limit to {limitMs} ms.");
+                var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
+                await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+            }
         }
 
         // 2. Task Submission
