@@ -235,7 +235,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             {
                 _logger.LogInformation($"Project '{projectName}' already exists in QScheduler. Sending PATCH to update limit to {limitMs} ms.");
                 var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
-                await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                try
+                {
+                    await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                }
+                catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning($"QScheduler version does not support project updates (PATCH method returned {ex.StatusCode}). Skipping update.");
+                }
             }
         }
 
