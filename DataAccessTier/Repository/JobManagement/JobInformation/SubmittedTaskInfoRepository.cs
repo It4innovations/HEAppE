@@ -264,6 +264,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     public async Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId)
     {
         var taskPrefix = $"task:{scheduledJobId}";
+        var taskSuffix = $":task:{scheduledJobId}";
         return await _dbSet
             .AsSplitQuery()
             .Include(t => t.Specification)
@@ -274,12 +275,13 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Submitter)
-            .FirstOrDefaultAsync(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId);
+            .FirstOrDefaultAsync(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix));
     }
 
     public async Task<List<SubmittedTaskInfo>> GetTasksByScheduledJobIdAsync(string scheduledJobId)
     {
         var taskPrefix = $"task:{scheduledJobId}";
+        var taskSuffix = $":task:{scheduledJobId}";
         return await _dbSet
             .AsSplitQuery()
             .Include(t => t.Specification)
@@ -290,7 +292,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Submitter)
-            .Where(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId)
+            .Where(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix))
             .ToListAsync();
     }
 
