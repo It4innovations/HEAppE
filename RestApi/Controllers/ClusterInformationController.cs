@@ -159,7 +159,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
 
         var result = await _service.GetMachineArchitecture(model.ClusterNodeTypeId, model.ProjectId, model.SessionCode);
         _logger.LogInformation($"MachineArchitecture API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}");
-        return Ok(result);
+        return Content(result, "application/json");
     }
 
     /// <summary>
@@ -184,7 +184,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
 
         var result = await _service.GetMachineCalibration(model.ClusterNodeTypeId, model.CalibrationId, model.Endpoint, model.ProjectId, model.SessionCode);
         _logger.LogInformation($"MachineCalibration API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}");
-        return Ok(result);
+        return Content(result, "application/json");
     }
 
     #endregion
