@@ -1,8 +1,41 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace HEAppE.RestApiModels.JobManagement;
+
+public class JsonStringOrNumberConverter : JsonConverter<string>
+{
+    public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            if (reader.TryGetInt64(out long l))
+            {
+                return l.ToString();
+            }
+            if (reader.TryGetDouble(out double d))
+            {
+                return d.ToString();
+            }
+        }
+        if (reader.TokenType == JsonTokenType.String)
+        {
+            return reader.GetString();
+        }
+        using (JsonDocument document = JsonDocument.ParseValue(ref reader))
+        {
+            return document.RootElement.GetRawText();
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value);
+    }
+}
 
 /// <summary>
 /// Model to callback update task status
@@ -15,6 +48,7 @@ public class TaskCallbackModel
     /// </summary>
     [DataMember(Name = "task_id")]
     [JsonPropertyName("task_id")]
+    [JsonConverter(typeof(JsonStringOrNumberConverter))]
     [Required]
     [StringLength(100)]
     public string ScheduledJobId { get; set; }
