@@ -503,6 +503,33 @@ internal class JobManagementLogic : IJobManagementLogic
                         {
                             continue;
                         }
+
+                        // QScheduler callback timeout protection: If callback is enabled and the task is stuck,
+                        // mark it as Failed if time since submission exceeds 3x the walltime limit.
+                        bool isQScheduler = cluster.SchedulerType == SchedulerType.QScheduler;
+                        if (isQScheduler)
+                        {
+                            bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
+                                                    cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
+                                                    inVault) || 
+                                                   (cluster.CustomConfiguration != null && 
+                                                    cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
+                                                    !string.IsNullOrEmpty(token));
+
+                            if (callbackEnabled && submittedJob.SubmitTime.HasValue)
+                            {
+                                var elapsedSeconds = DateTime.UtcNow.Subtract(submittedJob.SubmitTime.Value).TotalSeconds;
+                                var walltimeLimit = submittedTask.Specification.WalltimeLimit;
+                                if (walltimeLimit > 0 && elapsedSeconds > 3 * walltimeLimit)
+                                {
+                                    _logger.LogWarning($"QScheduler task {submittedTask.Id} (Job {submittedJob.Id}) exceeded 3x walltime limit with callback enabled. Marking as Failed.");
+                                    submittedTask.State = TaskState.Failed;
+                                    submittedTask.ErrorMessage = "Task timed out (exceeded 3x walltime limit with callback enabled).";
+                                    isNeedUpdateJobState = true;
+                                    continue;
+                                }
+                            }
+                        }
                        
                         var actualUnfinishedSchedulerTaskInfo = groupTasksResult.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
                         if (actualUnfinishedSchedulerTaskInfo is null)

@@ -445,7 +445,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateQSchedulerJob(
         [FromForm] string model,
-        [FromServices] HEAppE.ServiceTier.FileTransfer.IFileTransferService fileTransferService)
+        [FromServices] IUserOrgService userOrgService)
     {
         if (string.IsNullOrEmpty(model))
         {
@@ -492,6 +492,9 @@ public class JobManagementController : BaseController<JobManagementController>
         // 2. Upload circuit files for tasks that requested direct upload
         try
         {
+            var fileTransferService = new HEAppE.ServiceTier.FileTransfer.FileTransferService(
+                userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
             for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
             {
                 var qTask = parsedModel.JobSpecification.Tasks[i];
