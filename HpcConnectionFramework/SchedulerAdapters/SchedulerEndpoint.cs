@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -40,19 +40,26 @@ internal struct SchedulerEndpoint
     /// </summary>
     public long? ProxyConnectionId { get; }
 
+    /// <summary>
+    ///     Connection protocol (SSH, HTTP, HTTPS)
+    /// </summary>
+    public ClusterConnectionProtocol ConnectionProtocol { get; }
+
+    /// <summary>
+    ///     Connection port
+    /// </summary>
+    public int? Port { get; }
+
     #endregion
 
-    #region Constructors,
+    #region Constructors
 
     /// <summary>
     ///     Constructor
     /// </summary>
-    /// <param name="masterNodeName">Master node name</param>
-    /// <param name="projectId">Project ID</param>
-    /// <param name="projectModifiedAt"></param>
-    /// <param name="schedulerType">Scheduler type</param>
     public SchedulerEndpoint(string masterNodeName, long projectId, DateTime? projectModifiedAt,
-        SchedulerType schedulerType, long? adaptorUserId, long? proxyConnectionId)
+        SchedulerType schedulerType, long? adaptorUserId, long? proxyConnectionId,
+        ClusterConnectionProtocol connectionProtocol, int? port)
     {
         MasterNodeName = masterNodeName;
         SchedulerType = schedulerType;
@@ -60,6 +67,8 @@ internal struct SchedulerEndpoint
         ProjectId = projectId;
         AdaptorUserId = adaptorUserId;
         ProxyConnectionId = proxyConnectionId;
+        ConnectionProtocol = connectionProtocol;
+        Port = port;
     }
 
     #endregion
@@ -69,8 +78,6 @@ internal struct SchedulerEndpoint
     /// <summary>
     ///     Equals
     /// </summary>
-    /// <param name="obj">Object</param>
-    /// <returns></returns>
     public override bool Equals(object obj)
     {
         return obj is SchedulerEndpoint endpoint &&
@@ -78,17 +85,27 @@ internal struct SchedulerEndpoint
                ProjectId.Equals(endpoint.ProjectId) &&
                ProjectModifiedAt.Equals(endpoint.ProjectModifiedAt) &&
                SchedulerType.Equals(endpoint.SchedulerType) &&
-               AdaptorUserId.Equals(endpoint.AdaptorUserId) &&
-               ProxyConnectionId.Equals(endpoint.ProxyConnectionId);
+               Nullable.Equals(AdaptorUserId, endpoint.AdaptorUserId) &&
+               Nullable.Equals(ProxyConnectionId, endpoint.ProxyConnectionId) &&
+               ConnectionProtocol.Equals(endpoint.ConnectionProtocol) &&
+               Nullable.Equals(Port, endpoint.Port);
     }
 
     /// <summary>
     ///     Get hash code
     /// </summary>
-    /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(MasterNodeName, ProjectId, ProjectModifiedAt, SchedulerType, AdaptorUserId, ProxyConnectionId);
+        var hash = new HashCode();
+        hash.Add(MasterNodeName);
+        hash.Add(ProjectId);
+        hash.Add(ProjectModifiedAt);
+        hash.Add(SchedulerType);
+        hash.Add(AdaptorUserId);
+        hash.Add(ProxyConnectionId);
+        hash.Add(ConnectionProtocol);
+        hash.Add(Port);
+        return hash.ToHashCode();
     }
 
     #endregion
