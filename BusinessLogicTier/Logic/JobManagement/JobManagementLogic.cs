@@ -245,6 +245,18 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo;
     }
 
+    public async Task<SubmittedJobInfo> GetSubmittedJobInfoByIdForSubmitAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
+    {
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdForSubmitAsync(submittedJobInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
+                 .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedJobInfoId);
+        return jobInfo;
+    }
+
     static Tuple<string, string> CreatePathTuple(string localBasePath, string jobLogArchivePath, TaskSpecification task, string fileName)
     {
         var localPath = Path.Join(localBasePath,
@@ -1143,7 +1155,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdForSubmitAsync(createdJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
         foreach (var task in jobInfo.Tasks)
@@ -1186,7 +1198,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> CompleteJobSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser, IEnumerable<SubmittedTaskInfo> submittedTasks)
     {
-        var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
+        var jobInfo = await GetSubmittedJobInfoByIdForSubmitAsync(createdJobInfoId, loggedUser);
         jobInfo.SubmitTime = DateTime.UtcNow;
 
         var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);

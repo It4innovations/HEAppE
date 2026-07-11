@@ -439,6 +439,56 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return job;
     }
 
+    public async Task<SubmittedJobInfo> GetByIdForSubmitAsync(long id)
+    {
+        var job = await _dbSet
+            .AsSplitQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+                    .ThenInclude(c => c.ClusterProjects)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                        .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
+            .Include(j => j.Submitter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.DependsOn)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.RequiredNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.RequestedNodeGroups)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+            .FirstOrDefaultAsync(j => j.Id == id);
+
+        if (job != null)
+            await AttachCommandTemplatesIncludingDeletedAsync(job.Tasks);
+
+        return job;
+    }
+
     public SubmittedJobInfo GetByIdForStatus(long id)
     {
         var job = _dbSet
