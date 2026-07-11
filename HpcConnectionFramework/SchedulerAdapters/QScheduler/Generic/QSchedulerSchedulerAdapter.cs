@@ -411,14 +411,25 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 // Submit each task in this group directly to the machine (no session)
                 foreach (var taskSpec in group)
                 {
-                    var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
-                    var payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
-                        ? $"{taskDir}/payload.json"
-                        : $"{taskDir}/{taskSpec.StandardInputFile}";
+                    System.IO.Stream payloadStream = null;
+                    var payloads = HEAppE.Utils.QSchedulerPayloadContext.Payloads;
+                    if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var stream))
+                    {
+                        payloadStream = stream;
+                    }
+
+                    string payloadPath = null;
+                    if (payloadStream == null)
+                    {
+                        var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                        payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
+                            ? $"{taskDir}/payload.json"
+                            : $"{taskDir}/{taskSpec.StandardInputFile}";
+                    }
 
                     var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
                     var relativeUrl = $"tasks?machine={machineId}&project={projectName}&user={username}";
-                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
                     var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
                     {
