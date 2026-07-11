@@ -389,25 +389,46 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 if (job.SubmitTime.HasValue)
                 {
-                    var elapsedSeconds = DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds;
-                    bool isNeedUpdateJobState = false;
-                    foreach (var task in job.Tasks.Where(t => t.State is > TaskState.Configuring and < TaskState.Finished))
-                    {
-                        var walltimeLimit = task.Specification?.WalltimeLimit ?? 0;
-                        if (walltimeLimit > 0 && elapsedSeconds > 3 * walltimeLimit)
-                        {
-                            _logger.LogWarning($"HPC task {task.Id} (Job {job.Id}) exceeded 3x walltime limit with callback enabled. Marking as Failed (Timeout).");
-                            task.State = TaskState.Failed;
-                            task.ErrorMessage = "Task timed out (exceeded 3x walltime limit with callback enabled, no exit callback received).";
-                            task.EndTime = DateTime.UtcNow;
-                            if (task.CallbackSecret != null)
-                            {
-                                task.CallbackSecret = null;
-                            }
-                            isNeedUpdateJobState = true;
-                            dbStateUpdated = true;
-                        }
-                    }
+                     var elapsedSeconds = DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds;
+                     bool isNeedUpdateJobState = false;
+                     foreach (var task in job.Tasks.Where(t => t.State is > TaskState.Configuring and < TaskState.Finished))
+                     {
+                         var walltimeLimit = task.Specification?.WalltimeLimit ?? 0;
+                         if (walltimeLimit > 0)
+                         {
+                             bool isTimeout = false;
+                             string errorMsg = "";
+
+                             if (task.State == TaskState.Running && task.StartTime.HasValue)
+                             {
+                                 var runningSeconds = DateTime.UtcNow.Subtract(task.StartTime.Value).TotalSeconds;
+                                 if (runningSeconds > walltimeLimit + 60) // walltime + 60s grace buffer
+                                 {
+                                     isTimeout = true;
+                                     errorMsg = $"Task timed out (exceeded walltime limit of {walltimeLimit}s on compute node by more than 60s).";
+                                 }
+                             }
+                             else if (elapsedSeconds > 3 * walltimeLimit)
+                             {
+                                 isTimeout = true;
+                                 errorMsg = $"Task timed out (exceeded 3x walltime limit of {walltimeLimit}s from submission time without starting/completing).";
+                             }
+
+                             if (isTimeout)
+                             {
+                                 _logger.LogWarning($"HPC task {task.Id} (Job {job.Id}) timed out. {errorMsg}");
+                                 task.State = TaskState.Failed;
+                                 task.ErrorMessage = errorMsg;
+                                 task.EndTime = DateTime.UtcNow;
+                                 if (task.CallbackSecret != null)
+                                 {
+                                     task.CallbackSecret = null;
+                                 }
+                                 isNeedUpdateJobState = true;
+                                 dbStateUpdated = true;
+                             }
+                         }
+                     }
                     if (isNeedUpdateJobState)
                     {
                         UpdateJobStateByTasks(job);

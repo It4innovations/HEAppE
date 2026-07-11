@@ -43,6 +43,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     protected StringBuilder _taskAppender;
 
     /// <summary>
+    ///     Task runtime in seconds
+    /// </summary>
+    protected int _runtime;
+
+    /// <summary>
     ///     Append parameter to builder
     /// </summary>
     protected void DoAppend(string value)
@@ -187,6 +192,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         set
         {
+            _runtime = value;
             var wallTime = TimeSpan.FromSeconds(value);
             DoAppend($" -t {wallTime:dd\\-hh\\:mm\\:ss}");
         }
@@ -412,6 +418,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         if (UseCallback)
         {
+            if (_runtime > 30)
+            {
+                DoAppend(" --signal=B:TERM@30");
+            }
+
             if (_sbatch)
                 _taskAppender.Append("#SBATCH");
 
