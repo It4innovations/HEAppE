@@ -606,28 +606,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (jobSpecification.Cluster.SchedulerType == SchedulerType.QScheduler)
         {
-            try
-            {
-                var directory = Path.GetDirectoryName(absoluteFilePath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                using (var outStream = File.Create(absoluteFilePath))
-                {
-                    await fileStream.CopyToAsync(outStream);
-                }
-                result.Add("Succeeded", true);
-                result.Add("Path", absoluteFilePath);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to write local file for HTTP cluster execution: {absoluteFilePath}");
-                result.Add("Succeeded", false);
-                result.Add("Path", null);
-                return result;
-            }
+            throw new NotSupportedException("File transfers are not supported for QScheduler clusters.");
         }
 
         var fileManager = FileSystemFactory.GetInstance(jobSpecification.FileTransferMethod.Protocol)

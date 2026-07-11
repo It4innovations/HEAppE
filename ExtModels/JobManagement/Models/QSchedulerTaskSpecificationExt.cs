@@ -22,4 +22,7 @@ public class QSchedulerTaskSpecificationExt
 
     [DataMember(Name = "PayloadFilePath")]
     public string PayloadFilePath { get; set; }
+
+    [DataMember(Name = "PayloadContent")]
+    public string PayloadContent { get; set; }
 }

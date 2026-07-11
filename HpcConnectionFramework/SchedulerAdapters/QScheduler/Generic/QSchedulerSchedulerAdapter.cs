@@ -349,10 +349,20 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                     if (isSessionOpen)
                     {
-                        var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
-                        var payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
-                            ? $"{taskDir}/payload.json"
-                            : $"{taskDir}/{taskSpec.StandardInputFile}";
+                        var payloadEnvVar = taskSpec.EnvironmentVariables?.FirstOrDefault(e => e.Name == "__QSchedulerPayloadContent");
+                        byte[] payloadBytes = null;
+                        string payloadPath = null;
+                        if (payloadEnvVar != null && !string.IsNullOrEmpty(payloadEnvVar.Value))
+                        {
+                            payloadBytes = Encoding.UTF8.GetBytes(payloadEnvVar.Value);
+                        }
+                        else
+                        {
+                            var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                            payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
+                                ? $"{taskDir}/payload.json"
+                                : $"{taskDir}/{taskSpec.StandardInputFile}";
+                        }
 
                         var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
                         var relativeUrl = $"tasks?machine={machineId}&session_id={sessionId}&user={username}";
@@ -360,7 +370,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                         try
                         {
-                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadBytes: payloadBytes, payloadFilePath: payloadPath);
                             var taskIdStr = taskResponse.Trim();
                             if (long.TryParse(taskIdStr, out long taskId))
                             {

@@ -486,56 +486,44 @@ public class JobManagementController : BaseController<JobManagementController>
             }
         }
 
-        // 1. Create the job database records and setup the directories on the cluster
-        var createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
-
-        // 2. Upload circuit files for tasks that requested direct upload
-        try
+        // 1. Read circuit files into task specification in-memory
+        for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
         {
-            var fileTransferService = new HEAppE.ServiceTier.FileTransfer.FileTransferService(
-                userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-
-            for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
+            var qTask = parsedModel.JobSpecification.Tasks[i];
+            if (!string.IsNullOrEmpty(qTask.PayloadPartName))
             {
-                var qTask = parsedModel.JobSpecification.Tasks[i];
-                if (!string.IsNullOrEmpty(qTask.PayloadPartName))
+                var file = Request.Form.Files[qTask.PayloadPartName];
+                using (var stream = file.OpenReadStream())
+                using (var reader = new System.IO.StreamReader(stream))
                 {
-                    var file = Request.Form.Files[qTask.PayloadPartName];
-                    var createdTask = createdJob.Tasks.FirstOrDefault(t => t.Name == qTask.Name);
-                    if (createdTask == null || !createdTask.Id.HasValue)
-                    {
-                        throw new System.Exception($"Failed to find matching created task for upload: '{qTask.Name}'");
-                    }
-
-                    using (var stream = file.OpenReadStream())
-                    {
-                        // Upload payload file to task directory (default name payload.json)
-                        var uploadResult = await fileTransferService.UploadFileToJobExecutionDir(
-                            stream, "payload.json", createdJob.Id.Value, createdTask.Id.Value, parsedModel.SessionCode);
-                        
-                        if (uploadResult == null || !uploadResult.ContainsKey("Succeeded") || uploadResult["Succeeded"] == false)
-                        {
-                            throw new System.Exception($"Failed to upload circuit payload for task '{qTask.Name}'.");
-                        }
-                    }
+                    qTask.PayloadContent = await reader.ReadToEndAsync();
                 }
             }
         }
-        catch (System.Exception uploadEx)
+
+        // 2. Create the job database records (this maps PayloadContent to env var internally)
+        var createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+
+        // 3. Immediately submit the job to QScheduler in-memory
+        try
         {
-            // Try to clean up created job if file transfer failed
+            var submittedJob = await _service.SubmitJobAsync(createdJob.Id.Value, parsedModel.SessionCode);
+            return Ok(submittedJob);
+        }
+        catch (System.Exception submitEx)
+        {
+            _logger.LogError(submitEx, $"Automatic submission of QScheduler job {createdJob.Id} failed.");
+            // Try to clean up created job if submission failed
             try
             {
                 await _service.DeleteJob(createdJob.Id.Value, false, parsedModel.SessionCode);
             }
             catch (System.Exception cleanupEx)
             {
-                _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id} failed after upload failure.");
+                _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id} failed after submission failure.");
             }
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Circuit payload upload failed: {uploadEx.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Circuit payload submission failed: {submitEx.Message}");
         }
-
-        return Ok(createdJob);
     }
 
     /// <summary>
