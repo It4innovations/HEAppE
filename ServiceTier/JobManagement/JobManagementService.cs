@@ -654,14 +654,10 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
 
-            // Auto-resolve NodeType and CommandTemplate for the specified cluster
+            // Auto-resolve NodeType for the specified cluster
             var nodeTypes = await unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommandsAsync();
             var nodeType = nodeTypes.FirstOrDefault(n => n.ClusterId == specification.ClusterId)
                 ?? throw new Exceptions.External.InvalidRequestException("NoNodeTypesConfigured");
-
-            var templates = await unitOfWork.CommandTemplateRepository.GetAllAsync();
-            var template = templates.FirstOrDefault(t => t.ClusterNodeTypeId == nodeType.Id)
-                ?? throw new Exceptions.External.InvalidRequestException("NoCommandTemplatesConfigured");
 
             long? transferMethodId = nodeType.FileTransferMethodId;
             if (!transferMethodId.HasValue)
@@ -700,7 +696,7 @@ public class JobManagementService : IJobManagementService
                     MaxCores = 1,
                     WalltimeLimit = qTask.WalltimeLimitSecs,
                     ClusterNodeTypeId = nodeType.Id,
-                    CommandTemplateId = template.Id,
+                    CommandTemplateId = null,
                     EnvironmentVariables = envVars.ToArray(),
                     StandardInputFile = standardInputFile,
                     StandardOutputFile = "stdout.log",

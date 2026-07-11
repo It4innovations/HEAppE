@@ -652,17 +652,19 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             try
             {
-                var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
-                if (commandTemplate != null && commandTemplate.IsGeneric)
+                if (task.CommandTemplateId.HasValue)
                 {
-                    //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
-                    //if you want to, refactoring is possible
-                    if (task.CommandParameterValues == null)
+                    var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId.Value);
+                    if (commandTemplate != null && commandTemplate.IsGeneric)
                     {
-                        throw new InputValidationException("NotValidJobSpecification", "CommandParameterValues cannot be null.");
-                    }
+                        //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
+                        //if you want to, refactoring is possible
+                        if (task.CommandParameterValues == null)
+                        {
+                            throw new InputValidationException("NotValidJobSpecification", "CommandParameterValues cannot be null.");
+                        }
 
-                    if (commandTemplate.TemplateParameters == null || !commandTemplate.TemplateParameters.Any())
+                        if (commandTemplate.TemplateParameters == null || !commandTemplate.TemplateParameters.Any())
                     {
                         throw new InputValidationException("NotValidJobSpecification", "Template parameters are not defined for the generic command template.");
                     }
@@ -698,6 +700,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         Value = parsedUserParameter //validate if value does not contain some prohibited parameters
                     });
                     task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
+                }
                 }
             }
             catch (Exception ex)
@@ -746,8 +749,12 @@ internal class JobManagementLogic : IJobManagementLogic
     protected void CompleteTaskSpecification(TaskSpecification taskSpecification, IClusterInformationLogic clusterLogic)
     {
         taskSpecification.ClusterNodeType = clusterLogic.GetClusterNodeTypeById(taskSpecification.ClusterNodeTypeId);
-        taskSpecification.CommandTemplate =
-            _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
+        
+        if (taskSpecification.CommandTemplateId.HasValue)
+        {
+            taskSpecification.CommandTemplate =
+                _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId.Value);
+        }
 
         if (taskSpecification.CommandParameterValues?.Any() == true && taskSpecification.CommandTemplate?.TemplateParameters != null)
         {
@@ -1042,11 +1049,13 @@ internal class JobManagementLogic : IJobManagementLogic
 
             foreach (var commandTemplateId in specification.Tasks.Select(s => s.CommandTemplateId).Distinct())
             {
-                var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                      ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
+                if (commandTemplateId.HasValue)
+                {
+                    var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId.Value)
+                                          ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId.Value);
 
-                var queue = _unitOfWork.ClusterNodeTypeRepository.GetById(commandTemplate.ClusterNodeTypeId.Value)
-                            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", commandTemplate.ClusterNodeTypeId);
+                    var queue = _unitOfWork.ClusterNodeTypeRepository.GetById(commandTemplate.ClusterNodeTypeId.Value)
+                                ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", commandTemplate.ClusterNodeTypeId);
 
                 _userOrgService.ValidatePermissions(
                     permissionsModel, 
@@ -1056,6 +1065,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     commandTemplate.Name,
                     _logger
                 );
+                }
             }
         }
         

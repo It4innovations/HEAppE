@@ -40,7 +40,7 @@ public static class JobReportingConverts
             StartTime = report.SubmittedTaskInfo.StartTime,
             EndTime = report.SubmittedTaskInfo.EndTime,
             State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
-            CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId,
+            CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId ?? 0,
             Usage = report.Usage
         };
 

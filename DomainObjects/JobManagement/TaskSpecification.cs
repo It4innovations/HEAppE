@@ -37,7 +37,7 @@ public class TaskSpecification : CommonTaskProperties
 
     public virtual ClusterNodeType ClusterNodeType { get; set; }
 
-    [ForeignKey("CommandTemplateId")] public long CommandTemplateId { get; set; }
+    [ForeignKey("CommandTemplateId")] public long? CommandTemplateId { get; set; }
 
     public virtual CommandTemplate CommandTemplate { get; set; }
 

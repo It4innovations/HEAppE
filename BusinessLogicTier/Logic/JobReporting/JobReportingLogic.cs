@@ -353,7 +353,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var missingTemplateIds = taskList
             .Where(t => t.Specification != null && t.Specification.CommandTemplate == null && t.Specification.CommandTemplateId > 0)
-            .Select(t => t.Specification.CommandTemplateId)
+            .Select(t => t.Specification.CommandTemplateId.Value)
             .Distinct()
             .ToList();
 
@@ -366,7 +366,7 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         foreach (var task in taskList)
         {
             if (task.Specification != null && task.Specification.CommandTemplate == null && task.Specification.CommandTemplateId > 0)
-                if (templates.TryGetValue(task.Specification.CommandTemplateId, out var template))
+                if (templates.TryGetValue(task.Specification.CommandTemplateId.Value, out var template))
                     task.Specification.CommandTemplate = template;
         }
     }
