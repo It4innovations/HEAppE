@@ -402,5 +402,167 @@ public class JobManagementController : BaseController<JobManagementController>
         }
     }
 
+    /// <summary>
+    ///     Get QScheduler session info and state
+    /// </summary>
+    /// <param name="sessionCode">HEAppE session code</param>
+    /// <param name="sessionId">QScheduler session ID (returned by OpenQSchedulerSession)</param>
+    /// <returns>Session info including current state, owner, timestamps</returns>
+    [HttpGet("QSchedulerSessionInfo")]
+    [ProducesResponseType(typeof(QSchedulerSessionInfoExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> QSchedulerSessionInfo(string sessionCode, long sessionId)
+    {
+        if (string.IsNullOrEmpty(sessionCode) || sessionId <= 0)
+            return BadRequest("sessionCode and sessionId are required.");
+
+        try
+        {
+            var info = await _service.GetQSchedulerSessionInfoAsync(sessionId, sessionCode);
+            return Ok(info);
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    /// <summary>
+    ///     Create a QScheduler job with simplified specification and optional multipart payload upload per task.
+    /// </summary>
+    /// <param name="model">JSON string of CreateQSchedulerJobModel</param>
+    /// <param name="fileTransferService">File transfer service for SSH uploads</param>
+    /// <returns>Submitted job info</returns>
+    [HttpPost("CreateQSchedulerJob")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(2_200_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 2_200_000_000)]
+    [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CreateQSchedulerJob(
+        [FromForm] string model,
+        [FromServices] HEAppE.ServiceTier.FileTransfer.IFileTransferService fileTransferService)
+    {
+        if (string.IsNullOrEmpty(model))
+        {
+            return BadRequest("Model string is empty.");
+        }
+
+        CreateQSchedulerJobModel parsedModel;
+        try
+        {
+            parsedModel = System.Text.Json.JsonSerializer.Deserialize<CreateQSchedulerJobModel>(model, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest($"Invalid model JSON: {ex.Message}");
+        }
+
+        if (parsedModel == null)
+        {
+            return BadRequest("Failed to parse model.");
+        }
+
+        var validationResult = new JobManagementValidator(parsedModel).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        // Additional validation for multipart files existence
+        foreach (var task in parsedModel.JobSpecification.Tasks)
+        {
+            if (!string.IsNullOrEmpty(task.PayloadPartName))
+            {
+                var file = Request.Form.Files[task.PayloadPartName];
+                if (file == null)
+                {
+                    return BadRequest($"Multipart file for PayloadPartName '{task.PayloadPartName}' was not provided in the request.");
+                }
+            }
+        }
+
+        // 1. Create the job database records and setup the directories on the cluster
+        var createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+
+        // 2. Upload circuit files for tasks that requested direct upload
+        try
+        {
+            for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
+            {
+                var qTask = parsedModel.JobSpecification.Tasks[i];
+                if (!string.IsNullOrEmpty(qTask.PayloadPartName))
+                {
+                    var file = Request.Form.Files[qTask.PayloadPartName];
+                    var createdTask = createdJob.Tasks.FirstOrDefault(t => t.Name == qTask.Name);
+                    if (createdTask == null || !createdTask.Id.HasValue)
+                    {
+                        throw new System.Exception($"Failed to find matching created task for upload: '{qTask.Name}'");
+                    }
+
+                    using (var stream = file.OpenReadStream())
+                    {
+                        // Upload payload file to task directory (default name payload.json)
+                        var uploadResult = await fileTransferService.UploadFileToJobExecutionDir(
+                            stream, "payload.json", createdJob.Id.Value, createdTask.Id.Value, parsedModel.SessionCode);
+                        
+                        if (uploadResult == null || !uploadResult.ContainsKey("Succeeded") || uploadResult["Succeeded"] == false)
+                        {
+                            throw new System.Exception($"Failed to upload circuit payload for task '{qTask.Name}'.");
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception uploadEx)
+        {
+            // Try to clean up created job if file transfer failed
+            try
+            {
+                await _service.DeleteJob(createdJob.Id.Value, false, parsedModel.SessionCode);
+            }
+            catch (System.Exception cleanupEx)
+            {
+                _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id} failed after upload failure.");
+            }
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Circuit payload upload failed: {uploadEx.Message}");
+        }
+
+        return Ok(createdJob);
+    }
+
+    /// <summary>
+    ///     List QScheduler sessions with optional state, cluster, and project filters.
+    /// </summary>
+    /// <param name="sessionCode">HEAppE session code</param>
+    /// <param name="state">Optional state filter ("Open" or "Closed")</param>
+    /// <param name="clusterId">Optional cluster ID filter</param>
+    /// <param name="projectId">Optional project ID filter</param>
+    /// <returns>List of session specifications including their state history (created/closed timestamps)</returns>
+    [HttpGet("ListQSchedulerSessions")]
+    [ProducesResponseType(typeof(IEnumerable<QSchedulerSessionInfoExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ListQSchedulerSessions(string sessionCode, string state = null, long? clusterId = null, long? projectId = null)
+    {
+        if (string.IsNullOrEmpty(sessionCode))
+            return BadRequest("sessionCode is required.");
+
+        try
+        {
+            var sessions = await _service.ListQSchedulerSessionsAsync(sessionCode, state, clusterId, projectId);
+            return Ok(sessions);
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
     #endregion
 }

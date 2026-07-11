@@ -397,7 +397,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                 if (callbackEnabled && !taskInfo.ForceSessionSubmit)
                 {
-                    _logger.LogInformation($"Callback is configured. Bypassing active polling for session {sessionId}.");
+                    _logger.LogDebug($"Callback is configured. Bypassing active polling for session {sessionId}.");
                     results.Add(taskInfo);
                     continue;
                 }
@@ -477,7 +477,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 if (callbackEnabled)
                 {
                     // Bypass active SSH polling - just keep current DB state!
-                    _logger.LogInformation($"Callback is configured. Bypassing active polling for task {taskId}. State remains: {taskInfo.State}");
+                    _logger.LogDebug($"Callback is configured. Bypassing active polling for task {taskId}. State remains: {taskInfo.State}");
                     results.Add(taskInfo);
                     continue;
                 }

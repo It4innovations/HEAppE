@@ -64,6 +64,7 @@ public interface IUnitOfWork : IDisposable
     IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }
     ISessionCodeRepository SessionCodeRepository { get; }
     IOpenStackSessionRepository OpenStackSessionRepository { get; }
+    IQSchedulerSessionRepository QSchedulerSessionRepository { get; }
     IDatabaseBackupService DatabaseBackupService { get; }
 
     #endregion

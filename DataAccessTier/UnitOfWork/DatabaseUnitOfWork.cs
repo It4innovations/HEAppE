@@ -107,6 +107,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     private ITaskParalizationSpecificationRepository _taskParalizationSpecificationRepository;
     private ITaskSpecificationRequiredNodeRepository _taskSpecificationRequiredNodeRepository;
     private IOpenStackSessionRepository _openStackSessionRepository;
+    private IQSchedulerSessionRepository _qSchedulerSessionRepository;
     private IDatabaseBackupService _databaseBackupService;
 
     #endregion
@@ -403,6 +404,15 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _openStackSessionRepository =
                 _openStackSessionRepository ?? new OpenStackSessionRepository(_context);
+        }
+    }
+
+    public IQSchedulerSessionRepository QSchedulerSessionRepository
+    {
+        get
+        {
+            return _qSchedulerSessionRepository =
+                _qSchedulerSessionRepository ?? new QSchedulerSessionRepository(_context);
         }
     }
 

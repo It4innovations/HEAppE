@@ -828,6 +828,7 @@ public class MiddlewareContext : DbContext
     public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
     public virtual DbSet<SessionCode> SessionCodes { get; set; }
     public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
+    public virtual DbSet<QSchedulerSession> QSchedulerSessions { get; set; }
 
     #endregion
 

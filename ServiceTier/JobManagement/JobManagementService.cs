@@ -627,6 +627,133 @@ public class JobManagementService : IJobManagementService
         }
     }
 
+    public async Task<QSchedulerSessionInfoExt> GetQSchedulerSessionInfoAsync(long sessionId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, _expirioService);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var session = await jobLogic.GetQSchedulerSessionInfoAsync(sessionId, loggedUser);
+            return new QSchedulerSessionInfoExt
+            {
+                SessionId = session.SessionId,
+                ClusterId = session.ClusterId,
+                ProjectId = session.ProjectId,
+                State = session.State.ToString(),
+                CreatedAt = session.CreatedAt,
+                ClosedAt = session.ClosedAt
+            };
+        }
+    }
+
+    public async Task<SubmittedJobInfoExt> CreateQSchedulerJob(QSchedulerJobSpecificationExt specification, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
+
+            // Auto-resolve NodeType and CommandTemplate for the specified cluster
+            var nodeTypes = await unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommandsAsync();
+            var nodeType = nodeTypes.FirstOrDefault(n => n.ClusterId == specification.ClusterId)
+                ?? throw new Exceptions.External.InvalidRequestException("NoNodeTypesConfigured");
+
+            var templates = await unitOfWork.CommandTemplateRepository.GetAllAsync();
+            var template = templates.FirstOrDefault(t => t.ClusterNodeTypeId == nodeType.Id)
+                ?? throw new Exceptions.External.InvalidRequestException("NoCommandTemplatesConfigured");
+
+            var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllAsync();
+            var transferMethod = transferMethods.FirstOrDefault()
+                ?? throw new Exceptions.External.InvalidRequestException("NoTransferMethodsConfigured");
+
+            // Map target specification
+            var tasks = new List<TaskSpecificationExt>();
+            for (int i = 0; i < specification.Tasks.Length; i++)
+            {
+                var qTask = specification.Tasks[i];
+                var envVars = new List<EnvironmentVariableExt>();
+
+                // Add session variables internally if needed
+                if (qTask.SessionId.HasValue)
+                {
+                    envVars.Add(new EnvironmentVariableExt { Name = "HEAPPE_QSCHEDULER_SESSION_ID", Value = qTask.SessionId.ToString() });
+                    envVars.Add(new EnvironmentVariableExt { Name = "HEAPPE_QSCHEDULER_USE_SESSIONS", Value = "true" });
+                }
+
+                // If PayloadFilePath is specified (relative path to job/task dir)
+                string standardInputFile = "payload.json"; // default name
+                if (!string.IsNullOrEmpty(qTask.PayloadFilePath))
+                {
+                    standardInputFile = qTask.PayloadFilePath;
+                }
+
+                tasks.Add(new TaskSpecificationExt
+                {
+                    Name = qTask.Name,
+                    MinCores = 1,
+                    MaxCores = 1,
+                    WalltimeLimit = qTask.WalltimeLimitSecs,
+                    ClusterNodeTypeId = nodeType.Id,
+                    CommandTemplateId = template.Id,
+                    EnvironmentVariables = envVars.ToArray(),
+                    StandardInputFile = standardInputFile,
+                    StandardOutputFile = "stdout.log",
+                    StandardErrorFile = "stderr.log",
+                    ProgressFile = "progress.log", // dummy but required by BLL validator
+                    LogFile = "output.log"
+                });
+            }
+
+            var jobSpec = new JobSpecificationExt
+            {
+                Name = specification.Name,
+                ProjectId = specification.ProjectId,
+                ClusterId = specification.ClusterId,
+                FileTransferMethodId = transferMethod.Id,
+                Tasks = tasks.ToArray()
+            };
+
+            // Call existing CreateJob implementation
+            return await CreateJob(jobSpec, sessionCode);
+        }
+    }
+
+    public async Task<IEnumerable<QSchedulerSessionInfoExt>> ListQSchedulerSessionsAsync(string sessionCode, string state = null, long? clusterId = null, long? projectId = null)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, _expirioService);
+
+            QSchedulerSessionState? parsedState = null;
+            if (!string.IsNullOrEmpty(state))
+            {
+                if (Enum.TryParse<QSchedulerSessionState>(state, true, out var result))
+                {
+                    parsedState = result;
+                }
+                else
+                {
+                    throw new Exceptions.External.InvalidRequestException("InvalidSessionStateFilter");
+                }
+            }
+
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var sessions = await jobLogic.ListQSchedulerSessionsAsync(loggedUser, parsedState, clusterId, projectId);
+
+            return sessions.Select(s => new QSchedulerSessionInfoExt
+            {
+                SessionId = s.SessionId,
+                ClusterId = s.ClusterId,
+                ProjectId = s.ProjectId,
+                State = s.State.ToString(),
+                CreatedAt = s.CreatedAt,
+                ClosedAt = s.ClosedAt
+            });
+        }
+    }
+
 #pragma warning disable IDE1006
     private string _expirioToken
     {

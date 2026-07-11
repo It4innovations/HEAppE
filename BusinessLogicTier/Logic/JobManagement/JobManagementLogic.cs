@@ -18,6 +18,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
@@ -1107,6 +1108,18 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var jobInfo = await GetSubmittedJobInfoByIdAsync(createdJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
+
+        foreach (var task in jobInfo.Tasks)
+        {
+            if (task.Specification?.EnvironmentVariables != null)
+            {
+                var sessionIdVar = task.Specification.EnvironmentVariables.FirstOrDefault(e => e.Name == "HEAPPE_QSCHEDULER_SESSION_ID");
+                if (sessionIdVar != null && long.TryParse(sessionIdVar.Value, out var sid))
+                {
+                    await VerifySessionOwnerAsync(sid, loggedUser);
+                }
+            }
+        }
         if (jobInfo.Specification.Tasks.Any(x => x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
         
@@ -1700,6 +1713,39 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
+    private async Task VerifySessionOwnerAsync(long sessionId, AdaptorUser loggedUser)
+    {
+        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+
+        if (session == null)
+        {
+            _logger.LogWarning($"Session {sessionId} has no tracking record in HEAppE database.");
+            return;
+        }
+
+        if (session.UserId != loggedUser.Id)
+        {
+            _logger.LogError($"User {loggedUser.Id} attempted to use session {sessionId} owned by user {session.UserId}.");
+            throw new Exceptions.External.InvalidRequestException("SessionOwnershipMismatch");
+        }
+
+        var hasSubmitterRoleInProject = loggedUser.AdaptorUserUserGroupRoles?.Any(r =>
+            r.AdaptorUserRole?.ContainedRoleTypes?.Contains(AdaptorUserRoleType.Submitter) == true &&
+            r.AdaptorUserGroup?.ProjectId == session.ProjectId &&
+            r.IsDeleted == false) == true;
+
+        if (!hasSubmitterRoleInProject)
+        {
+            _logger.LogError($"User {loggedUser.Id} does not have Submitter role in project {session.ProjectId} of session {sessionId}.");
+            throw new Exceptions.External.InvalidRequestException("InsufficientRoleForSessionProject");
+        }
+
+        if (session.State == QSchedulerSessionState.Closed)
+        {
+            throw new Exceptions.External.InvalidRequestException("SessionAlreadyClosed");
+        }
+    }
+
     public async Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, AdaptorUser loggedUser)
     {
         var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
@@ -1719,13 +1765,24 @@ internal class JobManagementLogic : IJobManagementLogic
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
 
         var sessionId = await scheduler.OpenSessionAsync(cluster, machineId, project.AccountingString, walltimeLimitSecs, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-        
+
+        _unitOfWork.QSchedulerSessionRepository.Insert(new QSchedulerSession
+        {
+            SessionId = sessionId,
+            ClusterId = clusterId,
+            ProjectId = projectId,
+            UserId = loggedUser.Id,
+            State = QSchedulerSessionState.Open,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _unitOfWork.SaveAsync();
+
         await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
         {
             sessionId = $"session:{sessionId}",
             state = "Open"
         });
-        
+
         return sessionId;
     }
 
@@ -1741,6 +1798,8 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
         }
 
+        await VerifySessionOwnerAsync(sessionId, loggedUser);
+
         var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
 
@@ -1748,6 +1807,14 @@ internal class JobManagementLogic : IJobManagementLogic
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
 
         await scheduler.CloseSessionAsync(cluster, sessionId, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+
+        var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+        if (dbSession != null)
+        {
+            dbSession.State = QSchedulerSessionState.Closed;
+            dbSession.ClosedAt = DateTime.UtcNow;
+            await _unitOfWork.SaveAsync();
+        }
 
         await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
         {
@@ -1761,4 +1828,51 @@ internal class JobManagementLogic : IJobManagementLogic
         get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
     }
 #pragma warning restore IDE1006
+
+    public async Task<QSchedulerSession> GetQSchedulerSessionInfoAsync(long sessionId, AdaptorUser loggedUser)
+    {
+        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId)
+            ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingQSchedulerSession", sessionId);
+
+        if (session.UserId != loggedUser.Id)
+        {
+            _logger.LogError($"User {loggedUser.Id} attempted to read session {sessionId} owned by user {session.UserId}.");
+            throw new Exceptions.External.InvalidRequestException("SessionOwnershipMismatch");
+        }
+
+        var hasSubmitterRoleInProject = loggedUser.AdaptorUserUserGroupRoles?.Any(r =>
+            r.AdaptorUserRole?.ContainedRoleTypes?.Contains(AdaptorUserRoleType.Submitter) == true &&
+            r.AdaptorUserGroup?.ProjectId == session.ProjectId &&
+            r.IsDeleted == false) == true;
+
+        if (!hasSubmitterRoleInProject)
+        {
+            _logger.LogError($"User {loggedUser.Id} does not have Submitter role in project {session.ProjectId} of session {sessionId}.");
+            throw new Exceptions.External.InvalidRequestException("InsufficientRoleForSessionProject");
+        }
+
+        return session;
+    }
+
+    public async Task<System.Collections.Generic.IEnumerable<QSchedulerSession>> ListQSchedulerSessionsAsync(AdaptorUser loggedUser, QSchedulerSessionState? state = null, long? clusterId = null, long? projectId = null)
+    {
+        var sessions = await _unitOfWork.QSchedulerSessionRepository.ListSessionsAsync(loggedUser.Id, state, clusterId, projectId);
+        
+        // Filter sessions where the user has Submitter role in the session's project
+        var authorizedSessions = new List<QSchedulerSession>();
+        foreach (var session in sessions)
+        {
+            var hasSubmitterRoleInProject = loggedUser.AdaptorUserUserGroupRoles?.Any(r =>
+                r.AdaptorUserRole?.ContainedRoleTypes?.Contains(AdaptorUserRoleType.Submitter) == true &&
+                r.AdaptorUserGroup?.ProjectId == session.ProjectId &&
+                r.IsDeleted == false) == true;
+
+            if (hasSubmitterRoleInProject)
+            {
+                authorizedSessions.Add(session);
+            }
+        }
+
+        return authorizedSessions;
+    }
 }
