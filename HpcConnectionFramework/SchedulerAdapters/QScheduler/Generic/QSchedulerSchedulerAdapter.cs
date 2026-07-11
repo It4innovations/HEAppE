@@ -650,41 +650,65 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
     {
+        if (connectorClient is ConnectionPool.HttpConnection) return;
         await _commands.AllowDirectFileTransferAccessForUserToJobAsync(connectorClient, publicKey, jobInfo);
     }
 
     public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
+        if (connectorClient is ConnectionPool.HttpConnection) return;
         await _commands.RemoveDirectFileTransferAccessForUserAsync(connectorClient, publicKeys, projectAccountingString);
     }
 
     public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
     {
+        if (connectorClient is ConnectionPool.HttpConnection)
+        {
+            _logger.LogInformation("QScheduler HTTP mode: skipping CreateJobDirectoryAsync");
+            return;
+        }
         await _commands.CreateJobDirectoryAsync(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
     }
 
     public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
+        if (connectorClient is ConnectionPool.HttpConnection)
+        {
+            _logger.LogInformation("QScheduler HTTP mode: skipping DeleteJobDirectoryAsync");
+            return true;
+        }
         return await _commands.DeleteJobDirectoryAsync(connectorClient, jobInfo, localBasePath);
     }
 
     public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
     {
+        if (connectorClient is ConnectionPool.HttpConnection)
+        {
+            _logger.LogInformation("QScheduler HTTP mode: skipping CopyJobDataToTempAsync");
+            return;
+        }
         await _commands.CopyJobDataToTempAsync(connectorClient, jobInfo, localBasePath, hash, path);
     }
 
     public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string hash, string localBasePath)
     {
+        if (connectorClient is ConnectionPool.HttpConnection)
+        {
+            _logger.LogInformation("QScheduler HTTP mode: skipping CopyJobDataFromTempAsync");
+            return;
+        }
         await _commands.CopyJobDataFromTempAsync(connectorClient, jobInfo, localBasePath, hash);
     }
 
     public async Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
     {
+        if (connectorClient is ConnectionPool.HttpConnection) return;
         await _sshTunnelUtil.CreateTunnelAsync(connectorClient, taskInfo.Id, nodeHost, nodePort);
     }
 
     public async Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo)
     {
+        if (connectorClient is ConnectionPool.HttpConnection) return;
         await _sshTunnelUtil.RemoveTunnelAsync(connectorClient, taskInfo.Id);
     }
 
@@ -701,6 +725,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     public async Task<bool> MoveJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
     {
+        if (schedulerConnectionConnection is ConnectionPool.HttpConnection) return true;
         return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
     }
 
