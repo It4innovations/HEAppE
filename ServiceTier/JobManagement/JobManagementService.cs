@@ -663,9 +663,14 @@ public class JobManagementService : IJobManagementService
             var template = templates.FirstOrDefault(t => t.ClusterNodeTypeId == nodeType.Id)
                 ?? throw new Exceptions.External.InvalidRequestException("NoCommandTemplatesConfigured");
 
-            var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllAsync();
-            var transferMethod = transferMethods.FirstOrDefault()
-                ?? throw new Exceptions.External.InvalidRequestException("NoTransferMethodsConfigured");
+            long? transferMethodId = nodeType.FileTransferMethodId;
+            if (!transferMethodId.HasValue)
+            {
+                var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllAsync();
+                var transferMethod = transferMethods.FirstOrDefault()
+                    ?? throw new Exceptions.External.InvalidRequestException("NoTransferMethodsConfigured");
+                transferMethodId = transferMethod.Id;
+            }
 
             // Map target specification
             var tasks = new List<TaskSpecificationExt>();
@@ -710,7 +715,7 @@ public class JobManagementService : IJobManagementService
                 Name = specification.Name,
                 ProjectId = specification.ProjectId,
                 ClusterId = specification.ClusterId,
-                FileTransferMethodId = transferMethod.Id,
+                FileTransferMethodId = transferMethodId,
                 Tasks = tasks.ToArray()
             };
 
