@@ -1525,61 +1525,139 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new ArgumentException("Callback raw response is empty.");
         }
 
-        // If the task belongs to a QScheduler session and we receive the session "open" event,
-        // trigger the actual task submission to that session.
-        if (cluster.SchedulerType == SchedulerType.QScheduler && 
-            dbTask.ScheduledJobId.StartsWith("session:") && 
-            (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
-             string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase)))
+        // If the task belongs to a QScheduler session and we receive a session event callback,
+        // update the session state and trigger actions if it becomes open.
+        if (cluster.SchedulerType == SchedulerType.QScheduler && dbTask.ScheduledJobId.StartsWith("session:"))
         {
-            _logger.LogInformation($"Callback event 'open/opened' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
-            
-            var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
-            var previousJobState = jobInfo.State;
+            if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
+                string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation($"Callback event 'open/opened' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
+                
+                var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+                var previousJobState = jobInfo.State;
 
-            ClusterAuthenticationCredentials credentials;
-            if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                credentials = jobInfo.Specification.ClusterUser;
-            }
-            else
-            {
-                credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
-            }
-
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, dbTask.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
-            
-            var tasksToUpdate = jobInfo.Tasks.Where(t => t.ScheduledJobId == dbTask.ScheduledJobId).ToList();
-            tasksToUpdate.ForEach(t => t.ForceSessionSubmit = true);
-            var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
-            
-            foreach (var updated in updatedTasks)
-            {
-                var t = jobInfo.Tasks.FirstOrDefault(x => x.Id == updated.Id);
-                if (t != null)
+                ClusterAuthenticationCredentials credentials;
+                if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
                 {
-                    t.ScheduledJobId = updated.ScheduledJobId;
-                    t.State = updated.State;
-                    t.ErrorMessage = updated.ErrorMessage;
+                    credentials = jobInfo.Specification.ClusterUser;
                 }
+                else
+                {
+                    credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
+                }
+
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, dbTask.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
+                
+                var tasksToUpdate = jobInfo.Tasks.Where(t => t.ScheduledJobId == dbTask.ScheduledJobId).ToList();
+                tasksToUpdate.ForEach(t => t.ForceSessionSubmit = true);
+                var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
+                
+                foreach (var updated in updatedTasks)
+                {
+                    var t = jobInfo.Tasks.FirstOrDefault(x => x.Id == updated.Id);
+                    if (t != null)
+                    {
+                        t.ScheduledJobId = updated.ScheduledJobId;
+                        t.State = updated.State;
+                        t.ErrorMessage = updated.ErrorMessage;
+                    }
+                }
+                
+                // Update session state in DB to Open
+                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
+                {
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Open)
+                    {
+                        dbSession.State = QSchedulerSessionState.Open;
+                    }
+                }
+                
+                UpdateJobStateByTasks(jobInfo);
+                await _unitOfWork.SaveAsync();
+                JobCacheManager.InvalidateJobCache(jobInfo.Id);
+                await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
+
+                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                {
+                    sessionId = dbTask.ScheduledJobId,
+                    state = "Open"
+                });
+
+                await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
+                return jobInfo.Id;
             }
-            
-            UpdateJobStateByTasks(jobInfo);
-            await _unitOfWork.SaveAsync();
-            JobCacheManager.InvalidateJobCache(jobInfo.Id);
-            await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
-
-            await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+            else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
             {
-                sessionId = dbTask.ScheduledJobId,
-                state = "Open"
-            });
+                _logger.LogInformation($"Callback event 'closed' received for QScheduler session '{dbTask.ScheduledJobId}'. Closing session and failing unfinished tasks.");
+                
+                var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
+                var previousJobState = jobInfo.State;
 
-            await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+                // Update session state in DB to Closed
+                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
+                {
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Closed)
+                    {
+                        dbSession.State = QSchedulerSessionState.Closed;
+                        dbSession.ClosedAt = DateTime.UtcNow;
+                    }
+                }
 
-            return jobInfo.Id;
+                // Fail all candidate tasks that belong to this session but haven't finished yet
+                var sessionTasks = jobInfo.Tasks.Where(t => t.ScheduledJobId.StartsWith(dbTask.ScheduledJobId)).ToList();
+                foreach (var st in sessionTasks)
+                {
+                    if (st.State < TaskState.Finished)
+                    {
+                        st.State = TaskState.Failed;
+                        st.ErrorMessage = "Session closed in QScheduler.";
+                    }
+                }
+                
+                UpdateJobStateByTasks(jobInfo);
+                await _unitOfWork.SaveAsync();
+                JobCacheManager.InvalidateJobCache(jobInfo.Id);
+
+                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                {
+                    sessionId = dbTask.ScheduledJobId,
+                    state = "Closed"
+                });
+
+                await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
+
+                return jobInfo.Id;
+            }
+            else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation($"Callback event 'waiting' received for QScheduler session '{dbTask.ScheduledJobId}'. Updating DB to Waiting state.");
+                
+                // Update session state in DB to Waiting
+                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
+                {
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Waiting)
+                    {
+                        dbSession.State = QSchedulerSessionState.Waiting;
+                        await _unitOfWork.SaveAsync();
+                        JobCacheManager.InvalidateJobCache(jobInfo.Id);
+                    }
+                }
+
+                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                {
+                    sessionId = dbTask.ScheduledJobId,
+                    state = "Waiting"
+                });
+
+                return jobInfo.Id;
+            }
         }
 
         // 4. Parse state via converter
@@ -1809,7 +1887,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ClusterId = clusterId,
             ProjectId = projectId,
             UserId = loggedUser.Id,
-            State = QSchedulerSessionState.Open,
+            State = QSchedulerSessionState.Waiting,
             CreatedAt = DateTime.UtcNow
         });
         await _unitOfWork.SaveAsync();
@@ -1817,7 +1895,7 @@ internal class JobManagementLogic : IJobManagementLogic
         await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
         {
             sessionId = $"session:{sessionId}",
-            state = "Open"
+            state = "Waiting"
         });
 
         return sessionId;

@@ -7,7 +7,8 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement;
 public enum QSchedulerSessionState
 {
     Open = 0,
-    Closed = 1
+    Closed = 1,
+    Waiting = 2
 }
 
 [Table("QSchedulerSession")]
