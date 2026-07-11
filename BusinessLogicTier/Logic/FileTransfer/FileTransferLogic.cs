@@ -604,6 +604,33 @@ public class FileTransferLogic : IFileTransferLogic
         
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
+        if (jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || 
+            jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(absoluteFilePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                using (var outStream = File.Create(absoluteFilePath))
+                {
+                    await fileStream.CopyToAsync(outStream);
+                }
+                result.Add("Succeeded", true);
+                result.Add("Path", absoluteFilePath);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to write local file for HTTP cluster execution: {absoluteFilePath}");
+                result.Add("Succeeded", false);
+                result.Add("Path", null);
+                return result;
+            }
+        }
+
         var fileManager = FileSystemFactory.GetInstance(jobSpecification.FileTransferMethod.Protocol)
             .CreateFileSystemManager(jobSpecification.FileTransferMethod, _sshCertificateAuthorityService, _logger);
         var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, jobSpecification.ClusterUser, jobSpecification.Cluster, 
