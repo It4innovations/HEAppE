@@ -1346,6 +1346,40 @@ internal class JobManagementLogic : IJobManagementLogic
         jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
         await _unitOfWork.SaveAsync();
 
+        // For QScheduler jobs using sessions: auto-register sessions created dynamically by the adapter.
+        // The adapter creates sessions in QScheduler directly (without going through OpenQSchedulerSessionAsync),
+        // so they are never stored in the QSchedulerSession table. We register them here, after the task
+        // ScheduledJobIds are persisted, so that session callbacks (e.g. session:35 -> opened) can be resolved.
+        if (jobInfo.Specification.Cluster.SchedulerType == SchedulerType.QScheduler)
+        {
+            foreach (var task in jobInfo.Tasks)
+            {
+                if (!string.IsNullOrEmpty(task.ScheduledJobId) && task.ScheduledJobId.StartsWith("session:"))
+                {
+                    // ScheduledJobId is either "session:35" (waiting) or "session:35:task:1101" (submitted)
+                    var parts = task.ScheduledJobId.Split(':');
+                    if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
+                    {
+                        var existingSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                        if (existingSession == null)
+                        {
+                            _logger.LogInformation($"CompleteJobSubmitAsync: Auto-registering QScheduler session {sessionId} into QSchedulerSession table for task {task.Id}.");
+                            _unitOfWork.QSchedulerSessionRepository.Insert(new QSchedulerSession
+                            {
+                                SessionId = sessionId,
+                                ClusterId = jobInfo.Specification.ClusterId,
+                                ProjectId = jobInfo.Project.Id,
+                                UserId = loggedUser.Id,
+                                State = QSchedulerSessionState.Waiting,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            await _unitOfWork.SaveAsync();
+                        }
+                    }
+                }
+            }
+        }
+
         await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
 
         return jobInfo;
@@ -1669,7 +1703,15 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
             }
 
-            throw new KeyNotFoundException($"Task with scheduler ID {scheduledJobId} not found.");
+            // Race condition guard: QScheduler sends the session callback (session:X -> opened) immediately
+            // after creating the session, which can arrive before CreateAndSubmitQSchedulerJob commits its
+            // transaction and saves the ScheduledJobId to the DB. In this case both the task lookup and
+            // QSchedulerSession lookup return null. We return 0 (success) to acknowledge the callback
+            // gracefully so QScheduler doesn't retry indefinitely. The session state will be driven
+            // by the task's ScheduledJobId once the submit transaction completes.
+            _logger.LogWarning($"ProcessTaskCallbackAsync: Session callback received for '{scheduledJobId}' but no matching task or session found in DB. " +
+                               $"This may be a race condition (callback arrived before submit transaction committed). Acknowledging with success.");
+            return 0;
         }
 
         SubmittedTaskInfo? dbTask = null;
