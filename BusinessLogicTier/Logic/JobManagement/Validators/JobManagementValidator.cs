@@ -153,7 +153,17 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
         ValidateWallTimeLimit(task);
 
-        if (task.CommandTemplate is null || task.CommandTemplate.IsDeleted)
+        if (task.CommandTemplate is null)
+        {
+            bool isQScheduler = task.JobSpecification?.Cluster?.SchedulerType == SchedulerType.QScheduler;
+            if (!isQScheduler)
+            {
+                _ = _messageBuilder.AppendLine("Command Template does not exist.");
+            }
+            return;
+        }
+
+        if (task.CommandTemplate.IsDeleted)
         {
             _ = _messageBuilder.AppendLine("Command Template does not exist.");
             return;
