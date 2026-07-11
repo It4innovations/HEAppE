@@ -261,6 +261,9 @@
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Přihlášený uživatel nemá povolení žádat o tento report.</value>
   </data>
+  <data name="NotAllowedException_PathAccessDenied" xml:space="preserve">
+    <value>Přístup do systémového adresáře HEAppE je zakázán.</value>
+  </data>
   <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
     <value>Ověření typu '{0}' nejsou podporována pro autentizaci k OpenStacku.</value>
   </data>

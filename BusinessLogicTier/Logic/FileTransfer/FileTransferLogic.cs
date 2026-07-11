@@ -434,7 +434,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         if (IsPathBlocked(relativeFilePath))
         {
-            throw new InvalidRequestException("NotExistingPath", relativeFilePath, "Access denied to HEAppE system folder.");
+            throw new NotAllowedException("PathAccessDenied");
         }
 
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
@@ -584,7 +584,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         if (IsPathBlocked(fileName))
         {
-            throw new InvalidRequestException("NotExistingPath", fileName, "Upload to HEAppE system folder is denied.");
+            throw new NotAllowedException("PathAccessDenied");
         }
 
         var result = new Dictionary<string, dynamic>();

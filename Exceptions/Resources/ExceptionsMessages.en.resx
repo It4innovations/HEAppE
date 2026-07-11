@@ -267,6 +267,9 @@
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Logged user is not allowed to request this report.</value>
   </data>
+  <data name="NotAllowedException_PathAccessDenied" xml:space="preserve">
+    <value>Access to HEAppE system directory is denied.</value>
+  </data>
   <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
   </data>
