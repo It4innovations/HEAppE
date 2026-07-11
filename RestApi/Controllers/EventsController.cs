@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.Services.Expirio;
+using SshCaAPI;
+
 namespace HEAppE.RestApi.Controllers;
 
 [ApiController]
@@ -16,21 +21,24 @@ public class EventsController : Controller
 {
     private readonly IHEAppEEventHub _eventHub;
     private readonly IUserOrgService _userOrgService;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IExpirioService _expirioService;
     private readonly IHttpContextKeys _httpContextKeys;
-    private readonly IUserAndLimitationManagementLogic _authLogic;
     private readonly ILogger<EventsController> _logger;
 
     public EventsController(
         IHEAppEEventHub eventHub,
         IUserOrgService userOrgService,
+        ISshCertificateAuthorityService sshCertificateAuthorityService,
+        IExpirioService expirioService,
         IHttpContextKeys httpContextKeys,
-        IUserAndLimitationManagementLogic authLogic,
         ILogger<EventsController> logger)
     {
         _eventHub = eventHub;
         _userOrgService = userOrgService;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _expirioService = expirioService;
         _httpContextKeys = httpContextKeys;
-        _authLogic = authLogic;
         _logger = logger;
     }
 
@@ -67,14 +75,20 @@ public class EventsController : Controller
             {
                 try
                 {
-                    var user = _authLogic.GetUserForSessionCode(sessionCode);
-                    if (user != null)
+                    using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
                     {
-                        userId = user.Id;
-                        _httpContextKeys.Context.AdaptorUserId = user.Id;
-                        _httpContextKeys.Context.UserName = user.Username;
-                        _httpContextKeys.Context.Email = user.Email;
-                        _logger.LogInformation($"[EventsController] User {userId} ({user.Username}) authenticated via SessionCode for WebSocket handshake.");
+                        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
+                            unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+                        var user = authLogic.GetUserForSessionCode(sessionCode);
+                        if (user != null)
+                        {
+                            userId = user.Id;
+                            _httpContextKeys.Context.AdaptorUserId = user.Id;
+                            _httpContextKeys.Context.UserName = user.Username;
+                            _httpContextKeys.Context.Email = user.Email;
+                            _logger.LogInformation($"[EventsController] User {userId} ({user.Username}) authenticated via SessionCode for WebSocket handshake.");
+                        }
                     }
                 }
                 catch (Exception ex)

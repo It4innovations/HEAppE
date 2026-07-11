@@ -164,7 +164,6 @@ public class Startup
         services.AddHttpClient("FirecREST")
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
-        services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
         services.AddSingleton<IHEAppEEventHub, HEAppEEventHub>();
