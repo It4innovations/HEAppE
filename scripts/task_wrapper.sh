@@ -4,6 +4,15 @@
 CALLBACK_URL="$1"
 SCHEDULER_TYPE="$2"
 
+# Save original stdout (1) and stderr (2) to file descriptors 3 and 4
+exec 3>&1
+exec 4>&2
+
+# Redirect the wrapper script's own stdout and stderr to a callback log file
+# This prevents callback logs and curl/python output from polluting the user's stdout/stderr files
+exec 1>> .heappe_callback.log
+exec 2>> .heappe_callback.log
+
 # 1. Load the token from the protected file and DELETE it immediately
 if [ -f .callback_token ]; then
     CALLBACK_TOKEN=$(cat .callback_token)
@@ -140,8 +149,8 @@ trap 'handle_shutdown' SIGTERM SIGINT SIGXCPU
 # A. Send initial callback (State: RUNNING)
 send_callback "RUNNING" "0"
 
-# B. Execute the user's task script
-./heappe_user_task.sh
+# B. Execute the user's task script using the saved descriptors 3 and 4
+./heappe_user_task.sh >&3 2>&4
 USER_EXIT_CODE=$?
 
 # C. Send final callback based on the exit code
