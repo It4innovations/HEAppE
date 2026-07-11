@@ -10,7 +10,17 @@ namespace HEAppE.ConnectionPool
             Cluster cluster, string sshCaToken, string lexisToken, int? port)
         {
             var protocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ? "https" : "http";
-            var resolvedPort = port ?? cluster.Port ?? 4300;
+            int resolvedPort = 4300;
+            if (cluster.CustomConfiguration != null &&
+                cluster.CustomConfiguration.TryGetValue("QSchedulerPort", out var portStr) &&
+                int.TryParse(portStr, out var customPort))
+            {
+                resolvedPort = customPort;
+            }
+            else
+            {
+                resolvedPort = port ?? cluster.Port ?? 4300;
+            }
             var baseUri = $"{protocol}://{masterNodeName}:{resolvedPort}";
             return Task.FromResult<object>(new HttpConnection(baseUri));
         }
