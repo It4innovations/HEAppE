@@ -508,7 +508,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
 
             // 4. Run the wrapper script and redirect output
             taskSourceSb.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
-            taskSourceSb.Append($"bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile};");
+            taskSourceSb.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile};");
 
             if (!_pbs)
             {

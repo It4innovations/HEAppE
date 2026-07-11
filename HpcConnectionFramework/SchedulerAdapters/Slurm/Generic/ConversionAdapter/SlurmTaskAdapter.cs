@@ -446,7 +446,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
             // 4. Run the wrapper script and redirect output
             _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
-            _taskAppender.Append($"bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
+            _taskAppender.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
 
             if (_sbatch)
                 _taskAppender.AppendLine();
