@@ -604,8 +604,11 @@ public class FileTransferLogic : IFileTransferLogic
         
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
-        if (jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || 
-            jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+        if ((jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || 
+             jobSpecification.Cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ||
+             jobSpecification.FileTransferMethod.Protocol == FileTransferProtocol.Http ||
+             jobSpecification.FileTransferMethod.Protocol == FileTransferProtocol.Https) &&
+            jobSpecification.Cluster.ProxyConnectionId == null)
         {
             try
             {
