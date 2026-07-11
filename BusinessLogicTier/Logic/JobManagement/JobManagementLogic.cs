@@ -1154,6 +1154,11 @@ internal class JobManagementLogic : IJobManagementLogic
                 if (sessionIdVar != null && long.TryParse(sessionIdVar.Value, out var sid))
                 {
                     await VerifySessionOwnerAsync(sid, loggedUser);
+                    var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sid);
+                    if (session != null && session.State == QSchedulerSessionState.Closed)
+                    {
+                        throw new InvalidRequestException("SessionAlreadyClosed");
+                    }
                 }
             }
         }
@@ -1934,11 +1939,6 @@ internal class JobManagementLogic : IJobManagementLogic
             _logger.LogError($"User {loggedUser.Id} does not have Submitter role in project {session.ProjectId} of session {sessionId}.");
             throw new Exceptions.External.InvalidRequestException("InsufficientRoleForSessionProject");
         }
-
-        if (session.State == QSchedulerSessionState.Closed)
-        {
-            throw new Exceptions.External.InvalidRequestException("SessionAlreadyClosed");
-        }
     }
 
     public async Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, AdaptorUser loggedUser)
@@ -1991,6 +1991,13 @@ internal class JobManagementLogic : IJobManagementLogic
         if (cluster.SchedulerType != SchedulerType.QScheduler)
         {
             throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
+        }
+
+        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+        if (session != null && session.State == QSchedulerSessionState.Closed)
+        {
+            _logger.LogInformation($"CloseQSchedulerSessionAsync: Session {sessionId} is already closed in database. Skipping close request.");
+            return;
         }
 
         await VerifySessionOwnerAsync(sessionId, loggedUser);
