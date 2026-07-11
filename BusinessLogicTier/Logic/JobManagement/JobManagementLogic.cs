@@ -1280,9 +1280,28 @@ internal class JobManagementLogic : IJobManagementLogic
             if (string.IsNullOrEmpty(masterKey))
             {
                 masterKey = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-                if (cluster.CustomConfiguration == null) cluster.CustomConfiguration = new();
-                cluster.CustomConfiguration[masterKeyName] = masterKey;
-                await _unitOfWork.SaveAsync();
+                
+                bool callbackInVault = cluster.CustomConfigurationVaultToggles != null &&
+                                       cluster.CustomConfigurationVaultToggles.TryGetValue(masterKeyName, out bool cVal) &&
+                                       cVal;
+
+                bool savedToVault = false;
+                if (callbackInVault)
+                {
+                    var vaultConnector = new VaultConnector(_logger);
+                    savedToVault = await vaultConnector.SetClusterSecretAsync(cluster.Id, masterKeyName, masterKey);
+                    if (!savedToVault)
+                    {
+                        _logger.LogWarning($"Failed to save automatically generated {masterKeyName} to Vault for Cluster {cluster.Id}. Falling back to database.");
+                    }
+                }
+
+                if (!savedToVault)
+                {
+                    if (cluster.CustomConfiguration == null) cluster.CustomConfiguration = new();
+                    cluster.CustomConfiguration[masterKeyName] = masterKey;
+                    await _unitOfWork.SaveAsync();
+                }
             }
 
             foreach (var task in jobInfo.Tasks)
