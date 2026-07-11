@@ -1450,6 +1450,86 @@ internal class JobManagementLogic : IJobManagementLogic
         var candidates = await _unitOfWork.SubmittedTaskInfoRepository.GetTasksByScheduledJobIdAsync(scheduledJobId);
         if (candidates == null || !candidates.Any())
         {
+            if (scheduledJobId.StartsWith("session:"))
+            {
+                if (long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
+                {
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    if (dbSession != null)
+                    {
+                        var targetCluster = await _unitOfWork.ClusterRepository.GetByIdAsync(dbSession.ClusterId);
+                        if (targetCluster != null)
+                        {
+                            // Authenticate using the cluster callback token
+                            bool isAuthenticated = false;
+                            bool toggled = targetCluster.CustomConfigurationVaultToggles != null &&
+                                           targetCluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
+                                           toggledValue;
+                            bool storeInVault = toggled;
+
+                            string? expectedToken = null;
+                            if (storeInVault)
+                            {
+                                var vaultConnector = new VaultConnector(_logger);
+                                expectedToken = await vaultConnector.GetClusterSecretAsync(targetCluster.Id, "QSchedulerNotifyToken");
+                            }
+                            else
+                            {
+                                if (targetCluster.CustomConfiguration != null && targetCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
+                                {
+                                    // expectedToken populated
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
+                            {
+                                isAuthenticated = true;
+                            }
+
+                            if (!isAuthenticated)
+                            {
+                                throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
+                            }
+
+                            // Token is valid! Update the session state!
+                            var oldState = dbSession.State;
+                            var newState = oldState;
+                            if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
+                                string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
+                            {
+                                newState = QSchedulerSessionState.Open;
+                            }
+                            else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                newState = QSchedulerSessionState.Closed;
+                                dbSession.ClosedAt = DateTime.UtcNow;
+                            }
+                            else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
+                            {
+                                newState = QSchedulerSessionState.Waiting;
+                            }
+
+                            if (dbSession.State != newState)
+                            {
+                                dbSession.State = newState;
+                                await _unitOfWork.SaveAsync();
+
+                                var stateStr = newState == QSchedulerSessionState.Open ? "Open" : 
+                                               newState == QSchedulerSessionState.Closed ? "Closed" : "Waiting";
+
+                                await PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
+                                {
+                                    sessionId = scheduledJobId,
+                                    state = stateStr
+                                });
+                            }
+
+                            return 0; // Return dummy job ID
+                        }
+                    }
+                }
+            }
+
             throw new KeyNotFoundException($"Task with scheduler ID {scheduledJobId} not found.");
         }
 
@@ -1922,20 +2002,6 @@ internal class JobManagementLogic : IJobManagementLogic
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
 
         await scheduler.CloseSessionAsync(cluster, sessionId, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-
-        var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-        if (dbSession != null)
-        {
-            dbSession.State = QSchedulerSessionState.Closed;
-            dbSession.ClosedAt = DateTime.UtcNow;
-            await _unitOfWork.SaveAsync();
-        }
-
-        await PublishEventAsync(loggedUser.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
-        {
-            sessionId = $"session:{sessionId}",
-            state = "Closed"
-        });
     }
 #pragma warning disable IDE1006
     private string _expirioToken
