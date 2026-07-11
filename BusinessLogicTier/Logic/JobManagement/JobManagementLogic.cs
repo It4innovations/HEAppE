@@ -1157,7 +1157,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
             }
         }
-        if (jobInfo.Specification.Tasks.Any(x => x.CommandTemplate.IsEnabled == false))
+        if (jobInfo.Specification.Tasks.Any(x => x.CommandTemplate != null && x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
         
         if (jobInfo.State != JobState.Configuring && jobInfo.State != JobState.WaitingForServiceAccount)
