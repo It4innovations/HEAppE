@@ -319,16 +319,66 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     _logger.LogInformation($"QScheduler session created successfully for machine {machineId}. Session ID: {sessionId}");
                 }
 
+                bool isSessionOpen = false;
+                try
+                {
+                    _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
+                    var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
+                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                    _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
+                    if (sessionState == "open" || sessionState == "running")
+                    {
+                        isSessionOpen = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                }
+
                 foreach (var taskSpec in group)
                 {
-                    submittedTasks.Add(new SubmittedTaskInfo
+                    var taskInfo = new SubmittedTaskInfo
                     {
                         Id = taskSpec.Id,
                         Name = taskSpec.Id.ToString(),
                         ScheduledJobId = $"session:{sessionId}",
                         State = TaskState.Submitted,
                         Specification = taskSpec
-                    });
+                    };
+
+                    if (isSessionOpen)
+                    {
+                        var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                        var payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
+                            ? $"{taskDir}/payload.json"
+                            : $"{taskDir}/{taskSpec.StandardInputFile}";
+
+                        var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
+                        var relativeUrl = $"tasks?machine={machineId}&session_id={sessionId}&user={username}";
+                        _logger.LogInformation($"Session {sessionId} is open. Submitting task {taskSpec.Id} immediately.");
+
+                        try
+                        {
+                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                            var taskIdStr = taskResponse.Trim();
+                            if (long.TryParse(taskIdStr, out long taskId))
+                            {
+                                taskInfo.ScheduledJobId = $"session:{sessionId}:task:{taskId}";
+                                _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
+                            }
+                            else
+                            {
+                                _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Response: '{taskResponse}'");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Failed to submit task {taskSpec.Id} immediately to session {sessionId}");
+                        }
+                    }
+
+                    submittedTasks.Add(taskInfo);
                 }
             }
             else
@@ -395,7 +445,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                                         cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
                                         !string.IsNullOrEmpty(token));
 
-                if (callbackEnabled && !taskInfo.ForceSessionSubmit && taskInfo.ScheduledJobId.Contains(":task:"))
+                if (callbackEnabled && !taskInfo.ForceSessionSubmit)
                 {
                     _logger.LogDebug($"Callback is configured. Bypassing active polling for session {sessionId}.");
                     results.Add(taskInfo);
