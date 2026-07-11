@@ -3366,12 +3366,12 @@
         }
       }
     },
-    "/heappe/JobManagement/CreateQSchedulerJob": {
+    "/heappe/JobManagement/CreateAndSubmitQSchedulerJob": {
       "post": {
         "tags": [
           "JobManagement"
         ],
-        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task.",
+        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -3380,7 +3380,7 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "description": "JSON string of CreateQSchedulerJobModel"
+                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
                   }
                 }
               },

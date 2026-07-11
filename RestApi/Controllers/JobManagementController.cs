@@ -486,33 +486,71 @@ public class JobManagementController : BaseController<JobManagementController>
             }
         }
 
-        // 1. Read circuit files into an in-memory dictionary
-        var payloads = new Dictionary<string, byte[]>();
-        for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
+        // 1. Determine connection protocol of the cluster
+        HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol connectionProtocol;
+        using (var unitOfWork = HEAppE.DataAccessTier.Factory.UnitOfWork.UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
-            var qTask = parsedModel.JobSpecification.Tasks[i];
-            if (!string.IsNullOrEmpty(qTask.PayloadPartName))
-            {
-                var file = Request.Form.Files[qTask.PayloadPartName];
-                using (var stream = file.OpenReadStream())
-                using (var ms = new System.IO.MemoryStream())
-                {
-                    await stream.CopyToAsync(ms);
-                    payloads[qTask.Name] = ms.ToArray();
-                }
-            }
+            var cluster = unitOfWork.ClusterRepository.GetById(parsedModel.JobSpecification.ClusterId);
+            if (cluster == null) return NotFound("Cluster not found.");
+            connectionProtocol = cluster.ConnectionProtocol;
         }
 
-        // 2. Set the payloads context in AsyncLocal
-        HEAppE.Utils.QSchedulerPayloadContext.Payloads = payloads;
-
+        var payloads = new Dictionary<string, System.IO.Stream>();
         HEAppE.ExtModels.JobManagement.Models.SubmittedJobInfoExt createdJob = null;
         try
         {
+            if (connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Http ||
+                connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Https)
+            {
+                // 2a. HTTP Mode: Read uploaded files directly as request streams (no memory buffers/RAM copy)
+                for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
+                {
+                    var qTask = parsedModel.JobSpecification.Tasks[i];
+                    if (!string.IsNullOrEmpty(qTask.PayloadPartName))
+                    {
+                        var file = Request.Form.Files[qTask.PayloadPartName];
+                        payloads[qTask.Name] = file.OpenReadStream();
+                    }
+                }
+                HEAppE.Utils.QSchedulerPayloadContext.Payloads = payloads;
+            }
+
             // 3. Create the job database records (metadata only, no payload saved to DB)
             createdJob = await _service.CreateAndSubmitQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
 
-            // 4. Immediately submit the job to QScheduler (adapter will read from QSchedulerPayloadContext.Payloads)
+            if (connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Ssh)
+            {
+                // 2b. SSH Mode: Upload files directly via SFTP (streams directly to cluster filesystem)
+                var fileTransferService = new HEAppE.ServiceTier.FileTransfer.FileTransferService(
+                    userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+                for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
+                {
+                    var qTask = parsedModel.JobSpecification.Tasks[i];
+                    if (!string.IsNullOrEmpty(qTask.PayloadPartName))
+                    {
+                        var file = Request.Form.Files[qTask.PayloadPartName];
+                        var createdTask = createdJob.Tasks.FirstOrDefault(t => t.Name == qTask.Name);
+                        if (createdTask == null || !createdTask.Id.HasValue)
+                        {
+                            throw new System.Exception($"Failed to find matching created task for upload: '{qTask.Name}'");
+                        }
+
+                        using (var stream = file.OpenReadStream())
+                        {
+                            var uploadResult = await fileTransferService.UploadFileToJobExecutionDir(
+                                stream, "payload.json", createdJob.Id.Value, createdTask.Id.Value, parsedModel.SessionCode);
+                            
+                            if (uploadResult == null || !uploadResult.ContainsKey("Succeeded") || uploadResult["Succeeded"] == false)
+                            {
+                                throw new System.Exception($"Failed to upload circuit payload for task '{qTask.Name}'.");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Immediately submit the job to QScheduler (adapter will read from context or cluster path)
             var submittedJob = await _service.SubmitJobAsync(createdJob.Id.Value, parsedModel.SessionCode);
             return Ok(submittedJob);
         }
@@ -535,8 +573,15 @@ public class JobManagementController : BaseController<JobManagementController>
         }
         finally
         {
-            // 5. Clear the AsyncLocal context
-            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+            // 5. Clean up open request streams and reset context
+            if (HEAppE.Utils.QSchedulerPayloadContext.Payloads != null)
+            {
+                foreach (var stream in HEAppE.Utils.QSchedulerPayloadContext.Payloads.Values)
+                {
+                    stream?.Dispose();
+                }
+                HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+            }
         }
     }
 

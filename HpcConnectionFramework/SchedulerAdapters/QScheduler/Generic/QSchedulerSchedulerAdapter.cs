@@ -88,6 +88,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         string method, 
         string relativeUrl, 
         byte[] payloadBytes = null,
+        System.IO.Stream payloadStream = null,
         string payloadFilePath = null)
     {
         if (connectorClient is ConnectionPool.HttpConnection httpConn)
@@ -102,6 +103,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             if (payloadBytes != null)
             {
                 request.Content = new ByteArrayContent(payloadBytes);
+                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+            }
+            else if (payloadStream != null)
+            {
+                request.Content = new StreamContent(payloadStream);
                 request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
             }
             else if (!string.IsNullOrEmpty(payloadFilePath))
@@ -142,6 +148,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             if (payloadBytes != null)
             {
                 var jsonStr = Encoding.UTF8.GetString(payloadBytes);
+                var escapedJson = jsonStr.Replace("'", "'\\''");
+                dataArg = $"-H \"Content-Type: application/json\" -d '{escapedJson}' ";
+            }
+            else if (payloadStream != null)
+            {
+                using var ms = new System.IO.MemoryStream();
+                payloadStream.CopyTo(ms);
+                var jsonStr = Encoding.UTF8.GetString(ms.ToArray());
                 var escapedJson = jsonStr.Replace("'", "'\\''");
                 dataArg = $"-H \"Content-Type: application/json\" -d '{escapedJson}' ";
             }
@@ -349,15 +363,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                     if (isSessionOpen)
                     {
-                        byte[] payloadBytes = null;
+                        System.IO.Stream payloadStream = null;
                         var payloads = HEAppE.Utils.QSchedulerPayloadContext.Payloads;
-                        if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var bytes))
+                        if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var stream))
                         {
-                            payloadBytes = bytes;
+                            payloadStream = stream;
                         }
 
                         string payloadPath = null;
-                        if (payloadBytes == null)
+                        if (payloadStream == null)
                         {
                             var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
                             payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
@@ -371,7 +385,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                         try
                         {
-                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadBytes: payloadBytes, payloadFilePath: payloadPath);
+                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
                             var taskIdStr = taskResponse.Trim();
                             if (long.TryParse(taskIdStr, out long taskId))
                             {
