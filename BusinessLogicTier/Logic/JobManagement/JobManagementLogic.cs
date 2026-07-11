@@ -1254,12 +1254,9 @@ internal class JobManagementLogic : IJobManagementLogic
         if (clusterConfig.Scripts.UseCallbackForHpcJobs)
         {
             string masterKeyName = "ClusterCallbackNotifyToken";
-            string masterKey = "";
-            bool hasMaster = cluster.CustomConfiguration != null && 
-                             (cluster.CustomConfiguration.TryGetValue(masterKeyName, out masterKey) || 
-                              cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out masterKey));
+            string? masterKey = await GetMasterCallbackTokenAsync(cluster);
                               
-            if (!hasMaster || string.IsNullOrEmpty(masterKey))
+            if (string.IsNullOrEmpty(masterKey))
             {
                 masterKey = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
                 if (cluster.CustomConfiguration == null) cluster.CustomConfiguration = new();
@@ -1675,12 +1672,8 @@ internal class JobManagementLogic : IJobManagementLogic
             }
             else
             {
-                string? masterKey = null;
-                bool hasMaster = currentCluster.CustomConfiguration != null && 
-                                 (currentCluster.CustomConfiguration.TryGetValue("ClusterCallbackNotifyToken", out masterKey) || 
-                                  currentCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out masterKey));
-                                  
-                if (hasMaster && !string.IsNullOrEmpty(masterKey))
+                string? masterKey = await GetMasterCallbackTokenAsync(currentCluster);
+                if (!string.IsNullOrEmpty(masterKey))
                 {
                     string expectedToken = ComputeHmac(masterKey, candidate.Id.ToString());
                     if (expectedToken == token)
@@ -2177,6 +2170,48 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         return authorizedSessions;
+    }
+
+    private async Task<string?> GetMasterCallbackTokenAsync(Cluster cluster)
+    {
+        string? token = null;
+
+        // 1. Check if ClusterCallbackNotifyToken is in Vault
+        bool callbackInVault = cluster.CustomConfigurationVaultToggles != null &&
+                               cluster.CustomConfigurationVaultToggles.TryGetValue("ClusterCallbackNotifyToken", out bool cVal) &&
+                               cVal;
+        if (callbackInVault)
+        {
+            var vaultConnector = new VaultConnector(_logger);
+            token = await vaultConnector.GetClusterSecretAsync(cluster.Id, "ClusterCallbackNotifyToken");
+            if (!string.IsNullOrEmpty(token)) return token;
+        }
+
+        // 2. Check if QSchedulerNotifyToken is in Vault
+        bool qSchedulerInVault = cluster.CustomConfigurationVaultToggles != null &&
+                                 cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool qVal) &&
+                                 qVal;
+        if (qSchedulerInVault)
+        {
+            var vaultConnector = new VaultConnector(_logger);
+            token = await vaultConnector.GetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken");
+            if (!string.IsNullOrEmpty(token)) return token;
+        }
+
+        // 3. Fallback to CustomConfiguration dictionary
+        if (cluster.CustomConfiguration != null)
+        {
+            if (cluster.CustomConfiguration.TryGetValue("ClusterCallbackNotifyToken", out token) && !string.IsNullOrEmpty(token))
+            {
+                return token;
+            }
+            if (cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out token) && !string.IsNullOrEmpty(token))
+            {
+                return token;
+            }
+        }
+
+        return null;
     }
 
     private static string ComputeHmac(string key, string message)
