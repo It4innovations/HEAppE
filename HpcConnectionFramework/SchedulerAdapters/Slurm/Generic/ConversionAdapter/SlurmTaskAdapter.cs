@@ -418,9 +418,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         if (UseCallback)
         {
-            if (_runtime > 30)
+            if (_runtime > 10)
             {
-                DoAppend(" --signal=B:TERM@30");
+                DoAppend(" --signal=B:TERM@10");
             }
 
             if (_sbatch)
