@@ -130,7 +130,7 @@ public static class JobManagementConverts
                 SynchronizationType = FileSynchronizationType.IncrementalAppend
             },
             ClusterNodeTypeId = taskSpecificationExt.ClusterNodeTypeId.Value,
-            CommandTemplateId = taskSpecificationExt.CommandTemplateId ?? 0,
+            CommandTemplateId = taskSpecificationExt.CommandTemplateId,
             EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
