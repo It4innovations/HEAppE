@@ -1675,9 +1675,18 @@ internal class JobManagementLogic : IJobManagementLogic
             }
             else
             {
-                if (!string.IsNullOrEmpty(candidate.CallbackSecret) && candidate.CallbackSecret == token)
+                string? masterKey = null;
+                bool hasMaster = currentCluster.CustomConfiguration != null && 
+                                 (currentCluster.CustomConfiguration.TryGetValue("ClusterCallbackNotifyToken", out masterKey) || 
+                                  currentCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out masterKey));
+                                  
+                if (hasMaster && !string.IsNullOrEmpty(masterKey))
                 {
-                    isAuthenticated = true;
+                    string expectedToken = ComputeHmac(masterKey, candidate.Id.ToString());
+                    if (expectedToken == token)
+                    {
+                        isAuthenticated = true;
+                    }
                 }
             }
 
