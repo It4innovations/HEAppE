@@ -266,8 +266,8 @@ internal class LinuxCommands : ICommands
             ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
             : "\"" + rootDir + "\"";
         
-        var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
-        var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
+        var repoUrl = clusterConfig.Scripts.ClusterScriptsRepository;
+        var branch = clusterConfig.Scripts.ClusterScriptsRepositoryBranch;
         var sedReplacement = $"{localBasepath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}";
 
         var cmdBuilder = new StringBuilder();
@@ -281,13 +281,21 @@ internal class LinuxCommands : ICommands
                 UPDATE_NEEDED=1;
             else
                 cd ""$REPO_DIR"" && 
-                LOCAL_HASH=$(git rev-parse HEAD) &&
-                git pull origin {branch} --quiet && 
-                NEW_HASH=$(git rev-parse HEAD);
-                if [ ""$LOCAL_HASH"" != ""$NEW_HASH"" ]; then
+                ACTIVE_BRANCH=$(git rev-parse --abbrev-ref HEAD) &&
+                if [ ""$ACTIVE_BRANCH"" != ""{branch}"" ]; then
+                    cd - > /dev/null;
+                    rm -rf ""$REPO_DIR"";
+                    git clone --single-branch -b {branch} --quiet {repoUrl} ""$REPO_DIR"" 2>&1 || {{ echo ""GIT_ERROR""; exit 1; }};
                     UPDATE_NEEDED=1;
+                else
+                    LOCAL_HASH=$(git rev-parse HEAD) &&
+                    git pull origin {branch} --quiet && 
+                    NEW_HASH=$(git rev-parse HEAD);
+                    if [ ""$LOCAL_HASH"" != ""$NEW_HASH"" ]; then
+                        UPDATE_NEEDED=1;
+                    fi;
+                    cd - > /dev/null;
                 fi;
-                cd - > /dev/null;
             fi;
             if [ ! -d "".key_scripts"" ]; then UPDATE_NEEDED=1; fi;
             if [ ""$UPDATE_NEEDED"" -eq 1 ]; then
