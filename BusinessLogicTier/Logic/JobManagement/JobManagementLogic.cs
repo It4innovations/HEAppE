@@ -1775,7 +1775,16 @@ internal class JobManagementLogic : IJobManagementLogic
 
             dbTask.State = parsedTaskInfo.State;
             dbTask.ErrorMessage = parsedTaskInfo.ErrorMessage;
-            dbTask.EndTime = parsedTaskInfo.EndTime ?? DateTime.UtcNow;
+            
+            // Set start/end times dynamically based on task state transition
+            if (parsedTaskInfo.State == TaskState.Running)
+            {
+                dbTask.StartTime = parsedTaskInfo.StartTime ?? DateTime.UtcNow;
+            }
+            else if (parsedTaskInfo.State >= TaskState.Finished)
+            {
+                dbTask.EndTime = parsedTaskInfo.EndTime ?? DateTime.UtcNow;
+            }
 
             UpdateJobStateByTasks(jobInfo);
 

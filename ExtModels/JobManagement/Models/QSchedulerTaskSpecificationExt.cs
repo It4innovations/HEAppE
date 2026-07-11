@@ -22,4 +22,7 @@ public class QSchedulerTaskSpecificationExt
 
     [DataMember(Name = "PayloadFilePath")]
     public string PayloadFilePath { get; set; }
+
+    [DataMember(Name = "UseSessions")]
+    public bool? UseSessions { get; set; }
 }

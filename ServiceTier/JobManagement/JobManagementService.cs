@@ -681,6 +681,10 @@ public class JobManagementService : IJobManagementService
                     envVars.Add(new EnvironmentVariableExt { Name = "HEAPPE_QSCHEDULER_SESSION_ID", Value = qTask.SessionId.ToString() });
                     envVars.Add(new EnvironmentVariableExt { Name = "HEAPPE_QSCHEDULER_USE_SESSIONS", Value = "true" });
                 }
+                else if (qTask.UseSessions == true)
+                {
+                    envVars.Add(new EnvironmentVariableExt { Name = "HEAPPE_QSCHEDULER_USE_SESSIONS", Value = "true" });
+                }
 
                 // If PayloadFilePath is specified (relative path to job/task dir)
                 string standardInputFile = "payload.json"; // default name
