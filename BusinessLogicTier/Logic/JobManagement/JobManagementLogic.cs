@@ -2034,7 +2034,11 @@ internal class JobManagementLogic : IJobManagementLogic
                     var dummyTask = new SubmittedTaskInfo
                     {
                         ScheduledJobId = $"session:{sessionId}",
-                        NodeType = new ClusterNodeType { Cluster = jobInfo.Specification.Cluster }
+                        NodeType = new ClusterNodeType { Cluster = jobInfo.Specification.Cluster },
+                        Specification = new TaskSpecification
+                        {
+                            JobSpecification = jobInfo.Specification
+                        }
                     };
                     await scheduler.CancelJobAsync(new List<SubmittedTaskInfo> { dummyTask }, "Auto-closing completed session.",
                         credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
