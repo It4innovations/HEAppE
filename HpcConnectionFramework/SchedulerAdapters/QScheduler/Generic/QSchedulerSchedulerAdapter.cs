@@ -46,6 +46,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     protected readonly IHttpClientFactory _httpClientFactory;
     protected static SshTunnelUtils _sshTunnelUtil;
 
+    /// <summary>
+    /// In-memory cache of the last successfully synchronized project limit (projectName → limitMs).
+    /// Used to skip redundant PATCH calls when the allocation has not changed since last submit.
+    /// Cache is invalidated automatically when the limit changes.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, long> _projectLimitCache
+        = new System.Collections.Concurrent.ConcurrentDictionary<string, long>();
+
     #endregion
 
     #region Private Methods
@@ -247,16 +255,33 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             
             if (response != null && response.StartsWith("CONFLICT:", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation($"Project '{projectName}' already exists in QScheduler. Sending PATCH to update limit to {limitMs} ms.");
-                var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
-                try
+                // Project already exists. Only send PATCH if the limit has changed since the last
+                // known synchronization — avoids one unnecessary HTTP round-trip per submission.
+                var cacheKey = $"{jobSpecification.Cluster.Id}:{projectName}";
+                if (!_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) || cachedLimitMs != limitMs)
                 {
-                    await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                    _logger.LogInformation($"Project '{projectName}' limit changed ({cachedLimitMs} → {limitMs} ms) or not yet cached. Sending PATCH to update.");
+                    var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
+                    try
+                    {
+                        await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                        _projectLimitCache[cacheKey] = limitMs;
+                    }
+                    catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        _logger.LogWarning($"QScheduler does not support project PATCH (status {ex.StatusCode}). Skipping.");
+                    }
                 }
-                catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
+                else
                 {
-                    _logger.LogWarning($"QScheduler version does not support project updates (PATCH method returned {ex.StatusCode}). Skipping update.");
+                    _logger.LogDebug($"Project '{projectName}' limit unchanged ({limitMs} ms). Skipping redundant PATCH.");
                 }
+            }
+            else
+            {
+                // New project created successfully — seed the cache.
+                var cacheKey = $"{jobSpecification.Cluster.Id}:{projectName}";
+                _projectLimitCache[cacheKey] = limitMs;
             }
         }
 
