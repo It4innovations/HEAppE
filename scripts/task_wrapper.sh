@@ -29,7 +29,7 @@ get_scheduler_job_info() {
     elif [ "$SCHEDULER_TYPE" = "pbs" ]; then
         qstat -f -x "$PBS_JOBID" 2>/dev/null
     elif [ "$SCHEDULER_TYPE" = "hq" ]; then
-        hq job info "$HQ_JOB_ID" 2>/dev/null
+        hq job info "$HQ_JOB_ID" --output-mode=json 2>/dev/null
     fi
 }
 
@@ -101,6 +101,34 @@ send_callback() {
             raw_info="<record><Job_Id>$PBS_JOBID</Job_Id><job_state>${state_override:-R}</job_state><exit_status>${exit_code_override:-0}</exit_status></record>"
         elif [ "$SCHEDULER_TYPE" = "hq" ]; then
             raw_info="JobId=$HQ_JOB_ID JobState=${state_override:-RUNNING} ExitCode=${exit_code_override:-0}"
+        fi
+    else
+        # If we have the live scheduler status, dynamically override the state inside the output
+        # to match how the task finished, since the scheduler still sees the wrapper process running.
+        if [ -n "$state_override" ]; then
+            if [ "$SCHEDULER_TYPE" = "slurm" ]; then
+                # Override Slurm state (JobState=...) and exit code (ExitCode=...)
+                raw_info=$(echo "$raw_info" | sed -E "s/JobState=[^ ]*/JobState=$state_override/g")
+                raw_info=$(echo "$raw_info" | sed -E "s/ExitCode=[0-9:]*/ExitCode=$exit_code_override:0/g")
+            elif [ "$SCHEDULER_TYPE" = "pbs" ]; then
+                local pbs_state="R"
+                if [ "$state_override" = "COMPLETED" ] || [ "$state_override" = "FAILED" ]; then
+                    pbs_state="F"
+                fi
+                # Override PBS state (<job_state>...</job_state>) and exit status (<Exit_status>...</Exit_status>)
+                raw_info=$(echo "$raw_info" | sed -E "s|<job_state>[^<]*</job_state>|<job_state>$pbs_state</job_state>|g")
+                raw_info=$(echo "$raw_info" | sed -E "s|<Exit_status>[^<]*</Exit_status>|<Exit_status>$exit_code_override</Exit_status>|g")
+            elif [ "$SCHEDULER_TYPE" = "hq" ]; then
+                local hq_state="Running"
+                if [ "$state_override" = "COMPLETED" ]; then
+                    hq_state="Finished"
+                    raw_info=$(echo "$raw_info" | sed -E 's/"finished": *[0-9]+/"finished": 1/g' | sed -E 's/"running": *[0-9]+/"running": 0/g')
+                elif [ "$state_override" = "FAILED" ]; then
+                    hq_state="Failed"
+                    raw_info=$(echo "$raw_info" | sed -E 's/"failed": *[0-9]+/"failed": 1/g' | sed -E 's/"running": *[0-9]+/"running": 0/g')
+                fi
+                raw_info=$(echo "$raw_info" | sed -E "s/\"state\": *\"[^\"]*\"/\"state\": \"$hq_state\"/g")
+            fi
         fi
     fi
 
