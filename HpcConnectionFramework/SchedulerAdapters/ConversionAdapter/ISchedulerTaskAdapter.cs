@@ -53,6 +53,14 @@ public interface ISchedulerTaskAdapter
 
     public long? MemoryPerGPU { set; }
 
+    bool UseCallback { set; }
+
+    string CallbackSecret { set; }
+
+    string CallbackUrl { set; }
+
+    string WrapperScriptPath { set; }
+
     void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation);

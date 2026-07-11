@@ -247,6 +247,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         set => DoAppend(value != null ? $" --mem-per-gpu={value}" : string.Empty);
     }
 
+    public bool UseCallback { get; set; }
+    public string CallbackSecret { get; set; }
+    public string CallbackUrl { get; set; }
+    public string WrapperScriptPath { get; set; }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -405,6 +410,49 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        if (UseCallback)
+        {
+            if (_sbatch)
+                _taskAppender.Append("#SBATCH");
+
+            _taskAppender.Append($" --wrap \'cd {workDir};");
+            
+            // 1. Write callback token to file with 600 permissions
+            _taskAppender.Append($"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token;");
+
+            // 2. Symlink command
+            if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+            {
+                _taskAppender.Append(recursiveSymlinkCommand.Last().Equals(';')
+                    ? recursiveSymlinkCommand
+                    : $"{recursiveSymlinkCommand};");
+            }
+
+            // 3. Write user task script
+            _taskAppender.Append("cat << \"EOF\" > heappe_user_task.sh\n");
+            if (!string.IsNullOrEmpty(preparationScript))
+            {
+                var escapedPrep = preparationScript.Replace("'", "'\\''");
+                _taskAppender.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
+            }
+            if (!string.IsNullOrEmpty(commandLine))
+            {
+                var escapedCmd = commandLine.Replace("'", "'\\''");
+                _taskAppender.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
+            }
+            _taskAppender.Append("EOF\n");
+            _taskAppender.Append("chmod +x heappe_user_task.sh;");
+
+            // 4. Run the wrapper script and redirect output
+            _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
+            _taskAppender.Append($"bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
+
+            if (_sbatch)
+                _taskAppender.AppendLine();
+
+            return;
+        }
+
         if (_sbatch)
             _taskAppender.Append("#SBATCH");
 

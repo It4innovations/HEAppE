@@ -85,6 +85,8 @@ public sealed class ClusterRuntimeConfiguration
                 ScriptsBasePath             = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath,
                 EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
                 EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
+                UseCallbackForHpcJobs       = HPCConnectionFrameworkConfiguration.ScriptsSettings.UseCallbackForHpcJobs,
+                CallbackUrl                 = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl,
             };
 
             // Bind override section on top — only keys present in overrides will overwrite.

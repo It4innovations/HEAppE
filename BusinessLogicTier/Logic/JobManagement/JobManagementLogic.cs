@@ -140,11 +140,21 @@ internal class JobManagementLogic : IJobManagementLogic
     public async Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
-        var (jobInfo, credentials) = await PrepareGetActualTasksInfoAsync(submittedJobInfoId, loggedUser);
         
-        var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
+        var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
+        
+        if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+        {
+            _logger.LogInformation($"Callback is configured. Bypassing active cluster check for job {submittedJobInfoId} and returning database state.");
+            return jobInfo;
+        }
+
+        var (preparedJobInfo, credentials) = await PrepareGetActualTasksInfoAsync(submittedJobInfoId, loggedUser);
+        
+        var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(preparedJobInfo.Specification.Cluster.SchedulerType)
+            .CreateScheduler(preparedJobInfo.Specification.Cluster, preparedJobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
+            .GetActualTasksInfoAsync(preparedJobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
         return await CompleteGetActualTasksInfoAsync(submittedJobInfoId, loggedUser, actualUnfinishedSchedulerTasksInfo);
     }
@@ -369,8 +379,55 @@ internal class JobManagementLogic : IJobManagementLogic
             .Where(j => j.Specification.ClusterUser?.AuthenticationType != ClusterAuthenticationCredentialsAuthType.Kerberos)
             .ToList();
 
-        var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
+        var jobsToPoll = new List<SubmittedJobInfo>();
+        bool dbStateUpdated = false;
+
         foreach (var job in allUnfinishedJobs)
+        {
+            var clusterConfig = ClusterRuntimeConfiguration.For(job.Specification.Cluster.CustomConfiguration);
+            if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+            {
+                if (job.SubmitTime.HasValue)
+                {
+                    var elapsedSeconds = DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds;
+                    bool isNeedUpdateJobState = false;
+                    foreach (var task in job.Tasks.Where(t => t.State is > TaskState.Configuring and < TaskState.Finished))
+                    {
+                        var walltimeLimit = task.Specification?.WalltimeLimit ?? 0;
+                        if (walltimeLimit > 0 && elapsedSeconds > 3 * walltimeLimit)
+                        {
+                            _logger.LogWarning($"HPC task {task.Id} (Job {job.Id}) exceeded 3x walltime limit with callback enabled. Marking as Failed (Timeout).");
+                            task.State = TaskState.Failed;
+                            task.ErrorMessage = "Task timed out (exceeded 3x walltime limit with callback enabled, no exit callback received).";
+                            task.EndTime = DateTime.UtcNow;
+                            if (task.CallbackSecret != null)
+                            {
+                                task.CallbackSecret = null;
+                            }
+                            isNeedUpdateJobState = true;
+                            dbStateUpdated = true;
+                        }
+                    }
+                    if (isNeedUpdateJobState)
+                    {
+                        UpdateJobStateByTasks(job);
+                        _unitOfWork.SubmittedJobInfoRepository.Update(job);
+                        JobCacheManager.InvalidateJobCache(job.Id);
+                    }
+                }
+                continue; // Skip active polling for this job
+            }
+
+            jobsToPoll.Add(job);
+        }
+
+        if (dbStateUpdated)
+        {
+            await _unitOfWork.SaveAsync();
+        }
+
+        var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
+        foreach (var job in jobsToPoll)
         {
             var cluster = job.Specification.Cluster;
             if (cluster.UpdateJobStateByServiceAccount.Value)
@@ -388,7 +445,7 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
 
-        var jobTaskDataList = allUnfinishedJobs.Select(job => new
+        var jobTaskDataList = jobsToPoll.Select(job => new
         {
             Job = job,
             Project = job.Project, 
@@ -1190,6 +1247,34 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobInfo.State = JobState.WaitingForServiceAccount;
                 await _unitOfWork.SaveAsync();
                 return (jobInfo, true);
+            }
+        }
+        var cluster = jobInfo.Specification.Cluster;
+        var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+        if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+        {
+            string masterKeyName = "ClusterCallbackNotifyToken";
+            string masterKey = "";
+            bool hasMaster = cluster.CustomConfiguration != null && 
+                             (cluster.CustomConfiguration.TryGetValue(masterKeyName, out masterKey) || 
+                              cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out masterKey));
+                              
+            if (!hasMaster || string.IsNullOrEmpty(masterKey))
+            {
+                masterKey = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+                if (cluster.CustomConfiguration == null) cluster.CustomConfiguration = new();
+                cluster.CustomConfiguration[masterKeyName] = masterKey;
+                await _unitOfWork.SaveAsync();
+            }
+
+            foreach (var task in jobInfo.Tasks)
+            {
+                string taskToken = ComputeHmac(masterKey, task.Id.ToString());
+                task.CallbackSecret = taskToken;
+                if (task.Specification != null)
+                {
+                    task.Specification.CallbackSecret = taskToken;
+                }
             }
         }
 
@@ -2083,5 +2168,16 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         return authorizedSessions;
+    }
+
+    private static string ComputeHmac(string key, string message)
+    {
+        var keyBytes = Encoding.UTF8.GetBytes(key);
+        var messageBytes = Encoding.UTF8.GetBytes(message);
+        using (var hmac = new System.Security.Cryptography.HMACSHA256(keyBytes))
+        {
+            var hashBytes = hmac.ComputeHash(messageBytes);
+            return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        }
     }
 }

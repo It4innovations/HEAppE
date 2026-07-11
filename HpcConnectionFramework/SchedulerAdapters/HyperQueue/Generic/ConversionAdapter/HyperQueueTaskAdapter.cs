@@ -30,6 +30,11 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
         get
         {
             var sb = new StringBuilder();
+            if (UseCallback && !string.IsNullOrEmpty(_callbackPrepCommands))
+            {
+                sb.Append(_callbackPrepCommands);
+                sb.Append(" && ");
+            }
             sb.Append("ml HyperQueue");
             sb.Append(" && ");
             sb.Append("(nohup hq server start &)"); // Assuming this needs to run in the background
@@ -145,6 +150,12 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
 
     public long? MemoryPerGPU { set => throw new NotImplementedException(); }
 
+    public bool UseCallback { get; set; }
+    public string CallbackSecret { get; set; }
+    public string CallbackUrl { get; set; }
+    public string WrapperScriptPath { get; set; }
+    private string _callbackPrepCommands;
+
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy,
         IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
@@ -189,6 +200,22 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
         string stdOutFile,
         string stdErrFile, string recursiveSymlinkCommand)
     {
+        if (UseCallback)
+        {
+            _taskBuilder.Append($" bash {WrapperScriptPath} \"{CallbackUrl}\" \"hq\"");
+            
+            _callbackPrepCommands = $"cd {workDir}; " +
+                                    $"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token; " +
+                                    (string.IsNullOrEmpty(recursiveSymlinkCommand) ? "" : (recursiveSymlinkCommand.Last() == ';' ? recursiveSymlinkCommand : recursiveSymlinkCommand + ";")) +
+                                    "cat << \"EOF\" > heappe_user_task.sh\n" +
+                                    (string.IsNullOrEmpty(preparationScript) ? "" : (preparationScript.Last() == '\n' ? preparationScript.Replace("'", "'\\''") : preparationScript.Replace("'", "'\\''") + "\n")) +
+                                    (string.IsNullOrEmpty(commandLine) ? "" : (commandLine.Last() == '\n' ? commandLine.Replace("'", "'\\''") : commandLine.Replace("'", "'\\''") + "\n")) +
+                                    "EOF\n" +
+                                    "chmod +x heappe_user_task.sh; " +
+                                    $"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};";
+            return;
+        }
+
         _taskBuilder.Append(
             string.IsNullOrEmpty(commandLine)
                 ? string.Empty

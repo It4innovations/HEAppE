@@ -19,6 +19,9 @@ public class TaskSpecification : CommonTaskProperties
 
     public bool IsRerunnable { get; set; }
 
+    [NotMapped]
+    public string CallbackSecret { get; set; }
+
     [StringLength(30)] public string StandardInputFile { get; set; }
 
     [StringLength(30)] public string StandardOutputFile { get; set; }

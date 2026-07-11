@@ -74,14 +74,17 @@ public static class ClusterInformationConverts
     private static Dictionary<string, string>? MaskCustomConfiguration(Cluster cluster)
     {
         if (cluster.CustomConfiguration == null) return null;
-        var copy = new Dictionary<string, string>(cluster.CustomConfiguration);
+        var copy = new Dictionary<string, string>(cluster.CustomConfiguration, StringComparer.OrdinalIgnoreCase);
         
+        if (copy.ContainsKey("ClusterCallbackNotifyToken")) copy["ClusterCallbackNotifyToken"] = "********";
+        if (copy.ContainsKey("QSchedulerNotifyToken")) copy["QSchedulerNotifyToken"] = "********";
+
         // Mask all keys that are toggled to be stored in Vault
         if (cluster.CustomConfigurationVaultToggles != null)
         {
             foreach (var pair in cluster.CustomConfigurationVaultToggles)
             {
-                if (pair.Value)
+                if (pair.Value && copy.ContainsKey(pair.Key))
                 {
                     copy[pair.Key] = "********";
                 }

@@ -316,6 +316,11 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set => DoAppend(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
     }
 
+    public bool UseCallback { get; set; }
+    public string CallbackSecret { get; set; }
+    public string CallbackUrl { get; set; }
+    public string WrapperScriptPath { get; set; }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -466,6 +471,59 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         var nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
         var taskSourceSb = new StringBuilder();
+
+        if (UseCallback)
+        {
+            if (!_pbs)
+                taskSourceSb.Append("echo '");
+
+            taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
+            
+            // 1. Write callback token to file with 600 permissions
+            taskSourceSb.Append($"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token;");
+
+            // 2. Symlink command
+            if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+            {
+                taskSourceSb.Append(recursiveSymlinkCommand.Last().Equals(';')
+                    ? recursiveSymlinkCommand
+                    : $"{recursiveSymlinkCommand};");
+            }
+
+            // 3. Write user task script using heredoc
+            taskSourceSb.Append("cat << \"EOF\" > heappe_user_task.sh\n");
+            if (!string.IsNullOrEmpty(preparationScript))
+            {
+                var escapedPrep = preparationScript.Replace("'", "'\\''");
+                taskSourceSb.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
+            }
+            if (!string.IsNullOrEmpty(commandLine))
+            {
+                var escapedCmd = commandLine.Replace("'", "'\\''");
+                taskSourceSb.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
+            }
+            taskSourceSb.Append("EOF\n");
+            taskSourceSb.Append("chmod +x heappe_user_task.sh;");
+
+            // 4. Run the wrapper script and redirect output
+            taskSourceSb.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
+            taskSourceSb.Append($"bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile};");
+
+            if (!_pbs)
+            {
+                taskSourceSb.Append("'");
+                taskSourceSb.Append($" | {_taskAppender}");
+                _taskAppender = taskSourceSb;
+            }
+            else
+            {
+                _taskAppender.AppendLine();
+                _taskAppender.Append(taskSourceSb.ToString());
+            }
+
+            return;
+        }
+
         if (!_pbs)
             taskSourceSb.Append($"echo '");
         taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");

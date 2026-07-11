@@ -106,5 +106,15 @@ public sealed class ScriptsConfiguration
     /// </summary>
     public int EventualConsistencyRetryDelayMs { get; set; } = 1000;
 
+    /// <summary>
+    ///     Enables task callbacks for HPC jobs (Slurm, PBS, HQ)
+    /// </summary>
+    public bool UseCallbackForHpcJobs { get; set; } = false;
+
+    /// <summary>
+    ///     HPC callback URL
+    /// </summary>
+    public string CallbackUrl { get; set; }
+
     #endregion
 }

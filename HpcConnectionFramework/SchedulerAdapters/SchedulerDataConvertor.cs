@@ -152,6 +152,14 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
             template.TemplateParameters, taskSpecification.CommandParameterValues);
 
+        // Set callback parameters
+        taskAdapter.UseCallback = clusterConfig.Scripts.UseCallbackForHpcJobs;
+        taskAdapter.CallbackSecret = taskSpecification.CallbackSecret;
+        taskAdapter.CallbackUrl = clusterConfig.Scripts.CallbackUrl;
+        taskAdapter.WrapperScriptPath = clusterConfig.GetPathToScript(
+            taskSpecification.Project.AccountingString, "task_wrapper.sh", 
+            taskSpecification.JobSpecification.ClusterUser?.Username);
+
         var executableFile = ResolveExecutableFile(template, jobSpecification);
         taskAdapter.SetPreparationAndCommand(workDirectory,
             ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),

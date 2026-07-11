@@ -28,6 +28,7 @@ using HEAppE.DataAccessTier.Vault;
 using SshCaAPI;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -426,12 +427,18 @@ public class JobManagementService : IJobManagementService
                     return cachedJobInfo;
                 }
 
-                bool needSshRefresh = JwtTokenIntrospectionConfiguration.IsEnabled
+                var jobWithCluster = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(submittedJobInfoId);
+                var cluster = jobWithCluster?.Specification?.Cluster;
+                var clusterConfig = ClusterRuntimeConfiguration.For(cluster?.CustomConfiguration);
+                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+
+                bool needSshRefresh = !callbackEnabled
+                                      && JwtTokenIntrospectionConfiguration.IsEnabled
                                       && SshCaSettings.UseCertificateAuthorityForAuthentication
                                       && isJobOwner
                                       && (job.State == JobState.Running || job.State == JobState.Queued);
                 
-                if (!needSshRefresh)
+                if (!needSshRefresh && !callbackEnabled)
                 {
                     // solution for FirecREST
                     bool hasToken() => !string.IsNullOrEmpty(!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken);
@@ -448,7 +455,7 @@ public class JobManagementService : IJobManagementService
                     }
                 }
 
-                if (!needSshRefresh)
+                if (!needSshRefresh && !callbackEnabled)
                 {
                     // Kerberos clusters (e.g. Metacentrum) have no background polling — status must
                     // be fetched on-demand via the scheduler, not served from stale DB state.
