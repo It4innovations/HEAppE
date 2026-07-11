@@ -1912,7 +1912,7 @@ internal class JobManagementLogic : IJobManagementLogic
             }
             else if (parsedTaskInfo.State >= TaskState.Finished)
             {
-                dbTask.EndTime = parsedTaskInfo.EndTime ?? DateTime.UtcNow;
+                dbTask.EndTime = DateTime.UtcNow;
             }
 
             UpdateJobStateByTasks(jobInfo);
