@@ -418,18 +418,25 @@ public class FileTransferLogic : IFileTransferLogic
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService, _logger);
 
-        if(jobInfo.State == JobState.Deleted)
+        if (jobInfo.State == JobState.Deleted)
         {
-            return await fileManager.ListArchivedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            var archivedFiles = await fileManager.ListArchivedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            return archivedFiles?.Where(f => !IsPathBlocked(f.FileName)).ToList();
         }
         
         if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
             return null;
        
-        return await fileManager.ListChangedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var files = await fileManager.ListChangedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        return files?.Where(f => !IsPathBlocked(f.FileName)).ToList();
     }
     public async Task<byte[]> DownloadFileFromClusterAsync(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
+        if (IsPathBlocked(relativeFilePath))
+        {
+            throw new InvalidRequestException("NotExistingPath", relativeFilePath, "Access denied to HEAppE system folder.");
+        }
+
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
@@ -575,6 +582,11 @@ public class FileTransferLogic : IFileTransferLogic
 
     public async Task<dynamic> UploadFileToJobExecutionDirAsync(Stream fileStream, string fileName, long submittedJobInfoId, long? submittedTaskInfoId, AdaptorUser loggedUser)
     {
+        if (IsPathBlocked(fileName))
+        {
+            throw new InvalidRequestException("NotExistingPath", fileName, "Upload to HEAppE system folder is denied.");
+        }
+
         var result = new Dictionary<string, dynamic>();
         
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
@@ -761,6 +773,17 @@ public class FileTransferLogic : IFileTransferLogic
         {
             throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), jobInfo.Id);
         }
+    }
+
+    private static bool IsPathBlocked(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return false;
+
+        var normalized = path.Replace('\\', '/').Trim('/');
+        return normalized.Equals(".heappe", StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith(".heappe/", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains("/.heappe/", StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
