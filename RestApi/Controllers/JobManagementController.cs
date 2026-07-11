@@ -486,7 +486,8 @@ public class JobManagementController : BaseController<JobManagementController>
             }
         }
 
-        // 1. Read circuit files into task specification in-memory
+        // 1. Read circuit files into an in-memory dictionary
+        var payloads = new Dictionary<string, byte[]>();
         for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
         {
             var qTask = parsedModel.JobSpecification.Tasks[i];
@@ -494,35 +495,48 @@ public class JobManagementController : BaseController<JobManagementController>
             {
                 var file = Request.Form.Files[qTask.PayloadPartName];
                 using (var stream = file.OpenReadStream())
-                using (var reader = new System.IO.StreamReader(stream))
+                using (var ms = new System.IO.MemoryStream())
                 {
-                    qTask.PayloadContent = await reader.ReadToEndAsync();
+                    await stream.CopyToAsync(ms);
+                    payloads[qTask.Name] = ms.ToArray();
                 }
             }
         }
 
-        // 2. Create the job database records (this maps PayloadContent to env var internally)
-        var createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+        // 2. Set the payloads context in AsyncLocal
+        HEAppE.Utils.QSchedulerPayloadContext.Payloads = payloads;
 
-        // 3. Immediately submit the job to QScheduler in-memory
+        HEAppE.ExtModels.JobManagement.Models.SubmittedJobInfoExt createdJob = null;
         try
         {
+            // 3. Create the job database records (metadata only, no payload saved to DB)
+            createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+
+            // 4. Immediately submit the job to QScheduler (adapter will read from QSchedulerPayloadContext.Payloads)
             var submittedJob = await _service.SubmitJobAsync(createdJob.Id.Value, parsedModel.SessionCode);
             return Ok(submittedJob);
         }
         catch (System.Exception submitEx)
         {
-            _logger.LogError(submitEx, $"Automatic submission of QScheduler job {createdJob.Id} failed.");
-            // Try to clean up created job if submission failed
-            try
+            _logger.LogError(submitEx, $"Automatic submission of QScheduler job failed.");
+            if (createdJob != null && createdJob.Id.HasValue)
             {
-                await _service.DeleteJob(createdJob.Id.Value, false, parsedModel.SessionCode);
-            }
-            catch (System.Exception cleanupEx)
-            {
-                _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id} failed after submission failure.");
+                // Try to clean up created job if submission failed
+                try
+                {
+                    await _service.DeleteJob(createdJob.Id.Value, false, parsedModel.SessionCode);
+                }
+                catch (System.Exception cleanupEx)
+                {
+                    _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id.Value} failed after submission failure.");
+                }
             }
             return StatusCode(StatusCodes.Status500InternalServerError, $"Circuit payload submission failed: {submitEx.Message}");
+        }
+        finally
+        {
+            // 5. Clear the AsyncLocal context
+            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
         }
     }
 

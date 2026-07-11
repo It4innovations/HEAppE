@@ -349,14 +349,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                     if (isSessionOpen)
                     {
-                        var payloadEnvVar = taskSpec.EnvironmentVariables?.FirstOrDefault(e => e.Name == "__QSchedulerPayloadContent");
                         byte[] payloadBytes = null;
-                        string payloadPath = null;
-                        if (payloadEnvVar != null && !string.IsNullOrEmpty(payloadEnvVar.Value))
+                        var payloads = HEAppE.Utils.QSchedulerPayloadContext.Payloads;
+                        if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var bytes))
                         {
-                            payloadBytes = Encoding.UTF8.GetBytes(payloadEnvVar.Value);
+                            payloadBytes = bytes;
                         }
-                        else
+
+                        string payloadPath = null;
+                        if (payloadBytes == null)
                         {
                             var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
                             payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
