@@ -647,7 +647,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public async Task<SubmittedJobInfoExt> CreateQSchedulerJob(QSchedulerJobSpecificationExt specification, string sessionCode)
+    public async Task<SubmittedJobInfoExt> CreateAndSubmitQSchedulerJob(QSchedulerJobSpecificationExt specification, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {

@@ -24,7 +24,7 @@ public class JobManagementValidator : AbstractValidator
         var message = _validationObject switch
         {
             CreateJobByProjectModel model => ValidateCreateJobModel(model),
-            CreateQSchedulerJobModel model => ValidateCreateQSchedulerJobModel(model),
+            CreateAndSubmitQSchedulerJobModel model => ValidateCreateAndSubmitQSchedulerJobModel(model),
             SubmitJobModel model => ValidateSubmitJobModel(model),
             CancelJobModel model => ValidateCancelJobModel(model),
             DeleteJobModel model => ValidateDeleteJobModel(model),
@@ -125,7 +125,7 @@ public class JobManagementValidator : AbstractValidator
         return _messageBuilder.ToString();
     }
 
-    private string ValidateCreateQSchedulerJobModel(CreateQSchedulerJobModel model)
+    private string ValidateCreateAndSubmitQSchedulerJobModel(CreateAndSubmitQSchedulerJobModel model)
     {
         if (model.JobSpecification == null)
         {

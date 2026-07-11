@@ -430,12 +430,12 @@ public class JobManagementController : BaseController<JobManagementController>
     }
 
     /// <summary>
-    ///     Create a QScheduler job with simplified specification and optional multipart payload upload per task.
+    ///     Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.
     /// </summary>
-    /// <param name="model">JSON string of CreateQSchedulerJobModel</param>
-    /// <param name="fileTransferService">File transfer service for SSH uploads</param>
+    /// <param name="model">JSON string of CreateAndSubmitQSchedulerJobModel</param>
+    /// <param name="userOrgService">User org service</param>
     /// <returns>Submitted job info</returns>
-    [HttpPost("CreateQSchedulerJob")]
+    [HttpPost("CreateAndSubmitQSchedulerJob")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(2_200_000_000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 2_200_000_000)]
@@ -443,7 +443,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CreateQSchedulerJob(
+    public async Task<IActionResult> CreateAndSubmitQSchedulerJob(
         [FromForm] string model,
         [FromServices] IUserOrgService userOrgService)
     {
@@ -452,10 +452,10 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Model string is empty.");
         }
 
-        CreateQSchedulerJobModel parsedModel;
+        CreateAndSubmitQSchedulerJobModel parsedModel;
         try
         {
-            parsedModel = System.Text.Json.JsonSerializer.Deserialize<CreateQSchedulerJobModel>(model, new System.Text.Json.JsonSerializerOptions
+            parsedModel = System.Text.Json.JsonSerializer.Deserialize<CreateAndSubmitQSchedulerJobModel>(model, new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -510,7 +510,7 @@ public class JobManagementController : BaseController<JobManagementController>
         try
         {
             // 3. Create the job database records (metadata only, no payload saved to DB)
-            createdJob = await _service.CreateQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+            createdJob = await _service.CreateAndSubmitQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
 
             // 4. Immediately submit the job to QScheduler (adapter will read from QSchedulerPayloadContext.Payloads)
             var submittedJob = await _service.SubmitJobAsync(createdJob.Id.Value, parsedModel.SessionCode);

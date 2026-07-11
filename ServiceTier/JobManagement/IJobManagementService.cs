@@ -22,6 +22,6 @@ public interface IJobManagementService
     Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, string sessionCode);
     Task CloseQSchedulerSessionAsync(long clusterId, long projectId, long sessionId, string sessionCode);
     Task<QSchedulerSessionInfoExt> GetQSchedulerSessionInfoAsync(long sessionId, string sessionCode);
-    Task<SubmittedJobInfoExt> CreateQSchedulerJob(QSchedulerJobSpecificationExt specification, string sessionCode);
+    Task<SubmittedJobInfoExt> CreateAndSubmitQSchedulerJob(QSchedulerJobSpecificationExt specification, string sessionCode);
     Task<IEnumerable<QSchedulerSessionInfoExt>> ListQSchedulerSessionsAsync(string sessionCode, string state = null, long? clusterId = null, long? projectId = null);
 }

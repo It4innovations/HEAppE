@@ -4,8 +4,8 @@ using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobManagement;
 
-[DataContract(Name = "CreateQSchedulerJobModel")]
-public class CreateQSchedulerJobModel : SessionCodeModel
+[DataContract(Name = "CreateAndSubmitQSchedulerJobModel")]
+public class CreateAndSubmitQSchedulerJobModel : SessionCodeModel
 {
     [DataMember(Name = "JobSpecification")]
     public QSchedulerJobSpecificationExt JobSpecification { get; set; }
