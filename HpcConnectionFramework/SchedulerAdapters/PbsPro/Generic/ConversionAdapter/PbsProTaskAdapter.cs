@@ -479,8 +479,9 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
 
             taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
             
+            taskSourceSb.Append("mkdir -p .heappe; ");
             // 1. Write callback token to file with 600 permissions
-            taskSourceSb.Append($"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token;");
+            taskSourceSb.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
 
             // 2. Symlink command
             if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
@@ -491,7 +492,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             }
 
             // 3. Write user task script using heredoc
-            taskSourceSb.Append("cat << \"EOF\" > heappe_user_task.sh\n");
+            taskSourceSb.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
             if (!string.IsNullOrEmpty(preparationScript))
             {
                 var escapedPrep = preparationScript.Replace("'", "'\\''");
@@ -503,7 +504,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 taskSourceSb.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
             }
             taskSourceSb.Append("EOF\n");
-            taskSourceSb.Append("chmod +x heappe_user_task.sh;");
+            taskSourceSb.Append("chmod +x .heappe/heappe_user_task.sh;");
 
             // 4. Run the wrapper script and redirect output
             taskSourceSb.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");

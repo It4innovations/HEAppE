@@ -205,13 +205,14 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
             _taskBuilder.Append($" bash {WrapperScriptPath} \"{CallbackUrl}\" \"hq\"");
             
             _callbackPrepCommands = $"cd {workDir}; " +
-                                    $"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token; " +
+                                    "mkdir -p .heappe; " +
+                                    $"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token; " +
                                     (string.IsNullOrEmpty(recursiveSymlinkCommand) ? "" : (recursiveSymlinkCommand.Last() == ';' ? recursiveSymlinkCommand : recursiveSymlinkCommand + ";")) +
-                                    "cat << \"EOF\" > heappe_user_task.sh\n" +
+                                    "cat << \"EOF\" > .heappe/heappe_user_task.sh\n" +
                                     (string.IsNullOrEmpty(preparationScript) ? "" : (preparationScript.Last() == '\n' ? preparationScript.Replace("'", "'\\''") : preparationScript.Replace("'", "'\\''") + "\n")) +
                                     (string.IsNullOrEmpty(commandLine) ? "" : (commandLine.Last() == '\n' ? commandLine.Replace("'", "'\\''") : commandLine.Replace("'", "'\\''") + "\n")) +
                                     "EOF\n" +
-                                    "chmod +x heappe_user_task.sh; " +
+                                    "chmod +x .heappe/heappe_user_task.sh; " +
                                     $"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};";
             return;
         }

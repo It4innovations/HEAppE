@@ -417,8 +417,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
             _taskAppender.Append($" --wrap \'cd {workDir};");
             
+            _taskAppender.Append("mkdir -p .heappe; ");
             // 1. Write callback token to file with 600 permissions
-            _taskAppender.Append($"echo \"{CallbackSecret}\" > .callback_token; chmod 600 .callback_token;");
+            _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
 
             // 2. Symlink command
             if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
@@ -429,7 +430,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             }
 
             // 3. Write user task script
-            _taskAppender.Append("cat << \"EOF\" > heappe_user_task.sh\n");
+            _taskAppender.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
             if (!string.IsNullOrEmpty(preparationScript))
             {
                 var escapedPrep = preparationScript.Replace("'", "'\\''");
@@ -441,7 +442,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 _taskAppender.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
             }
             _taskAppender.Append("EOF\n");
-            _taskAppender.Append("chmod +x heappe_user_task.sh;");
+            _taskAppender.Append("chmod +x .heappe/heappe_user_task.sh;");
 
             // 4. Run the wrapper script and redirect output
             _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
