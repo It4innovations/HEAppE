@@ -415,8 +415,8 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> QSchedulerSessionInfo(string sessionCode, long sessionId)
     {
-        if (string.IsNullOrEmpty(sessionCode) || sessionId <= 0)
-            return BadRequest("sessionCode and sessionId are required.");
+        if (sessionId <= 0)
+            return BadRequest("sessionId is required.");
 
         try
         {
@@ -553,8 +553,6 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ListQSchedulerSessions(string sessionCode, string state = null, long? clusterId = null, long? projectId = null)
     {
-        if (string.IsNullOrEmpty(sessionCode))
-            return BadRequest("sessionCode is required.");
 
         try
         {
