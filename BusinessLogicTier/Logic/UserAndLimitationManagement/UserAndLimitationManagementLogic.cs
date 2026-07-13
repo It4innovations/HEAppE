@@ -332,7 +332,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterId(loggedUser.Id);
         var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
