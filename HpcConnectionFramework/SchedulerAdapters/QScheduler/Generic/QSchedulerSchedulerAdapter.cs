@@ -409,7 +409,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
                     var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
                     _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
-                    if (sessionState == "open" || sessionState == "running")
+                    if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
                     {
                         isSessionOpen = true;
                     }
