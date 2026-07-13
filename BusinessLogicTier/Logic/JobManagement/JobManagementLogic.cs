@@ -1743,9 +1743,10 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         QSchedulerSession? dbSession = null;
-        if (scheduledJobId.StartsWith("session:") && !scheduledJobId.Contains(":task:"))
+        if (scheduledJobId.StartsWith("session:"))
         {
-            if (long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
+            var parts = scheduledJobId.Split(':');
+            if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
             {
                 dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
             }
