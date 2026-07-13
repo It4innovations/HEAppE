@@ -1667,7 +1667,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 bool isAuthenticated = await currentHandler.AuthenticateTaskCallbackAsync(token, candidate, job, currentCluster);
                 if (isAuthenticated)
                 {
-                    dbTask = candidate;
+                    dbTask = job.Tasks.FirstOrDefault(t => t.Id == candidate.Id) ?? candidate;
                     jobInfo = job;
                     cluster = currentCluster;
                     handler = currentHandler;
