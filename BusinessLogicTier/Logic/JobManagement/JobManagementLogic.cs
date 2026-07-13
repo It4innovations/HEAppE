@@ -1760,14 +1760,14 @@ internal class JobManagementLogic : IJobManagementLogic
 
         foreach (var candidate in sortedCandidates)
         {
-            var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
-            if (job == null) continue;
-
-            if (dbSession != null && job.CreationTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10))
+            if (candidate.State >= TaskState.Finished)
             {
-                _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job {job.Id} creation time ({job.CreationTime:O}) is older than session creation time ({dbSession.CreatedAt:O}).");
+                _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because it is in a final state: {candidate.State}.");
                 continue;
             }
+
+            var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
+            if (job == null) continue;
 
             var currentCluster = job.Specification.Cluster;
             if (_callbackHandlers.TryGetValue(currentCluster.SchedulerType, out var currentHandler))
