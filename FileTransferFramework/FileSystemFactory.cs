@@ -60,8 +60,14 @@ public abstract class FileSystemFactory
 
     #region Local Methods
 
-    public static FileSystemFactory GetInstance(FileTransferProtocol type)
+    public static FileSystemFactory GetInstance(FileTransferProtocol type, Cluster cluster = null)
     {
+        if ((type == FileTransferProtocol.Http || type == FileTransferProtocol.Https) &&
+            (cluster == null || cluster.SchedulerType != SchedulerType.FirecRestSlurm))
+        {
+            throw new NotSupportedException("HTTP/HTTPS file transfer protocol is only supported for FirecRest clusters.");
+        }
+
         return type switch
         {
             FileTransferProtocol.NetworkShare => _windowsSharedFactorySingleton ??= new NetworkShareFileSystemFactory(),

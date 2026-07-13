@@ -555,7 +555,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new InvalidRequestException("ProjectPathNotSet");
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
-        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
+        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value, cluster).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
         var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
         result.Add("Succeeded", succeeded);
         result.Add("Path", succeeded ? absoluteFilePath : null);
@@ -585,7 +585,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new InvalidRequestException("ProjectPathNotSet");
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(projectStoragePath, fileName));
-        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
+        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value, cluster).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
         var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
         bool attributesSet = false;
         if (succeeded)
@@ -829,7 +829,7 @@ public class FileTransferLogic : IFileTransferLogic
             };
         }
 
-        return FileSystemFactory.GetInstance(protocol)
+        return FileSystemFactory.GetInstance(protocol, jobSpecification.Cluster)
             .CreateFileSystemManager(transferMethod, _sshCertificateAuthorityService, _logger);
     }
 
