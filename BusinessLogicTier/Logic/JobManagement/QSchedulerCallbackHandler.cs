@@ -285,21 +285,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
         }
 
         // Standard task status callback
-        if (string.IsNullOrEmpty(rawResponse))
-        {
-            throw new ArgumentException("Callback raw response is empty.");
-        }
-
-        var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
-        var parsedTasks = convertor.ReadParametersFromResponse(cluster, rawResponse);
-        var parsedTaskInfo = parsedTasks?.FirstOrDefault();
-
-        if (parsedTaskInfo == null)
-        {
-            throw new Exception("Failed to parse callback payload using the cluster data convertor.");
-        }
-
-        var targetState = parsedTaskInfo.State;
+        var targetState = TaskState.Unknown;
         if (!string.IsNullOrEmpty(qSchedulerState))
         {
             targetState = qSchedulerState.ToLower() switch
@@ -311,20 +297,53 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 "failed" => TaskState.Failed,
                 "error" => TaskState.Failed,
                 "cancelled" => TaskState.Canceled,
-                _ => parsedTaskInfo.State
+                _ => TaskState.Unknown
             };
         }
 
+        string? errorMessage = null;
+        string? reason = null;
+        string? allParameters = null;
+        double? allocatedTime = null;
+        DateTime? startTime = null;
+        DateTime? endTime = null;
+
+        if (!string.IsNullOrEmpty(rawResponse))
+        {
+            var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
+            var parsedTasks = convertor.ReadParametersFromResponse(cluster, rawResponse);
+            var parsedTaskInfo = parsedTasks?.FirstOrDefault();
+
+            if (parsedTaskInfo != null)
+            {
+                if (targetState == TaskState.Unknown)
+                {
+                    targetState = parsedTaskInfo.State;
+                }
+                errorMessage = parsedTaskInfo.ErrorMessage;
+                reason = parsedTaskInfo.Reason;
+                allParameters = parsedTaskInfo.AllParameters;
+                allocatedTime = parsedTaskInfo.AllocatedTime;
+                startTime = parsedTaskInfo.StartTime;
+                endTime = parsedTaskInfo.EndTime;
+            }
+        }
+        else if (targetState == TaskState.Unknown)
+        {
+            _logger.LogWarning($"ProcessTaskCallbackAsync: Both rawResponse and qSchedulerState are missing or could not be mapped. Skipping status update.");
+        }
+
         result.TargetState = targetState;
-        result.ErrorMessage = parsedTaskInfo.ErrorMessage;
-        result.Reason = parsedTaskInfo.Reason;
-        result.AllParameters = parsedTaskInfo.AllParameters;
-        result.AllocatedTime = parsedTaskInfo.AllocatedTime;
-        result.StartTime = parsedTaskInfo.StartTime;
-        result.EndTime = parsedTaskInfo.EndTime;
+        result.ErrorMessage = errorMessage;
+        result.Reason = reason;
+        result.AllParameters = allParameters;
+        result.AllocatedTime = allocatedTime;
+        result.StartTime = startTime;
+        result.EndTime = endTime;
 
         return result;
     }
+
 
     public async Task PostProcessCallbackAsync(SubmittedTaskInfo dbTask, SubmittedJobInfo jobInfo, Cluster cluster)
     {

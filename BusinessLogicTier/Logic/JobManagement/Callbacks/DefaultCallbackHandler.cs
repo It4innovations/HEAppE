@@ -50,7 +50,8 @@ internal class DefaultCallbackHandler : ISchedulerCallbackHandler
     {
         if (string.IsNullOrEmpty(rawResponse))
         {
-            throw new ArgumentException("Callback raw response is empty.");
+            _logger.LogWarning($"ProcessTaskCallbackAsync: Raw response is empty. Skipping status update.");
+            return Task.FromResult(new CallbackProcessResult { Handled = false, TargetState = TaskState.Unknown });
         }
 
         var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
