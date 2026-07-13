@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi.Events;
@@ -16,12 +17,13 @@ namespace HEAppE.RestApi.Events;
 public class HEAppEEventHub : IHEAppEEventHub
 {
     private readonly ConcurrentDictionary<long, ConcurrentBag<WebSocket>> _connections = new();
-    private readonly ConcurrentDictionary<long, ConcurrentQueue<string>> _eventBuffers = new();
+    private readonly IMemoryCache _memoryCache;
     private readonly ILogger<HEAppEEventHub> _logger;
     private const int MaxBufferSize = 50;
 
-    public HEAppEEventHub(ILogger<HEAppEEventHub> logger)
+    public HEAppEEventHub(IMemoryCache memoryCache, ILogger<HEAppEEventHub> logger)
     {
+        _memoryCache = memoryCache;
         _logger = logger;
     }
 
@@ -32,7 +34,8 @@ public class HEAppEEventHub : IHEAppEEventHub
         _logger.LogInformation($"[EventHub] WebSocket connection established for User ID {userId}. Active connections for user: {userConnections.Count}");
 
         // Replay buffered events (catch-up) to prevent race conditions (e.g. client connects right after submit)
-        if (_eventBuffers.TryGetValue(userId, out var buffer))
+        var cacheKey = $"EventBuffer:{userId}";
+        if (_memoryCache.TryGetValue(cacheKey, out ConcurrentQueue<string>? buffer) && buffer != null)
         {
             var bufferedEvents = buffer.ToArray();
             if (bufferedEvents.Length > 0)
@@ -99,8 +102,23 @@ public class HEAppEEventHub : IHEAppEEventHub
 
         var json = JsonSerializer.Serialize(cloudEvent);
 
-        // Buffer the event for catch-up (race-condition protection)
-        var userBuffer = _eventBuffers.GetOrAdd(userId, _ => new ConcurrentQueue<string>());
+        // Buffer the event for catch-up (race-condition protection) with sliding expiration of 15 minutes
+        var cacheKey = $"EventBuffer:{userId}";
+        if (!_memoryCache.TryGetValue(cacheKey, out ConcurrentQueue<string>? userBuffer) || userBuffer == null)
+        {
+            userBuffer = new ConcurrentQueue<string>();
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(15));
+            _memoryCache.Set(cacheKey, userBuffer, cacheEntryOptions);
+        }
+        else
+        {
+            // Reset the cache entry to refresh sliding expiration on write
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(15));
+            _memoryCache.Set(cacheKey, userBuffer, cacheEntryOptions);
+        }
+
         userBuffer.Enqueue(json);
         while (userBuffer.Count > MaxBufferSize)
         {
