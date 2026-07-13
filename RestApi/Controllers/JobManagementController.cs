@@ -346,7 +346,7 @@ public class JobManagementController : BaseController<JobManagementController>
         }
         catch (System.Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            throw;
         }
     }
 
