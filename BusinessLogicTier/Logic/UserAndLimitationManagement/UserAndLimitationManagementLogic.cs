@@ -315,7 +315,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             .SelectMany(j => j.Tasks)
             .Select(t => t.Specification.MaxCores)
             .ToList();
-        var totalMaxCores = tasksMaxCores.Sum();
+        var totalMaxCores = tasksMaxCores.Sum() ?? 0;
 
         var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .ListClusterNodeTypes();
