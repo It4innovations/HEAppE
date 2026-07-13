@@ -17,6 +17,8 @@ public interface IAdaptorUserRepository : IRepository<AdaptorUser>
     Task<AdaptorUser> GetByNameIgnoreQueryFiltersAsync(string username);
     AdaptorUser GetByEmailIgnoreQueryFilters(string email);
     Task<AdaptorUser> GetByEmailIgnoreQueryFiltersAsync(string email);
+    AdaptorUser GetByIdpSidIgnoreQueryFilters(string idpSid);
+    Task<AdaptorUser> GetByIdpSidIgnoreQueryFiltersAsync(string idpSid);
     List<AdaptorUser> GetAllUsersInGroup(long groupId);
     Task<List<AdaptorUser>> GetAllUsersInGroupAsync(long groupId);
     IQueryable<AdaptorUser> GetQueryableWithoutFilters();

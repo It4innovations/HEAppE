@@ -474,7 +474,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             string username = result.UserName;
             if (string.IsNullOrEmpty(username))
             {
-                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Email;
+                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Id.ToString();
             }
             if (string.IsNullOrEmpty(username))
             {
@@ -519,33 +519,57 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
-        AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+
+        var idpSid = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Id.ToString();
+        AdaptorUser user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+        
         string username = lexisUser.UserName;
         if (string.IsNullOrEmpty(username))
         {
-            username = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Email;
+            username = idpSid;
         }
 
-        if (string.IsNullOrEmpty(username))
-        {
-            username = StringUtils.GenerateUsername(lexisUser.Id.ToString());
-        }
-        
         if (user is null)
         {
-            try 
+            // Fallback to match by email (non-breaking transition for existing accounts)
+            user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
+            if (user != null)
             {
-                user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                user.IdpSid = idpSid;
+                user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
-            catch (Exception)
+            else
             {
-                user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
-                if (user is null) throw;
+                try 
+                {
+                    user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                    user.IdpSid = idpSid;
+                    _unitOfWork.AdaptorUserRepository.Update(user);
+                    _unitOfWork.Save();
+                }
+                catch (Exception)
+                {
+                    user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+                    if (user is null)
+                    {
+                        user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
+                        if (user is null) throw;
+                        
+                        user.IdpSid = idpSid;
+                        user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                    }
+                }
             }
         }
         else
         {
-            user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+            user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+            if (string.IsNullOrEmpty(user.IdpSid))
+            {
+                user.IdpSid = idpSid;
+                _unitOfWork.AdaptorUserRepository.Update(user);
+                _unitOfWork.Save();
+            }
         }
 
         // Build desired (groupId, roleId) set and resolved role map from UserOrg data

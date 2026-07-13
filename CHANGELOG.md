@@ -23,11 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added automatic QScheduler session closure upon final task completion in a job. Sessions are dynamically tracked and closed via `DELETE sessions/{sessionId}` once all tasks assigned to that session reach their final state (Finished, Failed, Canceled, or Deleted).
 - Added generic WebSocket push notification system (WSS) at GET /heappe/Events. Clients can open persistent connections to receive real-time CloudEvents (v1.0) streaming of job, task, and session state changes (e.g. org.heappe.job.state-changed, org.heappe.task.state-changed, org.heappe.session.state-changed). Fully supports header-based X-API-Key and query/header-based SessionCode authentication.
 - Added explicit QScheduler session control endpoints: `POST /heappe/JobManagement/OpenQSchedulerSession` and `DELETE /heappe/JobManagement/CloseQSchedulerSession`. Allows manual creation and deletion of remote QScheduler sessions. Supported submitting multiple subsequent jobs into an active session by specifying the `HEAPPE_QSCHEDULER_SESSION_ID` environment variable in task specifications.
-
+- Added `IdpSid` property (length 250) to `AdaptorUser` table and implemented non-breaking identity federation matching for UserOrg login with automatic migration of existing accounts.
+- Added sliding window TTL (15 minutes) for WebSocket event buffers in `HEAppEEventHub` using `IMemoryCache` to prevent memory growth for inactive users.
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
 - Fixed QScheduler session webhook callback model validation and state matching. Added `session_id` property and made `task_id` optional in `TaskCallbackModel` to handle session callbacks properly. Supported both `open` and `opened` states in callback processing logic.
+- Fixed QScheduler session premature automatic closure when multiple jobs run inside the same shared active session by querying all session tasks across all jobs from the database.
+- Fixed QScheduler and default webhook callback handling to make `raw_response` optional, preventing HTTP 500 when it is missing in callback payloads.
+- Refactored webhook callback handling into the Strategy Pattern to decouple scheduler-specific logics and simplify `JobManagementLogic.cs`.
 
 
 ## V6.4.4
