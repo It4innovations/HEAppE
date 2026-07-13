@@ -273,6 +273,12 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
                 break;
+            case System.Collections.Generic.KeyNotFoundException:
+                problem.Title = "Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                break;
+
             case UnableToCreateConnectionException:
                 problem.Title = "Connection Problem";
                 problem.Detail = GetExceptionMessage(exception);

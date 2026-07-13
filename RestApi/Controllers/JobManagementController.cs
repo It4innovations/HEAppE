@@ -331,23 +331,8 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Invalid callback payload. task_id or session_id is required.");
         }
 
-        try
-        {
-            await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
-            return Ok("Task status updated successfully.");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (System.Exception ex)
-        {
-            throw;
-        }
+        await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
+        return Ok("Task status updated successfully.");
     }
 
     /// <summary>
@@ -365,15 +350,8 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Model is empty");
         }
 
-        try
-        {
-            var sessionId = await _service.OpenQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.MachineId, model.WalltimeLimit, model.SessionCode);
-            return Ok(sessionId);
-        }
-        catch (System.Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+        var sessionId = await _service.OpenQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.MachineId, model.WalltimeLimit, model.SessionCode);
+        return Ok(sessionId);
     }
 
     /// <summary>
@@ -391,15 +369,8 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Model is empty");
         }
 
-        try
-        {
-            await _service.CloseQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.SessionId, model.SessionCode);
-            return Ok("Session closed successfully.");
-        }
-        catch (System.Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+        await _service.CloseQSchedulerSessionAsync(model.ClusterId, model.ProjectId, model.SessionId, model.SessionCode);
+        return Ok("Session closed successfully.");
     }
 
     /// <summary>
@@ -418,15 +389,8 @@ public class JobManagementController : BaseController<JobManagementController>
         if (sessionId <= 0)
             return BadRequest("sessionId is required.");
 
-        try
-        {
-            var info = await _service.GetQSchedulerSessionInfoAsync(sessionId, sessionCode);
-            return Ok(info);
-        }
-        catch (System.Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+        var info = await _service.GetQSchedulerSessionInfoAsync(sessionId, sessionCode);
+        return Ok(info);
     }
 
     /// <summary>
@@ -601,15 +565,8 @@ public class JobManagementController : BaseController<JobManagementController>
     public async Task<IActionResult> ListQSchedulerSessions(string sessionCode, string state = null, long? clusterId = null, long? projectId = null)
     {
 
-        try
-        {
-            var sessions = await _service.ListQSchedulerSessionsAsync(sessionCode, state, clusterId, projectId);
-            return Ok(sessions);
-        }
-        catch (System.Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+        var sessions = await _service.ListQSchedulerSessionsAsync(sessionCode, state, clusterId, projectId);
+        return Ok(sessions);
     }
 
     #endregion
