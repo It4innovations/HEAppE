@@ -199,7 +199,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 JobCacheManager.InvalidateJobCache(jobInfo.Id);
                 await _logic.CheckAndCloseQSchedulerSessionsAsync(jobInfo);
 
-                await _logic.PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                await _logic.PublishEventAsync(jobInfo.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
                 {
                     sessionId = dbTask.ScheduledJobId,
                     state = "Open"
@@ -244,7 +244,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 await _unitOfWork.SaveAsync();
                 JobCacheManager.InvalidateJobCache(jobInfo.Id);
 
-                await _logic.PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                await _logic.PublishEventAsync(jobInfo.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
                 {
                     sessionId = dbTask.ScheduledJobId,
                     state = "Closed"
@@ -272,7 +272,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                     }
                 }
 
-                await _logic.PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
+                await _logic.PublishEventAsync(jobInfo.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
                 {
                     sessionId = dbTask.ScheduledJobId,
                     state = "Waiting"

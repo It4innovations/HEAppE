@@ -1778,12 +1778,12 @@ internal class JobManagementLogic : IJobManagementLogic
                     {
                         credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                             jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
-                            adaptorUserId: jobInfo.Specification.Submitter.Id, _logger);
+                            adaptorUserId: jobInfo.Submitter.Id, _logger);
                     }
 
                     var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                         .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService,
-                            jobInfo.Specification.Submitter.Id, _expirioService, _expirioToken, _logger);
+                            jobInfo.Submitter.Id, _expirioService, _expirioToken, _logger);
 
                     var dummyTask = new SubmittedTaskInfo
                     {
@@ -1819,7 +1819,7 @@ internal class JobManagementLogic : IJobManagementLogic
     internal async Task PublishStateChangesAsync(SubmittedJobInfo jobInfo, Dictionary<long, TaskState> previousTaskStates, JobState previousJobState)
     {
         if (jobInfo == null) return;
-        var userId = jobInfo.Specification.Submitter.Id;
+        var userId = jobInfo.Submitter.Id;
 
         // Check task state changes
         foreach (var task in jobInfo.Tasks)

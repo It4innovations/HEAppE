@@ -253,7 +253,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
         {
             var result = await httpClient.GetStringAsync(path);
             var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
-            logger.LogWarning($"Obtained health information");
+            logger.LogInformation($"Obtained health information");
             return response;
         }
         catch (Exception e)
