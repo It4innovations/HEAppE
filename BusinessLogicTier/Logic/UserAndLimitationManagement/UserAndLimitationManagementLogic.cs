@@ -8,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -311,7 +312,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         IEnumerable<Project> projects)
     {
         var tasksMaxCores = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
-            .Where(j => j.Submitter.Id == loggedUser.Id && j.State < JobState.Finished)
+            .Where(j => EF.Property<long>(j, "SubmitterId") == loggedUser.Id && j.State < JobState.Finished)
             .SelectMany(j => j.Tasks)
             .Select(t => t.Specification.MaxCores)
             .ToList();
@@ -338,9 +339,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         IEnumerable<Project> projects)
     {
         var tasksData = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
-            .Where(j => j.Submitter.Id == loggedUser.Id && j.State < JobState.Finished)
+            .Where(j => EF.Property<long>(j, "SubmitterId") == loggedUser.Id && j.State < JobState.Finished)
             .SelectMany(j => j.Tasks)
-            .Select(t => new { NodeTypeId = t.NodeType.Id, AllocatedCores = t.AllocatedCores ?? 0 })
+            .Select(t => new { NodeTypeId = EF.Property<long?>(t, "NodeTypeId"), AllocatedCores = t.AllocatedCores ?? 0 })
             .ToList();
         var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
