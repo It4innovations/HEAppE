@@ -16,7 +16,7 @@ internal class QSchedulerSessionRepository : GenericRepository<QSchedulerSession
     public async Task<QSchedulerSession> GetBySessionIdAsync(long sessionId)
     {
         return await _dbSet
-            .OrderBy(s => s.State == QSchedulerSessionState.Closed)
+            .OrderByDescending(s => s.Id)
             .FirstOrDefaultAsync(s => s.SessionId == sessionId);
     }
 
