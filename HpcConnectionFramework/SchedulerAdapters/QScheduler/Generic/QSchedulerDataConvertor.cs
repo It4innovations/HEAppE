@@ -176,8 +176,17 @@ public class QSchedulerDataConvertor : SchedulerDataConvertor
 
             var errorMsg = json.Value<string>("error");
 
-            var startTime = ParseDateTime(json["start_time"] ?? json["started_at"] ?? json["started"] ?? json["startTime"]);
             var endTime = ParseDateTime(json["end_time"] ?? json["finished_at"] ?? json["finished"] ?? json["endTime"]);
+            var startTime = ParseDateTime(json["start_time"] ?? json["started_at"] ?? json["started"] ?? json["startTime"]);
+
+            var execTimeMsToken = json["exectime_ms"] ?? json["exec_time_ms"] ?? json["exectimeMs"];
+            if (execTimeMsToken != null && execTimeMsToken.Type != JTokenType.Null && endTime != null)
+            {
+                if (double.TryParse(execTimeMsToken.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var ms))
+                {
+                    startTime = endTime.Value.AddMilliseconds(-ms);
+                }
+            }
 
             double? allocatedTime = null;
             var allocatedTimeToken = json["allocated_time"] ?? json["allocatedTime"] ?? json["qpu_seconds"] ?? json["billable_time_ms"];

@@ -60,6 +60,7 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
     [NotMapped] public Dictionary<string, string> ParsedParameters { get; set; }
 
     [NotMapped] public bool ForceSessionSubmit { get; set; }
+    [NotMapped] public bool ForceStatusQuery { get; set; }
 
     public virtual Project Project { get; set; }
 

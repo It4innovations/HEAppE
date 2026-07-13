@@ -116,5 +116,35 @@ public class QSchedulerDataConvertorTests
         Assert.Single(results);
         Assert.Equal("42", results[0]);
     }
+
+    [Fact]
+    public void ReadParametersFromResponse_ExecTimeMs_CalculatesStartTime()
+    {
+        var convertor = new QSchedulerDataConvertor(NullLogger.Instance);
+        var response = "{\"state\": \"finished\", \"finished_at\": \"2026-07-13T06:56:10.000Z\", \"exectime_ms\": 2500}";
+        
+        var results = convertor.ReadParametersFromResponse(null, response).ToList();
+        
+        Assert.Single(results);
+        var task = results[0];
+        Assert.Equal(TaskState.Finished, task.State);
+        Assert.Equal(new System.DateTime(2026, 7, 13, 6, 56, 10, System.DateTimeKind.Utc), task.EndTime);
+        Assert.Equal(new System.DateTime(2026, 7, 13, 6, 56, 7, 500, System.DateTimeKind.Utc), task.StartTime);
+    }
+
+    [Fact]
+    public void ReadParametersFromResponse_ExecTimeMsString_CalculatesStartTime()
+    {
+        var convertor = new QSchedulerDataConvertor(NullLogger.Instance);
+        var response = "{\"state\": \"finished\", \"finished_at\": \"2026-07-13T06:56:10.000Z\", \"exectime_ms\": \"1500\"}";
+        
+        var results = convertor.ReadParametersFromResponse(null, response).ToList();
+        
+        Assert.Single(results);
+        var task = results[0];
+        Assert.Equal(TaskState.Finished, task.State);
+        Assert.Equal(new System.DateTime(2026, 7, 13, 6, 56, 10, System.DateTimeKind.Utc), task.EndTime);
+        Assert.Equal(new System.DateTime(2026, 7, 13, 6, 56, 8, 500, System.DateTimeKind.Utc), task.StartTime);
+    }
 }
 

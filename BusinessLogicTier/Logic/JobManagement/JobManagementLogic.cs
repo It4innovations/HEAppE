@@ -563,13 +563,43 @@ internal class JobManagementLogic : IJobManagementLogic
                 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, associatedProject, _sshCertificateAuthorityService, cluster.UpdateJobStateByServiceAccount.Value ? null : spec.Submitter.Id, _expirioService, _expirioToken, _logger);
-
-                _logger.LogInformation($"Requesting state for a bulk batch of {tasksList.Count} tasks on cluster {cluster.Name} using account {account?.Username}");
                 
-                var states = await scheduler.GetActualTasksInfoAsync(tasksList, account, null, null);
-                if (states != null)
+                var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+                var tasksToQuery = new List<SubmittedTaskInfo>();
+
+                foreach (var task in tasksList)
                 {
-                    groupTasksResult.AddRange(states);
+                    if (callbackEnabled)
+                    {
+                        // Bypass active polling: preserve current state and add directly to groupTasksResult
+                        _logger.LogDebug($"Callback is configured for cluster {cluster.Name}. Bypassing active polling for task {task.ScheduledJobId}. State remains: {task.State}");
+                        groupTasksResult.Add(new SubmittedTaskInfo
+                        {
+                            Id = task.Id,
+                            ScheduledJobId = task.ScheduledJobId,
+                            State = task.State,
+                            ErrorMessage = task.ErrorMessage,
+                            StartTime = task.StartTime,
+                            EndTime = task.EndTime,
+                            AllocatedTime = task.AllocatedTime,
+                            AllParameters = task.AllParameters
+                        });
+                    }
+                    else
+                    {
+                        tasksToQuery.Add(task);
+                    }
+                }
+
+                if (tasksToQuery.Any())
+                {
+                    _logger.LogInformation($"Requesting state for a bulk batch of {tasksToQuery.Count} tasks on cluster {cluster.Name} using account {account?.Username}");
+                    var states = await scheduler.GetActualTasksInfoAsync(tasksToQuery, account, null, null);
+                    if (states != null)
+                    {
+                        groupTasksResult.AddRange(states);
+                    }
                 }
 
                 var missingTasks = tasksList
@@ -612,30 +642,91 @@ internal class JobManagementLogic : IJobManagementLogic
                             continue;
                         }
 
-                        // QScheduler callback timeout protection: If callback is enabled and the task is stuck,
+                        // Callback timeout protection: If callback is enabled and the task is stuck,
                         // mark it as Failed if time since submission exceeds 3x the walltime limit.
-                        bool isQScheduler = cluster.SchedulerType == SchedulerType.QScheduler;
-                        if (isQScheduler)
-                        {
-                            bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
-                                                    cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
-                                                    inVault) || 
-                                                   (cluster.CustomConfiguration != null && 
-                                                    cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
-                                                    !string.IsNullOrEmpty(token));
+                        var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+                        bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
 
-                            if (callbackEnabled && submittedJob.SubmitTime.HasValue)
+                        if (callbackEnabled && submittedJob.SubmitTime.HasValue)
+                        {
+                            var elapsedSeconds = DateTime.UtcNow.Subtract(submittedJob.SubmitTime.Value).TotalSeconds;
+                            var walltimeLimit = submittedTask.Specification.WalltimeLimit;
+                            if (walltimeLimit > 0 && elapsedSeconds > 3 * walltimeLimit)
                             {
-                                var elapsedSeconds = DateTime.UtcNow.Subtract(submittedJob.SubmitTime.Value).TotalSeconds;
-                                var walltimeLimit = submittedTask.Specification.WalltimeLimit;
-                                if (walltimeLimit > 0 && elapsedSeconds > 3 * walltimeLimit)
+                                bool shouldQueryBeforeFailing = !item.Project.IsOneToOneMapping;
+
+                                if (shouldQueryBeforeFailing)
                                 {
-                                    _logger.LogWarning($"QScheduler task {submittedTask.Id} (Job {submittedJob.Id}) exceeded 3x walltime limit with callback enabled. Marking as Failed.");
-                                    submittedTask.State = TaskState.Failed;
-                                    submittedTask.ErrorMessage = "Task timed out (exceeded 3x walltime limit with callback enabled).";
-                                    isNeedUpdateJobState = true;
-                                    continue;
+                                    _logger.LogWarning($"{cluster.SchedulerType} task {submittedTask.Id} (Job {submittedJob.Id}) exceeded 3x walltime limit with callback enabled (project without 1:1 user mapping). Actively querying status before failing.");
+                                    int retryCount = 3;
+                                    int delayMs = 1000;
+                                    SubmittedTaskInfo? updatedTask = null;
+                                    bool querySucceeded = false;
+
+                                    for (int i = 0; i < retryCount; i++)
+                                    {
+                                        try
+                                        {
+                                            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                                                .CreateScheduler(cluster, submittedJob.Project, _sshCertificateAuthorityService, cluster.UpdateJobStateByServiceAccount.Value ? null : submittedJob.Submitter?.Id, _expirioService, _expirioToken, _logger);
+                                            
+                                            submittedTask.ForceStatusQuery = true;
+                                            var activeStates = await scheduler.GetActualTasksInfoAsync(new List<SubmittedTaskInfo> { submittedTask }, account, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                                            updatedTask = activeStates?.FirstOrDefault();
+                                            querySucceeded = true;
+                                            break;
+                                        }
+                                        catch (Exception queryEx)
+                                        {
+                                            _logger.LogError(queryEx, $"Failed to query {cluster.SchedulerType} task {submittedTask.Id} status after 3x walltime timeout. Attempt {i + 1} of {retryCount}.");
+                                            if (i == retryCount - 1)
+                                            {
+                                                break;
+                                            }
+                                            await Task.Delay(delayMs);
+                                            delayMs *= 2;
+                                        }
+                                    }
+
+                                    if (querySucceeded)
+                                    {
+                                        if (updatedTask != null && updatedTask.State >= TaskState.Finished)
+                                        {
+                                            _logger.LogInformation($"{cluster.SchedulerType} task {submittedTask.Id} status check succeeded and task finished/failed: state={updatedTask.State}. Updating state instead of forcing failure.");
+                                            submittedTask.State = updatedTask.State;
+                                            submittedTask.ErrorMessage = updatedTask.ErrorMessage ?? submittedTask.ErrorMessage;
+                                            submittedTask.StartTime = updatedTask.StartTime ?? submittedTask.StartTime;
+                                            submittedTask.EndTime = updatedTask.EndTime ?? submittedTask.EndTime;
+                                            isNeedUpdateJobState = true;
+                                            continue;
+                                        }
+                                        else if (updatedTask != null && updatedTask.State > TaskState.Submitted)
+                                        {
+                                            _logger.LogInformation($"{cluster.SchedulerType} task {submittedTask.Id} status check succeeded and task is in state={updatedTask.State}. Keeping task alive.");
+                                            submittedTask.State = updatedTask.State;
+                                            submittedTask.StartTime = updatedTask.StartTime ?? submittedTask.StartTime;
+                                            isNeedUpdateJobState = true;
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            _logger.LogWarning($"{cluster.SchedulerType} task {submittedTask.Id} status query returned state={updatedTask?.State} or null. Marking as Failed.");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _logger.LogError($"Failed to query {cluster.SchedulerType} task {submittedTask.Id} status after all {retryCount} attempts. Marking as Failed.");
+                                    }
                                 }
+                                else
+                                {
+                                    _logger.LogWarning($"{cluster.SchedulerType} task {submittedTask.Id} (Job {submittedJob.Id}) exceeded 3x walltime limit and is in a project with 1:1 user mapping. Marking as Failed immediately.");
+                                }
+
+                                submittedTask.State = TaskState.Failed;
+                                submittedTask.ErrorMessage = "Task timed out (exceeded 3x walltime limit with callback enabled).";
+                                isNeedUpdateJobState = true;
+                                continue;
                             }
                         }
                        
@@ -1713,10 +1804,7 @@ internal class JobManagementLogic : IJobManagementLogic
             else if (result.TargetState >= TaskState.Finished)
             {
                 dbTask.EndTime = result.EndTime ?? DateTime.UtcNow;
-                if (dbTask.StartTime == null)
-                {
-                    dbTask.StartTime = result.StartTime ?? jobInfo.SubmitTime ?? DateTime.UtcNow;
-                }
+                dbTask.StartTime = result.StartTime ?? dbTask.StartTime ?? jobInfo.SubmitTime ?? DateTime.UtcNow;
             }
 
             UpdateJobStateByTasks(jobInfo);

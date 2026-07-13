@@ -534,14 +534,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             {
                 var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
                 
-                bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
-                                        cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
-                                        inVault) || 
-                                       (cluster.CustomConfiguration != null && 
-                                        cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
-                                        !string.IsNullOrEmpty(token));
+                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
 
-                if (callbackEnabled && !taskInfo.ForceSessionSubmit)
+                if (callbackEnabled && !taskInfo.ForceSessionSubmit && !taskInfo.ForceStatusQuery)
                 {
                     _logger.LogDebug($"Callback is configured. Bypassing active polling for session {sessionId}.");
                     results.Add(taskInfo);
@@ -612,15 +607,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         : taskInfo.ScheduledJobId;
                 }
 
-                // Check if callback token is configured
-                bool callbackEnabled = (cluster.CustomConfigurationVaultToggles != null && 
-                                        cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool inVault) && 
-                                        inVault) || 
-                                       (cluster.CustomConfiguration != null && 
-                                        cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out var token) && 
-                                        !string.IsNullOrEmpty(token));
+                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
 
-                if (callbackEnabled)
+                if (callbackEnabled && !taskInfo.ForceStatusQuery)
                 {
                     // Bypass active SSH polling - just keep current DB state!
                     _logger.LogDebug($"Callback is configured. Bypassing active polling for task {taskId}. State remains: {taskInfo.State}");
