@@ -367,6 +367,9 @@ public class MiddlewareContext : DbContext
             .HasIndex(t => t.ScheduledJobId)
             .HasFilter("[ScheduledJobId] IS NOT NULL");
 
+        modelBuilder.Entity<QSchedulerSession>()
+            .HasIndex(s => s.SessionId);
+
         modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
             .HasIndex("ClusterAuthenticationCredentialsId");
 
