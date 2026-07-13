@@ -19,6 +19,7 @@ public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
     ResourceConsumed GetResourceConsumed(long taskId);
     Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId);
     Task<List<SubmittedTaskInfo>> GetTasksByScheduledJobIdAsync(string scheduledJobId);
+    Task<List<SubmittedTaskInfo>> GetTasksByQSchedulerSessionIdAsync(long sessionId);
 
     /// <summary>
     /// Returns only the current State of a task read directly from the database,

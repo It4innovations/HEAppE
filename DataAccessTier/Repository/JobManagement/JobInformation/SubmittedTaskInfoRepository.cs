@@ -296,6 +296,22 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .ToListAsync();
     }
 
+    public async Task<List<SubmittedTaskInfo>> GetTasksByQSchedulerSessionIdAsync(long sessionId)
+    {
+        var prefix1 = $"session:{sessionId}";
+        var prefix2 = $"session:{sessionId}:";
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Where(t => t.ScheduledJobId == prefix1 || t.ScheduledJobId.StartsWith(prefix2))
+            .ToListAsync();
+    }
+
     /// <inheritdoc/>
     public async Task<TaskState?> GetCurrentTaskStateAsync(long taskId)
     {

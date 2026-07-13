@@ -70,6 +70,13 @@ internal class JobManagementLogic : IJobManagementLogic
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
     private readonly IExpirioService _expirioService;
+    private readonly Dictionary<SchedulerType, Callbacks.ISchedulerCallbackHandler> _callbackHandlers;
+
+    internal ISshCertificateAuthorityService SshCertificateAuthorityService => _sshCertificateAuthorityService;
+    internal IExpirioService ExpirioService => _expirioService;
+    internal string ExpirioToken => _expirioToken;
+    internal IHttpContextKeys HttpContextKeys => _httpContextKeys;
+
     internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                 IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
@@ -83,7 +90,18 @@ internal class JobManagementLogic : IJobManagementLogic
         _userOrgService = userOrgService;
         _logger = logger;
         _expirioService = expirioService;
+
+        _callbackHandlers = new Dictionary<SchedulerType, Callbacks.ISchedulerCallbackHandler>
+        {
+            { SchedulerType.QScheduler, new Callbacks.QSchedulerCallbackHandler(unitOfWork, logger, this) },
+            { SchedulerType.Slurm, new Callbacks.DefaultCallbackHandler(this, logger) },
+            { SchedulerType.PbsPro, new Callbacks.DefaultCallbackHandler(this, logger) },
+            { SchedulerType.LinuxLocal, new Callbacks.DefaultCallbackHandler(this, logger) },
+            { SchedulerType.HyperQueue, new Callbacks.DefaultCallbackHandler(this, logger) },
+            { SchedulerType.FirecRestSlurm, new Callbacks.DefaultCallbackHandler(this, logger) }
+        };
     }
+
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,
         bool isExtraLong)
@@ -979,7 +997,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return result;
     }
 
-    protected static bool UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
+    internal static bool UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
     {
         // TODO: review this method
         dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
@@ -1625,98 +1643,18 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             if (scheduledJobId.StartsWith("session:"))
             {
-                if (long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
-                {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-                    if (dbSession != null)
-                    {
-                        var targetCluster = await _unitOfWork.ClusterRepository.GetByIdAsync(dbSession.ClusterId);
-                        if (targetCluster != null)
-                        {
-                            // Authenticate using the cluster callback token
-                            bool isAuthenticated = false;
-                            bool toggled = targetCluster.CustomConfigurationVaultToggles != null &&
-                                           targetCluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
-                                           toggledValue;
-                            bool storeInVault = toggled;
-
-                            string? expectedToken = null;
-                            if (storeInVault)
-                            {
-                                var vaultConnector = new VaultConnector(_logger);
-                                expectedToken = await vaultConnector.GetClusterSecretAsync(targetCluster.Id, "QSchedulerNotifyToken");
-                            }
-                            else
-                            {
-                                if (targetCluster.CustomConfiguration != null && targetCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
-                                {
-                                    // expectedToken populated
-                                }
-                            }
-
-                            if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
-                            {
-                                isAuthenticated = true;
-                            }
-
-                            if (!isAuthenticated)
-                            {
-                                throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
-                            }
-
-                            // Token is valid! Update the session state!
-                            var oldState = dbSession.State;
-                            var newState = oldState;
-                            if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
-                                string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
-                            {
-                                newState = QSchedulerSessionState.Open;
-                            }
-                            else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
-                            {
-                                newState = QSchedulerSessionState.Closed;
-                                dbSession.ClosedAt = DateTime.UtcNow;
-                            }
-                            else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
-                            {
-                                newState = QSchedulerSessionState.Waiting;
-                            }
-
-                            if (dbSession.State != newState)
-                            {
-                                dbSession.State = newState;
-                                await _unitOfWork.SaveAsync();
-
-                                var stateStr = newState == QSchedulerSessionState.Open ? "Open" : 
-                                               newState == QSchedulerSessionState.Closed ? "Closed" : "Waiting";
-
-                                await PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
-                                {
-                                    sessionId = scheduledJobId,
-                                    state = stateStr
-                                });
-                            }
-
-                            return 0; // Return dummy job ID
-                        }
-                    }
-                }
+                var sessionHandler = _callbackHandlers[SchedulerType.QScheduler];
+                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState);
             }
 
-            // Race condition guard: QScheduler sends the session callback (session:X -> opened) immediately
-            // after creating the session, which can arrive before CreateAndSubmitQSchedulerJob commits its
-            // transaction and saves the ScheduledJobId to the DB. In this case both the task lookup and
-            // QSchedulerSession lookup return null. We return 0 (success) to acknowledge the callback
-            // gracefully so QScheduler doesn't retry indefinitely. The session state will be driven
-            // by the task's ScheduledJobId once the submit transaction completes.
-            _logger.LogWarning($"ProcessTaskCallbackAsync: Session callback received for '{scheduledJobId}' but no matching task or session found in DB. " +
-                               $"This may be a race condition (callback arrived before submit transaction committed). Acknowledging with success.");
+            _logger.LogWarning($"ProcessTaskCallbackAsync: Session callback received for '{scheduledJobId}' but no matching task or session found in DB. Acknowledging with success.");
             return 0;
         }
 
         SubmittedTaskInfo? dbTask = null;
         SubmittedJobInfo? jobInfo = null;
         Cluster? cluster = null;
+        Callbacks.ISchedulerCallbackHandler? handler = null;
 
         foreach (var candidate in candidates)
         {
@@ -1724,244 +1662,60 @@ internal class JobManagementLogic : IJobManagementLogic
             if (job == null) continue;
 
             var currentCluster = job.Specification.Cluster;
-            bool isAuthenticated = false;
-
-            if (currentCluster.SchedulerType == SchedulerType.QScheduler)
+            if (_callbackHandlers.TryGetValue(currentCluster.SchedulerType, out var currentHandler))
             {
-                bool toggled = currentCluster.CustomConfigurationVaultToggles != null &&
-                               currentCluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
-                               toggledValue;
-                bool storeInVault = toggled;
-
-                string? expectedToken = null;
-                if (storeInVault)
+                bool isAuthenticated = await currentHandler.AuthenticateTaskCallbackAsync(token, candidate, job, currentCluster);
+                if (isAuthenticated)
                 {
-                    var vaultConnector = new VaultConnector(_logger);
-                    expectedToken = await vaultConnector.GetClusterSecretAsync(currentCluster.Id, "QSchedulerNotifyToken");
+                    dbTask = candidate;
+                    jobInfo = job;
+                    cluster = currentCluster;
+                    handler = currentHandler;
+                    break;
                 }
-                else
-                {
-                    if (currentCluster.CustomConfiguration != null && currentCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
-                    {
-                        // expectedToken populated
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
-                {
-                    isAuthenticated = true;
-                }
-            }
-            else
-            {
-                string? masterKey = await GetMasterCallbackTokenAsync(currentCluster);
-                if (!string.IsNullOrEmpty(masterKey))
-                {
-                    string expectedToken = ComputeHmac(masterKey, candidate.Id.ToString());
-                    if (expectedToken == token)
-                    {
-                        isAuthenticated = true;
-                    }
-                }
-            }
-
-            if (isAuthenticated)
-            {
-                dbTask = candidate;
-                jobInfo = job;
-                cluster = currentCluster;
-                break;
             }
         }
 
-        if (dbTask == null || jobInfo == null || cluster == null)
+        if (dbTask == null || jobInfo == null || cluster == null || handler == null)
         {
             throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
         }
 
-        // 3. Prepare rawPayload
-        string? rawPayload = rawResponse;
-        if (cluster.SchedulerType == SchedulerType.QScheduler && !string.IsNullOrEmpty(qSchedulerState))
+        var result = await handler.ProcessTaskCallbackAsync(rawResponse, qSchedulerState, dbTask, jobInfo, cluster);
+        if (result.Handled)
         {
-            rawPayload = $"{{\"state\":\"{qSchedulerState.ToLower()}\"}}";
+            return result.JobId;
         }
 
-        if (string.IsNullOrEmpty(rawPayload))
-        {
-            throw new ArgumentException("Callback raw response is empty.");
-        }
-
-        // If the task belongs to a QScheduler session and we receive a session event callback,
-        // update the session state and trigger actions if it becomes open.
-        if (cluster.SchedulerType == SchedulerType.QScheduler && dbTask.ScheduledJobId.StartsWith("session:"))
-        {
-            if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
-                string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation($"Callback event 'open/opened' received for QScheduler session '{dbTask.ScheduledJobId}'. Triggering task submission.");
-                
-                var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
-                var previousJobState = jobInfo.State;
-
-                ClusterAuthenticationCredentials credentials;
-                if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-                {
-                    credentials = jobInfo.Specification.ClusterUser;
-                }
-                else
-                {
-                    credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                        jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
-                }
-
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, dbTask.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
-                
-                var tasksToUpdate = jobInfo.Tasks.Where(t => t.ScheduledJobId == dbTask.ScheduledJobId).ToList();
-                tasksToUpdate.ForEach(t => t.ForceSessionSubmit = true);
-                var updatedTasks = await scheduler.GetActualTasksInfoAsync(tasksToUpdate, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
-                
-                foreach (var updated in updatedTasks)
-                {
-                    var t = jobInfo.Tasks.FirstOrDefault(x => x.Id == updated.Id);
-                    if (t != null)
-                    {
-                        t.ScheduledJobId = updated.ScheduledJobId;
-                        t.State = updated.State;
-                        t.ErrorMessage = updated.ErrorMessage;
-                    }
-                }
-                
-                // Update session state in DB to Open
-                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
-                {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Open)
-                    {
-                        dbSession.State = QSchedulerSessionState.Open;
-                    }
-                }
-                
-                UpdateJobStateByTasks(jobInfo);
-                await _unitOfWork.SaveAsync();
-                JobCacheManager.InvalidateJobCache(jobInfo.Id);
-                await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
-
-                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
-                {
-                    sessionId = dbTask.ScheduledJobId,
-                    state = "Open"
-                });
-
-                await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
-
-                return jobInfo.Id;
-            }
-            else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation($"Callback event 'closed' received for QScheduler session '{dbTask.ScheduledJobId}'. Closing session and failing unfinished tasks.");
-                
-                var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
-                var previousJobState = jobInfo.State;
-
-                // Update session state in DB to Closed
-                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
-                {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Closed)
-                    {
-                        dbSession.State = QSchedulerSessionState.Closed;
-                        dbSession.ClosedAt = DateTime.UtcNow;
-                    }
-                }
-
-                // Fail all candidate tasks that belong to this session but haven't finished yet
-                var sessionTasks = jobInfo.Tasks.Where(t => t.ScheduledJobId.StartsWith(dbTask.ScheduledJobId)).ToList();
-                foreach (var st in sessionTasks)
-                {
-                    if (st.State < TaskState.Finished)
-                    {
-                        st.State = TaskState.Failed;
-                        st.ErrorMessage = "Session closed in QScheduler.";
-                    }
-                }
-                
-                UpdateJobStateByTasks(jobInfo);
-                await _unitOfWork.SaveAsync();
-                JobCacheManager.InvalidateJobCache(jobInfo.Id);
-
-                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
-                {
-                    sessionId = dbTask.ScheduledJobId,
-                    state = "Closed"
-                });
-
-                await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
-
-                return jobInfo.Id;
-            }
-            else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation($"Callback event 'waiting' received for QScheduler session '{dbTask.ScheduledJobId}'. Updating DB to Waiting state.");
-                
-                // Update session state in DB to Waiting
-                if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
-                {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Waiting)
-                    {
-                        dbSession.State = QSchedulerSessionState.Waiting;
-                        await _unitOfWork.SaveAsync();
-                        JobCacheManager.InvalidateJobCache(jobInfo.Id);
-                    }
-                }
-
-                await PublishEventAsync(jobInfo.Specification.Submitter.Id, "org.heappe.session.state-changed", "/heappe/sessions", new
-                {
-                    sessionId = dbTask.ScheduledJobId,
-                    state = "Waiting"
-                });
-
-                return jobInfo.Id;
-            }
-        }
-
-        // 4. Parse state via converter
-        var convertor = SchedulerFactory.GetInstance(cluster.SchedulerType).GetDataConvertor(_logger);
-        var parsedTasks = convertor.ReadParametersFromResponse(cluster, rawPayload);
-        var parsedTaskInfo = parsedTasks?.FirstOrDefault();
-
-        if (parsedTaskInfo == null)
-        {
-            throw new Exception("Failed to parse callback payload using the cluster data convertor.");
-        }
-
-        // 5. Update task state in DB and aggregate job status
-        if (parsedTaskInfo.State != TaskState.Unknown && dbTask.State < TaskState.Finished)
+        if (result.TargetState != TaskState.Unknown && dbTask.State < TaskState.Finished)
         {
             var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
             var previousJobState = jobInfo.State;
 
-            dbTask.State = parsedTaskInfo.State;
-            dbTask.ErrorMessage = parsedTaskInfo.ErrorMessage;
-            dbTask.Reason = parsedTaskInfo.Reason;
-            dbTask.AllParameters = parsedTaskInfo.AllParameters;
+            dbTask.State = result.TargetState;
+            dbTask.ErrorMessage = result.ErrorMessage ?? dbTask.ErrorMessage;
+            dbTask.Reason = result.Reason ?? dbTask.Reason;
+            dbTask.AllParameters = result.AllParameters ?? dbTask.AllParameters;
+            dbTask.AllocatedTime = result.AllocatedTime ?? dbTask.AllocatedTime;
             
-            // Set start/end times dynamically based on task state transition
-            if (parsedTaskInfo.State == TaskState.Running)
+            if (result.TargetState == TaskState.Running)
             {
-                dbTask.StartTime = parsedTaskInfo.StartTime ?? DateTime.UtcNow;
+                dbTask.StartTime = result.StartTime ?? dbTask.StartTime ?? DateTime.UtcNow;
             }
-            else if (parsedTaskInfo.State >= TaskState.Finished)
+            else if (result.TargetState >= TaskState.Finished)
             {
-                dbTask.EndTime = DateTime.UtcNow;
+                dbTask.EndTime = result.EndTime ?? DateTime.UtcNow;
+                if (dbTask.StartTime == null)
+                {
+                    dbTask.StartTime = result.StartTime ?? jobInfo.SubmitTime ?? DateTime.UtcNow;
+                }
             }
 
             UpdateJobStateByTasks(jobInfo);
 
             await _unitOfWork.SaveAsync();
             JobCacheManager.InvalidateJobCache(jobInfo.Id);
-            await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
+            await handler.PostProcessCallbackAsync(dbTask, jobInfo, cluster);
 
             await PublishStateChangesAsync(jobInfo, previousTaskStates, previousJobState);
         }
@@ -1969,7 +1723,8 @@ internal class JobManagementLogic : IJobManagementLogic
         return jobInfo.Id;
     }
 
-    private async Task CheckAndCloseQSchedulerSessionsAsync(SubmittedJobInfo jobInfo)
+
+    internal async Task CheckAndCloseQSchedulerSessionsAsync(SubmittedJobInfo jobInfo)
     {
         if (jobInfo?.Specification?.Cluster?.SchedulerType != SchedulerType.QScheduler)
         {
@@ -2003,14 +1758,13 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
 
-        foreach (var sessionId in sessionsToCheck)
+        foreach (var sessionIdStr in sessionsToCheck)
         {
-            var sessionTasks = jobInfo.Tasks.Where(t =>
-                !string.IsNullOrEmpty(t.ScheduledJobId) &&
-                (t.ScheduledJobId == $"session:{sessionId}" || t.ScheduledJobId.StartsWith($"session:{sessionId}:"))
-            ).ToList();
+            if (long.TryParse(sessionIdStr, out var sessionId))
+            {
+                var sessionTasks = await _unitOfWork.SubmittedTaskInfoRepository.GetTasksByQSchedulerSessionIdAsync(sessionId);
 
-            if (sessionTasks.Any() && sessionTasks.All(t => IsFinalTaskState(t.State)))
+                if (sessionTasks.Any() && sessionTasks.All(t => IsFinalTaskState(t.State)))
             {
                 _logger.LogInformation($"All tasks in QScheduler session '{sessionId}' have completed. Closing session.");
                 try
@@ -2052,6 +1806,7 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
     }
+}
 
     private static bool IsFinalTaskState(TaskState state)
     {
@@ -2061,7 +1816,7 @@ internal class JobManagementLogic : IJobManagementLogic
                state == TaskState.Deleted;
     }
 
-    private async Task PublishStateChangesAsync(SubmittedJobInfo jobInfo, Dictionary<long, TaskState> previousTaskStates, JobState previousJobState)
+    internal async Task PublishStateChangesAsync(SubmittedJobInfo jobInfo, Dictionary<long, TaskState> previousTaskStates, JobState previousJobState)
     {
         if (jobInfo == null) return;
         var userId = jobInfo.Specification.Submitter.Id;
@@ -2093,7 +1848,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
-    private async Task PublishEventAsync(long userId, string eventType, string source, object data)
+    internal async Task PublishEventAsync(long userId, string eventType, string source, object data)
     {
         try
         {
@@ -2260,7 +2015,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return authorizedSessions;
     }
 
-    private async Task<string?> GetMasterCallbackTokenAsync(Cluster cluster)
+    internal async Task<string?> GetMasterCallbackTokenAsync(Cluster cluster)
     {
         string? token = null;
 
@@ -2302,7 +2057,7 @@ internal class JobManagementLogic : IJobManagementLogic
         return null;
     }
 
-    private static string ComputeHmac(string key, string message)
+    internal static string ComputeHmac(string key, string message)
     {
         var keyBytes = Encoding.UTF8.GetBytes(key);
         var messageBytes = Encoding.UTF8.GetBytes(message);
