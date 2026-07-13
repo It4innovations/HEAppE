@@ -44,24 +44,6 @@ public class JsonStringOrNumberConverter : JsonConverter<string>
 public class TaskCallbackModel
 {
     /// <summary>
-    /// Task ID in the scheduler (ScheduledJobId)
-    /// </summary>
-    [DataMember(Name = "task_id")]
-    [JsonPropertyName("task_id")]
-    [JsonConverter(typeof(JsonStringOrNumberConverter))]
-    [StringLength(100)]
-    public string? ScheduledJobId { get; set; }
-
-    /// <summary>
-    /// Session ID in QScheduler
-    /// </summary>
-    [DataMember(Name = "session_id")]
-    [JsonPropertyName("session_id")]
-    [JsonConverter(typeof(JsonStringOrNumberConverter))]
-    [StringLength(100)]
-    public string? SessionId { get; set; }
-
-    /// <summary>
     /// Security token (CallbackSecret or machine token)
     /// </summary>
     [DataMember(Name = "token")]
@@ -69,20 +51,6 @@ public class TaskCallbackModel
     [Required]
     [StringLength(100)]
     public string Token { get; set; }
-
-    /// <summary>
-    /// Raw payload response for DataConverter parser (optional)
-    /// </summary>
-    [DataMember(Name = "raw_response")]
-    [JsonPropertyName("raw_response")]
-    public string? RawResponse { get; set; }
-
-    /// <summary>
-    /// State string from QScheduler (optional, e.g. finished, failed...)
-    /// </summary>
-    [DataMember(Name = "state")]
-    [JsonPropertyName("state")]
-    public string? QSchedulerState { get; set; }
 
     /// <summary>
     /// Callback event type (optional, e.g. task, session)

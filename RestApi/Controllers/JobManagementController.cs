@@ -320,44 +320,20 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Invalid callback payload. Token is required.");
         }
 
-        string? scheduledJobId = model.ScheduledJobId;
-        string? sessionId = model.SessionId;
-        string? qSchedulerState = model.QSchedulerState;
-        string? rawResponse = model.RawResponse;
-
-        // If nested QScheduler properties are present, resolve them
-        if (string.IsNullOrEmpty(scheduledJobId) && string.IsNullOrEmpty(sessionId))
+        string? id = model.GetTaskOrSessionId();
+        if (string.IsNullOrEmpty(id))
         {
-            var nestedId = model.GetTaskOrSessionId();
-            if (model.TaskElement != null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
-            {
-                scheduledJobId = nestedId;
-            }
-            else if (model.SessionElement != null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
-            {
-                sessionId = nestedId;
-            }
+            return BadRequest("Invalid callback payload. task or session object with a valid id is required.");
         }
 
-        if (string.IsNullOrEmpty(qSchedulerState))
+        string scheduledJobId = id;
+        if (model.SessionElement != null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
         {
-            qSchedulerState = model.GetState();
+            scheduledJobId = $"session:{id}";
         }
 
-        if (string.IsNullOrEmpty(rawResponse))
-        {
-            rawResponse = model.GetRawResponse();
-        }
-
-        if (string.IsNullOrEmpty(scheduledJobId) && !string.IsNullOrEmpty(sessionId))
-        {
-            scheduledJobId = $"session:{sessionId}";
-        }
-
-        if (string.IsNullOrEmpty(scheduledJobId))
-        {
-            return BadRequest("Invalid callback payload. task_id or session_id is required.");
-        }
+        string? qSchedulerState = model.GetState();
+        string? rawResponse = model.GetRawResponse();
 
         await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, rawResponse, qSchedulerState);
         return Ok("Task status updated successfully.");
