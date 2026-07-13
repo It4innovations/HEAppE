@@ -641,6 +641,14 @@ public class JobManagementService : IJobManagementService
             var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, _expirioService);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var allSessions = await unitOfWork.QSchedulerSessionRepository.ListSessionsAsync(loggedUser.Id, null, null, null);
+            var matching = allSessions.Where(s => s.SessionId == sessionId).ToList();
+            _logger.LogInformation($"[DIAGNOSTIC] Found {matching.Count} sessions with SessionId={sessionId} for user {loggedUser.Id}:");
+            foreach (var s in matching)
+            {
+                _logger.LogInformation($"[DIAGNOSTIC]   Id={s.Id}, SessionId={s.SessionId}, State={s.State}, CreatedAt={s.CreatedAt:O}, ClosedAt={s.ClosedAt:O}");
+            }
+
             var session = await jobLogic.GetQSchedulerSessionInfoAsync(sessionId, loggedUser);
             return new QSchedulerSessionInfoExt
             {
