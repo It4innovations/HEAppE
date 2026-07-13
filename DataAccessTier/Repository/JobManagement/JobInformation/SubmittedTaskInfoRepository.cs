@@ -282,7 +282,20 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     {
         var taskPrefix = $"task:{scheduledJobId}";
         var taskSuffix = $":task:{scheduledJobId}";
-        return await _dbSet
+
+        HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession? newestSession = null;
+        if (scheduledJobId.StartsWith("session:"))
+        {
+            var parts = scheduledJobId.Split(':');
+            if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
+            {
+                newestSession = await _context.Set<HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession>()
+                    .OrderByDescending(s => s.Id)
+                    .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+            }
+        }
+
+        var query = _dbSet
             .AsSplitQuery()
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
@@ -292,15 +305,29 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Submitter)
-            .Where(t => (t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix)) && t.State < TaskState.Finished)
-            .ToListAsync();
+            .Where(t => (t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix)) && t.State < TaskState.Finished);
+
+        if (newestSession != null)
+        {
+            query = query.Where(t => _context.Set<SubmittedJobInfo>()
+                .Any(j => j.Id == EF.Property<long>(t, "SubmittedJobInfoId") && 
+                          j.SubmitTime != null && 
+                          j.SubmitTime >= newestSession.CreatedAt.AddSeconds(-10)));
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<List<SubmittedTaskInfo>> GetTasksByQSchedulerSessionIdAsync(long sessionId)
     {
+        var newestSession = await _context.Set<HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession>()
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+
         var prefix1 = $"session:{sessionId}";
         var prefix2 = $"session:{sessionId}:";
-        return await _dbSet
+
+        var query = _dbSet
             .AsSplitQuery()
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
@@ -308,8 +335,17 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Submitter)
-            .Where(t => t.ScheduledJobId == prefix1 || t.ScheduledJobId.StartsWith(prefix2))
-            .ToListAsync();
+            .Where(t => t.ScheduledJobId == prefix1 || t.ScheduledJobId.StartsWith(prefix2));
+
+        if (newestSession != null)
+        {
+            query = query.Where(t => _context.Set<SubmittedJobInfo>()
+                .Any(j => j.Id == EF.Property<long>(t, "SubmittedJobInfoId") && 
+                          j.SubmitTime != null && 
+                          j.SubmitTime >= newestSession.CreatedAt.AddSeconds(-10)));
+        }
+
+        return await query.ToListAsync();
     }
 
     /// <inheritdoc/>
