@@ -292,7 +292,7 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.JobSpecification)
                     .ThenInclude(js => js.Submitter)
-            .Where(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix))
+            .Where(t => (t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix)) && t.State < TaskState.Finished)
             .ToListAsync();
     }
 
