@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added explicit QScheduler session control endpoints: `POST /heappe/JobManagement/OpenQSchedulerSession` and `DELETE /heappe/JobManagement/CloseQSchedulerSession`. Allows manual creation and deletion of remote QScheduler sessions. Supported submitting multiple subsequent jobs into an active session by specifying the `HEAPPE_QSCHEDULER_SESSION_ID` environment variable in task specifications.
 - Added `IdpSid` property (length 250) to `AdaptorUser` table and implemented non-breaking identity federation matching for UserOrg login with automatic migration of existing accounts.
 - Added sliding window TTL (15 minutes) for WebSocket event buffers in `HEAppEEventHub` using `IMemoryCache` to prevent memory growth for inactive users.
+- Added structured, privacy-safe JSON serialization for `JobSpecification` logs on job creation, eliminating hard-to-read multiline output and protecting user e-mails from leakage.
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).

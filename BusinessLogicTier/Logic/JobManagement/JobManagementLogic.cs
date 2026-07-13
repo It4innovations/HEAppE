@@ -1180,7 +1180,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var credentials = await clusterLogic.GetNextAvailableUserCredentials(
             specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
-        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
+        _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job: {specification.ToLogSafeJsonString()}");
 
         foreach (var task in specification.Tasks)
         {
