@@ -1656,7 +1656,9 @@ internal class JobManagementLogic : IJobManagementLogic
         Cluster? cluster = null;
         Callbacks.ISchedulerCallbackHandler? handler = null;
 
-        foreach (var candidate in candidates)
+        var sortedCandidates = candidates.OrderBy(c => c.State >= TaskState.Finished).ToList();
+
+        foreach (var candidate in sortedCandidates)
         {
             var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
             if (job == null) continue;
