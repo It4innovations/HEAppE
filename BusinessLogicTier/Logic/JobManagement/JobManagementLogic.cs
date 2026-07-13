@@ -1769,6 +1769,12 @@ internal class JobManagementLogic : IJobManagementLogic
             var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
             if (job == null) continue;
 
+            if (dbSession != null && (job.SubmitTime == null || job.SubmitTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10)))
+            {
+                _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job {job.Id} submit time ({job.SubmitTime:O}) is older than session creation time ({dbSession.CreatedAt:O}).");
+                continue;
+            }
+
             var currentCluster = job.Specification.Cluster;
             if (_callbackHandlers.TryGetValue(currentCluster.SchedulerType, out var currentHandler))
             {
