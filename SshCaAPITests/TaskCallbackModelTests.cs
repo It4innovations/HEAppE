@@ -7,6 +7,20 @@ namespace SshCaAPITests;
 public class TaskCallbackModelTests
 {
     [Fact]
+    public void TaskCallbackModel_DeserializesFlatPayloadCorrectly()
+    {
+        var json = "{\"task_id\":\"123\",\"token\":\"token123\",\"raw_response\":\"{\\\"state\\\":\\\"finished\\\"}\",\"state\":\"finished\"}";
+        var model = JsonSerializer.Deserialize<TaskCallbackModel>(json);
+
+        Assert.NotNull(model);
+        Assert.Equal("123", model.ScheduledJobId);
+        Assert.Equal("token123", model.Token);
+        Assert.Equal("{\"state\":\"finished\"}", model.RawResponse);
+        Assert.Equal("finished", model.QSchedulerState);
+        Assert.Null(model.GetTaskOrSessionId());
+    }
+
+    [Fact]
     public void TaskCallbackModel_DeserializesNestedTaskPayloadCorrectly()
     {
         var json = "{\"event\":\"task\",\"task\":{\"id\":456,\"state\":\"finished\",\"exectime_ms\":1500},\"token\":\"token123\"}";
