@@ -2020,7 +2020,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingCluster");
-        var project = await _unitOfWork.ProjectRepository.GetByIdAsync(projectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithAggregationsAsync(projectId)
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingProject");
 
         if (cluster.SchedulerType != SchedulerType.QScheduler)

@@ -171,5 +171,14 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefault(p => p.Id == id);
     }
 
+    public async Task<Project> GetByIdWithAggregationsAsync(long id)
+    {
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(p => p.ProjectClusterNodeTypeAggregations)
+                .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     #endregion
 }
