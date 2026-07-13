@@ -27,13 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added sliding window TTL (15 minutes) for WebSocket event buffers in `HEAppEEventHub` using `IMemoryCache` to prevent memory growth for inactive users.
 - Added structured, privacy-safe JSON serialization for `JobSpecification` logs on job creation, eliminating hard-to-read multiline output and protecting user e-mails from leakage.
 - Added `QSchedulerHost` custom configuration property to allow configuring the target hostname for QScheduler REST API requests (defaults to `localhost`).
+- Added support for file transfers (uploads/downloads) to QScheduler clusters when using SSH or SSHInteractive connection protocols. Includes dynamic override of HTTP/HTTPS file transfer methods to use SFTP directly to the master node filesystem, preventing invalid Firecrest and Expirio credential exchange.
+- Added robust connection error handling for QScheduler REST API: catches connection refused errors (curl exit code 7 / `HttpRequestException`) and returns a clear `UnableToCreateConnectionException` (HTTP 400 Bad Request) detailing that the QScheduler service is unreachable.
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
-- Fixed `FileTransferLogic` throwing `NotSupportedException` during file transfers for QScheduler clusters. File transfers are now supported for QScheduler clusters configured with SSH or SSHInteractive connection protocols.
-- Fixed `FileTransferLogic` resolving HTTP/HTTPS file transfer methods of QScheduler clusters to Firecrest and Expirio. When QScheduler is in SSH connection protocol mode, its transfer method is now dynamically overridden to use SFTP directly to the master node filesystem.
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols will now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
-- Fixed unhelpful connection failure errors when QScheduler service is stopped or unreachable. The adapter now catches connection refused errors (curl exit code 7 / HttpRequestException) and returns a clean `UnableToCreateConnectionException` (HTTP 400 Bad Request) detailing that the QScheduler service is unreachable.
 
 ## V6.4.4
 
