@@ -19,10 +19,10 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.9.2" />
@@ -34,6 +34,7 @@
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
+    <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
   </ItemGroup>
 
   <ItemGroup>

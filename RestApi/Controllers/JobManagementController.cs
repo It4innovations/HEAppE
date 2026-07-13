@@ -320,10 +320,38 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Invalid callback payload. Token is required.");
         }
 
-        string scheduledJobId = model.ScheduledJobId;
-        if (string.IsNullOrEmpty(scheduledJobId) && !string.IsNullOrEmpty(model.SessionId))
+        string? scheduledJobId = model.ScheduledJobId;
+        string? sessionId = model.SessionId;
+        string? qSchedulerState = model.QSchedulerState;
+        string? rawResponse = model.RawResponse;
+
+        // If nested QScheduler properties are present, resolve them
+        if (string.IsNullOrEmpty(scheduledJobId) && string.IsNullOrEmpty(sessionId))
         {
-            scheduledJobId = $"session:{model.SessionId}";
+            var nestedId = model.GetTaskOrSessionId();
+            if (model.TaskElement != null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+            {
+                scheduledJobId = nestedId;
+            }
+            else if (model.SessionElement != null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+            {
+                sessionId = nestedId;
+            }
+        }
+
+        if (string.IsNullOrEmpty(qSchedulerState))
+        {
+            qSchedulerState = model.GetState();
+        }
+
+        if (string.IsNullOrEmpty(rawResponse))
+        {
+            rawResponse = model.GetRawResponse();
+        }
+
+        if (string.IsNullOrEmpty(scheduledJobId) && !string.IsNullOrEmpty(sessionId))
+        {
+            scheduledJobId = $"session:{sessionId}";
         }
 
         if (string.IsNullOrEmpty(scheduledJobId))
@@ -331,7 +359,7 @@ public class JobManagementController : BaseController<JobManagementController>
             return BadRequest("Invalid callback payload. task_id or session_id is required.");
         }
 
-        await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, model.RawResponse, model.QSchedulerState);
+        await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, rawResponse, qSchedulerState);
         return Ok("Task status updated successfully.");
     }
 
