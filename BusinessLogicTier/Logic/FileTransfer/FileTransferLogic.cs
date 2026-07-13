@@ -616,9 +616,11 @@ public class FileTransferLogic : IFileTransferLogic
         
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
-        if (jobSpecification.Cluster.SchedulerType == SchedulerType.QScheduler)
+        if (jobSpecification.Cluster.SchedulerType == SchedulerType.QScheduler && 
+            !jobSpecification.Cluster.ConnectionProtocol.HasFlag(ClusterConnectionProtocol.Ssh) &&
+            !jobSpecification.Cluster.ConnectionProtocol.HasFlag(ClusterConnectionProtocol.SshInteractive))
         {
-            throw new NotSupportedException("File transfers are not supported for QScheduler clusters.");
+            throw new NotSupportedException("File transfers are not supported for QScheduler clusters without SSH protocol.");
         }
 
         var fileManager = FileSystemFactory.GetInstance(jobSpecification.FileTransferMethod.Protocol)

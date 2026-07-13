@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
+- Fixed `FileTransferLogic` throwing `NotSupportedException` during file transfers for QScheduler clusters. File transfers are now supported for QScheduler clusters configured with SSH or SSHInteractive connection protocols.
 
 ## V6.4.4
 
