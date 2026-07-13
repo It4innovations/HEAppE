@@ -269,10 +269,14 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case InvalidRequestException:
-            case UnableToCreateConnectionException:
                 problem.Title = "Invalid Request";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
+                break;
+            case UnableToCreateConnectionException:
+                problem.Title = "Connection Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
                 break;
             case SshException:
                 problem.Title = "SSH Problem";

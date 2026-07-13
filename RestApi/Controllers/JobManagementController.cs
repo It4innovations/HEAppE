@@ -569,7 +569,7 @@ public class JobManagementController : BaseController<JobManagementController>
                     _logger.LogError(cleanupEx, $"Cleanup of job {createdJob.Id.Value} failed after submission failure.");
                 }
             }
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Circuit payload submission failed: {submitEx.Message}");
+            throw;
         }
         finally
         {
