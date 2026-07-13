@@ -18,6 +18,8 @@ using HEAppE.RestApi.Logging;
 #pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
 using System;
 using SshCaAPI;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Exceptions.External;
 
 namespace HEAppE.DataStagingAPI.API;
 
@@ -32,6 +34,7 @@ public class DataStagingEndpoint : IApiRoute
         group.MapPost("GetFileTransferMethod", async ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
                 {
+                    CheckJobNotQScheduler(model.SubmittedJobInfoId, logger);
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
 
@@ -56,6 +59,7 @@ public class DataStagingEndpoint : IApiRoute
         group.MapPost("ProvideCredentials", async ([Validate] ProvideCredentialsModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
                 {
+                    CheckClusterNotQScheduler(model.ClusterId, logger);
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "ProvideCredentials" Parameters: "{@model}" """, model);
                     var fileTransferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
                     var result = await fileTransferService.ProvideCredentialsAsync(model.ProjectId, model.ClusterId);
@@ -75,6 +79,7 @@ public class DataStagingEndpoint : IApiRoute
                 [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                 [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
             {
+                CheckJobNotQScheduler(model.SubmittedJobInfoId, logger);
                 LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
 
@@ -101,6 +106,7 @@ public class DataStagingEndpoint : IApiRoute
                 [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                 [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
             {
+                CheckJobNotQScheduler(submittedJobInfoId, logger);
                 LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
                 var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                 validator.ValidateAndThrow(model);
@@ -126,6 +132,7 @@ public class DataStagingEndpoint : IApiRoute
                 async ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService, [FromServices] IExpirioService expirioService) =>
                 {
+                    CheckJobNotQScheduler(model.SubmittedJobInfoId, logger);
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """, model);
 
@@ -154,6 +161,7 @@ public class DataStagingEndpoint : IApiRoute
                     [FromServices] IExpirioService expirioService
                 ) =>
                 {
+                    CheckClusterNotQScheduler(clusterId, logger);
                     var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
                     validator.ValidateAndThrow(model);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
@@ -209,6 +217,7 @@ public class DataStagingEndpoint : IApiRoute
                     [FromServices] IExpirioService expirioService
                 ) =>
                 {
+                    CheckClusterNotQScheduler(clusterId, logger);
                     var model = new UploadJobScriptsToClusterProjectDirModel() { SessionCode = sessionCode };
                     validator.ValidateAndThrow(model);
                     logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """, model);
@@ -283,6 +292,30 @@ public class DataStagingEndpoint : IApiRoute
             result.Add(item);
         }
         return result;
+    }
+
+    private static void CheckJobNotQScheduler(long submittedJobInfoId, ILogger logger)
+    {
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
+        var isQScheduler = unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Where(j => j.Id == submittedJobInfoId)
+            .Select(j => j.Specification.Cluster.SchedulerType == SchedulerType.QScheduler)
+            .FirstOrDefault();
+
+        if (isQScheduler)
+        {
+            throw new NotAllowedException("DataStagingNotSupportedForQScheduler");
+        }
+    }
+
+    private static void CheckClusterNotQScheduler(long clusterId, ILogger logger)
+    {
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(logger);
+        var cluster = unitOfWork.ClusterRepository.GetById(clusterId);
+        if (cluster != null && cluster.SchedulerType == SchedulerType.QScheduler)
+        {
+            throw new NotAllowedException("DataStagingNotSupportedForQScheduler");
+        }
     }
 
     static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
