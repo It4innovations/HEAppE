@@ -10,6 +10,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
+using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
@@ -65,6 +66,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             return port;
         }
         return 3000; // default QScheduler port
+    }
+
+    private string GetQSchedulerHost(Cluster cluster)
+    {
+        if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("QSchedulerHost", out var host))
+        {
+            return host;
+        }
+        return "localhost";
     }
 
     /// <summary>
@@ -125,23 +135,35 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
             }
             
-            using var response = await client.SendAsync(request);
-            var content = await response.Content.ReadAsStringAsync();
-            
-            // Handle project creation Conflict (409) gracefully as success
-            if (response.StatusCode == System.Net.HttpStatusCode.Conflict && 
-                method.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
-                relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
+            string content;
+            HttpResponseMessage response;
+            try
             {
-                _logger.LogWarning($"Project already exists in QScheduler (409 Conflict): {content}");
-                return "CONFLICT: " + content;
+                response = await client.SendAsync(request);
+                content = await response.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new UnableToCreateConnectionException($"QScheduler service is unreachable. Connection refused to {url}. Please verify the QScheduler service is running.", ex);
             }
             
-            if (!response.IsSuccessStatusCode)
+            using (response)
             {
-                throw new QSchedulerApiException($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}", response.StatusCode, content);
+                // Handle project creation Conflict (409) gracefully as success
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict && 
+                    method.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
+                    relativeUrl.StartsWith("projects", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning($"Project already exists in QScheduler (409 Conflict): {content}");
+                    return "CONFLICT: " + content;
+                }
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new QSchedulerApiException($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}", response.StatusCode, content);
+                }
+                return content;
             }
-            return content;
         }
         else
         {
@@ -173,10 +195,23 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 dataArg = $"-H \"Content-Type: application/octet-stream\" --data-binary @{quotedPath} ";
             }
             
-            var cmd = $"curl -s -w \"\\nHTTP_STATUS:%{{http_code}}\" {methodArg}{dataArg}\"http://localhost:{port}/{relativeUrl.TrimStart('/')}\"";
+            var host = GetQSchedulerHost(cluster);
+            var cmd = $"curl -s -w \"\\nHTTP_STATUS:%{{http_code}}\" {methodArg}{dataArg}\"http://{host}:{port}/{relativeUrl.TrimStart('/')}\"";
             _logger.LogInformation($"Querying QScheduler via SSH command: \"{cmd}\"");
             
-            var commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
+            SshCommandWrapper commandResult;
+            try
+            {
+                commandResult = await SshCommandUtils.RunSshCommandAsync(connectorClient, cmd, _logger);
+            }
+            catch (SshCommandException ex)
+            {
+                if (ex.Contains("^7$"))
+                {
+                    throw new UnableToCreateConnectionException($"QScheduler service is unreachable. Connection refused to http://{host}:{port}. Please verify the QScheduler service is running and accessible from the SSH node.", ex);
+                }
+                throw;
+            }
             
             var result = commandResult.Result;
             var statusCode = 200;
