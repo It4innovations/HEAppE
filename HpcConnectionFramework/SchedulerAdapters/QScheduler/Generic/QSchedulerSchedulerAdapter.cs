@@ -251,6 +251,67 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     #region ISchedulerAdapter Members
 
+    private async Task EnsureProjectRegisteredAsync(object connectorClient, Cluster cluster, Project project)
+    {
+        if (project == null) return;
+
+        var projectName = project.AccountingString;
+        if (string.IsNullOrEmpty(projectName))
+        {
+            projectName = project.Name;
+        }
+
+        if (project.UsageType != HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
+        {
+            throw new ArgumentException($"Cannot synchronize project. Project '{project.Name}' does not have UsageType configured as QPUSeconds.");
+        }
+
+        var usageTypeName = project.UsageType.ToString();
+        var aggregations = project.ProjectClusterNodeTypeAggregations?
+            .Where(a => a.ClusterNodeTypeAggregation != null)
+            .ToList();
+
+        if (aggregations == null || !aggregations.Any())
+        {
+            throw new ArgumentException($"Cannot synchronize project. Resource allocation limit for '{usageTypeName}' node type is not configured for project '{project.Name}'.");
+        }
+
+        var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
+        var limitMs = totalAllocation * 1000;
+        _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {totalAllocation} {usageTypeName} summed from {aggregations.Count} aggregation(s)).");
+
+        var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
+        var response = await ExecuteRequestAsync(connectorClient, cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));
+
+        if (response != null && response.StartsWith("CONFLICT:", StringComparison.OrdinalIgnoreCase))
+        {
+            var cacheKey = $"{cluster.Id}:{projectName}";
+            if (!_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) || cachedLimitMs != limitMs)
+            {
+                _logger.LogInformation($"Project '{projectName}' limit changed ({cachedLimitMs} → {limitMs} ms) or not yet cached. Sending PATCH to update.");
+                var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
+                try
+                {
+                    await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                    _projectLimitCache[cacheKey] = limitMs;
+                }
+                catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning($"QScheduler does not support project PATCH (status {ex.StatusCode}). Skipping.");
+                }
+            }
+            else
+            {
+                _logger.LogDebug($"Project '{projectName}' limit unchanged ({limitMs} ms). Skipping redundant PATCH.");
+            }
+        }
+        else
+        {
+            var cacheKey = $"{cluster.Id}:{projectName}";
+            _projectLimitCache[cacheKey] = limitMs;
+        }
+    }
+
     public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
@@ -265,59 +326,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         // 1. Dynamic Project Registration
         if (jobSpecification.Project != null)
         {
-            
-            if (jobSpecification.Project.UsageType != HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
-            {
-                throw new ArgumentException($"Cannot submit job. Project '{jobSpecification.Project.Name}' does not have UsageType configured as QPUSeconds.");
-            }
-
-            var usageTypeName = jobSpecification.Project.UsageType.ToString(); // "QPUSeconds"
-            var aggregations = jobSpecification.Project.ProjectClusterNodeTypeAggregations?
-                .Where(a => a.ClusterNodeTypeAggregation != null)
-                .ToList();
-            
-            if (aggregations == null || !aggregations.Any())
-            {
-                throw new ArgumentException($"Cannot submit job. Resource allocation limit for '{usageTypeName}' node type is not configured for project '{jobSpecification.Project.Name}'.");
-            }
-            
-            var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
-            var limitMs = totalAllocation * 1000;
-            _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {totalAllocation} {usageTypeName} summed from {aggregations.Count} aggregation(s)).");
-            
-            var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
-            var response = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", "projects", Encoding.UTF8.GetBytes(projectPayload));
-            
-            if (response != null && response.StartsWith("CONFLICT:", StringComparison.OrdinalIgnoreCase))
-            {
-                // Project already exists. Only send PATCH if the limit has changed since the last
-                // known synchronization — avoids one unnecessary HTTP round-trip per submission.
-                var cacheKey = $"{jobSpecification.Cluster.Id}:{projectName}";
-                if (!_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) || cachedLimitMs != limitMs)
-                {
-                    _logger.LogInformation($"Project '{projectName}' limit changed ({cachedLimitMs} → {limitMs} ms) or not yet cached. Sending PATCH to update.");
-                    var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
-                    try
-                    {
-                        await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
-                        _projectLimitCache[cacheKey] = limitMs;
-                    }
-                    catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
-                    {
-                        _logger.LogWarning($"QScheduler does not support project PATCH (status {ex.StatusCode}). Skipping.");
-                    }
-                }
-                else
-                {
-                    _logger.LogDebug($"Project '{projectName}' limit unchanged ({limitMs} ms). Skipping redundant PATCH.");
-                }
-            }
-            else
-            {
-                // New project created successfully — seed the cache.
-                var cacheKey = $"{jobSpecification.Cluster.Id}:{projectName}";
-                _projectLimitCache[cacheKey] = limitMs;
-            }
+            await EnsureProjectRegisteredAsync(connectorClient, jobSpecification.Cluster, jobSpecification.Project);
         }
 
         // 2. Task Submission
@@ -853,10 +862,21 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return Task.FromResult<IEnumerable<SubmittedTaskInfo>>([]);
     }
 
-    public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, string project, int walltimeLimitSecs)
+    public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, Project project, int walltimeLimitSecs)
     {
+        if (project != null)
+        {
+            await EnsureProjectRegisteredAsync(connectorClient, cluster, project);
+        }
+
+        var projectName = project?.AccountingString;
+        if (string.IsNullOrEmpty(projectName))
+        {
+            projectName = project?.Name;
+        }
+
         var walltimeMs = walltimeLimitSecs * 1000;
-        var relativeUrl = $"sessions?machine={machineId}&project={project}&time_limit_ms={walltimeMs}";
+        var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
         var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl);
         var sessionIdStr = sessionResponse.Trim();
         if (!long.TryParse(sessionIdStr, out long sessionId))

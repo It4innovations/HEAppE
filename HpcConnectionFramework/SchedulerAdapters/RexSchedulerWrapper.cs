@@ -647,7 +647,7 @@ public class RexSchedulerWrapper : IRexScheduler
             var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
             try
             {
-                return await qScheduler.OpenSessionAsync(schedulerConnection.Connection, cluster, machineId, project, walltimeLimitSecs);
+                return await qScheduler.OpenSessionAsync(schedulerConnection.Connection, cluster, machineId, this.Project, walltimeLimitSecs);
             }
             finally
             {
