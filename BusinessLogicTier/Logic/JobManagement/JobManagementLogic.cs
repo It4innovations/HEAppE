@@ -1742,6 +1742,15 @@ internal class JobManagementLogic : IJobManagementLogic
             return 0;
         }
 
+        QSchedulerSession? dbSession = null;
+        if (scheduledJobId.StartsWith("session:") && !scheduledJobId.Contains(":task:"))
+        {
+            if (long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
+            {
+                dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+            }
+        }
+
         SubmittedTaskInfo? dbTask = null;
         SubmittedJobInfo? jobInfo = null;
         Cluster? cluster = null;
@@ -1753,6 +1762,12 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
             if (job == null) continue;
+
+            if (dbSession != null && job.CreationTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10))
+            {
+                _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job {job.Id} creation time ({job.CreationTime:O}) is older than session creation time ({dbSession.CreatedAt:O}).");
+                continue;
+            }
 
             var currentCluster = job.Specification.Cluster;
             if (_callbackHandlers.TryGetValue(currentCluster.SchedulerType, out var currentHandler))
@@ -1773,6 +1788,12 @@ internal class JobManagementLogic : IJobManagementLogic
 
         if (dbTask == null || jobInfo == null || cluster == null || handler == null)
         {
+            if (scheduledJobId.StartsWith("session:"))
+            {
+                var sessionHandler = _callbackHandlers[SchedulerType.QScheduler];
+                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState);
+            }
+
             throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
         }
 
