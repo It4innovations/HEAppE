@@ -310,8 +310,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
-            .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
+        var tasksMaxCores = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Where(j => j.Submitter.Id == loggedUser.Id && j.State < JobState.Finished)
+            .SelectMany(j => j.Tasks)
+            .Select(t => t.Specification.MaxCores)
+            .ToList();
+        var totalMaxCores = tasksMaxCores.Sum();
+
         var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .ListClusterNodeTypes();
 
@@ -321,7 +326,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             ResourceUsage usage = new()
             {
                 NodeType = nodeType,
-                CoresUsed = notFinishedJobs.Sum(s => s.Tasks.Sum(taskSum => taskSum.Specification.MaxCores)) ?? 0
+                CoresUsed = totalMaxCores
             };
             result.Add(usage);
         }
@@ -332,7 +337,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterId(loggedUser.Id);
+        var tasksData = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Where(j => j.Submitter.Id == loggedUser.Id && j.State < JobState.Finished)
+            .SelectMany(j => j.Tasks)
+            .Select(t => new { NodeTypeId = t.NodeType.Id, AllocatedCores = t.AllocatedCores ?? 0 })
+            .ToList();
         var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
@@ -368,10 +377,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).Where(n => n != null).Distinct().ToList();
                 foreach (var nodeType in nodeTypes)
                 {
-                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType != null && x.NodeType.Id == nodeType.Id);
+                    var coresUsed = tasksData.Where(x => x.NodeTypeId == nodeType.Id).Sum(x => x.AllocatedCores);
                     NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
                     {
-                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        CoresUsed = coresUsed,
                         NodeType = nodeType
                     };
                     ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
