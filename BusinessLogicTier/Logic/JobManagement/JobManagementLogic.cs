@@ -1636,7 +1636,6 @@ internal class JobManagementLogic : IJobManagementLogic
     }
     public async Task<long> ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState)
     {
-        _logger.LogInformation($"ProcessTaskCallbackAsync: Callback received for scheduledJobId '{scheduledJobId}', qSchedulerState '{qSchedulerState}'");
         // 1. Find all potential candidate tasks matching this scheduledJobId
         var candidates = await _unitOfWork.SubmittedTaskInfoRepository.GetTasksByScheduledJobIdAsync(scheduledJobId);
         if (candidates == null || !candidates.Any())
@@ -1678,7 +1677,6 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
 
-        _logger.LogInformation($"ProcessTaskCallbackAsync: candidate count={candidates.Count}, dbTask ID={dbTask?.Id}, dbTask State={dbTask?.State}, jobInfo ID={jobInfo?.Id}, jobInfo State={jobInfo?.State}");
 
         if (dbTask == null || jobInfo == null || cluster == null || handler == null)
         {
@@ -1686,17 +1684,13 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         var result = await handler.ProcessTaskCallbackAsync(rawResponse, qSchedulerState, dbTask, jobInfo, cluster);
-        _logger.LogInformation($"ProcessTaskCallbackAsync: ProcessTaskCallbackAsync finished. result.Handled={result.Handled}, result.TargetState={result.TargetState}");
         if (result.Handled)
         {
             return result.JobId;
         }
 
-        _logger.LogInformation($"ProcessTaskCallbackAsync: Checking transition: TargetState={result.TargetState}, CurrentState={dbTask.State}");
-
         if (result.TargetState != TaskState.Unknown && dbTask.State < TaskState.Finished)
         {
-            _logger.LogInformation($"ProcessTaskCallbackAsync: Entering state transition block for task {dbTask.Id}");
             var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
             var previousJobState = jobInfo.State;
 
