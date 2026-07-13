@@ -548,10 +548,25 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 try
                 {
                     var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"sessions/{sessionId}");
-                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                    string? sessionState = null;
+                    try
+                    {
+                        using (var doc = JsonDocument.Parse(sessionResponse))
+                        {
+                            if (doc.RootElement.TryGetProperty("state", out var stateProp))
+                            {
+                                sessionState = stateProp.GetString()?.ToLower();
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                    }
+
                     _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
 
-                    if (sessionState == "open" || sessionState == "running")
+                    if (sessionState == "open" || sessionState == "opened" || sessionState == "running")
                     {
                         // Session is active! Now submit the task payload to this session!
                         var machineId = taskInfo.Specification.ClusterNodeType.Queue;
