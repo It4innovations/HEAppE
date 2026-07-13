@@ -20134,6 +20134,16 @@
           "state": {
             "type": "string",
             "nullable": true
+          },
+          "event": {
+            "type": "string",
+            "nullable": true
+          },
+          "task": {
+            "nullable": true
+          },
+          "session": {
+            "nullable": true
           }
         },
         "additionalProperties": false
