@@ -309,10 +309,10 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             var wrapperScript = new[] {
                 "get_job_state() { echo $(squeue -j $SLURM_JOB_ID -h -o \"%T\" 2>/dev/null); };",
                 "send_state() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
-                "cleanup_handler() { trap - EXIT; send_state \"CANCELLED_OR_TIMEOUT\"; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; exit 1; };", // TODO: scontrol
+                "cleanup_handler() { trap - EXIT; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + ";send_state \"CANCELLED_OR_TIMEOUT\";  exit 1; };", // TODO: scontrol
                 //"exit_handler() { local X=$?; send_state \"EXIT\"; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; if [ $X -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi };",
-                "exit_handler() { if [ $PID_EXIT -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; };",
-                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell)
+                "exit_handler() { scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; if [ $PID_EXIT -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi; exit $PID_EXIT; };",
+                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell in --wrap environment)
                 "trap \'exit_handler\' EXIT;",
                 "control_loop() { local PID=$1; while kill -0 $PID 2>/dev/null; do sleep " + controlLoopSleepTime + "; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; done };"
             };
@@ -355,11 +355,12 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 _taskBuilder.Append("control_loop $PID & CL_PID=$!;");
                 _taskBuilder.Append("wait $PID; PID_EXIT=$?;");
                 _taskBuilder.Append("kill -s 15 $CL_PID;");
-                _taskBuilder.Append("echo \"FINISH\" >> " + outputFile + "");
+                _taskBuilder.Append("echo \"FINISH with code $PID_EXIT\" >> " + outputFile + ";");
+                _taskBuilder.Append("exit $PID_EXIT");
             }
             else
             {
-                _taskBuilder.Append("wait $PID");
+                _taskBuilder.Append("wait $PID; PID_EXIT=$?; exit $PID_EXIT");
             }
         }
 
