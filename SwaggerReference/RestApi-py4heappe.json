@@ -14851,6 +14851,10 @@
             },
             "description": "Array of node types",
             "nullable": true
+          },
+          "UseCallback": {
+            "type": "boolean",
+            "description": "Use callback"
           }
         },
         "additionalProperties": false
@@ -17013,6 +17017,10 @@
             },
             "description": "Custom configuration vault toggles",
             "nullable": true
+          },
+          "UseCallback": {
+            "type": "boolean",
+            "description": "Use callback"
           }
         },
         "additionalProperties": false

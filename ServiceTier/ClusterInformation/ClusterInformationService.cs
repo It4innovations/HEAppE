@@ -156,7 +156,12 @@ public class ClusterInformationService : IClusterInformationService
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
 
         var clustersExt = clusters
-            .Select(c => c.ConvertIntToExt(projects, true))
+            .Select(c =>
+            {
+                var ext = c.ConvertIntToExt(projects, true);
+                ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(c.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+                return ext;
+            })
             .ToArray();
 
         clustersExt = clustersExt

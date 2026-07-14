@@ -1018,7 +1018,9 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.GetClusterById(clusterId);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            return ext;
         }
     }
     
@@ -1031,7 +1033,14 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects, false)).ToList();
+            var clusters = clusterLogic.ListAvailableClusters()
+                .Select(s =>
+                {
+                    var ext = s.ConvertIntToExtendedExt(projects, false);
+                    ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(s.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+                    return ext;
+                })
+                .ToList();
             return clusters;
         }
     }
@@ -1050,7 +1059,9 @@ public class ManagementService : IManagementService
             var cluster = await managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            return ext;
         }
     }
 
@@ -1068,7 +1079,9 @@ public class ManagementService : IManagementService
             var cluster = await managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            return ext;
         }
     }
 
