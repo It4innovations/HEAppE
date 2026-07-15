@@ -1934,6 +1934,15 @@ public class ManagementService : IManagementService
                     StartTime = j.StartTime,
                     EndTime = j.EndTime,
                     TotalAllocatedTime = j.TotalAllocatedTime,
+
+                    WaitingLimit = j.WaitingLimit,
+                    NotificationEmail = j.NotificationEmail,
+                    PhoneNumber = j.PhoneNumber,
+                    NotifyOnAbort = j.NotifyOnAbort,
+                    NotifyOnFinish = j.NotifyOnFinish,
+                    NotifyOnStart = j.NotifyOnStart,
+                    Reservation = j.Reservation,
+
                     Tasks = j.Tasks.Select(t => new JobMonitoringTaskExt
                     {
                         Id = t.Id,
@@ -1945,7 +1954,39 @@ public class ManagementService : IManagementService
                         AllocatedTime = t.AllocatedTime,
                         StartTime = t.StartTime,
                         EndTime = t.EndTime,
-                        ErrorMessage = t.ErrorMessage
+                        ErrorMessage = t.ErrorMessage,
+
+                        Priority = t.Priority,
+                        Reason = t.Reason,
+                        AllParameters = t.AllParameters,
+                        MinCores = t.MinCores,
+                        MaxCores = t.MaxCores,
+                        WalltimeLimit = t.WalltimeLimit,
+                        Memory = t.Memory,
+                        MemoryPerCPU = t.MemoryPerCPU,
+                        MemoryPerGPU = t.MemoryPerGPU,
+                        IsExclusive = t.IsExclusive,
+                        IsRerunnable = t.IsRerunnable,
+                        StandardInputFile = t.StandardInputFile,
+                        StandardOutputFile = t.StandardOutputFile,
+                        StandardErrorFile = t.StandardErrorFile,
+                        LocalDirectory = t.LocalDirectory,
+                        ClusterTaskSubdirectory = t.ClusterTaskSubdirectory,
+                        CpuHyperThreading = t.CpuHyperThreading,
+                        CommandTemplateId = t.CommandTemplateId,
+                        CommandTemplateName = t.CommandTemplateName,
+
+                        CommandParameterValues = t.CommandParameterValues.Select(cpv => new HEAppE.ExtModels.ClusterInformation.Models.CommandTemplateParameterValueExt
+                        {
+                            CommandParameterIdentifier = cpv.Identifier,
+                            ParameterValue = cpv.Value
+                        }).ToList(),
+
+                        EnvironmentVariables = t.EnvironmentVariables.Select(ev => new HEAppE.ExtModels.JobManagement.Models.EnvironmentVariableExt
+                        {
+                            Name = ev.Name,
+                            Value = ev.Value
+                        }).ToList()
                     }).ToList()
                 }).ToList()
             };

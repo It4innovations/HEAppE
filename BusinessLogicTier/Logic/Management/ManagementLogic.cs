@@ -4155,6 +4155,14 @@ public class ManagementLogic : IManagementLogic
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Tasks)
                 .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables)
             .AsSplitQuery();
 
         if (lastJobId.HasValue)
@@ -4187,6 +4195,15 @@ public class ManagementLogic : IManagementLogic
             StartTime = j.StartTime,
             EndTime = j.EndTime,
             TotalAllocatedTime = j.TotalAllocatedTime,
+
+            WaitingLimit = j.Specification?.WaitingLimit,
+            NotificationEmail = j.Specification?.NotificationEmail,
+            PhoneNumber = j.Specification?.PhoneNumber,
+            NotifyOnAbort = j.Specification?.NotifyOnAbort,
+            NotifyOnFinish = j.Specification?.NotifyOnFinish,
+            NotifyOnStart = j.Specification?.NotifyOnStart,
+            Reservation = j.Specification?.Reservation,
+
             Tasks = j.Tasks.Select(t => new JobMonitoringTaskInfo
             {
                 Id = t.Id,
@@ -4198,7 +4215,39 @@ public class ManagementLogic : IManagementLogic
                 AllocatedTime = t.AllocatedTime,
                 StartTime = t.StartTime,
                 EndTime = t.EndTime,
-                ErrorMessage = t.ErrorMessage
+                ErrorMessage = t.ErrorMessage,
+
+                Priority = t.Priority.ToString().ToLowerInvariant(),
+                Reason = t.Reason,
+                AllParameters = t.AllParameters,
+                MinCores = t.Specification?.MinCores,
+                MaxCores = t.Specification?.MaxCores,
+                WalltimeLimit = t.Specification?.WalltimeLimit,
+                Memory = t.Specification?.Memory,
+                MemoryPerCPU = t.Specification?.MemoryPerCPU,
+                MemoryPerGPU = t.Specification?.MemoryPerGPU,
+                IsExclusive = t.Specification?.IsExclusive ?? false,
+                IsRerunnable = t.Specification?.IsRerunnable ?? false,
+                StandardInputFile = t.Specification?.StandardInputFile,
+                StandardOutputFile = t.Specification?.StandardOutputFile,
+                StandardErrorFile = t.Specification?.StandardErrorFile,
+                LocalDirectory = t.Specification?.LocalDirectory,
+                ClusterTaskSubdirectory = t.Specification?.ClusterTaskSubdirectory,
+                CpuHyperThreading = t.Specification?.CpuHyperThreading,
+                CommandTemplateId = t.Specification?.CommandTemplateId,
+                CommandTemplateName = t.Specification?.CommandTemplate?.Name,
+
+                CommandParameterValues = t.Specification?.CommandParameterValues?.Select(cpv => new CommandParameterValueInfo
+                {
+                    Identifier = cpv.TemplateParameter?.Identifier ?? cpv.CommandParameterIdentifier,
+                    Value = cpv.Value
+                }).ToList() ?? new List<CommandParameterValueInfo>(),
+
+                EnvironmentVariables = t.Specification?.EnvironmentVariables?.Select(ev => new EnvironmentVariableInfo
+                {
+                    Name = ev.Name,
+                    Value = ev.Value
+                }).ToList() ?? new List<EnvironmentVariableInfo>()
             }).ToList()
         }).ToList();
 
@@ -4306,29 +4355,49 @@ public class ManagementLogic : IManagementLogic
         await _unitOfWork.SaveAsync();
     }
 
+    private async Task<(bool Success, long ResponseTimeMs, string Error)> TestTcpConnectionAsync(string host, int port, CancellationToken ct)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var tcpClient = new System.Net.Sockets.TcpClient();
+            var connectTask = tcpClient.ConnectAsync(host, port);
+            if (await Task.WhenAny(connectTask, Task.Delay(2000, ct)) == connectTask)
+            {
+                await connectTask;
+                stopwatch.Stop();
+                return (tcpClient.Connected, stopwatch.ElapsedMilliseconds, tcpClient.Connected ? null : "connection failed");
+            }
+            else
+            {
+                stopwatch.Stop();
+                return (false, 0, "tcp connection timeout");
+            }
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            return (false, 0, ex.Message);
+        }
+    }
+
     private async Task<List<ServiceToCheck>> GetServicesToProbeList()
     {
         var list = new List<ServiceToCheck>();
 
         // 1. Clusters
         var clusters = (await _unitOfWork.ClusterRepository.GetAllAsync()).Where(c => !c.IsDeleted).ToList();
-        var activeCredentials = await _unitOfWork.ClusterProjectRepository.GetAllActiveClusterProjectCredentialsUntrackedAsync();
 
         foreach (var cluster in clusters)
         {
-            var serviceCred = activeCredentials.FirstOrDefault(cpc => cpc.ClusterProject.ClusterId == cluster.Id && cpc.IsServiceAccount && !cpc.IsDeleted);
-            
+            var host = cluster.MasterNodeName;
+            var port = cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ? 443 : 80;
+
             if (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
             {
-                var url = "";
-                if ((cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
+                if ((cluster.SchedulerType & SchedulerType.FirecRestSlurm) != SchedulerType.FirecRestSlurm)
                 {
-                    var firecrestProtocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
-                    url = $"{firecrestProtocol}://{cluster.MasterNodeName}".TrimEnd('/');
-                }
-                else
-                {
-                    var protocolStr = cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ? "https" : "http";
+                    // QScheduler
                     int resolvedPort = 4300;
                     if (cluster.CustomConfiguration != null &&
                         cluster.CustomConfiguration.TryGetValue("QSchedulerPort", out var portStr) &&
@@ -4336,117 +4405,36 @@ public class ManagementLogic : IManagementLogic
                     {
                         resolvedPort = customPort;
                     }
-                    else
+                    else if (cluster.Port.HasValue)
                     {
-                        resolvedPort = cluster.Port ?? 4300;
+                        resolvedPort = cluster.Port.Value;
                     }
-                    url = $"{protocolStr}://{cluster.MasterNodeName}:{resolvedPort}";
+                    port = resolvedPort;
                 }
-
-                var checkPath = "/status";
-                list.Add(new ServiceToCheck
-                {
-                    Name = cluster.Name.ToLowerInvariant(),
-                    Type = "cluster",
-                    Protocol = cluster.ConnectionProtocol.ToString().ToLowerInvariant(),
-                    EndpointOrHost = url,
-                    Port = null,
-                    CommandOrPath = checkPath.ToLowerInvariant(),
-                    ProbeFunc = async (ct) =>
-                    {
-                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                        using var httpClient = new HttpClient();
-                        httpClient.Timeout = TimeSpan.FromSeconds(2);
-                        var response = await httpClient.GetAsync(url.TrimEnd('/') + checkPath, ct);
-                        stopwatch.Stop();
-                        return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
-                    }
-                });
             }
-            else // SSH
+            else
             {
-                if (serviceCred != null)
-                {
-                    var command = cluster.SchedulerType switch
-                    {
-                        SchedulerType.Slurm => "scontrol ping",
-                        SchedulerType.PbsPro => "qstat",
-                        SchedulerType.HyperQueue => "hq --version",
-                        _ => "uptime"
-                    };
-
-                    list.Add(new ServiceToCheck
-                    {
-                        Name = cluster.Name.ToLowerInvariant(),
-                        Type = "cluster",
-                        Protocol = "ssh",
-                        EndpointOrHost = cluster.MasterNodeName,
-                        Port = cluster.Port ?? 22,
-                        CommandOrPath = command.ToLowerInvariant(),
-                        ProbeFunc = async (ct) =>
-                        {
-                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            var connector = new SshConnector(_sshCertificateAuthorityService, _expirioService, _logger);
-                            var clientObj = await connector.CreateConnectionObjectAsync(
-                                cluster.MasterNodeName,
-                                serviceCred.ClusterAuthenticationCredentials,
-                                cluster,
-                                null,
-                                null,
-                                cluster.Port
-                            );
-                            
-                            await connector.ConnectAsync(clientObj);
-                            try
-                            {
-                                var runTask = SshCommandUtils.RunSshCommandAsync(clientObj, command, _logger);
-                                if (await Task.WhenAny(runTask, Task.Delay(2000, ct)) == runTask)
-                                {
-                                    var cmdResult = await runTask;
-                                    stopwatch.Stop();
-                                    return (cmdResult.ExitStatus == 0, stopwatch.ElapsedMilliseconds, cmdResult.ExitStatus == 0 ? null : $"exit code: {cmdResult.ExitStatus}, error: {cmdResult.Error}");
-                                }
-                                else
-                                {
-                                    throw new TimeoutException("ssh command timed out");
-                                }
-                            }
-                            finally
-                            {
-                                await connector.DisconnectAsync(clientObj);
-                            }
-                        }
-                    });
-                }
-                else
-                {
-                    list.Add(new ServiceToCheck
-                    {
-                        Name = cluster.Name.ToLowerInvariant(),
-                        Type = "cluster",
-                        Protocol = "ssh",
-                        EndpointOrHost = cluster.MasterNodeName,
-                        Port = cluster.Port ?? 22,
-                        CommandOrPath = null,
-                        ProbeFunc = async (ct) =>
-                        {
-                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            using var tcpClient = new System.Net.Sockets.TcpClient();
-                            var connectTask = tcpClient.ConnectAsync(cluster.MasterNodeName, cluster.Port ?? 22);
-                            if (await Task.WhenAny(connectTask, Task.Delay(2000, ct)) == connectTask)
-                            {
-                                await connectTask;
-                                stopwatch.Stop();
-                                return (tcpClient.Connected, stopwatch.ElapsedMilliseconds, tcpClient.Connected ? null : "connection failed");
-                            }
-                            else
-                            {
-                                throw new TimeoutException("tcp connect timed out");
-                            }
-                        }
-                    });
-                }
+                // SSH
+                port = cluster.Port ?? 22;
             }
+
+            // If master node name is actually a URL, parse it to extract the real host and port
+            if (Uri.TryCreate(cluster.MasterNodeName, UriKind.Absolute, out var uri))
+            {
+                host = uri.Host;
+                port = uri.Port;
+            }
+
+            list.Add(new ServiceToCheck
+            {
+                Name = cluster.Name.ToLowerInvariant(),
+                Type = "cluster",
+                Protocol = cluster.ConnectionProtocol.ToString().ToLowerInvariant(),
+                EndpointOrHost = host,
+                Port = port,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestTcpConnectionAsync(host, port, ct)
+            });
         }
 
         // 2. HashiCorp Vault

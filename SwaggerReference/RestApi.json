@@ -17308,6 +17308,35 @@
             "format": "double",
             "nullable": true
           },
+          "WaitingLimit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NotificationEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "PhoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "NotifyOnAbort": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "NotifyOnFinish": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "NotifyOnStart": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "Reservation": {
+            "type": "string",
+            "nullable": true
+          },
           "Tasks": {
             "type": "array",
             "items": {
@@ -17386,6 +17415,101 @@
           },
           "ErrorMessage": {
             "type": "string",
+            "nullable": true
+          },
+          "Priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "Reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "AllParameters": {
+            "type": "string",
+            "nullable": true
+          },
+          "MinCores": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaxCores": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WalltimeLimit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Memory": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerCPU": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerGPU": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "IsExclusive": {
+            "type": "boolean"
+          },
+          "IsRerunnable": {
+            "type": "boolean"
+          },
+          "StandardInputFile": {
+            "type": "string",
+            "nullable": true
+          },
+          "StandardOutputFile": {
+            "type": "string",
+            "nullable": true
+          },
+          "StandardErrorFile": {
+            "type": "string",
+            "nullable": true
+          },
+          "LocalDirectory": {
+            "type": "string",
+            "nullable": true
+          },
+          "ClusterTaskSubdirectory": {
+            "type": "string",
+            "nullable": true
+          },
+          "CpuHyperThreading": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "CommandTemplateId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "CommandTemplateName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CommandParameterValues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandTemplateParameterValueExt"
+            },
+            "nullable": true
+          },
+          "EnvironmentVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentVariableExt"
+            },
             "nullable": true
           }
         },

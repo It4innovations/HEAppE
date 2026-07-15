@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using HEAppE.ExtModels.JobManagement.Models;
 
 namespace HEAppE.ExtModels.Management.Models;
 
@@ -44,6 +43,15 @@ public class JobMonitoringExt
     /// <summary>Total wall-clock seconds allocated by the scheduler. Null until scheduler assigns resources.</summary>
     public double? TotalAllocatedTime { get; set; }
 
+    // Job specification details
+    public int? WaitingLimit { get; set; }
+    public string NotificationEmail { get; set; }
+    public string PhoneNumber { get; set; }
+    public bool? NotifyOnAbort { get; set; }
+    public bool? NotifyOnFinish { get; set; }
+    public bool? NotifyOnStart { get; set; }
+    public string Reservation { get; set; }
+
     /// <summary>All tasks belonging to this job.</summary>
     public List<JobMonitoringTaskExt> Tasks { get; set; } = new();
 }
@@ -82,6 +90,29 @@ public class JobMonitoringTaskExt
 
     /// <summary>Most recent error or reason message from the scheduler. Null when healthy.</summary>
     public string ErrorMessage { get; set; }
+
+    // Task details, settings, parameters, and environment variables
+    public string Priority { get; set; }
+    public string Reason { get; set; }
+    public string AllParameters { get; set; }
+    public int? MinCores { get; set; }
+    public int? MaxCores { get; set; }
+    public int? WalltimeLimit { get; set; }
+    public long? Memory { get; set; }
+    public long? MemoryPerCPU { get; set; }
+    public long? MemoryPerGPU { get; set; }
+    public bool IsExclusive { get; set; }
+    public bool IsRerunnable { get; set; }
+    public string StandardInputFile { get; set; }
+    public string StandardOutputFile { get; set; }
+    public string StandardErrorFile { get; set; }
+    public string LocalDirectory { get; set; }
+    public string ClusterTaskSubdirectory { get; set; }
+    public bool? CpuHyperThreading { get; set; }
+    public long? CommandTemplateId { get; set; }
+    public string CommandTemplateName { get; set; }
+    public List<HEAppE.ExtModels.ClusterInformation.Models.CommandTemplateParameterValueExt> CommandParameterValues { get; set; } = new();
+    public List<HEAppE.ExtModels.JobManagement.Models.EnvironmentVariableExt> EnvironmentVariables { get; set; } = new();
 }
 
 /// <summary>
