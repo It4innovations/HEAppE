@@ -1907,5 +1907,88 @@ public class ManagementService : IManagementService
         }
     }
 
+    public async Task<JobMonitoringPageExt> GetJobsMonitoring(int pageSize, long? lastJobId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var domainPage = await managementLogic.GetJobsMonitoring(pageSize, lastJobId);
+            return new JobMonitoringPageExt
+            {
+                Count = domainPage.Count,
+                NextCursorId = domainPage.NextCursorId,
+                Jobs = domainPage.Jobs.Select(j => new JobMonitoringExt
+                {
+                    Id = j.Id,
+                    Name = j.Name,
+                    State = j.State,
+                    SubmittedBy = j.SubmittedBy,
+                    Project = j.Project,
+                    Cluster = j.Cluster,
+                    CreationTime = j.CreationTime,
+                    SubmitTime = j.SubmitTime,
+                    StartTime = j.StartTime,
+                    EndTime = j.EndTime,
+                    TotalAllocatedTime = j.TotalAllocatedTime,
+                    Tasks = j.Tasks.Select(t => new JobMonitoringTaskExt
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        State = t.State,
+                        ScheduledJobId = t.ScheduledJobId,
+                        AllocatedCores = t.AllocatedCores,
+                        AllocatedGpus = t.AllocatedGpus,
+                        AllocatedTime = t.AllocatedTime,
+                        StartTime = t.StartTime,
+                        EndTime = t.EndTime,
+                        ErrorMessage = t.ErrorMessage
+                    }).ToList()
+                }).ToList()
+            };
+        }
+    }
+
+    public async Task<ExternalServicesReportExt> GetExternalServicesReport(DateTime? from, DateTime? to, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var domainReport = await managementLogic.GetExternalServicesReport(from, to);
+            return new ExternalServicesReportExt
+            {
+                LiveStatus = domainReport.LiveStatus.Select(ls => new ExternalServiceLiveStatusExt
+                {
+                    ServiceName = ls.ServiceName,
+                    Type = ls.Type,
+                    Protocol = ls.Protocol,
+                    EndpointOrHost = ls.EndpointOrHost,
+                    Port = ls.Port,
+                    IsAvailable = ls.IsAvailable,
+                    ResponseTimeMs = ls.ResponseTimeMs,
+                    ErrorMessage = ls.ErrorMessage,
+                    LastCheck = ls.LastCheck
+                }).ToList(),
+                Statistics = domainReport.Statistics.Select(s => new ExternalServiceStatisticsExt
+                {
+                    ServiceName = s.ServiceName,
+                    CommandOrPath = s.CommandOrPath,
+                    AvailabilityPercentage = s.AvailabilityPercentage,
+                    AverageResponseTimeMs = s.AverageResponseTimeMs,
+                    MinResponseTimeMs = s.MinResponseTimeMs,
+                    MaxResponseTimeMs = s.MaxResponseTimeMs,
+                    TotalChecks = s.TotalChecks
+                }).ToList()
+            };
+        }
+    }
+
     #endregion
 }

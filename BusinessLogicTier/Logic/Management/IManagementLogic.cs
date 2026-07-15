@@ -11,6 +11,7 @@ using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.Monitoring;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -225,4 +226,8 @@ public interface IManagementLogic
     AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     List<AdaptorUser> ListAdaptorUsers();
+    Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId);
+    Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to);
+    Task LogExternalServiceHealth(ExternalServiceHealthLog log);
+    Task PurgeOldExternalServiceHealthLogs();
 }

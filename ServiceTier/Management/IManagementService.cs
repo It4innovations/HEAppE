@@ -243,4 +243,6 @@ public interface IManagementService
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
+    Task<JobMonitoringPageExt> GetJobsMonitoring(int pageSize, long? lastJobId, string sessionCode);
+    Task<ExternalServicesReportExt> GetExternalServicesReport(DateTime? from, DateTime? to, string sessionCode);
 }

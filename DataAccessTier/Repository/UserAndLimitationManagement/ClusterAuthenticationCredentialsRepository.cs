@@ -349,5 +349,18 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials, logger)).ToList();
     }
 
+    public async Task<ClusterAuthenticationCredentials> GetAnyServiceAccountCredentialsForClusterAsync(long clusterId, ILogger logger = null)
+    {
+        var query = _context.ClusterProjectCredentials
+            .Where(cpc => cpc.ClusterProject.ClusterId == clusterId && cpc.IsServiceAccount && !cpc.IsDeleted);
+
+        var cred = await query
+            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+            .FirstOrDefaultAsync();
+
+        if (cred == null) return null;
+        return await WithVaultData(cred);
+    }
+
     #endregion
 }

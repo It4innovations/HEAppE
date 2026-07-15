@@ -2553,6 +2553,48 @@ public class ManagementController : BaseController<ManagementController>
         return Ok("Migration package imported successfully. Database and Vault secrets restored.");
     }
 
+    /// <summary>
+    ///     Get jobs monitoring list with keyset pagination (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing page size and cursor</param>
+    /// <returns>Job monitoring page containing job details and next cursor ID</returns>
+    [HttpPost("GetJobsMonitoring")]
+    [ProducesResponseType(typeof(JobMonitoringPageExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetJobsMonitoring([FromBody] GetJobsMonitoringModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetJobsMonitoring(model.PageSize, model.LastJobId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get external services health report and telemetry stats (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing optional time window</param>
+    /// <returns>Report containing live health status and historical statistics</returns>
+    [HttpPost("GetExternalServicesReport")]
+    [ProducesResponseType(typeof(ExternalServicesReportExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetExternalServicesReport([FromBody] GetExternalServicesReportModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetExternalServicesReport(model.From, model.To, model.SessionCode);
+        return Ok(result);
+    }
+
     #endregion
     #endregion
 }

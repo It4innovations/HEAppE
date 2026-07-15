@@ -13562,6 +13562,186 @@
         }
       }
     },
+    "/heappe/Management/GetJobsMonitoring": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get jobs monitoring list with keyset pagination (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing page size and cursor",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobsMonitoringModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobsMonitoringModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobsMonitoringModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobMonitoringPageExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/GetExternalServicesReport": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get external services health report and telemetry stats (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing optional time window",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesReportModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesReportModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesReportModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalServicesReportExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/UserAndLimitationManagement/AuthenticateLexisToken": {
       "post": {
         "tags": [
@@ -17314,6 +17494,102 @@
         },
         "additionalProperties": false
       },
+      "ExternalServiceLiveStatusExt": {
+        "type": "object",
+        "properties": {
+          "ServiceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Type": {
+            "type": "string",
+            "nullable": true
+          },
+          "Protocol": {
+            "type": "string",
+            "nullable": true
+          },
+          "EndpointOrHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "Port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "IsAvailable": {
+            "type": "boolean"
+          },
+          "ResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "LastCheck": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExternalServiceStatisticsExt": {
+        "type": "object",
+        "properties": {
+          "ServiceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CommandOrPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "AvailabilityPercentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "AverageResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "MinResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "MaxResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "TotalChecks": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExternalServicesReportExt": {
+        "type": "object",
+        "properties": {
+          "LiveStatus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalServiceLiveStatusExt"
+            },
+            "nullable": true
+          },
+          "Statistics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalServiceStatisticsExt"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FileInformationExt": {
         "type": "object",
         "properties": {
@@ -17564,6 +17840,31 @@
         },
         "additionalProperties": false
       },
+      "GetExternalServicesReportModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "From": {
+            "type": "string",
+            "description": "Start of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "To": {
+            "type": "string",
+            "description": "End of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GetFileTransferMethodModel": {
         "type": "object",
         "properties": {
@@ -17578,6 +17879,32 @@
             "type": "integer",
             "description": "Subbmited job info id",
             "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetJobsMonitoringModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "PageSize": {
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of jobs per page (1–200)",
+            "format": "int32"
+          },
+          "LastJobId": {
+            "type": "integer",
+            "description": "Cursor for keyset pagination – Id from the previous page's NextCursorId",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17934,6 +18261,140 @@
             "type": "integer",
             "description": "Submitted task info id",
             "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobMonitoringExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "State": {
+            "type": "string",
+            "nullable": true
+          },
+          "SubmittedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "Project": {
+            "type": "string",
+            "nullable": true
+          },
+          "Cluster": {
+            "type": "string",
+            "nullable": true
+          },
+          "CreationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "SubmitTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "TotalAllocatedTime": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "Tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobMonitoringTaskExt"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobMonitoringPageExt": {
+        "type": "object",
+        "properties": {
+          "Jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobMonitoringExt"
+            },
+            "nullable": true
+          },
+          "NextCursorId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "Count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobMonitoringTaskExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "State": {
+            "type": "string",
+            "nullable": true
+          },
+          "ScheduledJobId": {
+            "type": "string",
+            "nullable": true
+          },
+          "AllocatedCores": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "AllocatedGpus": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "AllocatedTime": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ErrorMessage": {
+            "type": "string",
             "nullable": true
           }
         },

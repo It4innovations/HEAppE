@@ -16,6 +16,8 @@ using HEAppE.DataAccessTier.Repository.JobManagement.Command;
 using HEAppE.DataAccessTier.Repository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.Repository.OpenStack;
 using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.IRepository.Monitoring;
+using HEAppE.DataAccessTier.Repository.Monitoring;
 using HEAppE.DataAccessTier.Service;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -109,6 +111,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     private IOpenStackSessionRepository _openStackSessionRepository;
     private IQSchedulerSessionRepository _qSchedulerSessionRepository;
     private IDatabaseBackupService _databaseBackupService;
+    private IExternalServiceHealthLogRepository _externalServiceHealthLogRepository;
 
     #endregion
 
@@ -422,6 +425,15 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _databaseBackupService =
                 _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(_logger), _logger);
+        }
+    }
+
+    public IExternalServiceHealthLogRepository ExternalServiceHealthLogRepository
+    {
+        get
+        {
+            return _externalServiceHealthLogRepository =
+                _externalServiceHealthLogRepository ?? new ExternalServiceHealthLogRepository(_context);
         }
     }
 

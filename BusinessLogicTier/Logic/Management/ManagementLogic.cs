@@ -18,6 +18,11 @@ using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault;
+using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.DomainObjects.Monitoring;
+using System.Net.Http;
+using System.Threading;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -39,6 +44,7 @@ using Org.BouncyCastle.Security;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using Tmds.Ssh;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -4138,6 +4144,392 @@ public class ManagementLogic : IManagementLogic
         {
             await _unitOfWork.SaveAsync();
         }
+    }
+
+    public async Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId)
+    {
+        var query = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Include(j => j.Submitter)
+            .Include(j => j.Project)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+            .AsSplitQuery();
+
+        if (lastJobId.HasValue)
+        {
+            query = query.Where(j => j.Id < lastJobId.Value);
+        }
+
+        var jobs = await query
+            .OrderByDescending(j => j.Id)
+            .Take(pageSize + 1)
+            .ToListAsync();
+
+        long? nextCursorId = null;
+        if (jobs.Count > pageSize)
+        {
+            nextCursorId = jobs[pageSize - 1].Id;
+            jobs.RemoveAt(pageSize);
+        }
+
+        var jobExts = jobs.Select(j => new JobMonitoringInfo
+        {
+            Id = j.Id,
+            Name = j.Name,
+            State = j.State.ToString().ToLowerInvariant(),
+            SubmittedBy = j.Submitter?.Username,
+            Project = j.Project?.Name,
+            Cluster = j.Specification?.Cluster?.Name,
+            CreationTime = j.CreationTime,
+            SubmitTime = j.SubmitTime,
+            StartTime = j.StartTime,
+            EndTime = j.EndTime,
+            TotalAllocatedTime = j.TotalAllocatedTime,
+            Tasks = j.Tasks.Select(t => new JobMonitoringTaskInfo
+            {
+                Id = t.Id,
+                Name = t.Name,
+                State = t.State.ToString().ToLowerInvariant(),
+                ScheduledJobId = t.ScheduledJobId,
+                AllocatedCores = t.AllocatedCores,
+                AllocatedGpus = t.AllocatedGpus,
+                AllocatedTime = t.AllocatedTime,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                ErrorMessage = t.ErrorMessage
+            }).ToList()
+        }).ToList();
+
+        return new JobMonitoringPage
+        {
+            Jobs = jobExts,
+            NextCursorId = nextCursorId,
+            Count = jobExts.Count
+        };
+    }
+
+    public async Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to)
+    {
+        var servicesToProbe = await GetServicesToProbeList();
+        
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var probeTasks = servicesToProbe.Select(async service =>
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            bool isAvailable = false;
+            string errorMsg = null;
+            long elapsed = 0;
+            try
+            {
+                var result = await service.ProbeFunc(cts.Token);
+                isAvailable = result.Success;
+                elapsed = result.ResponseTimeMs;
+                errorMsg = result.Error;
+            }
+            catch (OperationCanceledException)
+            {
+                errorMsg = "request timed out";
+            }
+            catch (Exception ex)
+            {
+                errorMsg = ex.Message;
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
+
+            return new ExternalServiceLiveStatus
+            {
+                ServiceName = service.Name.ToLowerInvariant(),
+                Type = service.Type.ToLowerInvariant(),
+                Protocol = service.Protocol.ToLowerInvariant(),
+                EndpointOrHost = service.EndpointOrHost,
+                Port = service.Port,
+                IsAvailable = isAvailable,
+                ResponseTimeMs = isAvailable ? elapsed : 0,
+                ErrorMessage = isAvailable ? null : (errorMsg ?? "unknown error"),
+                LastCheck = DateTime.UtcNow
+            };
+        });
+
+        var liveStatuses = (await Task.WhenAll(probeTasks)).ToList();
+
+        var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
+        var toDate = to ?? DateTime.UtcNow;
+
+        var logs = await _unitOfWork.ExternalServiceHealthLogRepository.GetLogsInTimeRangeAsync(fromDate, toDate);
+        var stats = logs
+            .GroupBy(l => new { ServiceName = l.ServiceName.ToLowerInvariant(), CommandOrPath = l.CommandOrPath?.ToLowerInvariant() })
+            .Select(g =>
+            {
+                var total = g.Count();
+                var successful = g.Count(x => x.IsAvailable);
+                var successLogs = g.Where(x => x.IsAvailable).ToList();
+
+                double availabilityPct = total > 0 ? ((double)successful / total) * 100.0 : 0.0;
+                long avgResponseTime = successLogs.Any() ? (long)successLogs.Average(x => x.ResponseTimeMs) : 0;
+                long minResponseTime = successLogs.Any() ? successLogs.Min(x => x.ResponseTimeMs) : 0;
+                long maxResponseTime = successLogs.Any() ? successLogs.Max(x => x.ResponseTimeMs) : 0;
+
+                return new ExternalServiceStatistics
+                {
+                    ServiceName = g.Key.ServiceName,
+                    CommandOrPath = g.Key.CommandOrPath,
+                    AvailabilityPercentage = Math.Round(availabilityPct, 2),
+                    AverageResponseTimeMs = avgResponseTime,
+                    MinResponseTimeMs = minResponseTime,
+                    MaxResponseTimeMs = maxResponseTime,
+                    TotalChecks = total
+                };
+            }).ToList();
+
+        return new ExternalServicesReport
+        {
+            LiveStatus = liveStatuses,
+            Statistics = stats
+        };
+    }
+
+    public async Task LogExternalServiceHealth(ExternalServiceHealthLog log)
+    {
+        _unitOfWork.ExternalServiceHealthLogRepository.Insert(log);
+        await _unitOfWork.SaveAsync();
+    }
+
+    public async Task PurgeOldExternalServiceHealthLogs()
+    {
+        var threshold = DateTime.UtcNow.AddDays(-30);
+        await _unitOfWork.ExternalServiceHealthLogRepository.DeleteOlderThanAsync(threshold);
+        await _unitOfWork.SaveAsync();
+    }
+
+    private async Task<List<ServiceToCheck>> GetServicesToProbeList()
+    {
+        var list = new List<ServiceToCheck>();
+
+        // 1. Clusters
+        var clusters = (await _unitOfWork.ClusterRepository.GetAllAsync()).Where(c => !c.IsDeleted).ToList();
+        var activeCredentials = await _unitOfWork.ClusterProjectRepository.GetAllActiveClusterProjectCredentialsUntrackedAsync();
+
+        foreach (var cluster in clusters)
+        {
+            var serviceCred = activeCredentials.FirstOrDefault(cpc => cpc.ClusterProject.ClusterId == cluster.Id && cpc.IsServiceAccount && !cpc.IsDeleted);
+            
+            if (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+            {
+                var url = "";
+                if ((cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
+                {
+                    var firecrestProtocol = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http ? "http" : "https";
+                    url = $"{firecrestProtocol}://{cluster.MasterNodeName}".TrimEnd('/');
+                }
+                else
+                {
+                    var protocolStr = cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ? "https" : "http";
+                    int resolvedPort = 4300;
+                    if (cluster.CustomConfiguration != null &&
+                        cluster.CustomConfiguration.TryGetValue("QSchedulerPort", out var portStr) &&
+                        int.TryParse(portStr, out var customPort))
+                    {
+                        resolvedPort = customPort;
+                    }
+                    else
+                    {
+                        resolvedPort = cluster.Port ?? 4300;
+                    }
+                    url = $"{protocolStr}://{cluster.MasterNodeName}:{resolvedPort}";
+                }
+
+                var checkPath = "/status";
+                list.Add(new ServiceToCheck
+                {
+                    Name = cluster.Name.ToLowerInvariant(),
+                    Type = "cluster",
+                    Protocol = cluster.ConnectionProtocol.ToString().ToLowerInvariant(),
+                    EndpointOrHost = url,
+                    Port = null,
+                    CommandOrPath = checkPath.ToLowerInvariant(),
+                    ProbeFunc = async (ct) =>
+                    {
+                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        using var httpClient = new HttpClient();
+                        httpClient.Timeout = TimeSpan.FromSeconds(2);
+                        var response = await httpClient.GetAsync(url.TrimEnd('/') + checkPath, ct);
+                        stopwatch.Stop();
+                        return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
+                    }
+                });
+            }
+            else // SSH
+            {
+                if (serviceCred != null)
+                {
+                    var command = cluster.SchedulerType switch
+                    {
+                        SchedulerType.Slurm => "scontrol ping",
+                        SchedulerType.PbsPro => "qstat",
+                        SchedulerType.HyperQueue => "hq --version",
+                        _ => "uptime"
+                    };
+
+                    list.Add(new ServiceToCheck
+                    {
+                        Name = cluster.Name.ToLowerInvariant(),
+                        Type = "cluster",
+                        Protocol = "ssh",
+                        EndpointOrHost = cluster.MasterNodeName,
+                        Port = cluster.Port ?? 22,
+                        CommandOrPath = command.ToLowerInvariant(),
+                        ProbeFunc = async (ct) =>
+                        {
+                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            var connector = new SshConnector(_sshCertificateAuthorityService, _expirioService, _logger);
+                            var clientObj = await connector.CreateConnectionObjectAsync(
+                                cluster.MasterNodeName,
+                                serviceCred.ClusterAuthenticationCredentials,
+                                cluster,
+                                null,
+                                null,
+                                cluster.Port
+                            );
+                            
+                            await connector.ConnectAsync(clientObj);
+                            try
+                            {
+                                var runTask = SshCommandUtils.RunSshCommandAsync(clientObj, command, _logger);
+                                if (await Task.WhenAny(runTask, Task.Delay(2000, ct)) == runTask)
+                                {
+                                    var cmdResult = await runTask;
+                                    stopwatch.Stop();
+                                    return (cmdResult.ExitStatus == 0, stopwatch.ElapsedMilliseconds, cmdResult.ExitStatus == 0 ? null : $"exit code: {cmdResult.ExitStatus}, error: {cmdResult.Error}");
+                                }
+                                else
+                                {
+                                    throw new TimeoutException("ssh command timed out");
+                                }
+                            }
+                            finally
+                            {
+                                await connector.DisconnectAsync(clientObj);
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    list.Add(new ServiceToCheck
+                    {
+                        Name = cluster.Name.ToLowerInvariant(),
+                        Type = "cluster",
+                        Protocol = "ssh",
+                        EndpointOrHost = cluster.MasterNodeName,
+                        Port = cluster.Port ?? 22,
+                        CommandOrPath = null,
+                        ProbeFunc = async (ct) =>
+                        {
+                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            using var tcpClient = new System.Net.Sockets.TcpClient();
+                            var connectTask = tcpClient.ConnectAsync(cluster.MasterNodeName, cluster.Port ?? 22);
+                            if (await Task.WhenAny(connectTask, Task.Delay(2000, ct)) == connectTask)
+                            {
+                                await connectTask;
+                                stopwatch.Stop();
+                                return (tcpClient.Connected, stopwatch.ElapsedMilliseconds, tcpClient.Connected ? null : "connection failed");
+                            }
+                            else
+                            {
+                                throw new TimeoutException("tcp connect timed out");
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // 2. HashiCorp Vault
+        if (!string.IsNullOrEmpty(VaultConnectorSettings.VaultBaseAddress))
+        {
+            var vaultUrl = VaultConnectorSettings.VaultBaseAddress.TrimEnd('/');
+            var checkPath = "/v1/sys/health";
+            list.Add(new ServiceToCheck
+            {
+                Name = "hashicorp vault",
+                Type = "keymanagement",
+                Protocol = vaultUrl.StartsWith("https") ? "https" : "http",
+                EndpointOrHost = vaultUrl,
+                Port = null,
+                CommandOrPath = checkPath.ToLowerInvariant(),
+                ProbeFunc = async (ct) =>
+                {
+                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    using var httpClient = new HttpClient();
+                    httpClient.Timeout = TimeSpan.FromSeconds(2);
+                    var response = await httpClient.GetAsync(vaultUrl + checkPath, ct);
+                    stopwatch.Stop();
+                    return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
+                }
+            });
+        }
+
+        // 3. Keycloak
+        if (!string.IsNullOrEmpty(ExternalAuthConfiguration.BaseUrl))
+        {
+            var keycloakUrl = ExternalAuthConfiguration.BaseUrl.TrimEnd('/');
+            var realm = ExternalAuthConfiguration.RealmName;
+            var checkPath = $"/realms/{realm}/.well-known/openid-configuration";
+            list.Add(new ServiceToCheck
+            {
+                Name = "keycloak",
+                Type = "identity",
+                Protocol = keycloakUrl.StartsWith("https") ? "https" : "http",
+                EndpointOrHost = keycloakUrl,
+                Port = null,
+                CommandOrPath = checkPath.ToLowerInvariant(),
+                ProbeFunc = async (ct) =>
+                {
+                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    using var httpClient = new HttpClient();
+                    httpClient.Timeout = TimeSpan.FromSeconds(2);
+                    var response = await httpClient.GetAsync(keycloakUrl + checkPath, ct);
+                    stopwatch.Stop();
+                    return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
+                }
+            });
+        }
+
+        // 4. Database
+        list.Add(new ServiceToCheck
+        {
+            Name = "sql server",
+            Type = "database",
+            Protocol = "sql",
+            EndpointOrHost = "database connection",
+            Port = null,
+            CommandOrPath = "select 1",
+            ProbeFunc = async (ct) =>
+            {
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                await _unitOfWork.ClusterRepository.GetByIdAsync(0);
+                stopwatch.Stop();
+                return (true, stopwatch.ElapsedMilliseconds, null);
+            }
+        });
+
+        return list;
+    }
+
+    private class ServiceToCheck
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string Protocol { get; set; }
+        public string EndpointOrHost { get; set; }
+        public int? Port { get; set; }
+        public string CommandOrPath { get; set; }
+        public Func<CancellationToken, Task<(bool Success, long ResponseTimeMs, string Error)>> ProbeFunc { get; set; }
     }
 
 

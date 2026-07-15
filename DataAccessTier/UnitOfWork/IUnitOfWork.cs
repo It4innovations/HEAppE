@@ -5,6 +5,7 @@ using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.IRepository.Monitoring;
 using HEAppE.DataAccessTier.Service;
 using System;
 using System.Threading.Tasks;
@@ -66,6 +67,7 @@ public interface IUnitOfWork : IDisposable
     IOpenStackSessionRepository OpenStackSessionRepository { get; }
     IQSchedulerSessionRepository QSchedulerSessionRepository { get; }
     IDatabaseBackupService DatabaseBackupService { get; }
+    IExternalServiceHealthLogRepository ExternalServiceHealthLogRepository { get; }
 
     #endregion
 }

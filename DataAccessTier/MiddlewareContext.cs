@@ -16,6 +16,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.Monitoring;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
 using Microsoft.Data.SqlClient;
@@ -832,6 +833,12 @@ public class MiddlewareContext : DbContext
     public virtual DbSet<SessionCode> SessionCodes { get; set; }
     public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
     public virtual DbSet<QSchedulerSession> QSchedulerSessions { get; set; }
+
+    #endregion
+
+    #region Monitoring Entities
+
+    public virtual DbSet<ExternalServiceHealthLog> ExternalServiceHealthLogs { get; set; }
 
     #endregion
 

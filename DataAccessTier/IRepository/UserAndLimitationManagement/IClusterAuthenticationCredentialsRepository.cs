@@ -28,4 +28,5 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger = null);
 
     Task<IEnumerable<ClusterProjectCredential>> GetClusterProjectCredentials(long projectId, long? adaptorUserId, bool isAdministrator = false);
+    Task<ClusterAuthenticationCredentials> GetAnyServiceAccountCredentialsForClusterAsync(long clusterId, ILogger logger = null);
 }

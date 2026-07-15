@@ -1,4 +1,4 @@
-﻿using HEAppE.BackgroundThread.BackgroundServices;
+using HEAppE.BackgroundThread.BackgroundServices;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.DataAccessTier.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -39,6 +39,7 @@ namespace HEAppE.BackgroundThread
             services.AddHostedService<DatabaseFullBackupBackgroundService>();
             services.AddHostedService<DatabaseTransactionLogBackupService>();
             services.AddHostedService<ClusterProjectCredentialsCheckLogBackgroundService>();
+            services.AddHostedService<ExternalServiceHealthMonitoringBackgroundService>();
 
             return services;
         }

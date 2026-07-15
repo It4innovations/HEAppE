@@ -93,6 +93,8 @@ public class ManagementValidator : AbstractValidator
             ListAdaptorUsersInUserGroupModel ext => ValidateListAdaptorUsersInUserGroupModel(ext),
             AssignAdaptorUserToUserGroupModel ext => ValidateAssignAdaptorUserToUserGroupModel(ext),
             ListAdaptorUsersModel ext => ValidateListAdaptorUsersModel(ext),
+            GetJobsMonitoringModel ext => ValidateGetJobsMonitoringModel(ext),
+            GetExternalServicesReportModel ext => ValidateGetExternalServicesReportModel(ext),
             _ => string.Empty
         };
 
@@ -908,6 +910,31 @@ public class ManagementValidator : AbstractValidator
 
         if(ContainsIllegalCharactersForFileName(model.BackupFileName))
             _messageBuilder.AppendLine($"BackupFileName contains illegal characters. Provide only file name.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetJobsMonitoringModel(GetJobsMonitoringModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.PageSize <= 0)
+            _messageBuilder.AppendLine("PageSize must be greater than 0.");
+
+        if (model.LastJobId.HasValue && model.LastJobId.Value <= 0)
+            _messageBuilder.AppendLine("LastJobId must be greater than 0.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetExternalServicesReportModel(GetExternalServicesReportModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.From.HasValue && model.To.HasValue && model.To.Value < model.From.Value)
+            _messageBuilder.AppendLine("To date must be greater than or equal to From date.");
 
         return _messageBuilder.ToString();
     }

@@ -1,4 +1,4 @@
-﻿namespace HEAppE.BackgroundThread.Configuration;
+namespace HEAppE.BackgroundThread.Configuration;
 
 /// <summary>
 ///     Background Thread configuration
@@ -37,4 +37,24 @@ public sealed class BackGroundThreadConfiguration
     };
 
     public ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheckSettings { get; set; } = new();
+
+    public sealed class ExternalServiceHealthMonitoringConfiguration
+    {
+        /// <summary>
+        /// Whether the periodic external service health check is enabled.
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// How often to run the health check, in seconds.
+        /// </summary>
+        public int IntervalSeconds { get; set; } = 60;
+
+        /// <summary>
+        /// How many days of telemetry logs to retain.
+        /// </summary>
+        public int RetentionDays { get; set; } = 30;
+    };
+
+    public ExternalServiceHealthMonitoringConfiguration ExternalServiceHealthMonitoringSettings { get; set; } = new();
 }
