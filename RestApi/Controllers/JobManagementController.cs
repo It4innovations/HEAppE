@@ -597,5 +597,42 @@ public class JobManagementController : BaseController<JobManagementController>
         return Ok(sessions);
     }
 
+    /// <summary>
+    ///     Get Quantum task result (IQM metadata, timeline, etc.)
+    /// </summary>
+    /// <param name="sessionCode">HEAppE session code</param>
+    /// <param name="submittedTaskId">HEAppE Task ID</param>
+    [HttpGet("GetQuantumTaskResult")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetQuantumTaskResult(string sessionCode, long submittedTaskId)
+    {
+        var stream = await _service.GetQuantumTaskResultAsync(submittedTaskId, sessionCode);
+        return File(stream, "application/json");
+    }
+
+    /// <summary>
+    ///     Get QScheduler task artifact by name.
+    /// </summary>
+    /// <param name="sessionCode">HEAppE session code</param>
+    /// <param name="submittedTaskId">HEAppE Task ID</param>
+    /// <param name="artifactName">Artifact name (e.g. measurements, measurements_counts, sweep_results)</param>
+    [HttpGet("GetQuantumTaskArtifact")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetQuantumTaskArtifact(string sessionCode, long submittedTaskId, string artifactName)
+    {
+        if (string.IsNullOrEmpty(artifactName))
+        {
+            throw new Exceptions.External.InputValidationException("ArtifactNameMustBeSpecified", "artifactName");
+        }
+        var stream = await _service.GetQuantumTaskArtifactAsync(submittedTaskId, artifactName, sessionCode);
+        return File(stream, "application/octet-stream");
+    }
+
     #endregion
 }

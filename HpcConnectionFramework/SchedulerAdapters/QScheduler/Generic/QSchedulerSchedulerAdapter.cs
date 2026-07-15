@@ -96,6 +96,83 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return "'" + path.Replace("'", "'\\''") + "'";
     }
 
+    internal class HttpResponseStream : System.IO.Stream
+    {
+        private readonly System.Net.Http.HttpResponseMessage _response;
+        private readonly System.IO.Stream _underlyingStream;
+
+        public HttpResponseStream(System.Net.Http.HttpResponseMessage response, System.IO.Stream underlyingStream)
+        {
+            _response = response;
+            _underlyingStream = underlyingStream;
+        }
+
+        public override bool CanRead => _underlyingStream.CanRead;
+        public override bool CanSeek => _underlyingStream.CanSeek;
+        public override bool CanWrite => _underlyingStream.CanWrite;
+        public override long Length => _underlyingStream.Length;
+        public override long Position { get => _underlyingStream.Position; set => _underlyingStream.Position = value; }
+
+        public override void Flush() => _underlyingStream.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _underlyingStream.Read(buffer, offset, count);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) => _underlyingStream.ReadAsync(buffer, offset, count, cancellationToken);
+        public override long Seek(long offset, System.IO.SeekOrigin origin) => _underlyingStream.Seek(offset, origin);
+        public override void SetLength(long value) => _underlyingStream.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) => _underlyingStream.Write(buffer, offset, count);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _underlyingStream.Dispose();
+                _response.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+    private async Task<System.IO.Stream> ExecuteRequestStreamAsync(
+        object connectorClient,
+        Cluster cluster,
+        string method,
+        string relativeUrl)
+    {
+        if (connectorClient is ConnectionPool.HttpConnection httpConn)
+        {
+            var baseUri = httpConn.BaseUri;
+            var url = $"{baseUri.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+            _logger.LogInformation($"Executing direct HTTP/HTTPS stream request: {method} {url}");
+            
+            var client = _httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage(new HttpMethod(method), url);
+            
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new UnableToCreateConnectionException($"QScheduler service is unreachable. Connection refused to {url}. Please verify the QScheduler service is running.", ex);
+            }
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                throw new QSchedulerApiException($"QScheduler direct API request failed with status {response.StatusCode}. Details: {content}", response.StatusCode, content);
+            }
+            
+            var stream = await response.Content.ReadAsStreamAsync();
+            return new HttpResponseStream(response, stream);
+        }
+        else
+        {
+            var resultStr = await ExecuteRequestAsync(connectorClient, cluster, method, relativeUrl);
+            var byteArray = Encoding.UTF8.GetBytes(resultStr);
+            return new System.IO.MemoryStream(byteArray);
+        }
+    }
+
     /// <summary>
     /// Unified helper to execute a request against the QScheduler REST API
     /// supporting both direct HTTP/HTTPS and SSH-tunneled curl requests.
@@ -890,6 +967,37 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     public async Task CloseSessionAsync(object connectorClient, Cluster cluster, long sessionId)
     {
         await ExecuteRequestAsync(connectorClient, cluster, "DELETE", $"sessions/{sessionId}");
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskResultAsync(object connectorClient, Cluster cluster, string scheduledJobId)
+    {
+        var qSchedulerTaskId = ParseQSchedulerTaskId(scheduledJobId);
+        var relativeUrl = $"tasks/{qSchedulerTaskId}/result";
+        return await ExecuteRequestStreamAsync(connectorClient, cluster, "GET", relativeUrl);
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskArtifactAsync(object connectorClient, Cluster cluster, string scheduledJobId, string artifactName)
+    {
+        var qSchedulerTaskId = ParseQSchedulerTaskId(scheduledJobId);
+        var relativeUrl = $"tasks/{qSchedulerTaskId}/artifacts/{Uri.EscapeDataString(artifactName)}";
+        return await ExecuteRequestStreamAsync(connectorClient, cluster, "GET", relativeUrl);
+    }
+
+    private static long ParseQSchedulerTaskId(string scheduledJobId)
+    {
+        if (string.IsNullOrEmpty(scheduledJobId))
+        {
+            throw new Exceptions.External.InvalidRequestException("TaskNotSubmittedToQScheduler");
+        }
+
+        var parts = scheduledJobId.Split(':');
+        var taskIdx = Array.IndexOf(parts, "task");
+        if (taskIdx >= 0 && taskIdx + 1 < parts.Length && long.TryParse(parts[taskIdx + 1], out long qSchedulerTaskId))
+        {
+            return qSchedulerTaskId;
+        }
+
+        throw new Exceptions.External.InvalidRequestException("InvalidQSchedulerTaskIdFormat");
     }
 
     #endregion

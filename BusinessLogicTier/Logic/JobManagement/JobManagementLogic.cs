@@ -20,6 +20,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.FileTransferFramework;
@@ -2189,6 +2190,88 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var hashBytes = hmac.ComputeHash(messageBytes);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskResultAsync(long submittedTaskId, AdaptorUser loggedUser)
+    {
+        var taskInfo = await GetSubmittedTaskInfoByIdAsync(submittedTaskId, loggedUser, checkSharedJobInfoAccess: true);
+
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Project)
+            .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
+            ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
+
+        var jobSpecification = jobInfo.Specification;
+        if (jobSpecification.Cluster?.SchedulerType != SchedulerType.QScheduler)
+        {
+            throw new Exceptions.External.InvalidRequestException("TaskNotOnQSchedulerCluster");
+        }
+
+        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(jobSpecification.Cluster.SchedulerType)
+            .CreateScheduler(jobSpecification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
+
+        try
+        {
+            return await scheduler.GetQuantumTaskResultAsync(jobSpecification.Cluster, taskInfo.ScheduledJobId, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        }
+        catch (QSchedulerApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                throw new Exceptions.External.RequestedObjectDoesNotExistException("QSchedulerResourceNotFound", submittedTaskId);
+            }
+            if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                throw new Exceptions.External.InvalidRequestException("QSchedulerTaskNotInRunnableState");
+            }
+            throw;
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskArtifactAsync(long submittedTaskId, string artifactName, AdaptorUser loggedUser)
+    {
+        var taskInfo = await GetSubmittedTaskInfoByIdAsync(submittedTaskId, loggedUser, checkSharedJobInfoAccess: true);
+
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Project)
+            .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
+            ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
+
+        var jobSpecification = jobInfo.Specification;
+        if (jobSpecification.Cluster?.SchedulerType != SchedulerType.QScheduler)
+        {
+            throw new Exceptions.External.InvalidRequestException("TaskNotOnQSchedulerCluster");
+        }
+
+        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(jobSpecification.Cluster.SchedulerType)
+            .CreateScheduler(jobSpecification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
+
+        try
+        {
+            return await scheduler.GetQuantumTaskArtifactAsync(jobSpecification.Cluster, taskInfo.ScheduledJobId, artifactName, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        }
+        catch (QSchedulerApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                throw new Exceptions.External.RequestedObjectDoesNotExistException("QSchedulerResourceNotFound", submittedTaskId);
+            }
+            if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                throw new Exceptions.External.InvalidRequestException("QSchedulerTaskNotInRunnableState");
+            }
+            throw;
         }
     }
 }

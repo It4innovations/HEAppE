@@ -677,6 +677,46 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetQuantumTaskResultAsync(schedulerConnection.Connection, cluster, scheduledJobId);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("GetQuantumTaskResult is only supported by QScheduler.");
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskArtifactAsync(Cluster cluster, string scheduledJobId, string artifactName, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetQuantumTaskArtifactAsync(schedulerConnection.Connection, cluster, scheduledJobId, artifactName);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("GetQuantumTaskArtifact is only supported by QScheduler.");
+        }
+    }
+
     private readonly ConnectionInfo DummyConnectionInfo = new ConnectionInfo { Connection = new object(), AuthCredentials = null, LastUsed = DateTime.Now };
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)

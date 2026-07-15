@@ -767,6 +767,28 @@ public class JobManagementService : IJobManagementService
         }
     }
 
+    public async Task<System.IO.Stream> GetQuantumTaskResultAsync(long submittedTaskId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, _expirioService);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            return await jobLogic.GetQuantumTaskResultAsync(submittedTaskId, loggedUser);
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskArtifactAsync(long submittedTaskId, string artifactName, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, _expirioService);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            return await jobLogic.GetQuantumTaskArtifactAsync(submittedTaskId, artifactName, loggedUser);
+        }
+    }
+
 #pragma warning disable IDE1006
     private string _expirioToken
     {

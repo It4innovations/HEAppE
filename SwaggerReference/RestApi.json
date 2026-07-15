@@ -3525,6 +3525,138 @@
         }
       }
     },
+    "/heappe/JobManagement/GetQuantumTaskResult": {
+      "get": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "Get Quantum task result (IQM metadata, timeline, etc.)",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQuantumTaskArtifact": {
+      "get": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "Get QScheduler task artifact by name.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ArtifactName",
+            "in": "query",
+            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/JobReporting/ListAdaptorUserGroups": {
       "get": {
         "tags": [
