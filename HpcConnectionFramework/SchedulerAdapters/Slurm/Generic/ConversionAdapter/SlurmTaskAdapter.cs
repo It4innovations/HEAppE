@@ -307,11 +307,15 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             // squeue -j $SLURM_JOB_ID -h -o "%t"
             //"exit_handler() { local X=$?; send_state \"EXIT\"; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; if [ $X -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi };",
             //var sendCommand = "sleep 5; echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> " + outputFile + ";";
-            var sendCommand = "curl --header \"Content-Type: application/json\" --request POST --data \"{\\\"SLURM_JOB_ID\\\":\\\"$SLURM_JOB_ID\\\", \\\"SLURM_JOB_STATE\\\":\\\"$SLURM_JOB_STATE\\\"}\" http://127.0.0.1:1880/slurm --max-time 5; echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> " + outputFile + ";";
+
+            // TODO: this one line script is getting so complicated, that we should make it a proper script instead
+            var sendCommand = "curl --silent --output /dev/null --header \"Content-Type: application/json\" --request POST --data \"{\\\"SLURM_JOB_ID\\\":\\\"$SLURM_JOB_ID\\\", \\\"SLURM_JOB_STATE\\\":\\\"$SLURM_JOB_STATE\\\"}\" http://127.0.0.1:1880/slurm --max-time 5 2>/dev/null; echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> " + outputFile + ";";
             var wrapperScript = new[] {
+                "string_contains() { case $2 in *$1*) return 0;; *) return 1;; esac ;};",
                 "get_job_state() { echo $(squeue -j $SLURM_JOB_ID -h -o \"%T\" 2>/dev/null); };",
                 "send_state() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
-                "cleanup_handler() { trap - EXIT; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + ";send_state \"CANCELLED_OR_TIMEOUT\";  exit 1; };",
+                //"cleanup_handler() { trap - EXIT; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + ";send_state \"CANCELLED_OR_TIMEOUT\";  exit 1; };",
+                "cleanup_handler() { trap - EXIT; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; OUTPUT=\"$(scontrol show JobId $SLURM_JOB_ID)\"; send_state \"CANCELLED_OR_TIMEOUT\"; string_contains \"Reason=TimeLimit\" \"$OUTPUT\"; if [ $? -eq 0 ]; then send_state \"TIMEOUT\"; else send_state \"CANCELLED\"; fi; exit 1; };",
                 "exit_handler() { scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; if [ $PID_EXIT -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi; exit $PID_EXIT; };",
                 "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell in --wrap environment)
                 "trap \'exit_handler\' EXIT;",
@@ -409,23 +413,3 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
     #endregion
 }
-
-/*
- //var timeLeft = @"timeLeft() { squeue -h -j $SLURM_JOB_ID -O TimeLeft | awk -F':|-' 'if (NF == 1) print $NF; else if (NF == 2) print ($1 * 60) + ($2); else if (NF == 3) print ($1 * 3600) + ($2 * 60) + $3; else if (NF == 4) print ($1 * 86400) + ($2 * 3600) + ($3 * 60) + $4' }";
-            // 
-            // echo \"$(get_job_state)\" >> cleanup_handler.txt; scontrol show JobId $SLURM_JOB_ID -o >> cleanup_handler.txt; 
-            // echo \"$(get_job_state)\" >> exit_handler.txt; scontrol show JobId $SLURM_JOB_ID -o >> exit_handler.txt; 
-            // squeue -j $SLURM_JOB_ID -h -o "%t"
-            var sendCommand = "echo $(date +\"%Y-%m-%d %H:%M:%S\") \": Job $SLURM_JOB_ID entered state $SLURM_JOB_STATE\" >> " + outputFile + ";";
-            var wrapperScript = new[] {
-                "get_job_state() { echo $(squeue -j $SLURM_JOB_ID -h -o \"%T\" 2>/dev/null); };",
-                "send_state() { local SLURM_JOB_STATE=$1; " + sendCommand + " };",
-                "cleanup_handler() { trap - EXIT; send_state \"CANCELLED_OR_TIMEOUT\"; exit 1; };", // TODO: scontrol
-                //"exit_handler() { local X=$?; send_state \"EXIT\"; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; if [ $X -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi };",
-                "exit_handler() { if [ $? -eq 0 ]; then send_state \"COMPLETED\"; else send_state \"FAILED\"; fi };",
-                "trap \'cleanup_handler\' 15;", // 15 = SIGTERM (use number for compatibility with default shell)
-                "trap \'exit_handler\' EXIT;",
-                "control_loop() { local PID=$1; while kill -0 $PID 2>/dev/null; do sleep " + controlLoopSleepTime + "; scontrol show JobId $SLURM_JOB_ID -o >> " + outputFile + "; done };"
-            };
-
-*/

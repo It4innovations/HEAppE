@@ -158,60 +158,6 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
 
-        if (false)
-        {
-            StringBuilder builder = new();
-
-            /*
-            builder.Clear();
-            builder.Append(@"cat <<EOF >/tmp/strigger-demo.sh
-#!/bin/bash
-STATE=\$(sacct -j $JOB_ID --format=state --noheader | head -n 1 |  awk '{print \$1}')
-echo ""Job $JOB_ID finished with state \$STATE"" >> /tmp/strigger-demo.txt
-EOF
-");
-            foreach (var taskInfo in result)
-            {
-                builder.Append($"strigger --set --jobid=${taskInfo.ScheduledJobId} --fini --program=/tmp/strigger-demo.sh;\n");
-            }
-
-            integratedCommand = builder.ToString();
-            try
-            {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-            */
-
-            builder.Clear();
-            foreach (var taskInfo in result)
-            {
-                builder.Append(@"
-sbatch \
-    --dependency=afterany:$JOB_ID \
-    --job-name=""watchdog_$JOB_ID"" \
-    --time=00:02:00 << EOF
-#!/bin/bash
-STATE=\$(sacct -j $JOB_ID --format=state --noheader | head -n 1 |  awk '{print \$1}')
-echo ""Job $JOB_ID finished with state \$STATE"" >> /tmp/depends-demo.txt
-EOF
-".Replace("$JOB_ID", "" + taskInfo.ScheduledJobId));
-            }
-
-            integratedCommand = builder.ToString();
-            try
-            {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-
         return result;
     }
 
