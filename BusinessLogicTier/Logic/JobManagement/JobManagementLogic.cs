@@ -2029,8 +2029,12 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
         }
 
-        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        if (cluster.ConnectionProtocol != ClusterConnectionProtocol.Http && cluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
 
         var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
@@ -2078,8 +2082,12 @@ internal class JobManagementLogic : IJobManagementLogic
 
         await VerifySessionOwnerAsync(sessionId, loggedUser);
 
-        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        if (cluster.ConnectionProtocol != ClusterConnectionProtocol.Http && cluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
 
         var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
@@ -2210,8 +2218,13 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new Exceptions.External.InvalidRequestException("TaskNotOnQSchedulerCluster");
         }
 
-        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        if (jobSpecification.Cluster.ConnectionProtocol != ClusterConnectionProtocol.Http &&
+            jobSpecification.Cluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
 
         var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(jobSpecification.Cluster.SchedulerType)
             .CreateScheduler(jobSpecification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
@@ -2251,8 +2264,13 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new Exceptions.External.InvalidRequestException("TaskNotOnQSchedulerCluster");
         }
 
-        var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-        var credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        if (jobSpecification.Cluster.ConnectionProtocol != ClusterConnectionProtocol.Http &&
+            jobSpecification.Cluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            var clusterInfoLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            credentials = await clusterInfoLogic.GetNextAvailableUserCredentials(jobSpecification.Cluster.Id, jobInfo.Project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
 
         var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(jobSpecification.Cluster.SchedulerType)
             .CreateScheduler(jobSpecification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);

@@ -721,6 +721,12 @@ public class RexSchedulerWrapper : IRexScheduler
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
+        if (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+        {
+            var connector = new ConnectionPool.HttpConnector();
+            var connObj = await connector.CreateConnectionObjectAsync(cluster.MasterNodeName, credentials, cluster, sshCaToken, lexisToken, cluster.Port);
+            return new ConnectionInfo { Connection = connObj, AuthCredentials = credentials, LastUsed = DateTime.Now };
+        }
         if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm))
             return DummyConnectionInfo;
         return await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
