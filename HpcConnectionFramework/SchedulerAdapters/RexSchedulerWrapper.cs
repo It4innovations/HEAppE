@@ -735,7 +735,7 @@ public class RexSchedulerWrapper : IRexScheduler
     private Task ReturnConnectionAsync(ConnectionInfo schedulerConnection)
     {
         if (_connectionPool == null || schedulerConnection == null || schedulerConnection == DummyConnectionInfo || schedulerConnection.AuthCredentials == null)
-            return Task.Delay(1);
+            return Task.CompletedTask;
         return _connectionPool.ReturnConnectionAsync(schedulerConnection);
     }
 
