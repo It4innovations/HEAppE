@@ -99,10 +99,8 @@ public class FileTransferLogic : IFileTransferLogic
 
     public async Task RemoveJobsTemporaryFileTransferKeysAsync()
     {
-        var activeTemporaryKeys = _unitOfWork.FileTransferTemporaryKeyRepository.GetAllActiveTemporaryKey()
-            .Where(w => w.AddedAt.AddHours(BusinessLogicConfiguration.ValidityOfTemporaryTransferKeysInHours) <=
-                        DateTime.UtcNow)
-            .ToList();
+        var threshold = DateTime.UtcNow.AddHours(-BusinessLogicConfiguration.ValidityOfTemporaryTransferKeysInHours);
+        var activeTemporaryKeys = _unitOfWork.FileTransferTemporaryKeyRepository.GetAllActiveTemporaryKeyExpiredBefore(threshold);
 
         var activeTemporaryKeysGroup = activeTemporaryKeys.GroupBy(g => g.SubmittedJob.Specification.Cluster)
             .ToList();
