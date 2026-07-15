@@ -450,13 +450,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             
             _taskAppender.Append(" -v ");
             foreach (var variable in variables)
-            {
-                if (!System.Text.RegularExpressions.Regex.IsMatch(variable.Name, @"^[a-zA-Z_][a-zA-Z0-9_]*$"))
-                    throw new ArgumentException($"Invalid environment variable name: {variable.Name}");
-
-                var escapedValue = "\"" + variable.Value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-                _taskAppender.Append($"{variable.Name}={escapedValue},");
-            }
+                _taskAppender.Append($"{variable.Name}={variable.Value},");
             _taskAppender.Remove(_taskAppender.Length - 1, 1);
 
             if (_pbs)

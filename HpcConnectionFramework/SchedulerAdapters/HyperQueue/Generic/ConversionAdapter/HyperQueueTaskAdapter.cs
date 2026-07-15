@@ -193,14 +193,7 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
 
     public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
     {
-        foreach (var variable in variables)
-        {
-            if (!System.Text.RegularExpressions.Regex.IsMatch(variable.Name, @"^[a-zA-Z_][a-zA-Z0-9_]*$"))
-                throw new ArgumentException($"Invalid environment variable name: {variable.Name}");
-
-            var escapedValue = "\"" + variable.Value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-            _taskBuilder.Append($" --env {variable.Name}={escapedValue}");
-        }
+        foreach (var variable in variables) _taskBuilder.Append($" --env {variable.Name}={variable.Value}");
     }
 
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
