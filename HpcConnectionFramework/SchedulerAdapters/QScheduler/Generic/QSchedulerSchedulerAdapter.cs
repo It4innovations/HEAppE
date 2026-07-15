@@ -115,7 +115,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
         public override void Flush() => _underlyingStream.Flush();
         public override int Read(byte[] buffer, int offset, int count) => _underlyingStream.Read(buffer, offset, count);
+        public override int Read(Span<byte> buffer) => _underlyingStream.Read(buffer);
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) => _underlyingStream.ReadAsync(buffer, offset, count, cancellationToken);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) => _underlyingStream.ReadAsync(buffer, cancellationToken);
         public override long Seek(long offset, System.IO.SeekOrigin origin) => _underlyingStream.Seek(offset, origin);
         public override void SetLength(long value) => _underlyingStream.SetLength(value);
         public override void Write(byte[] buffer, int offset, int count) => _underlyingStream.Write(buffer, offset, count);
@@ -141,7 +143,6 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         {
             var baseUri = httpConn.BaseUri;
             var url = $"{baseUri.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
-            _logger.LogInformation($"Executing direct HTTP/HTTPS stream request: {method} {url}");
             
             var client = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(new HttpMethod(method), url);
