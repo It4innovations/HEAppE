@@ -175,6 +175,7 @@ public class FileTransferLogic : IFileTransferLogic
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
         //retrieve credentials from vault
         clusterUserAuthCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetByIdAsync(clusterUserAuthCredentials.Id);
+        clusterUserAuthCredentials.SessionUserId = loggedUser.Id;
         if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
@@ -243,6 +244,7 @@ public class FileTransferLogic : IFileTransferLogic
         {
             var credentials =
                 await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetByIdAsync(jobInfo.Specification.ClusterUser.Id);
+            credentials.SessionUserId = loggedUser.Id;
             _logger.LogDebug($"ClusterUser: {credentials}");
             transferMethod.Credentials = new FileTransferKeyCredentials
             {

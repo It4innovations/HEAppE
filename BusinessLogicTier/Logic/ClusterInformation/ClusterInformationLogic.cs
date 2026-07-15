@@ -321,6 +321,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
         ClusterUserCache.SetLastUserId(cluster, serviceCredentials, creds.Id);
         _logger.LogDebug("Using cluster account: {0}", creds.Username);        
+        creds.SessionUserId = adaptorUserId;
         return creds;
     }
     
@@ -432,6 +433,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         
         _logger.LogDebug("Using cluster account: {0}", creds.Username);
 
+        creds.SessionUserId = adaptorUserId;
         return creds;
     }
 

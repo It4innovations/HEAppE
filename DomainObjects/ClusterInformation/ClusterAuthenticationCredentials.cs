@@ -59,6 +59,9 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
 
     [StringLength(200)] public string PublicKey { get; set; }
 
+    [NotMapped]
+    public long? SessionUserId { get; set; }
+
     [Required] public bool IsGenerated { get; set; } = false;
 
     [Required] public bool IsDeleted { get; set; } = false;

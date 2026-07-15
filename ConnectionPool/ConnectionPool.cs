@@ -55,7 +55,7 @@ namespace HEAppE.ConnectionPool
         private readonly TimeSpan _maxUnusedDuration;
         private int _currentTotalPhysicalConnectionsCount;
         
-        private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
+        private readonly ConcurrentDictionary<(long, long?), SharedUserContext> _userContexts;
         private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
             = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
         private readonly int _connectionRetryAttempts = 3;
@@ -79,7 +79,7 @@ namespace HEAppE.ConnectionPool
             _maxConnectionsPerUser = maxSize; 
             _maxSessionsPerConnection = maxSessionsPerConnection;
             _adapter = adapter;
-            _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
+            _userContexts = new ConcurrentDictionary<(long, long?), SharedUserContext>();
             _connectionRetryAttempts = retryAttempts;
             _connectionTimeoutMs = timeoutMs;
             _acquireTimeoutMs = acquireTimeoutMs;
@@ -102,8 +102,9 @@ namespace HEAppE.ConnectionPool
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
             _logger.LogDebug($"[User:{credentials.Id}] Requesting connection.");
-            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
-                _logger.LogDebug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+            var poolKey = (credentials.Id, credentials.SessionUserId);
+            var userContext = _userContexts.GetOrAdd(poolKey, key => {
+                _logger.LogDebug($"[User:{key.Item1}] [SessionUser:{key.Item2}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
                 return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
             });
 
@@ -303,7 +304,8 @@ namespace HEAppE.ConnectionPool
             if (connection == null)
                 return;
 
-            if (_userContexts.TryGetValue(connection.AuthCredentials.Id, out var userContext))
+            var poolKey = (connection.AuthCredentials.Id, connection.AuthCredentials.SessionUserId);
+            if (_userContexts.TryGetValue(poolKey, out var userContext))
             {
                 for (int i = 0; i < userContext.Slots.Length; i++)
                 {
