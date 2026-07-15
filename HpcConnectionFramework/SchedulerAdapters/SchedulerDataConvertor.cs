@@ -267,7 +267,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                                                   Regex.IsMatch(taskParametersValue.Value, @""".+""",
                                                       RegexOptions.IgnoreCase | RegexOptions.Compiled);
                 finalParameters.Add(templateParameter.Identifier,
-                    isStringOfGenericParameters ? taskParametersValue.Value : Regex.Escape(taskParametersValue.Value));
+                    isStringOfGenericParameters ? taskParametersValue.Value : ShellEscape(taskParametersValue.Value));
             }
             else
             {
@@ -440,6 +440,12 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             }
         }
         return executableFile;
+    }
+
+    public static string ShellEscape(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "''";
+        return "'" + value.Replace("'", "'\\''") + "'";
     }
 
     #endregion
