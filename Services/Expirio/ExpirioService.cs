@@ -157,11 +157,10 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<bool> ExchangeTokensAsync(string idpToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
+    public Task<bool> ExchangeTokensAsync(string idpToken, string hpcToken, ILogger logger, CancellationToken cancellationToken = default)
     {
         // Placeholder implementation
-        await Task.Delay(1);
-        return true;
+        return Task.FromResult(true);
     }
 
     private string ParseTokenResponse(string content, ILogger logger)

@@ -3116,12 +3116,8 @@ public class ManagementLogic : IManagementLogic
         return project.AccountingStates.ToList();
     }
 
-    public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
+    public Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
     {
-        await Task.Delay(1);
-
-
-
         var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
 
         var statistics = new Status.Statistics_()
@@ -3186,7 +3182,7 @@ public class ManagementLogic : IManagementLogic
             Details = details
         };
 
-        return result;
+        return Task.FromResult(result);
     }
 
     public StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo)

@@ -142,7 +142,6 @@ public class FileTransferService : IFileTransferService
     
     public async Task<dynamic> UploadFileToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
-        await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)
@@ -158,7 +157,6 @@ public class FileTransferService : IFileTransferService
     
     public async Task<dynamic> UploadJobScriptToProjectDirAsync(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
     {
-        await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)

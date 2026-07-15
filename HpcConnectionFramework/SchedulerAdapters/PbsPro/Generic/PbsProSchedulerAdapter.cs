@@ -621,7 +621,6 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         if (dryRunJobFailedCount > 0)
             checkLog.DryRunJobOk = false;
 
-        await Task.Delay(1);
         return null;
     }
 
