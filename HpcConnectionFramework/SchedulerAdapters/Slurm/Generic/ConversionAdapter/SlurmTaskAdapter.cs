@@ -424,11 +424,6 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         if (UseCallback)
         {
-            if (_runtime > 10)
-            {
-                DoAppend(" --signal=B:TERM@10");
-            }
-
             if (_sbatch)
                 _taskAppender.Append("#SBATCH");
 
