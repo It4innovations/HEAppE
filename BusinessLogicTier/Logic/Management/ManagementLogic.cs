@@ -2929,12 +2929,6 @@ public class ManagementLogic : IManagementLogic
         //compute accounting
         foreach (var submittedTask in submittedTasks)
         {
-            //parse all parameters to dictionary
-            var parsedParameters = submittedTask.AllParameters
-                .Split(' ')
-                .Select(x => x.Split('='))
-                .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
-
             ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger, taskId => 
                 _unitOfWork.SubmittedTaskInfoRepository.GetById(taskId)?.ResourceConsumed);
 
