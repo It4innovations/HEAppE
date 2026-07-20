@@ -23,7 +23,9 @@ public static class ResourceAccountingUtils
 
         logger?.LogInformation($"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
 
-        var accounting = dbTaskInfo.NodeType
+        var nodeType = dbTaskInfo.NodeType ?? dbTaskInfo.Specification?.ClusterNodeType;
+
+        var accounting = nodeType
             ?.ClusterNodeTypeAggregation
             ?.ClusterNodeTypeAggregationAccountings
             ?.Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))

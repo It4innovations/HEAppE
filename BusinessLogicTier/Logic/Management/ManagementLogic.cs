@@ -2909,10 +2909,7 @@ public class ManagementLogic : IManagementLogic
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
-            .GetAll()
-            .Where(t => t.StartTime >= modelStartTime
-                        && t.EndTime <= modelEndTime
-                        && t.Project.Id == projectId)
+            .GetSubmittedTasksForAccounting(modelStartTime, modelEndTime, projectId)
             .ToList();
 
         var accountingState = new AccountingState
