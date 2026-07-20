@@ -38,7 +38,7 @@ public class Project : IdentifiableDbEntity, ISoftDeletableEntity
     public virtual List<CommandTemplate> CommandTemplates { get; set; } = new();
     public virtual List<ProjectContact> ProjectContacts { get; set; } = new();
     public virtual List<SubProject> SubProjects { get; set; } = new();
-    public virtual List<AccountingState>? AccountingStates { get; set; }
+    public virtual List<AccountingState> AccountingStates { get; set; } = new();
 
     public virtual List<ProjectClusterNodeTypeAggregation> ProjectClusterNodeTypeAggregations { get; set; } = new();
 

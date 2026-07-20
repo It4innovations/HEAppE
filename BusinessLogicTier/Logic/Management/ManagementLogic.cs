@@ -2905,7 +2905,7 @@ public class ManagementLogic : IManagementLogic
     public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
     {
         //get all submittedtasks from project and compute with formula
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
@@ -2951,10 +2951,10 @@ public class ManagementLogic : IManagementLogic
 
     public List<AccountingState> ListAccountingStates(long projectId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        return project.AccountingStates.ToList();
+        return project.AccountingStates?.ToList() ?? new List<AccountingState>();
     }
 
     public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
