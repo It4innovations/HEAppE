@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.6
+
+### Fixed
+- Fixed Expirio token exchange deserialization failure (`JsonException`) by restoring robust fallback behavior that handles raw JSON string response formats and trims surrounding quotes.
+- Optimized username resolution to skip unnecessary Kerberos-enriched resolution requests (`/kerberos/exchange`) when Kerberos authentication is not configured for any project the user has access to.
+
 ## V6.4.5
 
 ### Fixed
