@@ -128,12 +128,18 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                 .ThenInclude(ts => ts.RequiredNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(t => t.NodeType)
+                .ThenInclude(nt => nt.ClusterNodeTypeAggregation)
+                    .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(cna => cna.Accounting)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.RequestedNodeGroups)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+                        .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(cna => cna.Accounting)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.Cluster)
@@ -194,12 +200,18 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
                 .ThenInclude(ts => ts.RequiredNodes)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(t => t.NodeType)
+                .ThenInclude(nt => nt.ClusterNodeTypeAggregation)
+                    .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(cna => cna.Accounting)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.RequestedNodeGroups)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+                        .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(cna => cna.Accounting)
             .Include(t => t.Specification)
                 .ThenInclude(ts => ts.ClusterNodeType)
                     .ThenInclude(cnt => cnt.Cluster)
@@ -259,6 +271,26 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
     public ResourceConsumed GetResourceConsumed(long taskId)
     {
         return _context.Set<ResourceConsumed>().FirstOrDefault(r => r.SubmittedTaskInfoId == taskId);
+    }
+
+    public IEnumerable<SubmittedTaskInfo> GetSubmittedTasksForAccounting(System.DateTime startTime, System.DateTime endTime, long projectId)
+    {
+        return _dbSet
+            .AsSplitQuery()
+            .Include(t => t.ResourceConsumed)
+            .Include(t => t.NodeType)
+                .ThenInclude(nt => nt.ClusterNodeTypeAggregation)
+                    .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(cna => cna.Accounting)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+                    .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
+                        .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(cna => cna.Accounting)
+            .Where(t => t.StartTime >= startTime
+                        && t.EndTime <= endTime
+                        && t.Project.Id == projectId)
+            .ToList();
     }
 
     #endregion

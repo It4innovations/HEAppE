@@ -21,9 +21,17 @@ public static class ResourceAccountingUtils
             return;
         }
 
+        if (!submittedTaskInfo.StartTime.HasValue)
+        {
+            logger?.LogInformation($"SubmittedTaskInfo {dbTaskInfo.Id} has not started yet. Skipping resource accounting calculation.");
+            return;
+        }
+
         logger?.LogInformation($"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
 
-        var accounting = dbTaskInfo.NodeType
+        var nodeType = dbTaskInfo.NodeType ?? dbTaskInfo.Specification?.ClusterNodeType;
+
+        var accounting = nodeType
             ?.ClusterNodeTypeAggregation
             ?.ClusterNodeTypeAggregationAccountings
             ?.Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))

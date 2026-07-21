@@ -155,6 +155,20 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
+    public Project GetByIdWithAccountingStates(long id)
+    {
+        return _dbSet
+            .Include(p => p.AccountingStates)
+            .FirstOrDefault(p => p.Id == id);
+    }
+
+    public async Task<Project> GetByIdWithAccountingStatesAsync(long id)
+    {
+        return await _dbSet
+            .Include(p => p.AccountingStates)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     public override Project GetById(long id)
     {
         return _dbSet

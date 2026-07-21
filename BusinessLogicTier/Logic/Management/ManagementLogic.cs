@@ -2905,14 +2905,11 @@ public class ManagementLogic : IManagementLogic
     public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
     {
         //get all submittedtasks from project and compute with formula
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
-            .GetAll()
-            .Where(t => t.StartTime >= modelStartTime
-                        && t.EndTime <= modelEndTime
-                        && t.Project.Id == projectId)
+            .GetSubmittedTasksForAccounting(modelStartTime, modelEndTime, projectId)
             .ToList();
 
         var accountingState = new AccountingState
@@ -2932,12 +2929,6 @@ public class ManagementLogic : IManagementLogic
         //compute accounting
         foreach (var submittedTask in submittedTasks)
         {
-            //parse all parameters to dictionary
-            var parsedParameters = submittedTask.AllParameters
-                .Split(' ')
-                .Select(x => x.Split('='))
-                .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
-
             ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger, taskId => 
                 _unitOfWork.SubmittedTaskInfoRepository.GetById(taskId)?.ResourceConsumed);
 
@@ -2954,10 +2945,10 @@ public class ManagementLogic : IManagementLogic
 
     public List<AccountingState> ListAccountingStates(long projectId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        return project.AccountingStates.ToList();
+        return project.AccountingStates?.ToList() ?? new List<AccountingState>();
     }
 
     public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)

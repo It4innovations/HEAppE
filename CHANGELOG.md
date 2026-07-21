@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.5
+
+### Fixed
+- Fixed resource accounting formula evaluation returning null for both background scheduler tasks and API-triggered forced accounting by eagerly loading task-level node type aggregation and active accounting rules.
+- Optimised manual database-level task filtering inside the `ComputeAccounting` process instead of loading the entire task history to memory.
+- Bypassed project validity checks for all job reporting API endpoints, enabling users to retrieve resource usage and detailed reports for historical or expired projects.
+
 ## V6.4.4
 
 ### Changed

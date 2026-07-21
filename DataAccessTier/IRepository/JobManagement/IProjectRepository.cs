@@ -19,4 +19,6 @@ public interface IProjectRepository : IRepository<Project>
     Task<IEnumerable<Project>> GetAllWithClusterProjectsAsync();
     Project GetByIdWithSubProjects(long id);
     Task<Project> GetByIdWithSubProjectsAsync(long id);
+    Project GetByIdWithAccountingStates(long id);
+    Task<Project> GetByIdWithAccountingStatesAsync(long id);
 }
