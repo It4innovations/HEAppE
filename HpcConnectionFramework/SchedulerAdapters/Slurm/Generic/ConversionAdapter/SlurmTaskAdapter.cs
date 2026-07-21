@@ -425,43 +425,60 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (UseCallback)
         {
             if (_sbatch)
+            {
                 _taskAppender.Append("#SBATCH");
-
-            _taskAppender.Append($" --wrap \'cd {workDir};");
-            
-            _taskAppender.Append("mkdir -p .heappe; ");
-            // 1. Write callback token to file with 600 permissions
-            _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
-
-            // 2. Symlink command
-            if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
-            {
-                _taskAppender.Append(recursiveSymlinkCommand.Last().Equals(';')
-                    ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};");
-            }
-
-            // 3. Write user task script
-            _taskAppender.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
-            if (!string.IsNullOrEmpty(preparationScript))
-            {
-                var escapedPrep = preparationScript.Replace("'", "'\\''");
-                _taskAppender.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
-            }
-            if (!string.IsNullOrEmpty(commandLine))
-            {
-                var escapedCmd = commandLine.Replace("'", "'\\''");
-                _taskAppender.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
-            }
-            _taskAppender.Append("EOF\n");
-            _taskAppender.Append("chmod +x .heappe/heappe_user_task.sh;");
-
-            // 4. Run the wrapper script and redirect output
-            _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
-            _taskAppender.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
-
-            if (_sbatch)
+                _taskAppender.Append($" --wrap \'cd {workDir};");
+                _taskAppender.Append("mkdir -p .heappe; ");
+                _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
+                if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+                {
+                    _taskAppender.Append(recursiveSymlinkCommand.Last().Equals(';')
+                        ? recursiveSymlinkCommand
+                        : $"{recursiveSymlinkCommand};");
+                }
+                _taskAppender.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    var escapedPrep = preparationScript.Replace("'", "'\\''");
+                    _taskAppender.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    var escapedCmd = commandLine.Replace("'", "'\\''");
+                    _taskAppender.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
+                }
+                _taskAppender.Append("EOF\n");
+                _taskAppender.Append("chmod +x .heappe/heappe_user_task.sh;");
+                _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
+                _taskAppender.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
                 _taskAppender.AppendLine();
+            }
+            else
+            {
+                var sbatchPart = _taskAppender.ToString();
+                var sb = new StringBuilder();
+                sb.Append($"mkdir -p \"{workDir}/.heappe\" && ");
+                sb.Append($"echo \"{CallbackSecret}\" > \"{workDir}/.heappe/callback_token\" && ");
+                sb.Append($"chmod 600 \"{workDir}/.heappe/callback_token\" && ");
+                
+                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{workDir}/.heappe/heappe_user_task.sh\"\n");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    sb.Append(commandLine.Last().Equals('\n') ? commandLine : $"{commandLine}\n");
+                }
+                sb.Append("EOF_HEAPPE_USER_TASK\n");
+                
+                sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
+                sb.Append(sbatchPart);
+                sb.Append($" --wrap \'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"'");
+                
+                _taskAppender.Clear();
+                _taskAppender.Append(sb.ToString());
+            }
 
             return;
         }

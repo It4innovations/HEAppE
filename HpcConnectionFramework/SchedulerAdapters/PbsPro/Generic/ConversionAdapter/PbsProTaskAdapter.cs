@@ -481,51 +481,52 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         if (UseCallback)
         {
             if (!_pbs)
-                taskSourceSb.Append("echo '");
-
-            taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
-            
-            taskSourceSb.Append("mkdir -p .heappe; ");
-            // 1. Write callback token to file with 600 permissions
-            taskSourceSb.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
-
-            // 2. Symlink command
-            if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
             {
-                taskSourceSb.Append(recursiveSymlinkCommand.Last().Equals(';')
-                    ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};");
-            }
-
-            // 3. Write user task script using heredoc
-            taskSourceSb.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
-            if (!string.IsNullOrEmpty(preparationScript))
-            {
-                var escapedPrep = preparationScript.Replace("'", "'\\''");
-                taskSourceSb.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
-            }
-            if (!string.IsNullOrEmpty(commandLine))
-            {
-                var escapedCmd = commandLine.Replace("'", "'\\''");
-                taskSourceSb.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
-            }
-            taskSourceSb.Append("EOF\n");
-            taskSourceSb.Append("chmod +x .heappe/heappe_user_task.sh;");
-
-            // 4. Run the wrapper script and redirect output
-            taskSourceSb.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
-            taskSourceSb.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile};");
-
-            if (!_pbs)
-            {
-                taskSourceSb.Append("'");
-                taskSourceSb.Append($" | {_taskAppender}");
-                _taskAppender = taskSourceSb;
+                var qsubPart = _taskAppender.ToString();
+                var sb = new StringBuilder();
+                sb.Append($"mkdir -p \"{workDir}/.heappe\" && ");
+                sb.Append($"echo \"{CallbackSecret}\" > \"{workDir}/.heappe/callback_token\" && ");
+                sb.Append($"chmod 600 \"{workDir}/.heappe/callback_token\" && ");
+                
+                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{workDir}/.heappe/heappe_user_task.sh\"\n");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    sb.Append(commandLine.Last().Equals('\n') ? commandLine : $"{commandLine}\n");
+                }
+                sb.Append("EOF_HEAPPE_USER_TASK\n");
+                
+                sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
+                sb.Append($"echo 'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"' | {qsubPart}");
+                
+                _taskAppender = sb;
             }
             else
             {
                 _taskAppender.AppendLine();
-                _taskAppender.Append(taskSourceSb.ToString());
+                _taskAppender.AppendLine("mkdir -p .heappe");
+                _taskAppender.AppendLine($"echo \"{CallbackSecret}\" > .heappe/callback_token");
+                _taskAppender.AppendLine("chmod 600 .heappe/callback_token");
+                if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+                {
+                    _taskAppender.AppendLine(recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
+                }
+                _taskAppender.AppendLine("cat << \"EOF_HEAPPE_USER_TASK\" > .heappe/heappe_user_task.sh");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    _taskAppender.AppendLine(preparationScript);
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    _taskAppender.AppendLine(commandLine);
+                }
+                _taskAppender.AppendLine("EOF_HEAPPE_USER_TASK");
+                _taskAppender.AppendLine("chmod +x .heappe/heappe_user_task.sh");
+                _taskAppender.AppendLine($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile}");
+                _taskAppender.AppendLine($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile}");
             }
 
             return;
