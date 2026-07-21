@@ -3882,18 +3882,42 @@ public class ManagementLogic : IManagementLogic
             // 2. Kerberos enriched username resolution
             if (string.IsNullOrEmpty(username))
             {
-                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
+                bool attemptKerberos = false;
+                if (project != null)
                 {
-                    try
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
+                        .Any(x => x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
+                }
+                else if (adaptorUserId != null)
+                {
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Where(cp => !cp.IsDeleted && cp.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                        .Any(cp => _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+                            .Where(g => g.ProjectId == cp.ProjectId)
+                            .Any(g => g.AdaptorUserUserGroupRoles.Any(r => !r.IsDeleted && r.AdaptorUserId == adaptorUserId)));
+                }
+                else
+                {
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Any(x => !x.IsDeleted && x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
+                }
+
+                if (attemptKerberos)
+                {
+                    _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
+                    var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
+                    if (!string.IsNullOrEmpty(token))
                     {
-                        username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
-                        _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                        try
+                        {
+                            username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                            _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                        }
                     }
                 }
             }
