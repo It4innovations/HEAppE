@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -288,6 +290,18 @@ internal class LinuxCommands : ICommands
         var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
         var sedReplacement = $"{localBasepath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}";
 
+        if (clusterConfig.SyncScriptsViaSftp)
+        {
+            return await InitializeClusterScriptDirectoryViaSftpAsync(
+                (SshClient)schedulerConnectionConnection,
+                repoUrl,
+                branch,
+                bashSafeRootDir,
+                rootDir,
+                sedReplacement,
+                overwriteExistingProjectRootDirectory);
+        }
+
         var cmdBuilder = new StringBuilder();
         cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && cd {bashSafeRootDir} && ");
         cmdBuilder.Append($@"
@@ -338,6 +352,221 @@ internal class LinuxCommands : ICommands
             _logger.LogError($"Exception: {ex.Message}");
             return false;
         }
+    }
+
+    private async Task<bool> InitializeClusterScriptDirectoryViaSftpAsync(
+        SshClient sshClient,
+        string repoUrl,
+        string branch,
+        string bashSafeRootDir,
+        string rootDir,
+        string sedReplacement,
+        bool overwriteExistingProjectRootDirectory)
+    {
+        try
+        {
+            // 1. Clone or pull git repo locally on HEAppE server
+            var localRepoPath = await CloneOrUpdateRepositoryLocallyAsync(repoUrl, branch);
+            var localCommitHash = await GetLocalGitCommitHashAsync(localRepoPath);
+            var localKeyScriptsPath = FindKeyScriptsDirectory(localRepoPath);
+
+            if (localKeyScriptsPath == null)
+            {
+                _logger.LogError($".key_scripts directory not found in local git repository cache: {localRepoPath}");
+                return false;
+            }
+
+            // 2. Check remote .commit_hash via SSH
+            if (!overwriteExistingProjectRootDirectory && !string.IsNullOrEmpty(localCommitHash))
+            {
+                var checkCmd = $"mkdir -p {bashSafeRootDir}/.key_scripts && cd {bashSafeRootDir} && if [ -f \".key_scripts/.commit_hash\" ] && [ \"$(cat .key_scripts/.commit_hash 2>/dev/null)\" = \"{localCommitHash}\" ]; then echo \"SKIPPED_UP_TO_DATE\"; else echo \"UPDATE_NEEDED\"; fi";
+                try
+                {
+                    var checkResult = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), checkCmd, _logger);
+                    if (checkResult.Result != null && checkResult.Result.Contains("SKIPPED_UP_TO_DATE"))
+                    {
+                        _logger.LogInformation("Scripts on remote cluster are already up to date (SFTP check). Skipping upload.");
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Remote script commit hash check failed: {ex.Message}. Proceeding with SFTP upload.");
+                }
+            }
+
+            // 3. Ensure remote directory exists
+            var mkdirCmd = $"mkdir -p {bashSafeRootDir}/.key_scripts";
+            await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), mkdirCmd, _logger);
+
+            // 4. Upload files via SFTP
+            _logger.LogInformation($"Uploading script files to remote cluster via SFTP (commit {localCommitHash})...");
+            using var sftpClient = new SftpClient(sshClient.ConnectionInfo);
+            sftpClient.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+            sftpClient.Connect();
+
+            string relativeKeyScriptsDir = rootDir.StartsWith("~/")
+                ? rootDir.Substring(2) + "/.key_scripts"
+                : rootDir.TrimStart('/') + "/.key_scripts";
+
+            var files = Directory.GetFiles(localKeyScriptsPath);
+            foreach (var filePath in files)
+            {
+                var fileName = Path.GetFileName(filePath);
+                byte[] fileContent;
+
+                if (fileName == "remote-cmd3.sh")
+                {
+                    var fileText = await File.ReadAllTextAsync(filePath);
+                    fileText = fileText.Replace("TODO", sedReplacement);
+                    fileContent = Encoding.UTF8.GetBytes(fileText);
+                }
+                else
+                {
+                    fileContent = await File.ReadAllBytesAsync(filePath);
+                }
+
+                using var memStream = new MemoryStream(fileContent);
+                var remoteFilePath = $"{relativeKeyScriptsDir}/{fileName}";
+                sftpClient.UploadFile(memStream, remoteFilePath, true);
+            }
+
+            // 5. Write .commit_hash file via SFTP
+            if (!string.IsNullOrEmpty(localCommitHash))
+            {
+                using var hashStream = new MemoryStream(Encoding.UTF8.GetBytes(localCommitHash));
+                var remoteHashPath = $"{relativeKeyScriptsDir}/.commit_hash";
+                sftpClient.UploadFile(hashStream, remoteHashPath, true);
+            }
+
+            sftpClient.Disconnect();
+
+            // 6. Set executable permissions via SSH
+            var chmodCmd = $"mkdir -p {bashSafeRootDir} && chmod -R 755 {bashSafeRootDir}/.key_scripts";
+            await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
+
+            _logger.LogInformation("Script directory initialized/updated successfully via SFTP.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"SFTP script directory initialization failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<string> CloneOrUpdateRepositoryLocallyAsync(string repoUrl, string branch)
+    {
+        var urlBytes = Encoding.UTF8.GetBytes(repoUrl);
+        var urlHash = string.Concat(SHA256.HashData(urlBytes).Select(b => b.ToString("x2")));
+        var tempCacheDir = Path.Combine(Path.GetTempPath(), "heappe_scripts_cache_" + urlHash);
+
+        _logger.LogInformation($"Local cache directory for git repository: {tempCacheDir}");
+        Directory.CreateDirectory(tempCacheDir);
+
+        string gitDir = Path.Combine(tempCacheDir, ".git");
+        if (!Directory.Exists(gitDir))
+        {
+            if (Directory.EnumerateFileSystemEntries(tempCacheDir).Any())
+            {
+                Directory.Delete(tempCacheDir, true);
+                Directory.CreateDirectory(tempCacheDir);
+            }
+
+            _logger.LogInformation($"Cloning repository {SanitizeUrl(repoUrl)} (branch: {branch}) locally on HEAppE server...");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"clone --single-branch -b {branch} \"{repoUrl}\" .",
+                WorkingDirectory = tempCacheDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null) throw new Exception("Failed to start git clone process.");
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0)
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                throw new Exception($"Failed to clone git repository on HEAppE server: {SanitizeUrl(error)}");
+            }
+        }
+        else
+        {
+            _logger.LogInformation($"Pulling latest changes for branch {branch} in local cache...");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"pull origin {branch}",
+                WorkingDirectory = tempCacheDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null) throw new Exception("Failed to start git pull process.");
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0)
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                _logger.LogWarning($"Failed to pull git repository: {SanitizeUrl(error)}. Cleaning directory and re-cloning.");
+                Directory.Delete(tempCacheDir, true);
+                return await CloneOrUpdateRepositoryLocallyAsync(repoUrl, branch);
+            }
+        }
+
+        return tempCacheDir;
+    }
+
+    private static string SanitizeUrl(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        return Regex.Replace(input, @"(?<=https?://)[^@]+@", "***:***@");
+    }
+
+    private async Task<string> GetLocalGitCommitHashAsync(string localRepoPath)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "rev-parse HEAD",
+                WorkingDirectory = localRepoPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process != null)
+            {
+                var output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+                if (process.ExitCode == 0) return output.Trim();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to get git commit hash: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private static string FindKeyScriptsDirectory(string rootPath)
+    {
+        var searchPath = Path.Combine(rootPath, "HPC", ".key_scripts");
+        if (Directory.Exists(searchPath)) return searchPath;
+
+        searchPath = Path.Combine(rootPath, ".key_scripts");
+        if (Directory.Exists(searchPath)) return searchPath;
+
+        var directories = Directory.GetDirectories(rootPath, ".key_scripts", SearchOption.AllDirectories);
+        return directories.Length > 0 ? directories[0] : null;
     }
 
     public async Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)

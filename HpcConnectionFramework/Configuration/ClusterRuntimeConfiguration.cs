@@ -86,6 +86,7 @@ public sealed class ClusterRuntimeConfiguration
                 EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
                 EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
                 SshCommandPrefix            = HPCConnectionFrameworkConfiguration.ScriptsSettings.SshCommandPrefix,
+                SyncScriptsViaSftp          = HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp,
             };
 
             // Bind override section on top — only keys present in overrides will overwrite.
@@ -104,6 +105,7 @@ public sealed class ClusterRuntimeConfiguration
     public string JobLogArchiveSubPath   => Scripts.JobLogArchiveSubPath;
     public CommandScriptPathConfiguration CommandScriptsPathSettings => Scripts.CommandScriptsPathSettings;
     public string? SshCommandPrefix      => Scripts.SshCommandPrefix;
+    public bool SyncScriptsViaSftp       => Scripts.SyncScriptsViaSftp;
 
     #endregion
 
