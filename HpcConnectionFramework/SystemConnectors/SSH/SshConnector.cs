@@ -120,6 +120,14 @@ public class SshConnector : IPoolableAdapter
         sshClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
+
+        var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+        var prefix = clusterConfig.SshCommandPrefix;
+        if (!string.IsNullOrEmpty(prefix))
+        {
+            SshClientAdapter.RegisterCommandPrefix(sshClient, prefix);
+        }
+
         return sshClient;
     }
 

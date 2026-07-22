@@ -261,6 +261,24 @@ internal class LinuxCommands : ICommands
         localBasepath = ExpandPathSimple(localBasepath, account);
 
         var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
+
+        // 1. Run the custom command prefix first (e.g. to create bypass files like .avoid_load_def_modules.mn5)
+        var prefix = clusterConfig.SshCommandPrefix;
+        if (!string.IsNullOrEmpty(prefix))
+        {
+            try
+            {
+                _logger.LogInformation($"Running custom SSH command prefix as pre-step: {prefix}");
+                using var cmd = ((Renci.SshNet.SshClient)schedulerConnectionConnection).CreateCommand(prefix);
+                await Task.Factory.FromAsync(cmd.BeginExecute(), cmd.EndExecute);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"SSH command prefix pre-step finished: {ex.Message}");
+            }
+        }
+
+        // 2. Proceed with main script directory setup
         var rootDir = Path.Combine(clusterConfig.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
         string bashSafeRootDir = rootDir.StartsWith("~/") 
             ? "~/" + "\"" + rootDir.Substring(2) + "\"" 

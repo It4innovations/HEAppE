@@ -106,5 +106,10 @@ public sealed class ScriptsConfiguration
     /// </summary>
     public int EventualConsistencyRetryDelayMs { get; set; } = 1000;
 
+    /// <summary>
+    ///     Custom command prefix prepended to all executed SSH commands on the cluster
+    /// </summary>
+    public string? SshCommandPrefix { get; set; }
+
     #endregion
 }
