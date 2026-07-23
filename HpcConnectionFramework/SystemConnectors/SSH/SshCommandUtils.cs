@@ -97,8 +97,9 @@ public static class SshCommandUtils
             }
 
             // General command failure - throw exception. IsTransient will determine if we retry.
-            logger.LogWarning("SSH command execution failed with non-zero exit code. Error: {Error}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.ExitStatus);
-            throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
+            var errMsg = !string.IsNullOrEmpty(sshCommand.Error) ? sshCommand.Error : sshCommand.Result;
+            logger.LogWarning("SSH command execution failed with non-zero exit code. Error: {Error}, Result: {Result}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.Result, sshCommand.ExitStatus);
+            throw new SshCommandException(errMsg, sshCommand.ExitStatus, sshCommand.CommandText);
         }
 
         // Log warnings if stderr has content even with ExitCode 0

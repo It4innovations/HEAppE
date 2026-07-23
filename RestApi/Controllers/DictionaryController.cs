@@ -234,6 +234,84 @@ public class DictionaryController : BaseController<DictionaryController>
         return Ok(GetEnumDictionary<FileTransferCipherTypeExt>());
     }
 
+    /// <summary>
+    ///     Get cluster custom configuration keys mapping with scheduler type compatibility flags (External)
+    /// </summary>
+    /// <returns>List of cluster custom configuration keys and supported scheduler types</returns>
+    [HttpGet("GetClusterCustomConfigurationKeys")]
+    [ProducesResponseType(typeof(IEnumerable<ClusterCustomConfigurationKeyItemModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetClusterCustomConfigurationKeys()
+    {
+        string cacheKey = "Dictionary_ClusterCustomConfigurationKeys_WithSchedulerTypes";
+        if (!_cacheProvider.TryGetValue(cacheKey, out IEnumerable<ClusterCustomConfigurationKeyItemModel> result))
+        {
+            var sshSchedulers = new List<SchedulerTypeExt>
+            {
+                SchedulerTypeExt.LinuxLocal,
+                SchedulerTypeExt.PbsPro,
+                SchedulerTypeExt.Slurm,
+                SchedulerTypeExt.HyperQueue
+            };
+
+            var firecrestSchedulers = new List<SchedulerTypeExt>
+            {
+                SchedulerTypeExt.FirecRestSlurm
+            };
+
+            var allSchedulers = new List<SchedulerTypeExt>
+            {
+                SchedulerTypeExt.LinuxLocal,
+                SchedulerTypeExt.PbsPro,
+                SchedulerTypeExt.Slurm,
+                SchedulerTypeExt.HyperQueue,
+                SchedulerTypeExt.FirecRestSlurm
+            };
+
+            var keysMap = new Dictionary<string, List<SchedulerTypeExt>>(StringComparer.OrdinalIgnoreCase);
+
+            // Reflect all properties from ScriptsConfiguration
+            foreach (var prop in typeof(HEAppE.HpcConnectionFramework.Configuration.ScriptsConfiguration).GetProperties())
+            {
+                if (prop.Name.Equals("SshCommandPrefix", StringComparison.OrdinalIgnoreCase) ||
+                    prop.Name.Equals("SyncScriptsViaSftp", StringComparison.OrdinalIgnoreCase))
+                {
+                    keysMap[prop.Name] = sshSchedulers;
+                }
+                else
+                {
+                    keysMap[prop.Name] = allSchedulers;
+                }
+            }
+
+            // Include additional known metadata keys
+            keysMap["IdpUrl"] = allSchedulers;
+            keysMap["FirecrestUrl"] = firecrestSchedulers;
+            keysMap["ClientId"] = firecrestSchedulers;
+            keysMap["ClientSecret"] = firecrestSchedulers;
+            keysMap["ClusterName"] = firecrestSchedulers;
+
+            int id = 1;
+            result = keysMap
+                .OrderBy(k => k.Key)
+                .Select(k => new ClusterCustomConfigurationKeyItemModel
+                {
+                    Id = id++,
+                    Name = k.Key,
+                    SupportedSchedulerTypes = k.Value.Select(s => new DictionaryItemModel
+                    {
+                        Id = (int)s,
+                        Name = s.ToString()
+                    }).ToList()
+                })
+                .ToList();
+
+            _cacheProvider.Set(cacheKey, result, TimeSpan.FromHours(24));
+        }
+
+        return Ok(result);
+    }
+
     private IEnumerable<DictionaryItemModel> GetEnumDictionary<T>() where T : Enum
     {
         string cacheKey = $"Dictionary_{typeof(T).Name}";

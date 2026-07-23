@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## V6.5.6
+## V6.4.7
+
+### Added
+- Added `SshCommandPrefix` configuration parameter (`Cluster.CustomConfiguration`) to automatically prepend custom setup commands (such as loading modules or setting environment variables) to all SSH commands executed on a cluster.
+- Added `SyncScriptsViaSftp` configuration parameter (`Cluster.CustomConfiguration`) to upload script templates (`.key_scripts`) to isolated clusters via SFTP instead of running `git clone`/`git pull` on remote cluster nodes.
+- Introduced `ClusterCustomConfigurationKeysExt` enum and new Dictionary API endpoint `/heappe/Dictionary/GetClusterCustomConfigurationKeys` to expose all supported metadata configuration keys.
+
+### Fixed
+- Improved SSH command failure diagnostics by falling back to standard output in exception messages when standard error is empty.
+
+## V6.4.6
 
 ### Fixed
 - Fixed Expirio token exchange deserialization failure (`JsonException`) by restoring robust fallback behavior that handles raw JSON string response formats and trims surrounding quotes.
