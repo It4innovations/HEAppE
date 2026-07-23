@@ -87,6 +87,8 @@ public sealed class ClusterRuntimeConfiguration
                 EnableGracefulTimeout       = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout,
                 GracefulTimeoutSeconds      = HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds,
                 CallbackUrl                 = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl,
+                EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
+                EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
                 SshCommandPrefix            = HPCConnectionFrameworkConfiguration.ScriptsSettings.SshCommandPrefix,
                 SyncScriptsViaSftp          = HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp,
             };
@@ -108,9 +110,12 @@ public sealed class ClusterRuntimeConfiguration
     public CommandScriptPathConfiguration CommandScriptsPathSettings => Scripts.CommandScriptsPathSettings;
     public string? SshCommandPrefix      => Scripts.SshCommandPrefix;
     public bool SyncScriptsViaSftp       => Scripts.SyncScriptsViaSftp;
+<<<<<<< HEAD
     public bool EnableCallback          => Scripts.EnableCallback;
     public bool EnableGracefulTimeout   => Scripts.EnableGracefulTimeout;
     public int GracefulTimeoutSeconds   => Scripts.GracefulTimeoutSeconds;
+=======
+>>>>>>> develop
 
     #endregion
 

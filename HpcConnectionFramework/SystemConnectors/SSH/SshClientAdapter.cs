@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +15,8 @@ public class SshClientAdapter
 
     private readonly SshClient _sshClient;
 
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, string> CommandPrefixes = new();
+
     #endregion
 
     #region Constructors
@@ -30,6 +32,14 @@ public class SshClientAdapter
 
     #endregion
 
+    public static void RegisterCommandPrefix(object sshClient, string prefix)
+    {
+        if (sshClient != null && !string.IsNullOrEmpty(prefix))
+        {
+            CommandPrefixes.AddOrUpdate(sshClient, prefix);
+        }
+    }
+
     #region Local Methods
 
 
@@ -41,6 +51,11 @@ public class SshClientAdapter
     /// <returns></returns>
     public async Task<SshCommandWrapper> RunCommandAsync(string command)
     {
+        if (CommandPrefixes.TryGetValue(_sshClient, out var prefix) && !string.IsNullOrEmpty(prefix))
+        {
+            command = $"{prefix} && {command}";
+        }
+
         if (_sshClient is NoAuthenticationSshClient ownSshCommand)
             return await Task.Run(() => ownSshCommand.RunShellCommand(command));
         

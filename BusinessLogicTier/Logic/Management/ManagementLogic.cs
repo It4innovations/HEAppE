@@ -3067,14 +3067,11 @@ public class ManagementLogic : IManagementLogic
     public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
     {
         //get all submittedtasks from project and compute with formula
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
-            .GetAll()
-            .Where(t => t.StartTime >= modelStartTime
-                        && t.EndTime <= modelEndTime
-                        && t.Project.Id == projectId)
+            .GetSubmittedTasksForAccounting(modelStartTime, modelEndTime, projectId)
             .ToList();
 
         var accountingState = new AccountingState
@@ -3094,12 +3091,6 @@ public class ManagementLogic : IManagementLogic
         //compute accounting
         foreach (var submittedTask in submittedTasks)
         {
-            //parse all parameters to dictionary
-            var parsedParameters = submittedTask.AllParameters
-                .Split(' ')
-                .Select(x => x.Split('='))
-                .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
-
             ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger, taskId => 
                 _unitOfWork.SubmittedTaskInfoRepository.GetById(taskId)?.ResourceConsumed);
 
@@ -3116,10 +3107,10 @@ public class ManagementLogic : IManagementLogic
 
     public List<AccountingState> ListAccountingStates(long projectId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = _unitOfWork.ProjectRepository.GetByIdWithAccountingStates(projectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        return project.AccountingStates.ToList();
+        return project.AccountingStates?.ToList() ?? new List<AccountingState>();
     }
 
     public Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
@@ -4049,18 +4040,42 @@ public class ManagementLogic : IManagementLogic
             // 2. Kerberos enriched username resolution
             if (string.IsNullOrEmpty(username))
             {
-                _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
+                bool attemptKerberos = false;
+                if (project != null)
                 {
-                    try
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
+                        .Any(x => x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
+                }
+                else if (adaptorUserId != null)
+                {
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Where(cp => !cp.IsDeleted && cp.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                        .Any(cp => _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
+                            .Where(g => g.ProjectId == cp.ProjectId)
+                            .Any(g => g.AdaptorUserUserGroupRoles.Any(r => !r.IsDeleted && r.AdaptorUserId == adaptorUserId)));
+                }
+                else
+                {
+                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                        .Any(x => !x.IsDeleted && x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
+                }
+
+                if (attemptKerberos)
+                {
+                    _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
+                    var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
+                    if (!string.IsNullOrEmpty(token))
                     {
-                        username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
-                        _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                        try
+                        {
+                            username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
+                            _logger.LogInformation($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
+                        }
                     }
                 }
             }

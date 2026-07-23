@@ -28,4 +28,5 @@ public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
     /// first loaded the entity.
     /// </summary>
     Task<TaskState?> GetCurrentTaskStateAsync(long taskId);
+    IEnumerable<SubmittedTaskInfo> GetSubmittedTasksForAccounting(System.DateTime startTime, System.DateTime endTime, long projectId);
 }

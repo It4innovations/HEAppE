@@ -29,10 +29,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `QSchedulerHost` custom configuration property to allow configuring the target hostname for QScheduler REST API requests (defaults to `localhost`).
 - Added support for file transfers (uploads/downloads) to QScheduler clusters when using SSH or SSHInteractive connection protocols. Includes dynamic override of HTTP/HTTPS file transfer methods to use SFTP directly to the master node filesystem, preventing invalid Firecrest and Expirio credential exchange.
 - Added robust connection error handling for QScheduler REST API: catches connection refused errors (curl exit code 7 / `HttpRequestException`) and returns a clear `UnableToCreateConnectionException` (HTTP 400 Bad Request) detailing that the QScheduler service is unreachable.
+- Added `JobStateSource` / `StateSource` annotation (`Callback`, `UserVerified`, `BackgroundPoll`) and `StateUpdatedAt` timestamp tracking for jobs and tasks.
+- Added `ForceDirectQuery` parameter to `CurrentInfoForJob` endpoint for forcing physical scheduler queries with automatic terminal state locking.
+- Added `GET /heappe/Dictionary/GetJobStateSources` endpoint.
+- Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
+- Added `LogLevel.Trace` override in `RequestResponseLoggingMiddleware` to force logging request/response bodies for `HeadersOnly` endpoints.
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols will now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
+
+## V6.4.7
+
+### Added
+- Added `SshCommandPrefix` configuration parameter (`Cluster.CustomConfiguration`) to automatically prepend custom setup commands (such as loading modules or setting environment variables) to all SSH commands executed on a cluster.
+- Added `SyncScriptsViaSftp` configuration parameter (`Cluster.CustomConfiguration`) to upload script templates (`.key_scripts`) to isolated clusters via SFTP instead of running `git clone`/`git pull` on remote cluster nodes.
+- Introduced `ClusterCustomConfigurationKeysExt` enum and new Dictionary API endpoint `/heappe/Dictionary/GetClusterCustomConfigurationKeys` to expose all supported metadata configuration keys.
+
+### Fixed
+- Improved SSH command failure diagnostics by falling back to standard output in exception messages when standard error is empty.
+
+## V6.4.6
+
+### Fixed
+- Fixed Expirio token exchange deserialization failure (`JsonException`) by restoring robust fallback behavior that handles raw JSON string response formats and trims surrounding quotes.
+- Optimized username resolution to skip unnecessary Kerberos-enriched resolution requests (`/kerberos/exchange`) when Kerberos authentication is not configured for any project the user has access to.
+
+## V6.4.5
+
+### Fixed
+- Fixed resource accounting formula evaluation returning null for both background scheduler tasks and API-triggered forced accounting by eagerly loading task-level node type aggregation and active accounting rules.
+- Optimised manual database-level task filtering inside the `ComputeAccounting` process instead of loading the entire task history to memory.
+- Bypassed project validity checks for all job reporting API endpoints, enabling users to retrieve resource usage and detailed reports for historical or expired projects.
 
 ## V6.4.4
 

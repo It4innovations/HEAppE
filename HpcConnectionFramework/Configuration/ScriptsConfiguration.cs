@@ -126,5 +126,15 @@ public sealed class ScriptsConfiguration
     /// </summary>
     public string CallbackUrl { get; set; }
 
+    /// <summary>
+    ///     Custom command prefix prepended to all executed SSH commands on the cluster
+    /// </summary>
+    public string? SshCommandPrefix { get; set; }
+
+    /// <summary>
+    ///     Upload script templates to the cluster via SFTP instead of running git clone/pull on the cluster
+    /// </summary>
+    public bool SyncScriptsViaSftp { get; set; } = false;
+
     #endregion
 }

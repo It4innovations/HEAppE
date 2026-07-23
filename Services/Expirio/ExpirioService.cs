@@ -165,6 +165,14 @@ public class ExpirioService : IExpirioService
 
     private string ParseTokenResponse(string content, ILogger logger)
     {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return null;
+        }
+
+        content = content.Trim();
+
+        // 1. Try to parse as ExchangeResponse object
         try
         {
             var options = new JsonSerializerOptions
@@ -173,13 +181,32 @@ public class ExpirioService : IExpirioService
             };
 
             var response = JsonSerializer.Deserialize<ExchangeResponse>(content, options);
-            return response?.Content;
+            if (response?.Content != null)
+            {
+                return response.Content;
+            }
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            logger.LogError($"[Expirio] JSON Parsing failed: {ex.Message}");
-            return null;
+            // Fall through to other parsing methods
         }
+
+        // 2. Try to parse as a raw JSON string (e.g. "eyJ...")
+        try
+        {
+            var token = JsonSerializer.Deserialize<string>(content);
+            if (!string.IsNullOrEmpty(token))
+            {
+                return token;
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall through
+        }
+
+        // 3. Fallback to trimming quotes (mimicking 6.3.3 behavior)
+        return content.Trim('"');
     }
 
     public async Task<Dictionary<string, dynamic>> ExchangeFirecrestCredentialsAsync(string token, Dictionary<string, string> customConfiguration, ILogger logger, CancellationToken cancellationToken = default)
