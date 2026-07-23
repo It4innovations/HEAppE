@@ -153,7 +153,8 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             template.TemplateParameters, taskSpecification.CommandParameterValues);
 
         // Set callback parameters
-        taskAdapter.UseCallback = clusterConfig.Scripts.UseCallbackForHpcJobs;
+        taskAdapter.UseCallback = clusterConfig.EnableCallback;
+        taskAdapter.GracefulTimeoutSeconds = clusterConfig.EnableGracefulTimeout ? clusterConfig.GracefulTimeoutSeconds : 0;
         taskAdapter.CallbackSecret = taskSpecification.CallbackSecret;
         taskAdapter.CallbackUrl = clusterConfig.Scripts.CallbackUrl;
         taskAdapter.WrapperScriptPath = clusterConfig.GetPathToScript(

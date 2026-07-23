@@ -163,7 +163,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         
-        if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+        if (clusterConfig.EnableCallback)
         {
             _logger.LogInformation($"Callback is configured. Bypassing active cluster check for job {submittedJobInfoId} and returning database state.");
             return jobInfo;
@@ -404,7 +404,7 @@ internal class JobManagementLogic : IJobManagementLogic
         foreach (var job in allUnfinishedJobs)
         {
             var clusterConfig = ClusterRuntimeConfiguration.For(job.Specification.Cluster.CustomConfiguration);
-            if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+            if (clusterConfig.EnableCallback)
             {
                 if (job.SubmitTime.HasValue)
                 {
@@ -566,7 +566,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     .CreateScheduler(cluster, associatedProject, _sshCertificateAuthorityService, cluster.UpdateJobStateByServiceAccount.Value ? null : spec.Submitter.Id, _expirioService, _expirioToken, _logger);
                 
                 var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
-                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+                bool callbackEnabled = clusterConfig.EnableCallback;
                 var tasksToQuery = new List<SubmittedTaskInfo>();
 
                 foreach (var task in tasksList)
@@ -646,7 +646,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         // Callback timeout protection: If callback is enabled and the task is stuck,
                         // mark it as Failed if time since submission exceeds 3x the walltime limit.
                         var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
-                        bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+                        bool callbackEnabled = clusterConfig.EnableCallback;
 
                         if (callbackEnabled && submittedJob.SubmitTime.HasValue)
                         {
@@ -737,12 +737,16 @@ internal class JobManagementLogic : IJobManagementLogic
                             if (submittedTask.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                             {
                                 submittedTask.State = TaskState.Failed;
+                                submittedTask.StateSource = JobStateSource.BackgroundPoll;
+                                submittedTask.StateUpdatedAt = DateTime.UtcNow;
                                 isNeedUpdateJobState = true;
                             }
                         }
                         else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
                         {
                             CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
+                            submittedTask.StateSource = JobStateSource.BackgroundPoll;
+                            submittedTask.StateUpdatedAt = DateTime.UtcNow;
                             isNeedUpdateJobState = true;
                         }
                     }
@@ -750,8 +754,9 @@ internal class JobManagementLogic : IJobManagementLogic
                     var jobStateChanged = UpdateJobStateByTasks(submittedJob);
                     if (isNeedUpdateJobState || jobStateChanged)
                     {
-                        // UpdateJobStateByTasks(submittedJob);
-                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob); // TODO: check
+                        submittedJob.StateSource = JobStateSource.BackgroundPoll;
+                        submittedJob.StateUpdatedAt = DateTime.UtcNow;
+                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
                         JobCacheManager.InvalidateJobCache(submittedJob.Id);
                     }
                 }
@@ -1382,7 +1387,7 @@ internal class JobManagementLogic : IJobManagementLogic
         }
         var cluster = jobInfo.Specification.Cluster;
         var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
-        if (clusterConfig.Scripts.UseCallbackForHpcJobs)
+        if (clusterConfig.EnableCallback)
         {
             string masterKeyName = "ClusterCallbackNotifyToken";
             string? masterKey = await GetMasterCallbackTokenAsync(cluster);
@@ -1528,10 +1533,16 @@ internal class JobManagementLogic : IJobManagementLogic
             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
                 .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
             if (actualUnfinishedSchedulerTaskInfo != null)
+            {
                 CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+                task.StateSource = JobStateSource.UserVerified;
+                task.StateUpdatedAt = DateTime.UtcNow;
+            }
         }
 
         UpdateJobStateByTasks(jobInfo);
+        jobInfo.StateSource = JobStateSource.UserVerified;
+        jobInfo.StateUpdatedAt = DateTime.UtcNow;
         await _unitOfWork.SaveAsync();
         await CheckAndCloseQSchedulerSessionsAsync(jobInfo);
 
@@ -1821,6 +1832,8 @@ internal class JobManagementLogic : IJobManagementLogic
             var previousJobState = jobInfo.State;
 
             dbTask.State = result.TargetState;
+            dbTask.StateSource = JobStateSource.Callback;
+            dbTask.StateUpdatedAt = DateTime.UtcNow;
             dbTask.ErrorMessage = result.ErrorMessage ?? dbTask.ErrorMessage;
             dbTask.Reason = result.Reason ?? dbTask.Reason;
             dbTask.AllParameters = result.AllParameters ?? dbTask.AllParameters;
@@ -1837,6 +1850,8 @@ internal class JobManagementLogic : IJobManagementLogic
             }
 
             UpdateJobStateByTasks(jobInfo);
+            jobInfo.StateSource = JobStateSource.Callback;
+            jobInfo.StateUpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveAsync();
             JobCacheManager.InvalidateJobCache(jobInfo.Id);

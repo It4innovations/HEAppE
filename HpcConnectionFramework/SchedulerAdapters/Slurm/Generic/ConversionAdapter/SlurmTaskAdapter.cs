@@ -254,6 +254,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     }
 
     public bool UseCallback { get; set; }
+    public int GracefulTimeoutSeconds { get; set; }
     public string CallbackSecret { get; set; }
     public string CallbackUrl { get; set; }
     public string WrapperScriptPath { get; set; }
@@ -424,9 +425,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         if (UseCallback)
         {
+            var signalArg = GracefulTimeoutSeconds > 0 ? $" --signal=B:TERM@{GracefulTimeoutSeconds}" : string.Empty;
             if (_sbatch)
             {
                 _taskAppender.Append("#SBATCH");
+                _taskAppender.Append(signalArg);
                 _taskAppender.Append($" --wrap \'cd {workDir};");
                 _taskAppender.Append("mkdir -p .heappe; ");
                 _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
@@ -474,6 +477,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 
                 sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
                 sb.Append(sbatchPart);
+                sb.Append(signalArg);
                 sb.Append($" --wrap \'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"'");
                 
                 _taskAppender.Clear();

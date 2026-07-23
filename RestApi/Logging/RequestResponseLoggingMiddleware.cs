@@ -47,10 +47,11 @@ namespace HEAppE.RestApi.Logging
                     _logger.LogInformation($"[Request] Method: {context.Request.Method}, Path: {context.Request.Path}");
                 }
 
+                bool isTraceEnabled = _logger.IsEnabled(LogLevel.Trace);
                 bool isDebugEnabled = _logger.IsEnabled(LogLevel.Debug);
                 bool isStreamingEndpoint = context.Request.Path.Value
                     ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
-                bool isHeadersOnly = behavior == LoggingBehavior.HeadersOnly;
+                bool isHeadersOnly = behavior == LoggingBehavior.HeadersOnly && !isTraceEnabled;
 
                 if (!isDebugEnabled || isStreamingEndpoint || isHeadersOnly)
                 {
@@ -133,10 +134,11 @@ namespace HEAppE.RestApi.Logging
                 context.Response.Headers.Append("X-Request-Id", traceId);
             }
 
+            bool isTrace = _logger.IsEnabled(LogLevel.Trace);
             bool isDebug = _logger.IsEnabled(LogLevel.Debug);
             bool isStreaming = context.Request.Path.Value
                 ?.Contains("HttpPostToJobNodeStream", StringComparison.OrdinalIgnoreCase) == true;
-            bool isHeadersOnlyEarly = behavior == LoggingBehavior.HeadersOnly;
+            bool isHeadersOnlyEarly = behavior == LoggingBehavior.HeadersOnly && !isTrace;
 
             if (!isDebug || isStreaming || isHeadersOnlyEarly)
             {

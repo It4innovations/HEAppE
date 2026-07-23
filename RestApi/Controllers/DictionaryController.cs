@@ -67,6 +67,18 @@ public class DictionaryController : BaseController<DictionaryController>
     }
 
     /// <summary>
+    ///     Get job state sources mapping (External)
+    /// </summary>
+    /// <returns>List of job state sources</returns>
+    [HttpGet("GetJobStateSources")]
+    [ProducesResponseType(typeof(IEnumerable<DictionaryItemModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetJobStateSources()
+    {
+        return Ok(GetEnumDictionary<JobStateSourceExt>());
+    }
+
+    /// <summary>
     ///     Get task states mapping (External)
     /// </summary>
     /// <returns>List of task states</returns>

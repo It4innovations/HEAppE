@@ -159,7 +159,7 @@ public class ClusterInformationService : IClusterInformationService
             .Select(c =>
             {
                 var ext = c.ConvertIntToExt(projects, true);
-                ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(c.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+                ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(c.CustomConfiguration).EnableCallback;
                 return ext;
             })
             .ToArray();

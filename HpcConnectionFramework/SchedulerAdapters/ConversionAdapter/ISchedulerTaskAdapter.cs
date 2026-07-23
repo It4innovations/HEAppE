@@ -55,6 +55,8 @@ public interface ISchedulerTaskAdapter
 
     bool UseCallback { set; }
 
+    int GracefulTimeoutSeconds { set; }
+
     string CallbackSecret { set; }
 
     string CallbackUrl { set; }

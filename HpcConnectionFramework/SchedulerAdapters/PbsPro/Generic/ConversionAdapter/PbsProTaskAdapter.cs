@@ -317,6 +317,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     }
 
     public bool UseCallback { get; set; }
+    public int GracefulTimeoutSeconds { get; set; }
     public string CallbackSecret { get; set; }
     public string CallbackUrl { get; set; }
     public string WrapperScriptPath { get; set; }
@@ -480,6 +481,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
 
         if (UseCallback)
         {
+            var pbsSignalArg = GracefulTimeoutSeconds > 0 ? $" -W signal=SIGTERM@{GracefulTimeoutSeconds}" : string.Empty;
             if (!_pbs)
             {
                 var qsubPart = _taskAppender.ToString();
@@ -500,12 +502,16 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 sb.Append("EOF_HEAPPE_USER_TASK\n");
                 
                 sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
-                sb.Append($"echo 'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"' | {qsubPart}");
+                sb.Append($"echo 'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"' | {qsubPart}{pbsSignalArg}");
                 
                 _taskAppender = sb;
             }
             else
             {
+                if (GracefulTimeoutSeconds > 0)
+                {
+                    _taskAppender.AppendLine($"#PBS -W signal=SIGTERM@{GracefulTimeoutSeconds}");
+                }
                 _taskAppender.AppendLine();
                 _taskAppender.AppendLine("mkdir -p .heappe");
                 _taskAppender.AppendLine($"echo \"{CallbackSecret}\" > .heappe/callback_token");

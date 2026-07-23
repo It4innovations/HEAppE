@@ -200,6 +200,8 @@ public static class JobManagementConverts
             Id = jobInfo.Id,
             Name = jobInfo.Name,
             State = jobInfo.State.ConvertIntToExt(),
+            StateSource = jobInfo.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StateUpdatedAt, timezone),
             CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
             StartTime = jobInfo.StartTime,
@@ -249,6 +251,8 @@ public static class JobManagementConverts
             Id = task.Id,
             Name = task.Name,
             State = task.State.ConvertIntToExt(),
+            StateSource = task.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StateUpdatedAt, timezone),
             Priority = task.Priority.ConvertIntToExt(),
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
@@ -442,6 +446,12 @@ public static class JobManagementConverts
     public static JobStateExt ConvertIntToExt(this JobState jobState)
     {
         _ = Enum.TryParse(jobState.ToString(), out JobStateExt convert);
+        return convert;
+    }
+
+    public static JobStateSourceExt ConvertIntToExt(this JobStateSource jobStateSource)
+    {
+        _ = Enum.TryParse(jobStateSource.ToString(), out JobStateSourceExt convert);
         return convert;
     }
 

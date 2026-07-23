@@ -151,6 +151,7 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
     public long? MemoryPerGPU { set => throw new NotImplementedException(); }
 
     public bool UseCallback { get; set; }
+    public int GracefulTimeoutSeconds { get; set; }
     public string CallbackSecret { get; set; }
     public string CallbackUrl { get; set; }
     public string WrapperScriptPath { get; set; }

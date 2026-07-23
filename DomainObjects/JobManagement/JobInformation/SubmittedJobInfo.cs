@@ -14,6 +14,10 @@ public class SubmittedJobInfo : IdentifiableDbEntity
 
     public JobState State { get; set; }
 
+    public JobStateSource StateSource { get; set; } = JobStateSource.Unknown;
+
+    public DateTime? StateUpdatedAt { get; set; }
+
     public DateTime CreationTime { get; set; }
 
     public DateTime? SubmitTime { get; set; }

@@ -15,6 +15,10 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
 
     public TaskState State { get; set; }
 
+    public JobStateSource StateSource { get; set; } = JobStateSource.Unknown;
+
+    public DateTime? StateUpdatedAt { get; set; }
+
     public TaskPriority Priority { get; set; }
 
     /// <summary>

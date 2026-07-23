@@ -198,17 +198,18 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId, bool forceDirectQuery = false)
     {
         var model = new CurrentInfoForJobModel
         {
             SessionCode = sessionCode,
-            SubmittedJobInfoId = submittedJobInfoId
+            SubmittedJobInfoId = submittedJobInfoId,
+            ForceDirectQuery = forceDirectQuery
         };
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode, model.ForceDirectQuery));
     }
 
     /// <summary>

@@ -621,7 +621,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             {
                 var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
                 
-                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+                bool callbackEnabled = clusterConfig.EnableCallback;
 
                 if (callbackEnabled && !taskInfo.ForceSessionSubmit && !taskInfo.ForceStatusQuery)
                 {
@@ -709,7 +709,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         : taskInfo.ScheduledJobId;
                 }
 
-                bool callbackEnabled = clusterConfig.Scripts.UseCallbackForHpcJobs;
+                bool callbackEnabled = clusterConfig.EnableCallback;
 
                 if (callbackEnabled && !taskInfo.ForceStatusQuery)
                 {

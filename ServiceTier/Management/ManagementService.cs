@@ -1019,7 +1019,7 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.GetClusterById(clusterId);
             var ext = cluster.ConvertIntToExtendedExt(projects, false);
-            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
             return ext;
         }
     }
@@ -1037,7 +1037,7 @@ public class ManagementService : IManagementService
                 .Select(s =>
                 {
                     var ext = s.ConvertIntToExtendedExt(projects, false);
-                    ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(s.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+                    ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(s.CustomConfiguration).EnableCallback;
                     return ext;
                 })
                 .ToList();
@@ -1060,7 +1060,7 @@ public class ManagementService : IManagementService
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
             var ext = cluster.ConvertIntToExtendedExt(projects, false);
-            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
             return ext;
         }
     }
@@ -1080,7 +1080,7 @@ public class ManagementService : IManagementService
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
             var ext = cluster.ConvertIntToExtendedExt(projects, false);
-            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).Scripts.UseCallbackForHpcJobs;
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
             return ext;
         }
     }

@@ -12,7 +12,7 @@ public interface IJobManagementService
     Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode);
     Task<bool> DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);
     Task<SubmittedJobInfoExt[]> ListJobsForCurrentUser(string sessionCode, string jobStates = null, int? limit = null, int? offset = null, long? userId = null, long? clusterId = null, long? subProjectId = null, long? projectId = null);
-    Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode);
+    Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode, bool forceDirectQuery = false);
     Task CopyJobDataToTempAsync(long createdJobInfoId, string sessionCode, string path);
     Task CopyJobDataFromTempAsync(long createdJobInfoId, string sessionCode, string tempSessionCode);
     Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode);

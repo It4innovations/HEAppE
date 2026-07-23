@@ -83,10 +83,12 @@ public sealed class ClusterRuntimeConfiguration
                 JobLogArchiveSubPath        = HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath,
                 SubScriptsPath              = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubScriptsPath,
                 ScriptsBasePath             = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath,
-                EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
-                EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
-                UseCallbackForHpcJobs       = HPCConnectionFrameworkConfiguration.ScriptsSettings.UseCallbackForHpcJobs,
+                EnableCallback              = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback,
+                EnableGracefulTimeout       = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout,
+                GracefulTimeoutSeconds      = HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds,
                 CallbackUrl                 = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl,
+                SshCommandPrefix            = HPCConnectionFrameworkConfiguration.ScriptsSettings.SshCommandPrefix,
+                SyncScriptsViaSftp          = HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp,
             };
 
             // Bind override section on top — only keys present in overrides will overwrite.
@@ -104,6 +106,11 @@ public sealed class ClusterRuntimeConfiguration
     public string SubExecutionsPath      => Scripts.SubExecutionsPath;
     public string JobLogArchiveSubPath   => Scripts.JobLogArchiveSubPath;
     public CommandScriptPathConfiguration CommandScriptsPathSettings => Scripts.CommandScriptsPathSettings;
+    public string? SshCommandPrefix      => Scripts.SshCommandPrefix;
+    public bool SyncScriptsViaSftp       => Scripts.SyncScriptsViaSftp;
+    public bool EnableCallback          => Scripts.EnableCallback;
+    public bool EnableGracefulTimeout   => Scripts.EnableGracefulTimeout;
+    public int GracefulTimeoutSeconds   => Scripts.GracefulTimeoutSeconds;
 
     #endregion
 
