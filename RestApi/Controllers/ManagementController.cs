@@ -69,7 +69,7 @@ public class ManagementController : BaseController<ManagementController>
 
     private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger)
     {
-        CacheUtils.InvalidateAllCache(logger);
+        CacheUtils.InvalidateClusterCache(logger);
     }
 
     #endregion
@@ -98,32 +98,35 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult InstanceInformation(string sessionCode)
+    public async Task<IActionResult> InstanceInformation(string sessionCode)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Administrator);
-        List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        return await Task.Run(() =>
         {
-            activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()
-                ?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
-        }
+            _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Administrator);
+            List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+            {
+                activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()
+                    ?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
+            }
 
-        return Ok(new InstanceInformationExt
-        {
-            Name = DeploymentInformationsConfiguration.Name,
-            Description = DeploymentInformationsConfiguration.Description,
-            Version = DeploymentInformationsConfiguration.Version,
-            DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
-            Port = DeploymentInformationsConfiguration.Port,
-            URL = DeploymentInformationsConfiguration.Host,
-            URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
-            DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-            ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes
-                ?.Select(s => s.ConvertIntToExt()).ToList(),
-            Projects = activeProjectsExtendedInfo
+            return Ok(new InstanceInformationExt
+            {
+                Name = DeploymentInformationsConfiguration.Name,
+                Description = DeploymentInformationsConfiguration.Description,
+                Version = DeploymentInformationsConfiguration.Version,
+                DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                Port = DeploymentInformationsConfiguration.Port,
+                URL = DeploymentInformationsConfiguration.Host,
+                URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes
+                    ?.Select(s => s.ConvertIntToExt()).ToList(),
+                Projects = activeProjectsExtendedInfo
+            });
         });
     }
 
@@ -140,17 +143,20 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult VersionInformation(string sessionCode)
+    public async Task<IActionResult> VersionInformation(string sessionCode)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Submitter);
-        return Ok(new VersionInformationExt
+        return await Task.Run(() =>
         {
-            Name = DeploymentInformationsConfiguration.Name,
-            Description = DeploymentInformationsConfiguration.Description,
-            Version = DeploymentInformationsConfiguration.Version
+            _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Submitter);
+            return Ok(new VersionInformationExt
+            {
+                Name = DeploymentInformationsConfiguration.Name,
+                Description = DeploymentInformationsConfiguration.Description,
+                Version = DeploymentInformationsConfiguration.Version
+            });
         });
     }
 
@@ -173,7 +179,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListCommandTemplate(string sessionCode, long id)
+    public async Task<IActionResult> ListCommandTemplate(string sessionCode, long id)
     {
         var model = new ListCommandTemplateModel
         {
@@ -183,7 +189,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.ListCommandTemplate(id, sessionCode));
+        return Ok(await Task.Run(() => _managementService.ListCommandTemplate(id, sessionCode)));
     }
 
     /// <summary>
@@ -201,7 +207,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListCommandTemplates(string sessionCode, long projectId)
+    public async Task<IActionResult> ListCommandTemplates(string sessionCode, long projectId)
     {
         var listCommandTemplatesModel = new ListCommandTemplatesModel
         {
@@ -211,7 +217,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(listCommandTemplatesModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.ListCommandTemplates(projectId, sessionCode));
+        return Ok(await Task.Run(() => _managementService.ListCommandTemplates(projectId, sessionCode)));
     }
 
     /// <summary>

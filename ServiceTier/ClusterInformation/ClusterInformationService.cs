@@ -52,7 +52,7 @@ public class ClusterInformationService : IClusterInformationService
     {
         var options = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes))
-            .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken));
+            .AddExpirationToken(new CancellationChangeToken(CacheUtils.ClusterInfoResetToken));
     
         _cacheProvider.Set(key, value, options);
     }
