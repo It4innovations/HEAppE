@@ -2715,6 +2715,14 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "ForceDirectQuery",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -17684,6 +17692,16 @@
         "type": "integer",
         "format": "int32"
       },
+      "JobStateSourceExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "LexisCredentialsExt": {
         "required": [
           "OpenIdAccessToken"
@@ -19568,6 +19586,15 @@
           "State": {
             "$ref": "#/components/schemas/JobStateExt"
           },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
           "CreationTime": {
             "type": "string",
             "description": "Creation time",
@@ -19630,6 +19657,15 @@
           },
           "State": {
             "$ref": "#/components/schemas/TaskStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
           },
           "Priority": {
             "$ref": "#/components/schemas/TaskPriorityExt"

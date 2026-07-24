@@ -1639,6 +1639,39 @@
         }
       }
     },
+    "/heappe/Dictionary/GetJobStateSources": {
+      "get": {
+        "tags": [
+          "Dictionary"
+        ],
+        "summary": "Get job state sources mapping (External)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DictionaryItemModel"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/Dictionary/GetTaskStates": {
       "get": {
         "tags": [
@@ -2083,6 +2116,39 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/DictionaryItemModel"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Dictionary/GetClusterCustomConfigurationKeys": {
+      "get": {
+        "tags": [
+          "Dictionary"
+        ],
+        "summary": "Get cluster custom configuration keys mapping with scheduler type compatibility flags (External)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterCustomConfigurationKeyItemModel"
                   }
                 }
               }
@@ -3242,6 +3308,14 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "ForceDirectQuery",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -15088,6 +15162,27 @@
         "type": "integer",
         "format": "int32"
       },
+      "ClusterCustomConfigurationKeyItemModel": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "SupportedSchedulerTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ClusterDetailedReportExt": {
         "type": "object",
         "properties": {
@@ -18693,6 +18788,16 @@
         "type": "integer",
         "format": "int32"
       },
+      "JobStateSourceExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "LexisCredentialsExt": {
         "required": [
           "OpenIdAccessToken"
@@ -20706,6 +20811,15 @@
           "State": {
             "$ref": "#/components/schemas/JobStateExt"
           },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
           "CreationTime": {
             "type": "string",
             "description": "Creation time",
@@ -20768,6 +20882,15 @@
           },
           "State": {
             "$ref": "#/components/schemas/TaskStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
           },
           "Priority": {
             "$ref": "#/components/schemas/TaskPriorityExt"

@@ -110,12 +110,9 @@ public sealed class ClusterRuntimeConfiguration
     public CommandScriptPathConfiguration CommandScriptsPathSettings => Scripts.CommandScriptsPathSettings;
     public string? SshCommandPrefix      => Scripts.SshCommandPrefix;
     public bool SyncScriptsViaSftp       => Scripts.SyncScriptsViaSftp;
-<<<<<<< HEAD
     public bool EnableCallback          => Scripts.EnableCallback;
     public bool EnableGracefulTimeout   => Scripts.EnableGracefulTimeout;
     public int GracefulTimeoutSeconds   => Scripts.GracefulTimeoutSeconds;
-=======
->>>>>>> develop
 
     #endregion
 

@@ -10,6 +10,7 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;

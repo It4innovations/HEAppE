@@ -273,7 +273,6 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         return _context.Set<ResourceConsumed>().FirstOrDefault(r => r.SubmittedTaskInfoId == taskId);
     }
 
-<<<<<<< HEAD
     public async Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId)
     {
         var taskPrefix = $"task:{scheduledJobId}";
