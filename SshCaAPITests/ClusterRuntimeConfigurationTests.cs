@@ -56,4 +56,34 @@ public class ClusterRuntimeConfigurationTests
         Assert.True(config.EnableGracefulTimeout);
         Assert.True(config.SyncScriptsViaSftp);
     }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_WithEmptyCallbackUrl_FallsBackToGlobalDefault()
+    {
+        HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl = "https://global.heappe.eu/callback";
+
+        var customConfig = new Dictionary<string, string>
+        {
+            { "CallbackUrl", "" }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+
+        Assert.Equal("https://global.heappe.eu/callback", config.Scripts.CallbackUrl);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_WithSpecificCallbackUrl_UsesSpecifiedValue()
+    {
+        HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl = "https://global.heappe.eu/callback";
+
+        var customConfig = new Dictionary<string, string>
+        {
+            { "CallbackUrl", "https://cluster-specific.heappe.eu/callback" }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+
+        Assert.Equal("https://cluster-specific.heappe.eu/callback", config.Scripts.CallbackUrl);
+    }
 }

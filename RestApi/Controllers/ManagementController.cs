@@ -1080,7 +1080,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("Cluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedClusterExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1106,7 +1106,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("Cluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedClusterExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

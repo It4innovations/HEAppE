@@ -98,6 +98,11 @@ public sealed class ClusterRuntimeConfiguration
                 .GetSection("HPCConnectionFrameworkSettings:ScriptsSettings")
                 .Bind(_resolvedScripts);
 
+            if (string.IsNullOrWhiteSpace(_resolvedScripts.CallbackUrl))
+            {
+                _resolvedScripts.CallbackUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+            }
+
             return _resolvedScripts;
         }
     }
@@ -227,11 +232,18 @@ public sealed class ClusterRuntimeConfiguration
         {
             var finalKey = key.Contains(':') ? key : scriptsPrefix + key;
             var val = value;
-            if (IsKnownBooleanKey(key) && string.IsNullOrWhiteSpace(val))
+            if (string.IsNullOrWhiteSpace(val))
             {
-                val = "false";
+                if (IsKnownBooleanKey(key))
+                {
+                    expanded[finalKey] = "false";
+                }
+                // Skip empty/whitespace values for string keys so global configuration defaults remain as fallback.
             }
-            expanded[finalKey] = val;
+            else
+            {
+                expanded[finalKey] = val;
+            }
         }
 
         var builder = new ConfigurationBuilder();
