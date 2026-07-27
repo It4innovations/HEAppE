@@ -53,10 +53,15 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                     }
                     else
                     {
-                        if (targetCluster.CustomConfiguration != null && targetCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
+                        if (targetCluster.CustomConfiguration != null)
                         {
-                            // expectedToken populated
+                            targetCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken);
                         }
+                    }
+
+                    if (string.IsNullOrEmpty(expectedToken))
+                    {
+                        expectedToken = await _logic.GetMasterCallbackTokenAsync(targetCluster);
                     }
 
                     if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
@@ -122,10 +127,15 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
         }
         else
         {
-            if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken))
+            if (cluster.CustomConfiguration != null)
             {
-                // expectedToken populated
+                cluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken);
             }
+        }
+
+        if (string.IsNullOrEmpty(expectedToken))
+        {
+            expectedToken = await _logic.GetMasterCallbackTokenAsync(cluster);
         }
 
         if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
