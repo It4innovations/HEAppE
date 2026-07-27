@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `GET /heappe/Dictionary/GetJobStateSources` endpoint.
 - Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
 - Added `LogLevel.Trace` override in `RequestResponseLoggingMiddleware` to force logging request/response bodies for `HeadersOnly` endpoints.
+- Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation, preventing full-cache reset stampedes during administrative modifications.
+- Converted endpoints in `ManagementController` and `UserAndLimitationManagementController` to `async Task<IActionResult>` to prevent ASP.NET Core ThreadPool worker thread starvation under high concurrent load.
+- Added endpoint-specific rate limiting rules for `/heappe/Management/*` (120 req/min) and `/heappe/UserAndLimitationManagement/*` (300 req/min) in `appsettings.example.json`.
 
 ### Fixed
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
