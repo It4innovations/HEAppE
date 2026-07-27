@@ -1816,6 +1816,13 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
         }
 
+        var callbackClusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+        if (!callbackClusterConfig.EnableCallback)
+        {
+            _logger.LogDebug($"ProcessTaskCallbackAsync: EnableCallback is false for cluster {cluster.Id}. Ignoring callback – relying on polling.");
+            return 0;
+        }
+
         var result = await handler.ProcessTaskCallbackAsync(rawResponse, qSchedulerState, dbTask, jobInfo, cluster);
         _logger.LogDebug($"ProcessTaskCallbackAsync: ProcessTaskCallbackAsync finished. result.Handled={result.Handled}, result.TargetState={result.TargetState}");
         if (result.Handled)
