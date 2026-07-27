@@ -745,8 +745,29 @@ internal class JobManagementLogic : IJobManagementLogic
                                 isNeedUpdateJobState = true;
                             }
                         }
-                        else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
+                        else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State || submittedTask.ScheduledJobId != actualUnfinishedSchedulerTaskInfo.ScheduledJobId)
                         {
+                            if (submittedTask.ScheduledJobId.StartsWith("session:") && 
+                                !submittedTask.ScheduledJobId.Contains(":task:") && 
+                                actualUnfinishedSchedulerTaskInfo.ScheduledJobId.Contains(":task:"))
+                            {
+                                if (long.TryParse(submittedTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
+                                {
+                                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Open)
+                                    {
+                                        dbSession.State = QSchedulerSessionState.Open;
+                                        _logger.LogInformation($"UpdateCurrentStateOfUnfinishedJobs: Session {sessionId} detected as open during polling. Updating state in database.");
+                                        
+                                        await PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
+                                        {
+                                            sessionId = $"session:{sessionId}",
+                                            state = "Open"
+                                        });
+                                    }
+                                }
+                            }
+
                             CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
                             submittedTask.StateSource = JobStateSource.BackgroundPoll;
                             submittedTask.StateUpdatedAt = DateTime.UtcNow;
@@ -763,6 +784,8 @@ internal class JobManagementLogic : IJobManagementLogic
                         JobCacheManager.InvalidateJobCache(submittedJob.Id);
                         await PublishStateChangesAsync(submittedJob, previousTaskStates, previousJobState);
                     }
+
+                    await CheckAndCloseQSchedulerSessionsAsync(submittedJob);
                 }
                 finally
                 {
@@ -1949,6 +1972,21 @@ internal class JobManagementLogic : IJobManagementLogic
                         credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
                     _logger.LogInformation($"Successfully requested QScheduler session '{sessionId}' closure.");
+
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    if (dbSession != null && dbSession.State != QSchedulerSessionState.Closed)
+                    {
+                        dbSession.State = QSchedulerSessionState.Closed;
+                        dbSession.ClosedAt = DateTime.UtcNow;
+                        await _unitOfWork.SaveAsync();
+                        JobCacheManager.InvalidateJobCache(jobInfo.Id);
+
+                        await PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
+                        {
+                            sessionId = $"session:{sessionId}",
+                            state = "Closed"
+                        });
+                    }
                 }
                 catch (Exception ex)
                 {
