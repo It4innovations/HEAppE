@@ -634,6 +634,9 @@ internal class JobManagementLogic : IJobManagementLogic
                         LoggingUtils.AddUserPropertiesToLogThreadContext(submittedJob.Submitter.Id, submittedJob.Submitter.Username, submittedJob.Submitter.Email);
                     }
 
+                    var previousTaskStates = submittedJob.Tasks.ToDictionary(t => t.Id, t => t.State);
+                    var previousJobState = submittedJob.State;
+
                     bool isNeedUpdateJobState = false;
                     foreach (var submittedTask in submittedJob.Tasks)
                     {
@@ -758,6 +761,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         submittedJob.StateUpdatedAt = DateTime.UtcNow;
                         _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
                         JobCacheManager.InvalidateJobCache(submittedJob.Id);
+                        await PublishStateChangesAsync(submittedJob, previousTaskStates, previousJobState);
                     }
                 }
                 finally
