@@ -12,6 +12,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.ExtModels.ClusterInformation.Converts;
 
@@ -73,9 +74,31 @@ public static class ClusterInformationConverts
 
     private static Dictionary<string, string>? MaskCustomConfiguration(Cluster cluster)
     {
-        if (cluster.CustomConfiguration == null) return null;
-        var copy = new Dictionary<string, string>(cluster.CustomConfiguration, StringComparer.OrdinalIgnoreCase);
-        
+        var copy = cluster.CustomConfiguration != null 
+            ? new Dictionary<string, string>(cluster.CustomConfiguration, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "EnableCallback", HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback ? "true" : "false" },
+            { "EnableGracefulTimeout", HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout ? "true" : "false" },
+            { "GracefulTimeoutSeconds", HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds.ToString() },
+            { "SyncScriptsViaSftp", HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp ? "true" : "false" }
+        };
+
+        if (!string.IsNullOrEmpty(HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl))
+        {
+            defaults["CallbackUrl"] = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+        }
+
+        foreach (var (key, defaultValue) in defaults)
+        {
+            if (!copy.TryGetValue(key, out var val) || string.IsNullOrWhiteSpace(val))
+            {
+                copy[key] = defaultValue;
+            }
+        }
+
         if (copy.ContainsKey("ClusterCallbackNotifyToken")) copy["ClusterCallbackNotifyToken"] = "********";
         if (copy.ContainsKey("QSchedulerNotifyToken")) copy["QSchedulerNotifyToken"] = "********";
 

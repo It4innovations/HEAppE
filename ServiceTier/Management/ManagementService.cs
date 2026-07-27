@@ -1045,23 +1045,34 @@ public class ManagementService : IManagementService
         }
     }
 
-    private static void SanitizeCustomConfiguration(Dictionary<string, string>? customConfiguration)
+    private static Dictionary<string, string> SanitizeCustomConfiguration(Dictionary<string, string>? customConfiguration)
     {
-        if (customConfiguration is null) return;
+        var config = customConfiguration != null
+            ? new Dictionary<string, string>(customConfiguration, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        string[] booleanKeys = ["EnableCallback", "EnableGracefulTimeout", "SyncScriptsViaSftp"];
-
-        foreach (var key in customConfiguration.Keys.ToList())
+        var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            var keyName = key.Contains(':') ? key.Split(':').Last() : key;
-            if (booleanKeys.Contains(keyName, StringComparer.OrdinalIgnoreCase))
+            { "EnableCallback", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback ? "true" : "false" },
+            { "EnableGracefulTimeout", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout ? "true" : "false" },
+            { "GracefulTimeoutSeconds", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds.ToString() },
+            { "SyncScriptsViaSftp", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp ? "true" : "false" }
+        };
+
+        if (!string.IsNullOrEmpty(HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl))
+        {
+            defaults["CallbackUrl"] = HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+        }
+
+        foreach (var (key, defaultValue) in defaults)
+        {
+            if (!config.TryGetValue(key, out var val) || string.IsNullOrWhiteSpace(val))
             {
-                if (string.IsNullOrWhiteSpace(customConfiguration[key]))
-                {
-                    customConfiguration[key] = "false";
-                }
+                config[key] = defaultValue;
             }
         }
+
+        return config;
     }
 
     public async Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
@@ -1069,7 +1080,7 @@ public class ManagementService : IManagementService
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
-        SanitizeCustomConfiguration(customConfiguration);
+        customConfiguration = SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
@@ -1090,7 +1101,7 @@ public class ManagementService : IManagementService
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
-        SanitizeCustomConfiguration(customConfiguration);
+        customConfiguration = SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
