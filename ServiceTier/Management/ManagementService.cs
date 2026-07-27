@@ -1045,11 +1045,31 @@ public class ManagementService : IManagementService
         }
     }
 
+    private static void SanitizeCustomConfiguration(Dictionary<string, string>? customConfiguration)
+    {
+        if (customConfiguration is null) return;
+
+        string[] booleanKeys = ["EnableCallback", "EnableGracefulTimeout", "SyncScriptsViaSftp"];
+
+        foreach (var key in customConfiguration.Keys.ToList())
+        {
+            var keyName = key.Contains(':') ? key.Split(':').Last() : key;
+            if (booleanKeys.Contains(keyName, StringComparer.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(customConfiguration[key]))
+                {
+                    customConfiguration[key] = "false";
+                }
+            }
+        }
+    }
+
     public async Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
+        SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
@@ -1070,6 +1090,7 @@ public class ManagementService : IManagementService
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
+        SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =

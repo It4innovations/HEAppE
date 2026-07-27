@@ -194,6 +194,20 @@ public sealed class ClusterRuntimeConfiguration
 
     #region Private
 
+    private static readonly System.Collections.Generic.HashSet<string> KnownBooleanKeys = new(System.StringComparer.OrdinalIgnoreCase)
+    {
+        "EnableCallback",
+        "EnableGracefulTimeout",
+        "SyncScriptsViaSftp"
+    };
+
+    private static bool IsKnownBooleanKey(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        var keyName = key.Contains(':') ? key.Split(':').Last() : key;
+        return KnownBooleanKeys.Contains(keyName);
+    }
+
     /// <summary>
     ///     Builds an <see cref="IConfiguration" /> that stacks the cluster overrides on top of
     ///     the global configuration.  The cluster dictionary is copied verbatim — keys are
@@ -203,13 +217,7 @@ public sealed class ClusterRuntimeConfiguration
     /// </summary>
     private static IConfiguration BuildEffectiveConfiguration(IReadOnlyDictionary<string, string> overrides)
     {
-        if (GlobalConfiguration is null)
-        {
-            // Fallback: no DI config available (e.g. unit tests) — use static settings only.
-            return new ConfigurationBuilder().Build();
-        }
-
-        if (overrides.Count == 0)
+        if (overrides.Count == 0 && GlobalConfiguration is not null)
             return GlobalConfiguration;
 
         // Expand short-form keys to their full path in the config tree.
@@ -217,12 +225,22 @@ public sealed class ClusterRuntimeConfiguration
         var expanded = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in overrides)
         {
-            // If the key already contains ':' it is assumed to be a fully-qualified config path.
-            expanded[key.Contains(':') ? key : scriptsPrefix + key] = value;
+            var finalKey = key.Contains(':') ? key : scriptsPrefix + key;
+            var val = value;
+            if (IsKnownBooleanKey(key) && string.IsNullOrWhiteSpace(val))
+            {
+                val = "false";
+            }
+            expanded[finalKey] = val;
         }
 
-        return new ConfigurationBuilder()
-            .AddConfiguration(GlobalConfiguration)          // global appsettings (base layer)
+        var builder = new ConfigurationBuilder();
+        if (GlobalConfiguration is not null)
+        {
+            builder.AddConfiguration(GlobalConfiguration);          // global appsettings (base layer)
+        }
+
+        return builder
             .Add(new MemoryConfigurationSource              // cluster overrides (top layer)
             {
                 InitialData = expanded
