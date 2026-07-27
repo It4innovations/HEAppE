@@ -15173,6 +15173,10 @@
             "type": "string",
             "nullable": true
           },
+          "DefaultValue": {
+            "type": "string",
+            "nullable": true
+          },
           "SupportedSchedulerTypes": {
             "type": "array",
             "items": {
