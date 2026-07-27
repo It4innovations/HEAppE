@@ -312,6 +312,25 @@ public class DictionaryController : BaseController<DictionaryController>
             keysMap["QSchedulerHost"] = qSchedulerSchedulers;
             keysMap["QSchedulerNotifyToken"] = qSchedulerSchedulers;
 
+            Func<string, string> getDefaultValue = keyName =>
+            {
+                var scriptsProp = typeof(HEAppE.HpcConnectionFramework.Configuration.ScriptsConfiguration)
+                    .GetProperty(keyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (scriptsProp != null)
+                {
+                    var val = scriptsProp.GetValue(HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings);
+                    return val?.ToString() ?? string.Empty;
+                }
+
+                return keyName.ToUpperInvariant() switch
+                {
+                    "QSCHEDULERPORT" => "3000",
+                    "QSCHEDULERHOST" => "localhost",
+                    "IDPURL" => HEAppE.ExternalAuthentication.Configuration.ExternalAuthConfiguration.BaseUrl ?? string.Empty,
+                    _ => string.Empty
+                };
+            };
+
             int id = 1;
             result = keysMap
                 .OrderBy(k => k.Key)
@@ -319,6 +338,7 @@ public class DictionaryController : BaseController<DictionaryController>
                 {
                     Id = id++,
                     Name = k.Key,
+                    DefaultValue = getDefaultValue(k.Key),
                     SupportedSchedulerTypes = k.Value.Select(s => new DictionaryItemModel
                     {
                         Id = (int)s,
