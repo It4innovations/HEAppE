@@ -271,13 +271,19 @@ public class DictionaryController : BaseController<DictionaryController>
                 SchedulerTypeExt.FirecRestSlurm
             };
 
+            var qSchedulerSchedulers = new List<SchedulerTypeExt>
+            {
+                SchedulerTypeExt.QScheduler
+            };
+
             var allSchedulers = new List<SchedulerTypeExt>
             {
                 SchedulerTypeExt.LinuxLocal,
                 SchedulerTypeExt.PbsPro,
                 SchedulerTypeExt.Slurm,
                 SchedulerTypeExt.HyperQueue,
-                SchedulerTypeExt.FirecRestSlurm
+                SchedulerTypeExt.FirecRestSlurm,
+                SchedulerTypeExt.QScheduler
             };
 
             var keysMap = new Dictionary<string, List<SchedulerTypeExt>>(StringComparer.OrdinalIgnoreCase);
@@ -302,6 +308,9 @@ public class DictionaryController : BaseController<DictionaryController>
             keysMap["ClientId"] = firecrestSchedulers;
             keysMap["ClientSecret"] = firecrestSchedulers;
             keysMap["ClusterName"] = firecrestSchedulers;
+            keysMap["QSchedulerPort"] = qSchedulerSchedulers;
+            keysMap["QSchedulerHost"] = qSchedulerSchedulers;
+            keysMap["QSchedulerNotifyToken"] = qSchedulerSchedulers;
 
             int id = 1;
             result = keysMap
