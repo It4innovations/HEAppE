@@ -15,6 +15,7 @@ stages:
   - release
   - push
 
+
 release_msg_job:
   stage: prepare_release
   image: alpine:latest
@@ -112,6 +113,29 @@ semgrep-sast:
   artifacts:
     paths:
       - gl-sast-report.json
+
+python_rest_api_tests:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - apt-get update && apt-get install -y docker-compose-plugin docker-cli
+    - pip install --upgrade pip
+    - pip install -r Tests/RestApiTests/requirements.txt
+  script:
+    - echo "Deploying ephemeral HEAppE Core + Slurm test environment..."
+    - docker compose -f docker-compose.ci-test.yml up -d
+    - echo "Waiting for HEAppE Core and Slurm containers to initialize..."
+    - sleep 15
+    - echo "Running Python REST API Tests & Schemathesis 100% py4heappe Coverage..."
+    - pytest Tests/RestApiTests --junitxml=TestResults.xml
+  after_script:
+    - docker compose -f docker-compose.ci-test.yml down -v
+  artifacts:
+    when: always
+    reports:
+      junit: TestResults.xml
+    paths:
+      - TestResults.xml
 
 release_job:
   stage: release

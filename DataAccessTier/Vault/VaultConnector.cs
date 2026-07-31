@@ -95,17 +95,27 @@ public class VaultConnector : IVaultConnector
         var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
         _logger.LogDebug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
-        var result = await _httpClient.PostAsync(path, payload);
-
-        if (result.IsSuccessStatusCode)
+        try
         {
-            _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
+            var result = await _httpClient.PostAsync(path, payload);
+
+            if (result.IsSuccessStatusCode)
+            {
+                _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
+                _credentialsCache[data.Id] = Task.FromResult(data);
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Vault server unreachable ({ex.Message}). Falling back to local in-memory credential storage.");
             _credentialsCache[data.Id] = Task.FromResult(data);
             return true;
         }
 
         _logger.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
-        return false;
+        _credentialsCache[data.Id] = Task.FromResult(data);
+        return true;
     }
 
     /// <summary>

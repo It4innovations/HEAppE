@@ -9,6 +9,12 @@ qscheduler-temp/
 qscheduler_swagger.html
 payload.json
 
+# Python & Pytest
+.venv/
+.pytest_cache/
+TestResults.xml
+
+
 # Build stamps
 *.version.stamp
 

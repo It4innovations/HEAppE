@@ -1,0 +1,71 @@
+{
+   "MiddlewareContextSettings":{
+      "AdaptorUsers":[
+         {
+            "Id":1,
+            "Username":"default_username",
+            "Password":"9EB71E15F7624940C8F2CF1DB714F662E86EE70BD35D180B99B6B7E4F08B762A21391B657EF077F576DEE4A57B35EB75789EF99FD1B0ED173D416939CAD2D5A9",
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null
+         }
+      ],
+      "AdaptorUserGroups":[
+         {
+            "Id":1,
+            "Name":"default_group",
+            "Description":"Default Group",
+            "ProjectId":1
+         }
+      ],
+      "AdaptorUserRoles":[],
+      "AdaptorUserUserGroupRoles":[
+         {
+            "AdaptorUserId":1,
+            "AdaptorUserGroupId":1,
+            "AdaptorUserRoleId":1,
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         }
+      ],
+      "FileTransferMethods":[],
+      "ClusterProxyConnections":[],
+      "Clusters":[],
+      "ClusterAuthenticationCredentials":[],
+      "Projects":[
+         {
+            "Id":1,
+            "Name":"TestProject",
+            "Description":"Test Project",
+            "AccountingString":"default_acc",
+            "StartDate":"2020-01-01 00:00:00",
+            "EndDate":"2030-01-01 00:00:00",
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "UseAccountingStringForScheduler":true,
+            "IsOneToOneMapping":false
+         }
+      ],
+      "Contacts":[],
+      "ProjectContacts":[],
+      "ClusterProjects":[],
+      "ClusterProjectCredentials":[],
+      "SubProjects":[],
+      "ClusterNodeTypes":[],
+      "Accountings":[],
+      "ClusterNodeTypeAggregations":[],
+      "ClusterNodeTypeAggregationAccounting":[],
+      "ProjectClusterNodeTypeAggregations":[],
+      "AccountingStates":[],
+      "CommandTemplates":[],
+      "CommandTemplateParameters":[],
+      "OpenStackInstances":[],
+      "OpenStackDomains":[],
+      "OpenStackProjectDomains":[],
+      "OpenStackProjects":[],
+      "OpenStackAuthenticationCredentials":[],
+      "OpenStackAuthenticationCredentialDomains":[],
+      "OpenStackAuthenticationCredentialProjects":[]
+   }
+}

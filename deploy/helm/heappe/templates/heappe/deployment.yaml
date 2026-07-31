@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "heappe.fullname" . }}-api
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.api.selectorLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.api.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "heappe.api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/heappe/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        # ---- HEAppE REST API container ----
+        - name: heappe
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.containerPort }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_RUNTYPE_ENVIRONMENT
+              value: {{ .Values.api.environmentType | quote }}
+            - name: SSH_AUTH_SOCK
+              value: "/app/shared/agentsocket"
+            - name: TZ
+              value: "UTC"
+            - name: OTEL_SERVICE_NAME
+              value: "heappe[{{ .Values.otelServiceSuffixId }}]"
+            - name: OTEL_SDK_DISABLED
+              value: {{ if .Values.telemetry.enabled }}"false"{{ else }}"true"{{ end }}
+            {{- if .Values.telemetry.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ include "heappe.otelcollector.endpoint" . | quote }}
+            {{- end }}
+            {{- with .Values.api.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: app-shared
+              mountPath: /app/shared
+            - name: sftp-temp
+              mountPath: /sftp
+            - name: config
+              mountPath: /opt/heappe/confs/appsettings.json
+              subPath: appsettings.json
+            {{- if or .Values.api.seedData .Values.api.seedDataObject .Values.api.existingSeedConfigMap }}
+            - name: seed
+              mountPath: /opt/heappe/confs/seed.njson
+              subPath: seed.njson
+            {{- end }}
+            - name: db-backups
+              mountPath: /opt/heappe/backups/database
+            - name: keys
+              mountPath: /opt/heappe/keys
+            {{- with .Values.api.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.api.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.api.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+
+        # ---- SSH Agent sidecar ----
+        - name: sshagent
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.sshAgent.image.repository }}:{{ .Values.sshAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.sshAgent.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: "UTC"
+            - name: SSH_AUTH_SOCK
+              value: "/app/shared/agentsocket"
+          volumeMounts:
+            - name: app-shared
+              mountPath: /app/shared
+          resources:
+            {{- toYaml .Values.sshAgent.resources | nindent 12 }}
+
+      volumes:
+        - name: app-shared
+          emptyDir: {}
+        - name: sftp-temp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "heappe.fullname" . }}-api-config
+        {{- if or .Values.api.seedData .Values.api.seedDataObject .Values.api.existingSeedConfigMap }}
+        - name: seed
+          configMap:
+            name: {{ .Values.api.existingSeedConfigMap | default (printf "%s-api-seed" (include "heappe.fullname" .)) }}
+        {{- end }}
+        - name: db-backups
+          emptyDir: {}
+        - name: keys
+          emptyDir: {}
+        {{- with .Values.api.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

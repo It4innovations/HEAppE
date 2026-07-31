@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heappe.fullname" . }}-datastaging-config
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.datastaging.selectorLabels" . | nindent 4 }}
+data:
+  appsettings.json: |
+    {{- $settings := deepCopy .Values.datastaging.appSettings }}
+    {{- $_ := set $settings "ConnectionStrings" (dict "MiddlewareContext" (include "heappe.mssql.connectionString" .) "Logging" (include "heappe.mssql.connectionString" .)) }}
+    {{- $settings | toPrettyJson | nindent 4 }}

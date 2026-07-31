@@ -1,0 +1,50 @@
+{{- if .Values.vault.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "heappe.vaultagent.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.vaultagent.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "heappe.vaultagent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.vaultagent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: vaultagent
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.vault.image.repository }}:{{ .Values.vault.image.tag }}"
+          imagePullPolicy: {{ .Values.vault.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.vault.agent.port }}
+              protocol: TCP
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          resources:
+            {{- toYaml .Values.vault.agent.resources | nindent 12 }}
+      {{- with .Values.vault.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vault.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vault.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

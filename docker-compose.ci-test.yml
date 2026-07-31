@@ -1,0 +1,42 @@
+services:
+  slurm:
+    image: xenonmiddleware/slurm:latest
+    container_name: ci_slurm_simulator
+    platform: linux/amd64
+    hostname: slurmctl
+    ports:
+      - "0:6817"
+      - "0:6818"
+      - "0:22"
+    environment:
+      - TZ=UTC
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ci_heappe_db
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "TestingPassword123!"
+      MSSQL_PID: "Developer"
+    ports:
+      - "0:1433"
+
+  heappe:
+    build:
+      context: .
+      dockerfile: RestApi/Dockerfile
+    container_name: ci_heappe_core
+    depends_on:
+      - mssql
+      - slurm
+    ports:
+      - "0:80"
+    volumes:
+      - ./appsettings.ci.json:/opt/heappe/confs/appsettings.json
+      - ./seed.ci.njson:/opt/heappe/confs/seed.njson
+    environment:
+      ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
+      HEAPPE_API_KEY: "test-api-key"
+      Slurm__MasterNode: "slurmctl"
+      Slurm__Port: "22"

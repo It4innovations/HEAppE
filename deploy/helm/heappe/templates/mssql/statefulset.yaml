@@ -1,0 +1,87 @@
+{{- if .Values.mssql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "heappe.mssql.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.mssql.selectorLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "heappe.mssql.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "heappe.mssql.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.mssql.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: mssql
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.mssql.image.repository }}:{{ .Values.mssql.image.tag }}"
+          imagePullPolicy: {{ .Values.mssql.image.pullPolicy }}
+          ports:
+            - name: mssql
+              containerPort: 1433
+              protocol: TCP
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: {{ .Values.mssql.pid | quote }}
+            - name: MSSQL_MEMORY_LIMIT_MB
+              value: {{ .Values.mssql.memoryLimitMb | quote }}
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "heappe.mssql.fullname" . }}
+                  key: sa-password
+            - name: TZ
+              value: "UTC"
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql
+          resources:
+            {{- toYaml .Values.mssql.resources | nindent 12 }}
+      {{- if not .Values.mssql.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+      {{- with .Values.mssql.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mssql.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mssql.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.mssql.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.mssql.persistence.accessMode | quote }}
+        {{- if .Values.mssql.persistence.storageClass }}
+        {{- if (eq "-" .Values.mssql.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.mssql.persistence.storageClass | quote }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mssql.persistence.size | quote }}
+  {{- end }}
+{{- end }}

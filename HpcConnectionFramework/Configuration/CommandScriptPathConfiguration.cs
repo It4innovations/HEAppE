@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
 
 /// <summary>
 ///     Clusters scripts used in schedulers
@@ -10,22 +10,22 @@ public sealed class CommandScriptPathConfiguration
     /// <summary>
     ///     Path to adding file transfer key script
     /// </summary>
-    public string AddFiletransferKeyCmdScriptName { get; set; }
+    public string AddFiletransferKeyCmdScriptName { get; set; } = "add_key.sh";
 
     /// <summary>
     ///     Path to remove file transfer key script
     /// </summary>
-    public string RemoveFiletransferKeyCmdScriptName { get; set; }
+    public string RemoveFiletransferKeyCmdScriptName { get; set; } = "remove_key.sh";
 
     /// <summary>
     ///     Path to create job directory script
     /// </summary>
-    public string CreateJobDirectoryCmdScriptName { get; set; }
+    public string CreateJobDirectoryCmdScriptName { get; set; } = "create_job_directory.sh";
 
     /// <summary>
     ///     Path to execute command from Base64
     /// </summary>
-    public string ExecuteCmdScriptName { get; set; }
+    public string ExecuteCmdScriptName { get; set; } = "run_command.sh";
 
     /// <summary>
     ///     Path to copy data from temp script

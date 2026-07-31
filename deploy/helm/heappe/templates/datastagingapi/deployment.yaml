@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "heappe.fullname" . }}-datastaging
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.datastaging.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.datastaging.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "heappe.datastaging.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/datastagingapi/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.datastaging.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: datastagingapi
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.datastaging.image.repository }}:{{ .Values.datastaging.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.datastaging.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.datastaging.containerPort }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_RUNTYPE_ENVIRONMENT
+              value: {{ .Values.datastaging.environmentType | quote }}
+            - name: TZ
+              value: "UTC"
+            - name: OTEL_SERVICE_NAME
+              value: "heappe[{{ .Values.otelServiceSuffixId }}]-datastagingapi"
+            - name: OTEL_SDK_DISABLED
+              value: {{ if .Values.telemetry.enabled }}"false"{{ else }}"true"{{ end }}
+            {{- if .Values.telemetry.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ include "heappe.otelcollector.endpoint" . | quote }}
+            {{- end }}
+            {{- with .Values.datastaging.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: sftp-temp
+              mountPath: /sftp
+            - name: config
+              mountPath: /opt/heappe/confs/appsettings.json
+              subPath: appsettings.json
+            {{- with .Values.datastaging.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.datastaging.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.datastaging.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.datastaging.resources | nindent 12 }}
+
+      volumes:
+        - name: sftp-temp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "heappe.fullname" . }}-datastaging-config
+        {{- with .Values.datastaging.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.datastaging.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.datastaging.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.datastaging.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

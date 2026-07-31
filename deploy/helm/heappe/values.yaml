@@ -1,0 +1,663 @@
+# =============================================================================
+# HEAppE Helm Chart - Default Values
+# =============================================================================
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Global image settings
+global:
+  # -- Container image registry prefix (e.g., "registry.example.com/heappe")
+  imageRegistry: ""
+  # -- Image pull secrets
+  imagePullSecrets: []
+
+# =============================================================================
+# HEAppE REST API
+# =============================================================================
+api:
+  # -- Number of replicas
+  replicaCount: 1
+
+  image:
+    repository: heappe
+    tag: ""  # defaults to Chart.appVersion
+    pullPolicy: IfNotPresent
+
+  # -- Container port
+  containerPort: 80
+
+  # -- Environment type passed to ASPNETCORE_RUNTYPE_ENVIRONMENT
+  environmentType: "Docker"
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - host: heappe.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: heappe-tls
+    #    hosts:
+    #      - heappe.local
+
+  # -- HPA (Horizontal Pod Autoscaler) settings
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # -- Additional environment variables for the HEAppE API container
+  extraEnv: []
+
+  # -- Additional volume mounts for the HEAppE API container
+  extraVolumeMounts: []
+
+  # -- Additional volumes for the HEAppE pod
+  extraVolumes: []
+
+  # -- Liveness and readiness probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # -- appsettings.json configuration (merged with defaults)
+  # Values here are rendered into a ConfigMap and mounted as /opt/heappe/confs/appsettings.json
+  appSettings:
+    Logging:
+      LogLevel:
+        Default: "Information"
+        Microsoft: "Warning"
+        Microsoft.Hosting.Lifetime: "Information"
+    DatabaseMigrationSettings:
+      AutoMigrateDatabase: true
+    ApplicationAPISettings:
+      AllowedHosts:
+        - "http://localhost:5000"
+      DeploymentSettings:
+        Name: "HEAppE instance"
+        Description: "HEAppE Kubernetes deployment"
+        Version: "v6.5.0"
+        DeployedIPAddress: "0.0.0.0"
+        Port: "80"
+        Host: "http://localhost:80"
+        HostPostfix: ""
+        DeploymentEnvironmentType: "Docker"
+        ResourceAllocationInfrastructureTypes:
+          - "HPC"
+      SwaggerDocSettings:
+        Title: "HEAppE Web API"
+        DetailedJobReportingTitle: "Detailed Job Reporting API"
+        DictionaryTitle: "Dictionary API"
+        Description: "HEAppE middleware API v6.5.0"
+        PrefixDocPath: "swagger"
+        TermOfUsageUrl: "https://heappe.eu"
+        License: "GNU General Public License v3.0"
+        LicenseUrl: "https://www.gnu.org/licenses/gpl-3.0.html"
+        ContactName: "IT4Innovations"
+        ContactEmail: "support.heappe@it4i.cz"
+        ContactUrl: "https://twitter.com/it4innovations"
+    BackGroundThreadSettings:
+      GetAllJobsInformationCheck: 30
+      CloseConnectionToFinishedJobsCheck: 30
+      ClusterAccountRotationJobCheck: 30
+      FileTransferKeyRemovalCheck: 10800
+      ClusterProjectCredentialsCheckConfiguration:
+        IsEnabled: false
+        IntervalMinutes: 60
+      RoleAssignmentSyncCheck: 3600
+    BusinessLogicSettings:
+      SharedAccountsPoolMode: true
+      GeneratedFileTransferKeyLimitPerJob: 5
+      ValidityOfTemporaryTransferKeysInHours: 24
+      SessionExpirationInSeconds: 900
+      HTTPRequestConnectionTimeoutInSeconds: 10
+      AutoInitializeProjectCredentialsOnFirstUse: true
+    CertificateGeneratorSettings:
+      GeneratedKeysDirectory: "/opt/heappe/keys/"
+      GeneratedKeyPrefix: "key"
+      CipherSettings:
+        TypeName: "ED25519"
+        Size: 0
+    HPCConnectionFrameworkSettings:
+      GenericCommandKeyParameter: "#HEAPPE_PARAM"
+      JobArrayDbDelimiter: "<JOB_ARRAY_ITERATION>"
+      TunnelSettings:
+        LocalhostName: "127.0.0.1"
+        MinLocalPort: 4000
+        MaxLocalPort: 4100
+      ClustersConnectionPoolSettings:
+        ConnectionPoolCleaningInterval: 60
+        ConnectionPoolMaxUnusedInterval: 1800
+        MaxConnectionsPerUser: 10
+        MaxSessionsPerConnection: 8
+      SshClientSettings:
+        ConnectionRetryAttempts: 3
+        ConnectionTimeout: 30000
+      ScriptsSettings:
+        ClusterScriptsRepository: "https://github.com/It4innovations/HEAppE-scripts.git"
+        ClusterScriptsRepositoryBranch: "master"
+        KeyScriptsDirectoryInRepository: "HEAppE-scripts/HPC/.key_scripts/"
+        InstanceIdentifierPath: "Identifier"
+        SubExecutionsPath: "HEAppE/Executions"
+        JobLogArchiveSubPath: "HEAppE/Jobs"
+        SubScriptsPath: "HEAppE/Scripts"
+        ScriptsBasePath: "~/.HEAppE"
+        EventualConsistencyRetryCount: 3
+        EventualConsistencyRetryDelayMs: 1000
+        CommandScriptsPathSettings:
+          AddFiletransferKeyCmdScriptName: "add_key.sh"
+          RemoveFiletransferKeyCmdScriptName: "remove_key.sh"
+          CreateJobDirectoryCmdScriptName: "create_job_directory.sh"
+          ExecuteCmdScriptName: "run_command.sh"
+          CopyDataFromTempCmdScriptName: "copy_data_from_temp.sh"
+          CopyDataToTempCmdScriptName: "copy_data_to_temp.sh"
+        LinuxLocalCommandScriptPathSettings:
+          ScriptsBasePath: "~/.local_hpc_scripts"
+          PrepareJobDirCmdScriptName: "prepare_job_dir.sh"
+          RunLocalCmdScriptName: "run_local.sh"
+          GetJobInfoCmdScriptName: "get_job_info.sh"
+          CountJobsCmdScriptName: "count_jobs.sh"
+          CancelJobCmdScriptName: "cancel_job.sh"
+    IpRateLimiting:
+      EnableEndpointRateLimiting: true
+      StackBlockedRequests: false
+      RealIpHeader: "X-Real-IP"
+      ClientIdHeader: "X-ClientId"
+      HttpStatusCode: 429
+      EndpointWhitelist:
+        - "get:/swagger/*"
+      ClientWhitelist:
+        - "127.0.0.1"
+      DisableRateLimitHeaders: false
+      GeneralRules:
+        - Endpoint: "*:/heappe/Management/*"
+          Period: "1m"
+          Limit: 120
+        - Endpoint: "*:/heappe/UserAndLimitationManagement/*"
+          Period: "1m"
+          Limit: 300
+        - Endpoint: "*"
+          Period: "1h"
+          Limit: 1000000
+    IpRateLimitPolicies:
+      IpRules:
+        - Ip: "127.0.0.1"
+          Rules:
+            - Endpoint: "*"
+              Period: "1h"
+              Limit: 1000000
+    ExternalAuthenticationSettings:
+      BaseUrl: ""
+      Protocol: "openid-connect"
+      RealmName: ""
+      ClientId: ""
+      SecretId: ""
+      ConnectionTimeout: 15
+      AllowedClientIds: []
+      RoleMapping:
+        prj_list: "Maintainer"
+        prj_read: "Reporter"
+        prj_write: "Submitter"
+      Projects: []
+      HEAppEUserPrefix: "Open-Id_"
+      LexisAuthenticationConfiguration:
+        UseBearerAuth: false
+        BaseAddress: ""
+        EndpointPrefix: "userorg"
+        ExtendedUserInfoEndpoint: "/api/UserInfo/Extended"
+        CommandTemplatePermissions: "/api/Heappe/CommandTemplatePermissions/"
+        CheckCommandTemplatePermissions: false
+        HEAppEGroupNamePrefix: "LEXIS "
+        HEAppEUserPrefix: "LEXIS_"
+        RoleMapping:
+          Submitter: "perm:heappe:exec"
+          Manager: "perm:heappe:manager"
+        ConnectionTimeoutInSeconds: 10
+      JwtTokenIntrospectionConfiguration:
+        IsEnabled: false
+        Authority: ""
+        ClientId: ""
+        ClientSecret: ""
+        RequireHttps: true
+        ValidateIssuerName: false
+        ValidateEndpoints: true
+        TokenExchangeConfiguration:
+          ClientId: ""
+          ClientSecret: ""
+          GrantType: "urn:ietf:params:oauth:grant-type:token-exchange"
+          SubjectTokenType: "urn:ietf:params:oauth:token-type:access_token"
+          Audience: ""
+        LexisTokenFlowConfiguration:
+          IsEnabled: false
+          UseExpirioServiceForTokenExchange: true
+          BaseUrl: ""
+          Realm: ""
+          Broker: ""
+          Scope: "openid profile email"
+          PollIntervalSeconds: 5
+          ClientId: "heappe"
+          ClientSecret: ""
+          ConnectionTimeoutInSeconds: 15
+    OpenStackSettings:
+      IdentityPort: 5000
+      ConnectionTimeout: 15
+      OpenStackVersion: 3
+      OpenStackSessionExpiration: 1800
+    SshCaSettings:
+      UseCertificateAuthorityForAuthentication: false
+      UsePosixAccountFromCertificate: true
+      BaseUri: "https://ssh.ca.api.heappe.eu"
+      CAName: ""
+      ConnectionTimeoutInSeconds: 15
+    ClusterManagementLogMessageRedactingRegex: "(/[^ ]+)|(\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b)"
+    HealthCheckSettings:
+      HealthChecksCacheExpirationMs: 10000
+    ExpirioSettings:
+      BaseUrl: "https://expirio.heappe.eu/api"
+      TimeoutSeconds: 30
+      MaxRetries: 3
+      RetryInitialDelayMs: 200
+      ProviderName: ""
+      TokenName: ""
+    DatabaseFullBackupSettings:
+      ScheduledBackupEnabled: true
+      ScheduledRuntime: "02:00:00"
+      LocalPath: "/opt/heappe/backups/database"
+      NASPath: null
+      BackupFileNamePrefix: "HEAppE"
+      RetentionPolicy:
+        Daily: 7
+        Weekly: 14
+        Monthly: 12
+    DatabaseTransactionLogBackupSettings:
+      ScheduledBackupEnabled: true
+      BackupScheduleIntervalInMinutes: 60
+      LocalPath: "/opt/heappe/backups/database/logs"
+      NASPath: null
+      BackupFileNamePrefix: "HEAppE"
+      RetentionPolicy:
+        Daily: 7
+        Weekly: 14
+        Monthly: 12
+
+  # -- Seed data for database initialization (mounted as /opt/heappe/confs/seed.njson)
+  # Three options (mutually exclusive, priority: existingSeedConfigMap > seedDataObject > seedData):
+  #
+  # Option 1: Raw njson string
+  seedData: ""
+  #
+  # Option 2: Structured YAML object (rendered to JSON automatically)
+  # seedDataObject:
+  #   MiddlewareContextSettings:
+  #     AdaptorUsers:
+  #       - Id: 1
+  #         Username: "default_username"
+  #         Password: "hashed_password_here"
+  #         CreatedAt: "2020-01-01 00:00:00"
+  #         ModifiedAt: null
+  #     AdaptorUserGroups:
+  #       - Id: 1
+  #         Name: "default_group"
+  #         Description: "Default Group"
+  #         ProjectId: 1
+  #     AdaptorUserRoles: []
+  #     AdaptorUserUserGroupRoles:
+  #       - AdaptorUserId: 1
+  #         AdaptorUserGroupId: 1
+  #         AdaptorUserRoleId: 1
+  #         CreatedAt: "2020-01-01 00:00:00"
+  #         ModifiedAt: null
+  #         IsDeleted: false
+  #     Projects:
+  #       - Id: 1
+  #         Name: "TestProject"
+  #         Description: "Test Project"
+  #         AccountingString: "default_acc"
+  #         StartDate: "2020-01-01 00:00:00"
+  #         EndDate: "2030-01-01 00:00:00"
+  #         CreatedAt: "2020-01-01 00:00:00"
+  #         ModifiedAt: null
+  #         IsDeleted: false
+  #         UseAccountingStringForScheduler: true
+  #         IsOneToOneMapping: false
+  #     FileTransferMethods: []
+  #     ClusterProxyConnections: []
+  #     Clusters: []
+  #     ClusterAuthenticationCredentials: []
+  #     Contacts: []
+  #     ProjectContacts: []
+  #     ClusterProjects: []
+  #     ClusterProjectCredentials: []
+  #     SubProjects: []
+  #     ClusterNodeTypes: []
+  #     Accountings: []
+  #     ClusterNodeTypeAggregations: []
+  #     ClusterNodeTypeAggregationAccounting: []
+  #     ProjectClusterNodeTypeAggregations: []
+  #     AccountingStates: []
+  #     CommandTemplates: []
+  #     CommandTemplateParameters: []
+  #     OpenStackInstances: []
+  #     OpenStackDomains: []
+  #     OpenStackProjectDomains: []
+  #     OpenStackProjects: []
+  #     OpenStackAuthenticationCredentials: []
+  #     OpenStackAuthenticationCredentialDomains: []
+  #     OpenStackAuthenticationCredentialProjects: []
+  #
+  # Option 3: Use an existing ConfigMap (must contain key "seed.njson")
+  # existingSeedConfigMap: "my-seed-configmap"
+
+# =============================================================================
+# SSH Agent (sidecar container in HEAppE pod)
+# =============================================================================
+sshAgent:
+  image:
+    repository: sshagent
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# =============================================================================
+# DataStaging API
+# =============================================================================
+datastaging:
+  # -- Number of replicas
+  replicaCount: 1
+
+  image:
+    repository: datastagingapi
+    tag: ""  # defaults to Chart.appVersion
+    pullPolicy: IfNotPresent
+
+  containerPort: 8080
+
+  environmentType: "Docker"
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  extraEnv: []
+  extraVolumeMounts: []
+  extraVolumes: []
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # -- appsettings.json for DataStagingAPI
+  appSettings:
+    Logging:
+      LogLevel:
+        Default: "Information"
+        Microsoft: "Warning"
+        Microsoft.AspNetCore: "Warning"
+        Microsoft.Hosting.Lifetime: "Information"
+    IpRateLimiting:
+      EnableEndpointRateLimiting: true
+      StackBlockedRequests: false
+      RealIpHeader: "X-Real-IP"
+      ClientIdHeader: "X-ClientId"
+      HttpStatusCode: 429
+      EndpointWhitelist:
+        - "get:/swagger/*"
+      ClientWhitelist:
+        - "127.0.0.1"
+      DisableRateLimitHeaders: false
+      GeneralRules:
+        - Endpoint: "*:/api/DataStaging/*"
+          Period: "1h"
+          Limit: 200000
+    IpRateLimitPolicies:
+      IpRules:
+        - Ip: "127.0.0.1"
+          Rules:
+            - Endpoint: "*:/api/DataStaging/*"
+              Period: "1h"
+              Limit: 500000
+    ApplicationAPIConfiguration:
+      AllowedHosts:
+        - "http://localhost:8080"
+      AuthenticationParamHeaderName: "AuthKey"
+      AuthenticationToken: ""
+      DeploymentConfiguration:
+        Name: "HEAppE DataStaging"
+        Description: "Data Staging API"
+        Version: "v6.5.0"
+        DeployedIPAddress: "0.0.0.0"
+      SwaggerConfiguration:
+        Version: "v1.0.0"
+        Title: "Data-Staging API"
+        Description: "Data-Staging API"
+        Host: "http://localhost:8080"
+        HostPostfix: ""
+        PrefixDocPath: "swagger"
+        TermOfUsageUrl: "https://heappe.eu"
+        License: "GNU General Public License v3.0"
+        LicenseUrl: "https://www.gnu.org/licenses/gpl-3.0.html"
+        ContactName: "IT4Innovations"
+        ContactEmail: "support.heappe@it4i.cz"
+        ContactUrl: "https://twitter.com/it4innovations"
+
+# =============================================================================
+# Microsoft SQL Server
+# =============================================================================
+mssql:
+  # -- Enable built-in MSSQL. Set to false to use an external database.
+  enabled: true
+
+  image:
+    repository: mcr.microsoft.com/mssql/server
+    tag: "2022-latest"
+    pullPolicy: IfNotPresent
+
+  # -- SA password (required!)
+  saPassword: "CHANGE_ME_Passw0rd!"
+
+  # -- MSSQL product edition
+  pid: "Developer"
+
+  # -- Memory limit in MB for MSSQL
+  memoryLimitMb: 4096
+
+  service:
+    type: ClusterIP
+    port: 1433
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 20Gi
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 6Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # -- Use an external MSSQL database instead of the built-in one
+  external:
+    enabled: false
+    connectionString: ""
+
+# =============================================================================
+# HashiCorp Vault
+# =============================================================================
+vault:
+  # -- Enable built-in Vault deployment
+  enabled: true
+
+  image:
+    repository: hashicorp/vault
+    tag: "1.17.3"
+    pullPolicy: IfNotPresent
+
+  server:
+    port: 8200
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # -- Vault Agent settings
+  agent:
+    port: 8100
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # -- Use an external Vault instance instead
+  external:
+    enabled: false
+    address: ""
+
+# =============================================================================
+# Telemetry (OpenTelemetry + Jaeger)
+# =============================================================================
+telemetry:
+  # -- Enable telemetry components
+  enabled: false
+
+  # -- OpenTelemetry Collector
+  otelCollector:
+    image:
+      repository: otel/opentelemetry-collector-contrib
+      tag: "0.151.0"
+      pullPolicy: IfNotPresent
+
+    grpcPort: 4317
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+    # -- Custom OTEL collector config (if empty, uses built-in)
+    config: ""
+
+  # -- Jaeger
+  jaeger:
+    image:
+      repository: cr.jaegertracing.io/jaegertracing/jaeger
+      tag: "2.17.0"
+      pullPolicy: IfNotPresent
+
+    uiPort: 16686
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+    service:
+      type: ClusterIP
+
+# =============================================================================
+# Shared settings
+# =============================================================================
+
+# -- OpenTelemetry service suffix ID for distinguishing instances
+otelServiceSuffixId: "0"

@@ -1,0 +1,18 @@
+{{- if .Values.mssql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "heappe.mssql.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.mssql.selectorLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mssql.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.mssql.service.port | default 1433 }}
+      targetPort: 1433
+      protocol: TCP
+      name: mssql
+  selector:
+    {{- include "heappe.mssql.selectorLabels" . | nindent 4 }}
+{{- end }}

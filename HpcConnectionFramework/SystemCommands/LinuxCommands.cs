@@ -44,8 +44,8 @@ internal class LinuxCommands : ICommands
     /// <summary>
     ///     Command
     /// </summary>
-    protected readonly CommandScriptPathConfiguration _commandScripts =
-        HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings;
+    protected CommandScriptPathConfiguration _commandScripts =>
+        HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings ?? new CommandScriptPathConfiguration();
 
     /// <summary>
     ///     Script Configuration

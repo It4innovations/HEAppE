@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heappe.fullname" . }}-api-config
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.api.selectorLabels" . | nindent 4 }}
+data:
+  appsettings.json: |
+    {{- $settings := deepCopy .Values.api.appSettings }}
+    {{- $_ := set $settings "ConnectionStrings" (dict "MiddlewareContext" (include "heappe.mssql.connectionString" .) "Logging" (include "heappe.mssql.connectionString" .)) }}
+    {{- $_ := set $settings "VaultConnectorSettings" (dict "VaultBaseAddress" (include "heappe.vaultagent.address" .) "ClusterVaultAuthenticationCredentialsPath" "v1/HEAppE/data/ClusterAuthenticationCredentials" "ConnectionTimeoutInSeconds" 15) }}
+    {{- $settings | toPrettyJson | nindent 4 }}
+---
+{{/*
+  Seed data ConfigMap — supports three modes:
+    1. api.seedData (string)          — raw njson string pasted directly
+    2. api.seedDataObject (map)       — structured YAML that gets rendered to JSON
+    3. api.existingSeedConfigMap       — name of a pre-existing ConfigMap
+*/}}
+{{- if or .Values.api.seedData .Values.api.seedDataObject }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heappe.fullname" . }}-api-seed
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.api.selectorLabels" . | nindent 4 }}
+data:
+  seed.njson: |
+    {{- if .Values.api.seedDataObject }}
+    {{- .Values.api.seedDataObject | toPrettyJson | nindent 4 }}
+    {{- else if kindIs "string" .Values.api.seedData }}
+    {{- .Values.api.seedData | nindent 4 }}
+    {{- else }}
+    {{- .Values.api.seedData | toPrettyJson | nindent 4 }}
+    {{- end }}
+{{- end }}
+

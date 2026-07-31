@@ -76,7 +76,7 @@ public class ClusterInformationValidator : AbstractValidator
     {
         if (model.CommandTemplateId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("CommandTemplateId"));
 
-        if (ContainsIllegalCharactersForPath(model.UserScriptPath))
+        if (model.UserScriptPath != null && ContainsIllegalCharactersForPath(model.UserScriptPath))
             _messageBuilder.AppendLine("UserScriptPath contains illegal characters.");
 
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
