@@ -6,19 +6,19 @@ Release:   {{ .Release.Name }}
 Namespace: {{ .Release.Namespace }}
 
 Components deployed:
-  ✓ HEAppE REST API
-  ✓ DataStaging API
-  ✓ SSH Agent (sidecar)
+  * HEAppE REST API
+  * DataStaging API
+  * SSH Agent (sidecar)
 {{- if .Values.mssql.enabled }}
-  ✓ Microsoft SQL Server
+  * Microsoft SQL Server
 {{- end }}
 {{- if .Values.vault.enabled }}
-  ✓ HashiCorp Vault
-  ✓ Vault Agent
+  * HashiCorp Vault
+  * Vault Agent
 {{- end }}
 {{- if .Values.telemetry.enabled }}
-  ✓ OpenTelemetry Collector
-  ✓ Jaeger
+  * OpenTelemetry Collector
+  * Jaeger
 {{- end }}
 
 {{- if .Values.api.ingress.enabled }}
