@@ -13,6 +13,7 @@ using Microsoft.Extensions.Caching.Memory;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExtModels.ClusterInformation.Converts;
@@ -155,6 +156,12 @@ public class ClusterInformationService : IClusterInformationService
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
 
+        // Build a lookup of cluster scheduler types to identify QScheduler clusters.
+        // QScheduler clusters do not use command templates — jobs are submitted via dedicated
+        // QScheduler endpoints — so the CommandTemplates filter must be bypassed for them.
+        // However, the project-level role check still applies (project must exist in the user's list).
+        var clusterSchedulerTypes = clusters.ToDictionary(c => c.Id, c => c.SchedulerType);
+
         var clustersExt = clusters
             .Select(c =>
             {
@@ -167,6 +174,10 @@ public class ClusterInformationService : IClusterInformationService
         clustersExt = clustersExt
             .Select(cl =>
             {
+                bool isQScheduler = cl.Id.HasValue &&
+                                    clusterSchedulerTypes.TryGetValue(cl.Id.Value, out var st) &&
+                                    st == SchedulerType.QScheduler;
+
                 cl.NodeTypes = cl.NodeTypes
                     .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
                     .Select(nt =>
@@ -181,7 +192,9 @@ public class ClusterInformationService : IClusterInformationService
                                     .ToArray();
                                 return p;
                             })
-                            .Where(p => p.CommandTemplates.Length > 0)
+                            // QScheduler clusters don't require command templates — skip template count check,
+                            // but the project must still be present (user has a role in it).
+                            .Where(p => isQScheduler || p.CommandTemplates.Length > 0)
                             .ToArray();
                         return nt;
                     })
