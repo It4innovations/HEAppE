@@ -52,6 +52,9 @@ spec:
             - name: config
               mountPath: /opt/heappe/confs/appsettings.json
               subPath: appsettings.json
+            - name: config
+              mountPath: /opt/heappe/confs/appsettings-data.json
+              subPath: appsettings-data.json
             {{- with .Values.datastaging.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

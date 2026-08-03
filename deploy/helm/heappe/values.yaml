@@ -82,7 +82,7 @@ api:
   # -- Liveness and readiness probes
   livenessProbe:
     httpGet:
-      path: /health
+      path: /heappe/Health
       port: http
     initialDelaySeconds: 30
     periodSeconds: 30
@@ -91,7 +91,7 @@ api:
 
   readinessProbe:
     httpGet:
-      path: /health
+      path: /heappe/Health
       port: http
     initialDelaySeconds: 15
     periodSeconds: 10
@@ -441,7 +441,7 @@ datastaging:
 
   livenessProbe:
     httpGet:
-      path: /health
+      path: /swagger/index.html
       port: http
     initialDelaySeconds: 30
     periodSeconds: 30
@@ -450,7 +450,7 @@ datastaging:
 
   readinessProbe:
     httpGet:
-      path: /health
+      path: /swagger/index.html
       port: http
     initialDelaySeconds: 15
     periodSeconds: 10

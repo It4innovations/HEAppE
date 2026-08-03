@@ -10,3 +10,7 @@ data:
     {{- $settings := deepCopy .Values.datastaging.appSettings }}
     {{- $_ := set $settings "ConnectionStrings" (dict "MiddlewareContext" (include "heappe.mssql.connectionString" .) "Logging" (include "heappe.mssql.connectionString" .)) }}
     {{- $settings | toPrettyJson | nindent 4 }}
+  appsettings-data.json: |
+    {{- $settings := deepCopy .Values.datastaging.appSettings }}
+    {{- $_ := set $settings "ConnectionStrings" (dict "MiddlewareContext" (include "heappe.mssql.connectionString" .) "Logging" (include "heappe.mssql.connectionString" .)) }}
+    {{- $settings | toPrettyJson | nindent 4 }}
