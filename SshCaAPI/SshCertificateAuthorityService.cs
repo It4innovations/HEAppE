@@ -21,6 +21,7 @@ namespace SshCaAPI
         /// </summary>
         /// <returns>Configured rest client.</returns>
         private readonly RestClient _basicRestClient;
+        private readonly string? _caName;
 
         public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
             : this(null, baseUri, caName, connectionTimeoutInSeconds)
@@ -29,6 +30,7 @@ namespace SshCaAPI
 
         public SshCertificateAuthorityService(System.Net.Http.IHttpClientFactory? httpClientFactory, string baseUri, string caName, double connectionTimeoutInSeconds)
         {
+            _caName = caName;
             //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
             string url = string.Empty;
             if (string.IsNullOrEmpty(caName))
@@ -148,7 +150,9 @@ namespace SshCaAPI
             {
                 try
                 {
-                    var resToUse = string.IsNullOrWhiteSpace(resource) ? "localhost" : resource;
+                    var resToUse = !string.IsNullOrWhiteSpace(resource)
+                        ? resource
+                        : (!string.IsNullOrWhiteSpace(_caName) ? _caName : "localhost");
                     var signResponse = await SignAsync(publicKey, token, resToUse, logger);
 
                     if (!string.IsNullOrEmpty(signResponse?.PosixUsername))
