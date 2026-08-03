@@ -271,11 +271,9 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
 
                         if (cp?.Cluster != null)
                         {
-                            resourceName = cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname;
-                            if (string.IsNullOrEmpty(resourceName))
-                            {
-                                resourceName = cp.Cluster.Name;
-                            }
+                            resourceName = !string.IsNullOrEmpty(cp.Cluster.MasterNodeName)
+                                ? cp.Cluster.MasterNodeName
+                                : (cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname ?? cp.Cluster.Name);
                         }
                     }
 
