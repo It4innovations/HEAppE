@@ -76,16 +76,6 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         long? adaptorUserId, 
         bool onlyServiceAccounts)
     {
-        string? resolvedUsername = null;
-        if (adaptorUserId.HasValue)
-        {
-            var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project != null && project.IsOneToOneMapping)
-            {
-                resolvedUsername = await ResolveUsernameFromContextAsync(adaptorUserId.Value, project);
-            }
-        }
-
         var initializedCredentials = new List<ClusterAuthenticationCredentials>();
         List<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
         
@@ -105,6 +95,26 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             if (serviceAccount != null && notInitializedCredentials.All(c => c.Id != serviceAccount.Id))
             {
                 notInitializedCredentials.Add(serviceAccount);
+            }
+        }
+
+        string? resolvedUsername = null;
+        if (adaptorUserId.HasValue)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project != null && project.IsOneToOneMapping)
+            {
+                var firstNotInit = notInitializedCredentials.FirstOrDefault();
+                string? pubKey = null;
+                if (firstNotInit != null)
+                {
+                    if (!string.IsNullOrEmpty(firstNotInit.PublicKey))
+                        pubKey = firstNotInit.PublicKey;
+                    else if (!string.IsNullOrEmpty(firstNotInit.PrivateKey))
+                        pubKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstNotInit).PublicKeyInAuthorizedKeysFormat;
+                }
+
+                resolvedUsername = await ResolveUsernameFromContextAsync(adaptorUserId.Value, project, pubKey);
             }
         }
         

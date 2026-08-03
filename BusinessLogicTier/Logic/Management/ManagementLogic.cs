@@ -4041,12 +4041,28 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null || !project.IsOneToOneMapping) return;
 
-        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
-        
-        if (string.IsNullOrEmpty(username)) return;
-
         var existingForUser = await _unitOfWork.ClusterAuthenticationCredentialsRepository
             .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
+
+        if (!existingForUser.Any()) return;
+
+        var firstCred = existingForUser.FirstOrDefault();
+        string? publicKey = null;
+        if (firstCred != null)
+        {
+            if (!string.IsNullOrEmpty(firstCred.PublicKey))
+            {
+                publicKey = firstCred.PublicKey;
+            }
+            else if (!string.IsNullOrEmpty(firstCred.PrivateKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstCred).PublicKeyInAuthorizedKeysFormat;
+            }
+        }
+
+        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project, publicKey);
+        
+        if (string.IsNullOrEmpty(username)) return;
 
         bool anyChanged = false;
         foreach (var cred in existingForUser)
