@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using HEAppE.CertificateGenerator;
@@ -403,17 +405,23 @@ public class SshConnector : IPoolableAdapter
                 credentials.Username = response.PosixUsername;
             }
 
+            string? passphrase = (credentials.CipherType == FileTransferCipherType.Ed25519 || CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519)
+                ? null
+                : credentials.PrivateKeyPassphrase;
+
+            string connectHost = await ResolveResponsiveHostAsync(masterNodeName, port ?? 22, _logger);
+
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
-                    masterNodeName,
+                    connectHost,
                     credentials.Username,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                    new PrivateKeyFile(stream, passphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
-                    masterNodeName,
+                    connectHost,
                     port.Value,
                     credentials.Username,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
+                    new PrivateKeyFile(stream, passphrase, certificateStream))
             };
 
             var client = new SshClient(connectionInfo);
@@ -425,6 +433,44 @@ public class SshConnector : IPoolableAdapter
             throw e;
         }
         
+    }
+
+    private static async Task<string> ResolveResponsiveHostAsync(string host, int port, Microsoft.Extensions.Logging.ILogger? logger)
+    {
+        try
+        {
+            if (IPAddress.TryParse(host, out _))
+                return host;
+
+            var addresses = await Dns.GetHostAddressesAsync(host);
+            if (addresses.Length <= 1)
+                return host;
+
+            int targetPort = port > 0 ? port : 22;
+            foreach (var ip in addresses)
+            {
+                try
+                {
+                    using var tcpClient = new TcpClient();
+                    var connectTask = tcpClient.ConnectAsync(ip, targetPort);
+                    if (await Task.WhenAny(connectTask, Task.Delay(400)) == connectTask && tcpClient.Connected)
+                    {
+                        logger?.LogInformation($"[ResolveResponsiveHostAsync] Selected responsive IP '{ip}' for host '{host}' on port {targetPort}.");
+                        return ip.ToString();
+                    }
+                }
+                catch
+                {
+                    logger?.LogWarning($"[ResolveResponsiveHostAsync] IP '{ip}' for host '{host}' failed TCP connection check on port {targetPort}.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, $"[ResolveResponsiveHostAsync] Failed to resolve IP addresses for host '{host}'.");
+        }
+
+        return host;
     }
     
     private async Task<SshClient> CreateConnectionObjectUsingSshCertificateViaProxyAsync(string proxyHost,
@@ -445,19 +491,25 @@ public class SshConnector : IPoolableAdapter
                 credentials.Username = response.PosixUsername;
             }
 
+            string? passphrase = (credentials.CipherType == FileTransferCipherType.Ed25519 || CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519)
+                ? null
+                : credentials.PrivateKeyPassphrase;
+
+            string connectHost = await ResolveResponsiveHostAsync(masterNodeName, port ?? 22, _logger);
+
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
-                    masterNodeName,
+                    connectHost,
                     credentials.Username,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                    new PrivateKeyFile(stream, passphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
-                    masterNodeName,
+                    connectHost,
                     port.Value,
                     credentials.Username,
                     proxyType.Map(),
@@ -465,7 +517,7 @@ public class SshConnector : IPoolableAdapter
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                    new PrivateKeyFile(stream, passphrase, certificateStream)),
             };
 
             var client = new SshClient(connectionInfo);

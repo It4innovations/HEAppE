@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.8
+
+### Added
+- Added automatic round-robin DNS resolution for SSH hosts — when a hostname resolves to multiple IP addresses, HEAppE now probes each address and connects to the first responsive one, improving resilience in multi-node cluster environments.
+
+### Fixed
+- Fixed SSH CA username resolution via the `signJSON` endpoint by passing the correct cluster login node name (`MasterNodeName`) ensuring POSIX usernames are returned for the right cluster resource.
+- Fixed JWT claim lookup during SSH CA username resolution to handle missing or non-standard claims safely.
+- Preserved POSIX username obtained from SSH CA during credential username synchronization by passing the public key through the resolution flow.
+- Fixed compilation errors introduced by the `ResolveUsernameFromContextAsync` overload and `CertificateGenerator` import alignment.
+
+### Changed
+- Changed default value of `ConnectionRetryAttempts` in `SshClientConfiguration` from `0` to `3` to improve SSH connection reliability out of the box.
+
 ## V6.4.7
 
 ### Added

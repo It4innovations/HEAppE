@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -366,7 +367,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                       && w.State <= JobState.Running);
     }
 
-    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
+    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
     {
         string? username = null;
         _logger.LogWarning($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
@@ -445,7 +446,23 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             {
                 _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
                 try {
-                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+                    string? resourceName = null;
+                    if (project != null)
+                    {
+                        var cp = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                            .Include(x => x.Cluster)
+                            .ThenInclude(c => c.FileTransferMethods)
+                            .FirstOrDefault(x => x.ProjectId == project.Id && !x.IsDeleted);
+
+                        if (cp?.Cluster != null)
+                        {
+                            resourceName = !string.IsNullOrEmpty(cp.Cluster.MasterNodeName)
+                                ? cp.Cluster.MasterNodeName
+                                : (cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname ?? cp.Cluster.Name);
+                        }
+                    }
+
+                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger, null, resourceName);
                     _logger.LogWarning($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
                 } catch (Exception ex) {
                     _logger.LogWarning(ex, "SSH CA username resolution failed.");
@@ -549,12 +566,28 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null || !project.IsOneToOneMapping) return;
 
-        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
-        
-        if (string.IsNullOrEmpty(username)) return;
-
         var existingForUser = await _unitOfWork.ClusterAuthenticationCredentialsRepository
             .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
+
+        if (!existingForUser.Any()) return;
+
+        var firstCred = existingForUser.FirstOrDefault();
+        string? publicKey = null;
+        if (firstCred != null)
+        {
+            if (!string.IsNullOrEmpty(firstCred.PublicKey))
+            {
+                publicKey = firstCred.PublicKey;
+            }
+            else if (!string.IsNullOrEmpty(firstCred.PrivateKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstCred).PublicKeyInAuthorizedKeysFormat;
+            }
+        }
+
+        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project, publicKey);
+        
+        if (string.IsNullOrEmpty(username)) return;
 
         bool anyChanged = false;
         foreach (var cred in existingForUser)
