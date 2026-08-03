@@ -42,6 +42,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols will now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
 
+## V6.4.8
+
+### Added
+- Added automatic round-robin DNS resolution for SSH hosts — when a hostname resolves to multiple IP addresses, HEAppE now probes each address and connects to the first responsive one, improving resilience in multi-node cluster environments.
+
+### Fixed
+- Fixed SSH CA username resolution via the `signJSON` endpoint by passing the correct cluster login node name (`MasterNodeName`) ensuring POSIX usernames are returned for the right cluster resource.
+- Fixed JWT claim lookup during SSH CA username resolution to handle missing or non-standard claims safely.
+- Preserved POSIX username obtained from SSH CA during credential username synchronization by passing the public key through the resolution flow.
+- Fixed compilation errors introduced by the `ResolveUsernameFromContextAsync` overload and `CertificateGenerator` import alignment.
+
+### Changed
+- Changed default value of `ConnectionRetryAttempts` in `SshClientConfiguration` from `0` to `3` to improve SSH connection reliability out of the box.
+
 ## V6.4.7
 
 ### Added
