@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
 
 /// <summary>
 ///     Cluster connection pool configuration
@@ -9,7 +9,7 @@ public sealed class SshClientConfiguration
     /// <summary>
     ///     Connection retry attempts
     /// </summary>
-    public int ConnectionRetryAttempts { get; set; } = 10;
+    public int ConnectionRetryAttempts { get; set; } = 3;
 
     /// <summary>
     ///     Connection retry attempts (value in ms)
