@@ -171,7 +171,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         return initializedCredentials;
     }
 
-    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
+    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
     {
         string? username = null;
         _logger.LogWarning($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
@@ -250,7 +250,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             {
                 _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
                 try {
-                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger, publicKey);
                     _logger.LogWarning($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
                 } catch (Exception ex) {
                     _logger.LogWarning(ex, "SSH CA username resolution failed.");

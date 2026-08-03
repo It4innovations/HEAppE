@@ -1,5 +1,6 @@
 #pragma warning disable CS8602, CS8629, CS8604, CS8618
-﻿using HEAppE.Exceptions.External;
+﻿using System.IdentityModel.Tokens.Jwt;
+using HEAppE.Exceptions.External;
 using HEAppE.RestUtils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -134,15 +135,59 @@ namespace SshCaAPI
         /// </summary>
         /// <param name="token"></param>
         /// <param name="logger"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="resource"></param>
         /// <returns>POSIX username or null if not found.</returns>
-        public async Task<string?> GetPosixUsernameAsync(string token, ILogger? logger)
+        public async Task<string?> GetPosixUsernameAsync(string token, ILogger? logger, string? publicKey = null, string? resource = null)
         {
-            // For now, there is no direct endpoint to just get the username.
-            // However, we can use the 'config' or 'sign' (if we had a key) to get it.
-            // Given the requirement to "prepare it", I will leave this as a placeholder or 
-            // try to see if any existing endpoint provides it.
-            // Based on the current API, it's usually returned in SignResponse.
-            return null; 
+            if (string.IsNullOrWhiteSpace(token))
+                return null;
+
+            // 1. Try to get posix_username from SSH CA signJSON endpoint if a public key is provided
+            if (!string.IsNullOrWhiteSpace(publicKey))
+            {
+                try
+                {
+                    var resToUse = string.IsNullOrWhiteSpace(resource) ? "localhost" : resource;
+                    var signResponse = await SignAsync(publicKey, token, resToUse, logger);
+
+                    if (!string.IsNullOrEmpty(signResponse?.PosixUsername))
+                    {
+                        logger?.LogInformation($"[SshCertificateAuthorityService] Resolved POSIX username '{signResponse.PosixUsername}' from signJSON endpoint.");
+                        return signResponse.PosixUsername;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "[SshCertificateAuthorityService] Failed to resolve POSIX username via signJSON endpoint.");
+                }
+            }
+
+            // 2. Fallback: extract username claims directly from JWT token
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                if (tokenHandler.CanReadToken(token))
+                {
+                    var jwt = tokenHandler.ReadJwtToken(token);
+                    var claim = jwt.Claims.FirstOrDefault(c => c.Type == "posix_username")
+                             ?? jwt.Claims.FirstOrDefault(c => c.Type == "preferred_username")
+                             ?? jwt.Claims.FirstOrDefault(c => c.Type == "username")
+                             ?? jwt.Claims.FirstOrDefault(c => c.Type == "name");
+
+                    if (!string.IsNullOrEmpty(claim?.Value))
+                    {
+                        logger?.LogInformation($"[SshCertificateAuthorityService] Resolved POSIX username '{claim.Value}' from JWT fallback claim '{claim.Type}'.");
+                        return claim.Value;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore fallback exceptions
+            }
+
+            return null;
         }
     }
     

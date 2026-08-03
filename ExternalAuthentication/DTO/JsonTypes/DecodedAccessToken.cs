@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
@@ -57,9 +57,9 @@ public class DecodedAccessToken
     /// </summary>
     /// <param name="claimName">Claim name/type.</param>
     /// <returns>Claim value or null if the claim is not available.</returns>
-    private string GetClaim(string claimName)
+    private string? GetClaim(string claimName)
     {
-        return _token.Claims.Single(claim => claim.Type == claimName)?.Value;
+        return _token.Claims.FirstOrDefault(claim => claim.Type == claimName)?.Value;
     }
 
 
@@ -132,7 +132,7 @@ public class DecodedAccessToken
     /// <summary>
     ///     Get flag if user email is verified.
     /// </summary>
-    public bool IsEmailVerified => bool.Parse(GetClaim("email_verified"));
+    public bool IsEmailVerified => bool.TryParse(GetClaim("email_verified"), out var res) && res;
 
     /// <summary>
     ///     User email.
