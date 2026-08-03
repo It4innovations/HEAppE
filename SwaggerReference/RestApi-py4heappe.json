@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.4.7"
+    "version": "v6.4.8"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -1879,6 +1879,39 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/DictionaryItemModel"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Dictionary/GetClusterCustomConfigurationKeys": {
+      "get": {
+        "tags": [
+          "Dictionary"
+        ],
+        "summary": "Get cluster custom configuration keys mapping with scheduler type compatibility flags (External)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterCustomConfigurationKeyItemModel"
                   }
                 }
               }
@@ -14139,6 +14172,27 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ClusterCustomConfigurationKeyItemModel": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "SupportedSchedulerTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "ClusterDetailedReportExt": {
         "type": "object",
