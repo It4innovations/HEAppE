@@ -103,7 +103,11 @@ public class HEAppEEventHub : IHEAppEEventHub
             Data = data
         };
 
-        var json = JsonSerializer.Serialize(cloudEvent);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        var json = JsonSerializer.Serialize(cloudEvent, options);
 
         // Buffer the event for catch-up (race-condition protection) with sliding expiration of 15 minutes
         var cacheKey = $"EventBuffer:{userId}";
