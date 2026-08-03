@@ -12,7 +12,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
+using HEAppE.ExtModels.Events.Models;
+
 namespace HEAppE.RestApi.Events;
+
 
 public class HEAppEEventHub : IHEAppEEventHub
 {
@@ -89,18 +92,22 @@ public class HEAppEEventHub : IHEAppEEventHub
     public async Task PublishEventAsync(long userId, string eventType, string source, object data)
     {
         // Build CloudEvent payload
-        var cloudEvent = new
+        var cloudEvent = new CloudEventExt
         {
-            specversion = "1.0",
-            type = eventType,
-            source = source,
-            id = Guid.NewGuid().ToString(),
-            time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            datacontenttype = "application/json",
-            data = data
+            SpecVersion = "1.0",
+            Type = eventType,
+            Source = source,
+            Id = Guid.NewGuid().ToString(),
+            Time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            DataContentType = "application/json",
+            Data = data
         };
 
-        var json = JsonSerializer.Serialize(cloudEvent);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        var json = JsonSerializer.Serialize(cloudEvent, options);
 
         // Buffer the event for catch-up (race-condition protection) with sliding expiration of 15 minutes
         var cacheKey = $"EventBuffer:{userId}";

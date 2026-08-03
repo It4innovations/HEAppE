@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
+using HEAppE.ExtModels.Events.Models;
 using HEAppE.Services.UserOrg;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +16,12 @@ using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
+/// <summary>
+///     Events WebSocket Endpoint
+/// </summary>
 [ApiController]
 [Route("heappe/[controller]")]
+[Produces("application/json")]
 public class EventsController : Controller
 {
     private readonly IHEAppEEventHub _eventHub;
@@ -42,15 +47,28 @@ public class EventsController : Controller
         _logger = logger;
     }
 
+    /// <summary>
+    ///     Establish a WebSocket connection for real-time CloudEvents (v1.0) streaming.
+    /// </summary>
+    /// <param name="sessionCode">Optional session code for authentication via query parameter.</param>
+    /// <response code="101">Switching Protocols - WebSocket connection established for streaming CloudEvents.</response>
+    /// <response code="200">OK - Returns CloudEvent stream schema representation.</response>
+    /// <response code="400">Bad Request - Request is not a valid WebSocket request.</response>
+    /// <response code="401">Unauthorized - Authentication failed or missing credentials.</response>
+    /// <response code="500">Internal Server Error - Server failure during event hub processing.</response>
     [HttpGet]
-    public async Task Get()
+    [ProducesResponseType(typeof(CloudEventExt), StatusCodes.Status101SwitchingProtocols)]
+    [ProducesResponseType(typeof(CloudEventExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Get([FromQuery] string sessionCode = null)
     {
         var context = HttpContext;
 
         if (!context.WebSockets.IsWebSocketRequest)
         {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
+            return BadRequest();
         }
 
         long userId = -1;
@@ -65,7 +83,6 @@ public class EventsController : Controller
         else
         {
             // 2. Fallback to legacy SessionCode (query param or header)
-            string sessionCode = context.Request.Query["sessionCode"];
             if (string.IsNullOrEmpty(sessionCode))
             {
                 sessionCode = context.Request.Headers["SessionCode"];
@@ -101,8 +118,7 @@ public class EventsController : Controller
         if (userId <= 0)
         {
             _logger.LogWarning("[EventsController] WebSocket handshake rejected: Unauthorized.");
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return;
+            return Unauthorized();
         }
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
@@ -110,10 +126,9 @@ public class EventsController : Controller
         if (_eventHub is RestApi.Events.HEAppEEventHub hub)
         {
             await hub.HandleConnectionAsync(webSocket, context, userId);
+            return new EmptyResult();
         }
-        else
-        {
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError);
     }
 }

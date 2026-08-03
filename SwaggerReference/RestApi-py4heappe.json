@@ -319,210 +319,6 @@
         }
       }
     },
-    "/heappe/ClusterInformation/MachineArchitecture": {
-      "get": {
-        "tags": [
-          "ClusterInformation"
-        ],
-        "summary": "Get QScheduler machine architecture",
-        "parameters": [
-          {
-            "name": "ClusterNodeTypeId",
-            "in": "query",
-            "description": "Cluster node type id",
-            "schema": {
-              "type": "integer",
-              "description": "Cluster node type id",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "description": "Project id",
-            "schema": {
-              "type": "integer",
-              "description": "Project id",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "Session code",
-            "schema": {
-              "maxLength": 50,
-              "minLength": 0,
-              "type": "string",
-              "description": "Session code"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/ClusterInformation/MachineCalibration": {
-      "get": {
-        "tags": [
-          "ClusterInformation"
-        ],
-        "summary": "Get QScheduler machine calibration",
-        "parameters": [
-          {
-            "name": "ClusterNodeTypeId",
-            "in": "query",
-            "description": "Cluster node type id",
-            "schema": {
-              "type": "integer",
-              "description": "Cluster node type id",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "CalibrationId",
-            "in": "query",
-            "description": "Calibration identifier",
-            "schema": {
-              "type": "string",
-              "description": "Calibration identifier"
-            }
-          },
-          {
-            "name": "Endpoint",
-            "in": "query",
-            "description": "Calibration endpoint",
-            "schema": {
-              "type": "string",
-              "description": "Calibration endpoint"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "description": "Project id",
-            "schema": {
-              "type": "integer",
-              "description": "Project id",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "Session code",
-            "schema": {
-              "maxLength": 50,
-              "minLength": 0,
-              "type": "string",
-              "description": "Session code"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/heappe/Credentials/CreateCredential": {
       "post": {
         "tags": [
@@ -2172,9 +1968,67 @@
         "tags": [
           "Events"
         ],
+        "summary": "Establish a WebSocket connection for real-time CloudEvents (v1.0) streaming.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Optional session code for authentication via query parameter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
+          "101": {
+            "description": "Switching Protocols - WebSocket connection established for streaming CloudEvents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudEventExt"
+                }
+              }
+            }
+          },
           "200": {
-            "description": "OK"
+            "description": "OK - Returns CloudEvent stream schema representation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudEventExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Request is not a valid WebSocket request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication failed or missing credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Server failure during event hub processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -3794,460 +3648,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/OpenQSchedulerSession": {
-      "post": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Open QScheduler session explicitly",
-        "requestBody": {
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/CloseQSchedulerSession": {
-      "delete": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Close QScheduler session explicitly",
-        "requestBody": {
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/QSchedulerSessionInfo": {
-      "get": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Get QScheduler session info and state",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SessionId",
-            "in": "query",
-            "description": "QScheduler session ID (returned by OpenQSchedulerSession)",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/CreateAndSubmitQSchedulerJob": {
-      "post": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "model": {
-                    "type": "string",
-                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
-                  }
-                }
-              },
-              "encoding": {
-                "model": {
-                  "style": "form"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmittedJobInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/ListQSchedulerSessions": {
-      "get": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "List QScheduler sessions with optional state, cluster, and project filters.",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "State",
-            "in": "query",
-            "description": "Optional state filter (\"Open\" or \"Closed\")",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ClusterId",
-            "in": "query",
-            "description": "Optional cluster ID filter",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "description": "Optional project ID filter",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQuantumTaskResult": {
-      "get": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Get Quantum task result (IQM metadata, timeline, etc.)",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQuantumTaskArtifact": {
-      "get": {
-        "tags": [
-          "JobManagement"
-        ],
-        "summary": "Get QScheduler task artifact by name.",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ArtifactName",
-            "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -13816,6 +13216,1523 @@
         }
       }
     },
+    "/heappe/QScheduler/OpenSession": {
+      "post": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Open QScheduler session explicitly",
+        "requestBody": {
+          "description": "Session specification",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/OpenQSchedulerSession": {
+      "post": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Open QScheduler session explicitly",
+        "requestBody": {
+          "description": "Session specification",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/CloseSession": {
+      "delete": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Close QScheduler session explicitly",
+        "requestBody": {
+          "description": "Session identification",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/CloseQSchedulerSession": {
+      "delete": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Close QScheduler session explicitly",
+        "requestBody": {
+          "description": "Session identification",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/GetSessionInfo": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler session info and state",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SessionId",
+            "in": "query",
+            "description": "QScheduler session ID (returned by OpenSession)",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQSchedulerSessionInfo": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler session info and state",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SessionId",
+            "in": "query",
+            "description": "QScheduler session ID (returned by OpenSession)",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/QSchedulerSessionInfo": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler session info and state",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SessionId",
+            "in": "query",
+            "description": "QScheduler session ID (returned by OpenSession)",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/ListSessions": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "List QScheduler sessions with optional state, cluster, and project filters.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "State",
+            "in": "query",
+            "description": "Optional state filter (\"Open\" or \"Closed\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Optional cluster ID filter",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Optional project ID filter",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/ListQSchedulerSessions": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "List QScheduler sessions with optional state, cluster, and project filters.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "State",
+            "in": "query",
+            "description": "Optional state filter (\"Open\" or \"Closed\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Optional cluster ID filter",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Optional project ID filter",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/CreateAndSubmitJob": {
+      "post": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
+                  }
+                }
+              },
+              "encoding": {
+                "model": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmittedJobInfoExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/CreateAndSubmitQSchedulerJob": {
+      "post": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
+                  }
+                }
+              },
+              "encoding": {
+                "model": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmittedJobInfoExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/GetTaskResult": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task result (IQM metadata, timeline, etc.)",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQSchedulerTaskResult": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task result (IQM metadata, timeline, etc.)",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQuantumTaskResult": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task result (IQM metadata, timeline, etc.)",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/GetTaskArtifact": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task artifact by name.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ArtifactName",
+            "in": "query",
+            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQSchedulerTaskArtifact": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task artifact by name.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ArtifactName",
+            "in": "query",
+            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/JobManagement/GetQuantumTaskArtifact": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler task artifact by name.",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "HEAppE session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SubmittedTaskId",
+            "in": "query",
+            "description": "HEAppE Task ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ArtifactName",
+            "in": "query",
+            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/MachineArchitecture": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine architecture",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/ClusterInformation/MachineArchitecture": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine architecture",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/MachineCalibration": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine calibration",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "CalibrationId",
+            "in": "query",
+            "description": "Calibration identifier",
+            "schema": {
+              "type": "string",
+              "description": "Calibration identifier"
+            }
+          },
+          {
+            "name": "Endpoint",
+            "in": "query",
+            "description": "Calibration endpoint",
+            "schema": {
+              "type": "string",
+              "description": "Calibration endpoint"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/ClusterInformation/MachineCalibration": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine calibration",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "CalibrationId",
+            "in": "query",
+            "description": "Calibration identifier",
+            "schema": {
+              "type": "string",
+              "description": "Calibration identifier"
+            }
+          },
+          {
+            "name": "Endpoint",
+            "in": "query",
+            "description": "Calibration endpoint",
+            "schema": {
+              "type": "string",
+              "description": "Calibration endpoint"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/UserAndLimitationManagement/AuthenticateLexisToken": {
       "post": {
         "tags": [
@@ -14995,6 +15912,46 @@
             "type": "integer",
             "description": "Session ID to close",
             "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CloudEventExt": {
+        "type": "object",
+        "properties": {
+          "specversion": {
+            "type": "string",
+            "description": "Version of the CloudEvents specification (1.0).",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of occurrence related to the event (e.g. org.heappe.job.state-changed).",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Identifies the context in which an event happened.",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifies the event.",
+            "nullable": true
+          },
+          "time": {
+            "type": "string",
+            "description": "Timestamp of when the event occurred.",
+            "nullable": true
+          },
+          "datacontenttype": {
+            "type": "string",
+            "description": "Content type of the data value.",
+            "nullable": true
+          },
+          "data": {
+            "description": "The event payload.",
+            "nullable": true
           }
         },
         "additionalProperties": false

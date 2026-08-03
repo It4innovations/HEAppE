@@ -8,6 +8,7 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
+using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -76,16 +77,6 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         long? adaptorUserId, 
         bool onlyServiceAccounts)
     {
-        string? resolvedUsername = null;
-        if (adaptorUserId.HasValue)
-        {
-            var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project != null && project.IsOneToOneMapping)
-            {
-                resolvedUsername = await ResolveUsernameFromContextAsync(adaptorUserId.Value, project);
-            }
-        }
-
         var initializedCredentials = new List<ClusterAuthenticationCredentials>();
         List<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
         
@@ -105,6 +96,26 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             if (serviceAccount != null && notInitializedCredentials.All(c => c.Id != serviceAccount.Id))
             {
                 notInitializedCredentials.Add(serviceAccount);
+            }
+        }
+
+        string? resolvedUsername = null;
+        if (adaptorUserId.HasValue)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project != null && project.IsOneToOneMapping)
+            {
+                var firstNotInit = notInitializedCredentials.FirstOrDefault();
+                string? pubKey = null;
+                if (firstNotInit != null)
+                {
+                    if (!string.IsNullOrEmpty(firstNotInit.PublicKey))
+                        pubKey = firstNotInit.PublicKey;
+                    else if (!string.IsNullOrEmpty(firstNotInit.PrivateKey))
+                        pubKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstNotInit).PublicKeyInAuthorizedKeysFormat;
+                }
+
+                resolvedUsername = await ResolveUsernameFromContextAsync(adaptorUserId.Value, project, pubKey);
             }
         }
         
@@ -171,7 +182,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         return initializedCredentials;
     }
 
-    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
+    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
     {
         string? username = null;
         _logger.LogWarning($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
@@ -250,7 +261,23 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
             {
                 _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
                 try {
-                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+                    string? resourceName = null;
+                    if (project != null)
+                    {
+                        var cp = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                            .Include(x => x.Cluster)
+                            .ThenInclude(c => c.FileTransferMethods)
+                            .FirstOrDefault(x => x.ProjectId == project.Id && !x.IsDeleted);
+
+                        if (cp?.Cluster != null)
+                        {
+                            resourceName = !string.IsNullOrEmpty(cp.Cluster.MasterNodeName)
+                                ? cp.Cluster.MasterNodeName
+                                : (cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname ?? cp.Cluster.Name);
+                        }
+                    }
+
+                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger, publicKey, resourceName);
                     _logger.LogWarning($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
                 } catch (Exception ex) {
                     _logger.LogWarning(ex, "SSH CA username resolution failed.");

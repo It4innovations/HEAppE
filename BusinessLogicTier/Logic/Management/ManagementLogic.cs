@@ -1071,11 +1071,51 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
+        string keyCommentUsername = "heappe-user";
+        if (adaptorUserId.HasValue)
+        {
+            var adaptorUser = _unitOfWork.AdaptorUserRepository.GetById(adaptorUserId.Value);
+            if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Username))
+            {
+                keyCommentUsername = adaptorUser.Username;
+            }
+            else if (adaptorUser != null && !string.IsNullOrEmpty(adaptorUser.Email))
+            {
+                keyCommentUsername = adaptorUser.Email;
+            }
+        }
+
+        SecureShellKey? preGeneratedKey = null;
+        if (authType.HasValue && 
+            authType.Value != ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio &&
+            authType.Value != ClusterAuthenticationCredentialsAuthType.Unknown &&
+            authType.Value != ClusterAuthenticationCredentialsAuthType.Kerberos &&
+            authType.Value != ClusterAuthenticationCredentialsAuthType.Password)
+        {
+            SSHGenerator sshGenerator = new(_logger);
+            if (generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey)))
+            {
+                preGeneratedKey = sshGenerator.GetEncryptedSecureShellKey(keyCommentUsername, passphrase);
+            }
+            else if (!string.IsNullOrEmpty(privateKey))
+            {
+                preGeneratedKey = SSHGenerator.GetPublicKeyFromPrivateKey(new ClusterAuthenticationCredentials
+                {
+                    Username = keyCommentUsername,
+                    PrivateKey = privateKey,
+                    PrivateKeyPassphrase = passphrase,
+                    CipherType = sshGenerator.CipherType
+                });
+                preGeneratedKey.PrivateKeyPEM = privateKey;
+                preGeneratedKey.Passphrase = passphrase;
+            }
+        }
+
         // Resolve Username if not provided
         if (string.IsNullOrEmpty(username))
         {
             _logger.LogInformation("Username not provided, attempting automatic resolution.");
-            username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
+            username = await ResolveUsernameFromContextAsync(adaptorUserId, project, preGeneratedKey?.PublicKeyInAuthorizedKeysFormat);
 
             if (string.IsNullOrEmpty(username))
             {
@@ -1104,11 +1144,11 @@ public class ManagementLogic : IManagementLogic
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
 
-        return await CreateCredential(username, password, project, adaptorUserId, authType.Value, generateNewKey, privateKey, passphrase);
+        return await CreateCredential(username, password, project, adaptorUserId, authType.Value, generateNewKey, privateKey, passphrase, preGeneratedKey);
     }
 
     private async Task<CredentialResponse> CreateCredential(string username, string? password, Project project, long? adaptorUserId, 
-                                                        ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, string? privateKey, string? passphrase)
+                                                        ClusterAuthenticationCredentialsAuthType authType, bool? generateNewKey, string? privateKey, string? passphrase, SecureShellKey? preGeneratedKey = null)
     {
         _logger.LogInformation($"Creating credential for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
@@ -1116,9 +1156,10 @@ public class ManagementLogic : IManagementLogic
         if (!clusterProjects.Any()) 
             throw new InvalidRequestException("ProjectNoAssignToCluster");
 
-        SecureShellKey secureShellKey = null;
+        SecureShellKey secureShellKey = preGeneratedKey;
         bool isGenerated = false;
-        if (authType != ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio &&
+        if (secureShellKey == null &&
+            authType != ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio &&
             authType != ClusterAuthenticationCredentialsAuthType.Unknown &&
             authType != ClusterAuthenticationCredentialsAuthType.Kerberos &&
             authType != ClusterAuthenticationCredentialsAuthType.Password)
@@ -1142,6 +1183,10 @@ public class ManagementLogic : IManagementLogic
                 secureShellKey.PrivateKeyPEM = privateKey;
                 secureShellKey.Passphrase = passphrase;
             }
+        }
+        else if (preGeneratedKey != null)
+        {
+            isGenerated = generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey));
         }
 
         var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
@@ -3951,7 +3996,7 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
-    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null)
+    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
     {
         string? username = null;
         _logger.LogInformation($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
@@ -4030,7 +4075,23 @@ public class ManagementLogic : IManagementLogic
             {
                 _logger.LogInformation("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
                 try {
-                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger);
+                    string? resourceName = null;
+                    if (project != null)
+                    {
+                        var cp = _unitOfWork.ClusterProjectRepository.AsQueryable()
+                            .Include(x => x.Cluster)
+                            .ThenInclude(c => c.FileTransferMethods)
+                            .FirstOrDefault(x => x.ProjectId == project.Id && !x.IsDeleted);
+
+                        if (cp?.Cluster != null)
+                        {
+                            resourceName = !string.IsNullOrEmpty(cp.Cluster.MasterNodeName)
+                                ? cp.Cluster.MasterNodeName
+                                : (cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname ?? cp.Cluster.Name);
+                        }
+                    }
+
+                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger, publicKey, resourceName);
                     _logger.LogInformation($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
                 } catch (Exception ex) {
                     _logger.LogWarning(ex, "SSH CA username resolution failed.");
@@ -4136,12 +4197,28 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null || !project.IsOneToOneMapping) return;
 
-        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project);
-        
-        if (string.IsNullOrEmpty(username)) return;
-
         var existingForUser = await _unitOfWork.ClusterAuthenticationCredentialsRepository
             .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
+
+        if (!existingForUser.Any()) return;
+
+        var firstCred = existingForUser.FirstOrDefault();
+        string? publicKey = null;
+        if (firstCred != null)
+        {
+            if (!string.IsNullOrEmpty(firstCred.PublicKey))
+            {
+                publicKey = firstCred.PublicKey;
+            }
+            else if (!string.IsNullOrEmpty(firstCred.PrivateKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstCred).PublicKeyInAuthorizedKeysFormat;
+            }
+        }
+
+        var username = await ResolveUsernameFromContextAsync(adaptorUserId, project, publicKey);
+        
+        if (string.IsNullOrEmpty(username)) return;
 
         bool anyChanged = false;
         foreach (var cred in existingForUser)

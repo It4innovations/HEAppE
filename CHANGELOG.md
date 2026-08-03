@@ -13,34 +13,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `QSchedulerDataConvertor` parses JSON state responses (`waiting`, `running`, `finished`, `failed`, `error`, `cancelled`) into HEAppE `TaskState` values.
   - Unit tests for `QSchedulerDataConvertor` covering all state transitions, error field extraction, and malformed input handling.
   - Added support for asynchronous wait state-machine during QScheduler session activation, direct task submissions, and active SSH polling bypass when notify callbacks are active.
-- Added two new REST API endpoints under `heappe/ClusterInformation`:
-  - `GET /heappe/ClusterInformation/MachineArchitecture` — returns the hardware topology/architecture of a QScheduler machine.
+- New QScheduler session and job endpoints:
+  - `POST /heappe/JobManagement/OpenQSchedulerSession` — creates a new remote QScheduler session.
+  - `DELETE /heappe/JobManagement/CloseQSchedulerSession` — deletes an existing QScheduler session.
+  - `GET /heappe/JobManagement/GetQSchedulerSessionInfo` — returns info about a specific session.
+  - `GET /heappe/JobManagement/ListQSchedulerSessions` — lists all active QScheduler sessions for a job.
+  - `POST /heappe/JobManagement/CreateAndSubmitQSchedulerJob` — creates and immediately submits a quantum job within an existing session.
+  - `GET /heappe/JobManagement/GetQSchedulerTaskResult` — retrieves the result of a completed QScheduler task.
+  - `GET /heappe/JobManagement/GetQSchedulerTaskArtifact` — retrieves an artifact produced by a QScheduler task.
+- New QScheduler machine information endpoints:
+  - `GET /heappe/ClusterInformation/MachineArchitecture` — returns hardware topology/architecture of a QScheduler machine.
   - `GET /heappe/ClusterInformation/MachineCalibration` — returns calibration data for a specified machine and calibration endpoint.
 - Added input models `GetMachineArchitectureModel` and `GetMachineCalibrationModel` with full validation in `ClusterInformationValidator`.
 - Added unified webhook status callback endpoint `POST /heappe/JobManagement/TaskCallback` to receive job/task status updates directly from cluster schedulers without polling.
+- Added generic WebSocket push notification system at `GET /heappe/Events`. Clients can open persistent connections to receive real-time CloudEvents (v1.0) streaming of job, task, and session state changes (e.g. `org.heappe.job.state-changed`, `org.heappe.task.state-changed`, `org.heappe.session.state-changed`). Fully supports header-based `X-API-Key` and query/header-based `SessionCode` authentication.
+- Added `GET /heappe/Dictionary/GetJobStateSources` endpoint exposing `JobStateSource` enum values.
 - Added support for storing custom configuration secrets (like `QSchedulerNotifyToken`) in HashiCorp Vault, with dynamic API masking (`"********"`) for all vault-toggled custom configuration values in cluster information responses.
 - Added migration and backup package support for exporting and restoring HashiCorp Vault-stored cluster secrets in `cluster_secrets.json` within encrypted ZIP packages.
-- Added automatic QScheduler session closure upon final task completion in a job. Sessions are dynamically tracked and closed via `DELETE sessions/{sessionId}` once all tasks assigned to that session reach their final state (Finished, Failed, Canceled, or Deleted).
-- Added generic WebSocket push notification system (WSS) at GET /heappe/Events. Clients can open persistent connections to receive real-time CloudEvents (v1.0) streaming of job, task, and session state changes (e.g. org.heappe.job.state-changed, org.heappe.task.state-changed, org.heappe.session.state-changed). Fully supports header-based X-API-Key and query/header-based SessionCode authentication.
-- Added explicit QScheduler session control endpoints: `POST /heappe/JobManagement/OpenQSchedulerSession` and `DELETE /heappe/JobManagement/CloseQSchedulerSession`. Allows manual creation and deletion of remote QScheduler sessions. Supported submitting multiple subsequent jobs into an active session by specifying the `HEAPPE_QSCHEDULER_SESSION_ID` environment variable in task specifications.
+- Added automatic QScheduler session closure upon final task completion in a job. Sessions are dynamically tracked and closed once all tasks reach their final state (Finished, Failed, Canceled, or Deleted).
 - Added `IdpSid` property (length 250) to `AdaptorUser` table and implemented non-breaking identity federation matching for UserOrg login with automatic migration of existing accounts.
 - Added sliding window TTL (15 minutes) for WebSocket event buffers in `HEAppEEventHub` using `IMemoryCache` to prevent memory growth for inactive users.
 - Added structured, privacy-safe JSON serialization for `JobSpecification` logs on job creation, eliminating hard-to-read multiline output and protecting user e-mails from leakage.
 - Added `QSchedulerHost` custom configuration property to allow configuring the target hostname for QScheduler REST API requests (defaults to `localhost`).
-- Added support for file transfers (uploads/downloads) to QScheduler clusters when using SSH or SSHInteractive connection protocols. Includes dynamic override of HTTP/HTTPS file transfer methods to use SFTP directly to the master node filesystem, preventing invalid Firecrest and Expirio credential exchange.
-- Added robust connection error handling for QScheduler REST API: catches connection refused errors (curl exit code 7 / `HttpRequestException`) and returns a clear `UnableToCreateConnectionException` (HTTP 400 Bad Request) detailing that the QScheduler service is unreachable.
+- Added support for file transfers (uploads/downloads) to QScheduler clusters when using SSH or SSHInteractive connection protocols, including dynamic override of HTTP/HTTPS file transfer methods to use SFTP directly to the master node filesystem.
+- Added robust connection error handling for QScheduler REST API: catches connection refused errors and returns a clear `UnableToCreateConnectionException` (HTTP 400 Bad Request).
 - Added `JobStateSource` / `StateSource` annotation (`Callback`, `UserVerified`, `BackgroundPoll`) and `StateUpdatedAt` timestamp tracking for jobs and tasks.
-- Added `ForceDirectQuery` parameter to `CurrentInfoForJob` endpoint for forcing physical scheduler queries with automatic terminal state locking.
-- Added `GET /heappe/Dictionary/GetJobStateSources` endpoint.
+- Added `ForceDirectQuery` parameter to `GET /heappe/JobManagement/CurrentInfoForJob` for forcing physical scheduler queries with automatic terminal state locking.
 - Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
-- Added `LogLevel.Trace` override in `RequestResponseLoggingMiddleware` to force logging request/response bodies for `HeadersOnly` endpoints.
-- Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation, preventing full-cache reset stampedes during administrative modifications.
+- Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation.
 - Converted endpoints in `ManagementController` and `UserAndLimitationManagementController` to `async Task<IActionResult>` to prevent ASP.NET Core ThreadPool worker thread starvation under high concurrent load.
 - Added endpoint-specific rate limiting rules for `/heappe/Management/*` (120 req/min) and `/heappe/UserAndLimitationManagement/*` (300 req/min) in `appsettings.example.json`.
 
 ### Fixed
-- Fixed internal server error (HTTP status 500) during file uploads to job execution directories when job or task validation fails. The REST API now properly throws specialized exceptions that translate to appropriate client status codes (`400 Bad Request` or `403 Forbidden`).
-- Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols will now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
+- Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
+- Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
+
+## V6.4.8
+
+### Added
+- Added automatic round-robin DNS resolution for SSH hosts — when a hostname resolves to multiple IP addresses, HEAppE now probes each address and connects to the first responsive one, improving resilience in multi-node cluster environments.
+
+### Fixed
+- Fixed SSH CA username resolution via the `signJSON` endpoint by passing the correct cluster login node name (`MasterNodeName`) ensuring POSIX usernames are returned for the right cluster resource.
+- Fixed JWT claim lookup during SSH CA username resolution to handle missing or non-standard claims safely.
+- Preserved POSIX username obtained from SSH CA during credential username synchronization by passing the public key through the resolution flow.
+- Fixed compilation errors introduced by the `ResolveUsernameFromContextAsync` overload and `CertificateGenerator` import alignment.
+
+### Changed
+- Changed default value of `ConnectionRetryAttempts` in `SshClientConfiguration` from `0` to `3` to improve SSH connection reliability out of the box.
 
 ## V6.4.7
 
