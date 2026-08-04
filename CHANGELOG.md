@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.9
+
+### Added
+- Added support for `--gres=gpu:X` alongside `--gpus=X` directives in `SlurmTaskAdapter` and `SlurmSchedulerAdapter` to ensure compatibility with Slurm clusters requiring traditional GRES resource specifications.
+
 ## V6.4.8
 
 ### Added

@@ -257,6 +257,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <param name="minCores">Task min cores</param>
     /// <param name="maxCores">Task max cores</param>
     /// <param name="coresPerNode">Cores per node</param>
+    public string SlurmGpuRequestStyle { get; set; }
+
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int? minCores,
         int? maxCores, int? gpuCores, int? gpuNodes, int coresPerNode, ClusterNodeTypeAggregation aggregation)
@@ -293,7 +295,19 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
             if (gpuCount.HasValue)
             {
-                doAppend($" --gpus={gpuCount}");
+                if (string.Equals(SlurmGpuRequestStyle, "Gres", StringComparison.OrdinalIgnoreCase))
+                {
+                    doAppend($" --gres=gpu:{gpuCount}");
+                }
+                else if (string.Equals(SlurmGpuRequestStyle, "Gpu", StringComparison.OrdinalIgnoreCase) || string.Equals(SlurmGpuRequestStyle, "Gpus", StringComparison.OrdinalIgnoreCase))
+                {
+                    doAppend($" --gpus={gpuCount}");
+                }
+                else
+                {
+                    doAppend($" --gres=gpu:{gpuCount}");
+                    doAppend($" --gpus={gpuCount}");
+                }
             }
 
             // Append nodes if explicitly requested
