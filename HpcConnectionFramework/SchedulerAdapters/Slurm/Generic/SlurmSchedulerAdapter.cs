@@ -504,7 +504,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         string script_name,
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
-        string output, string error, bool isGpuPartition
+        string output, string error, bool isGpuPartition,
+        string gpuRequestStyle = null
     )
     {
         if (time == null)
@@ -517,7 +518,20 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --ntasks-per-node=" + ntasks_per_node;
         if (isGpuPartition)
         {
-            result += " --gpus=" + Math.Max(1, nodes);
+            var gpuCount = Math.Max(1, nodes);
+            if (string.Equals(gpuRequestStyle, "Gres", StringComparison.OrdinalIgnoreCase))
+            {
+                result += " --gres=gpu:" + gpuCount;
+            }
+            else if (string.Equals(gpuRequestStyle, "Gpu", StringComparison.OrdinalIgnoreCase) || string.Equals(gpuRequestStyle, "Gpus", StringComparison.OrdinalIgnoreCase))
+            {
+                result += " --gpus=" + gpuCount;
+            }
+            else
+            {
+                result += " --gres=gpu:" + gpuCount;
+                result += " --gpus=" + gpuCount;
+            }
         }
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
@@ -541,6 +555,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             var partition = nodeType.Queue;
             var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
             var script_name = clusterConfig.GetExecuteCmdScriptPath(project.AccountingString, clusterProjectCredential.ClusterAuthenticationCredentials?.Username);
+            string gpuStyle = cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("SlurmGpuRequestStyle", out var style) ? style : null;
             var testCommand = PrepareSbatchCommand(
                 script_name,
                 job_name: "dryrun",
@@ -551,7 +566,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 time: TimeSpan.FromSeconds(1),
                 output: "dummy.out",
                 error: "dummy.err",
-                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase))
+                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN", StringComparison.OrdinalIgnoreCase) || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU", StringComparison.OrdinalIgnoreCase)),
+                gpuRequestStyle: gpuStyle
             ) + "\n";
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -595,6 +611,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     public async Task<DryRunJobInfo> DryRunJobAsync(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
     {
         var clusterConfig = ClusterRuntimeConfiguration.For(dryRunJobSpecification.ClusterNodeType.Cluster.CustomConfiguration);
+        string gpuStyle = dryRunJobSpecification.ClusterNodeType.Cluster.CustomConfiguration != null && dryRunJobSpecification.ClusterNodeType.Cluster.CustomConfiguration.TryGetValue("SlurmGpuRequestStyle", out var style) ? style : null;
         var sbatchCommand = PrepareSbatchCommand(
             clusterConfig.GetExecuteCmdScriptPath(dryRunJobSpecification.Project.AccountingString, dryRunJobSpecification.ClusterUser?.Username),
             job_name: "dryrun",
@@ -605,7 +622,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             time: TimeSpan.FromMinutes(dryRunJobSpecification.WallTimeInMinutes),
             output: "dummy.out",
             error: "dummy.err",
-            isGpuPartition:dryRunJobSpecification.IsGpuPartition
+            isGpuPartition: dryRunJobSpecification.IsGpuPartition,
+            gpuRequestStyle: gpuStyle
         ) + "\n";
 
         var sshCommand = $"{_commands.InterpreterCommand} eval `(" + sbatchCommand + ")`";
