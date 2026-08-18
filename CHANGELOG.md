@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.10
+
+### Fixed
+- Fixed credential authentication type resolution falling back to `PrivateKeyInSshAgent` instead of `SshCertificate` when SSH Certificate Authority is enabled (`UseCertificateAuthorityForAuthentication = true`).
+- Added automatic credential repair during startup seeding in `MiddlewareContext` to update incorrect authentication types in the database and reset `IsInitialized` for missing keys to trigger automatic re-provisioning without requiring manual database interventions.
+
 ## V6.4.9
 
 ### Added
