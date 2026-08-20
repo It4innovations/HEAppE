@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,10 +15,10 @@ public interface IDataTransferLogic
 
     Task EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser);
 
-    Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId,
+    Task<JobNodeHttpResponse> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId,
         string nodeIPAddress, int nodePort, AdaptorUser loggedUser);
 
-    Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload,
+    Task<JobNodeHttpResponse> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser);
 
     Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeader> headers,

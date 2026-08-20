@@ -205,7 +205,7 @@ public class DataTransferLogic : IDataTransferLogic
         }
     }
 
-    public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
+    public async Task<JobNodeHttpResponse> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
         int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
@@ -218,19 +218,20 @@ public class DataTransferLogic : IDataTransferLogic
         foreach (var h in headers) request.AddHeader(h.Name, h.Value);
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK)
+        if ((int)response.StatusCode == 0)
         {
-            var errorMsg = !string.IsNullOrWhiteSpace(response.Content)
-                ? response.Content
-                : (!string.IsNullOrWhiteSpace(response.ErrorMessage)
-                    ? response.ErrorMessage
-                    : (!string.IsNullOrWhiteSpace(response.StatusDescription) ? response.StatusDescription : response.StatusCode.ToString()));
+            var errorMsg = !string.IsNullOrWhiteSpace(response.ErrorMessage)
+                ? response.ErrorMessage
+                : (!string.IsNullOrWhiteSpace(response.ErrorException?.Message)
+                    ? response.ErrorException.Message
+                    : "Unable to connect to local forwarded port");
             throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
         }
-        return response.Content;
+
+        return new JobNodeHttpResponse((int)response.StatusCode, response.Content, response.ContentType);
     }
 
-    public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
+    public async Task<JobNodeHttpResponse> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
         int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
@@ -248,16 +249,17 @@ public class DataTransferLogic : IDataTransferLogic
             request.AddBody(Encoding.UTF8.GetBytes(httpPayload));
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK)
+        if ((int)response.StatusCode == 0)
         {
-            var errorMsg = !string.IsNullOrWhiteSpace(response.Content)
-                ? response.Content
-                : (!string.IsNullOrWhiteSpace(response.ErrorMessage)
-                    ? response.ErrorMessage
-                    : (!string.IsNullOrWhiteSpace(response.StatusDescription) ? response.StatusDescription : response.StatusCode.ToString()));
+            var errorMsg = !string.IsNullOrWhiteSpace(response.ErrorMessage)
+                ? response.ErrorMessage
+                : (!string.IsNullOrWhiteSpace(response.ErrorException?.Message)
+                    ? response.ErrorException.Message
+                    : "Unable to connect to local forwarded port");
             throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
         }
-        return response.Content;
+
+        return new JobNodeHttpResponse((int)response.StatusCode, response.Content, response.ContentType);
     }
 
     public async Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser, Stream responseStream, CancellationToken cancellationToken)
@@ -276,13 +278,6 @@ public class DataTransferLogic : IDataTransferLogic
         if (requestMessage.Content == null) requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            var errorMsg = !string.IsNullOrWhiteSpace(errorContent) ? errorContent : response.ReasonPhrase ?? response.StatusCode.ToString();
-            throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
-        }
-
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var buffer = new byte[8192];
         int bytesRead;

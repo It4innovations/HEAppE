@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Converts;
@@ -63,7 +64,7 @@ public class DataTransferService : IDataTransferService
         await dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
     }
 
-    public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
+    public async Task<JobNodeHttpResponse> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
@@ -77,7 +78,7 @@ public class DataTransferService : IDataTransferService
             submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }
 
-    public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
+    public async Task<JobNodeHttpResponse> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
