@@ -527,9 +527,32 @@ public class MiddlewareContext : DbContext
                 .Select(x => x.ClusterProject.Cluster)
                 .ToList();
             if (clusters.Count() >= 1)
+            {
+                var previousAuthType = clusterAuthenticationCredential.AuthenticationType;
                 clusterAuthenticationCredential.AuthenticationType =
                     ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
                         clusterAuthenticationCredential, clusters.First());
+
+                // If auth type changed to SshCertificate but PrivateKey is missing,
+                // reset IsInitialized so the system regenerates the key on next use.
+                bool isSshCert = clusterAuthenticationCredential.AuthenticationType
+                    is ClusterAuthenticationCredentialsAuthType.SshCertificate
+                    or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+                bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
+                if (isSshCert && keyMissing)
+                {
+                    foreach (var cpc in clusterAuthenticationCredential.ClusterProjectCredentials)
+                    {
+                        cpc.IsInitialized = false;
+                    }
+                    _logger.LogWarning(
+                        "Credential ID {Id} (Username: {Username}) has AuthenticationType {AuthType} but missing PrivateKey. " +
+                        "Resetting IsInitialized to trigger re-provisioning.",
+                        clusterAuthenticationCredential.Id,
+                        clusterAuthenticationCredential.Username,
+                        clusterAuthenticationCredential.AuthenticationType);
+                }
+            }
         }
         SaveChanges();
         _logger.LogInformation("Seed data into the database completed.");

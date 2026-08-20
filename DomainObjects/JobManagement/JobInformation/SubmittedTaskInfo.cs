@@ -48,7 +48,7 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
 
     [StringLength(500)] public string ErrorMessage { get; set; }
     
-    [StringLength(255)]
+    [Column(TypeName = "nvarchar(max)")]
     public string Reason { get; set; }
 
     [Column(TypeName = "nvarchar(max)")] public string AllParameters { get; set; }

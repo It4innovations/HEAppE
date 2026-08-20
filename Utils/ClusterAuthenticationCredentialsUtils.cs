@@ -105,6 +105,13 @@ public static class ClusterAuthenticationCredentialsUtils
                 }
         }
 
+        if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+        {
+            return cluster?.ProxyConnection is null
+                ? ClusterAuthenticationCredentialsAuthType.SshCertificate
+                : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+        }
+
         return credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
             ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
             : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;

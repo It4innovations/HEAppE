@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -161,12 +162,31 @@ public class SshConnector : IPoolableAdapter
     /// <param name="connection"></param>
     /// <returns></returns>
     public bool IsConnected(object connection)
-    {//TODO: do this implementation
+    {
         if (connection is SshClient sshClient)
         {
             try
             {
                 return sshClient.IsConnected; 
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Check whether the SSH connection currently hosts any active forwarded ports (SSH tunnels).
+    /// </summary>
+    public bool HasActiveForwardedPorts(object connection)
+    {
+        if (connection is SshClient sshClient)
+        {
+            try
+            {
+                return sshClient.IsConnected && sshClient.ForwardedPorts.Any(p => p.IsStarted);
             }
             catch
             {
