@@ -56,7 +56,20 @@ public class SftpFileSystemConnector : IPoolableAdapter
         Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
         ClusterProxyConnection proxy = cluster.ProxyConnection;
-        var sftpClient = (SftpClient)(credentials.AuthenticationType switch
+        var authType = credentials.AuthenticationType;
+
+        if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
+            (authType is ClusterAuthenticationCredentialsAuthType.PrivateKey
+                     or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
+                     or ClusterAuthenticationCredentialsAuthType.SshCertificate
+                     or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy))
+        {
+            authType = proxy is null
+                ? ClusterAuthenticationCredentialsAuthType.SshCertificate
+                : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+        }
+
+        var sftpClient = (SftpClient)(authType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
                 => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
