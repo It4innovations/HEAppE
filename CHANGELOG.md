@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Expanded `SubmittedTaskInfo.Reason` database column length to `nvarchar(max)` via migration `ExpandSubmittedTaskInfoReasonLength` to prevent SQL truncation errors when Slurm returns verbose pending reasons (e.g. extensive unavailable node lists).
+- Fixed SSH port forwarding data transfer tunnels unexpectedly closing during long-running or cold-start inference jobs by preventing `ConnectionPool` cleanup timer from disconnecting physical SSH connections that host active forwarded ports (`HasActiveForwardedPorts`), maintaining tunnel liveness, and auto-detecting and recovering stale tunnels in `DataTransferLogic`.
 
 ## V6.4.10
 

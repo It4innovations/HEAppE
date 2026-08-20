@@ -86,23 +86,42 @@ public class DataTransferLogic : IDataTransferLogic
         await taskLock.WaitAsync();
         try
         {
-            if (_activeTunnels.TryGetValue(submittedTaskInfoId, out var existingTunnels))
-            {
-                var existingUserTunnel = existingTunnels.FirstOrDefault(t => t.OwnerUserId == loggedUser.Id);
-                if (existingUserTunnel != null)
-                {
-                    return new DataTransferMethod {
-                        SubmittedTaskId = submittedTaskInfoId,
-                        Port = existingUserTunnel.LocalPort,
-                        NodeIPAddress = existingUserTunnel.NodeIP,
-                        NodePort = existingUserTunnel.RemotePort
-                    };
-                }
-            }
-
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger);
+
+            if (_activeTunnels.TryGetValue(submittedTaskInfoId, out var existingTunnels))
+            {
+                var existingUserTunnel = existingTunnels.FirstOrDefault(t => 
+                    t.OwnerUserId == loggedUser.Id &&
+                    t.NodeIP == nodeIPAddress &&
+                    t.RemotePort == nodePort);
+
+                if (existingUserTunnel != null)
+                {
+                    // Verify that the underlying SSH forwarded port is still alive
+                    var activeTunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
+                        .FirstOrDefault(t => t.LocalPort == existingUserTunnel.LocalPort && t.ForwardedPort.IsStarted);
+
+                    if (activeTunnelInfo != null)
+                    {
+                        return new DataTransferMethod {
+                            SubmittedTaskId = submittedTaskInfoId,
+                            Port = existingUserTunnel.LocalPort,
+                            NodeIPAddress = existingUserTunnel.NodeIP,
+                            NodePort = existingUserTunnel.RemotePort
+                        };
+                    }
+
+                    // Stale tunnel state detected — remove it so a fresh tunnel can be created
+                    existingTunnels.Remove(existingUserTunnel);
+                    if (!existingTunnels.Any())
+                    {
+                        _activeTunnels.TryRemove(submittedTaskInfoId, out _);
+                    }
+                    _logger.LogWarning($"Stale tunnel on port {existingUserTunnel.LocalPort} for task {submittedTaskInfoId} detected and removed. Recreating tunnel.");
+                }
+            }
 
             await scheduler.CreateTunnelAsync(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
 
@@ -199,7 +218,15 @@ public class DataTransferLogic : IDataTransferLogic
         foreach (var h in headers) request.AddHeader(h.Name, h.Value);
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorMsg = !string.IsNullOrWhiteSpace(response.Content)
+                ? response.Content
+                : (!string.IsNullOrWhiteSpace(response.ErrorMessage)
+                    ? response.ErrorMessage
+                    : (!string.IsNullOrWhiteSpace(response.StatusDescription) ? response.StatusDescription : response.StatusCode.ToString()));
+            throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
+        }
         return response.Content;
     }
 
@@ -221,7 +248,15 @@ public class DataTransferLogic : IDataTransferLogic
             request.AddBody(Encoding.UTF8.GetBytes(httpPayload));
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorMsg = !string.IsNullOrWhiteSpace(response.Content)
+                ? response.Content
+                : (!string.IsNullOrWhiteSpace(response.ErrorMessage)
+                    ? response.ErrorMessage
+                    : (!string.IsNullOrWhiteSpace(response.StatusDescription) ? response.StatusDescription : response.StatusCode.ToString()));
+            throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
+        }
         return response.Content;
     }
 
@@ -241,7 +276,12 @@ public class DataTransferLogic : IDataTransferLogic
         if (requestMessage.Content == null) requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (!response.IsSuccessStatusCode) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var errorMsg = !string.IsNullOrWhiteSpace(errorContent) ? errorContent : response.ReasonPhrase ?? response.StatusCode.ToString();
+            throw new UnableToCreateConnectionException("ResponseNotOk", errorMsg);
+        }
 
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var buffer = new byte[8192];

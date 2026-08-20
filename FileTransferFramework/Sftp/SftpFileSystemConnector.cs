@@ -236,6 +236,8 @@ public class SftpFileSystemConnector : IPoolableAdapter
         return false;
     }
 
+    public bool HasActiveForwardedPorts(object connection) => false;
+
     #endregion
 
     #region Local Methods
