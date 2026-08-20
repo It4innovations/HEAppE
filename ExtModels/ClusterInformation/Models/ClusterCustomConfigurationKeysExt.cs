@@ -26,5 +26,6 @@ public enum ClusterCustomConfigurationKeysExt
     FirecrestUrl = 14,
     ClientId = 15,
     ClientSecret = 16,
-    ClusterName = 17
+    ClusterName = 17,
+    SlurmGpuRequestStyle = 18
 }

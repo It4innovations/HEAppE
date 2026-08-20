@@ -28,6 +28,7 @@ namespace HEAppE.ConnectionPool
         public Task ConnectAsync(object connection) => Task.CompletedTask;
         public Task DisconnectAsync(object connection) => Task.CompletedTask;
         public bool IsConnected(object connection) => true;
+        public bool HasActiveForwardedPorts(object connection) => false;
     }
 
     public class HttpConnection

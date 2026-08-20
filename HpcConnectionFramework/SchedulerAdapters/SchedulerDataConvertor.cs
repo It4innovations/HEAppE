@@ -142,6 +142,15 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.MemoryPerCPU = taskSpecification.MemoryPerCPU;
         taskAdapter.MemoryPerGPU = taskSpecification.MemoryPerGPU;
 
+        if (taskAdapter is HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter.SlurmTaskAdapter slurmTaskAdapter)
+        {
+            if (taskSpecification.JobSpecification.Cluster.CustomConfiguration != null &&
+                taskSpecification.JobSpecification.Cluster.CustomConfiguration.TryGetValue("SlurmGpuRequestStyle", out var gpuStyle))
+            {
+                slurmTaskAdapter.SlurmGpuRequestStyle = gpuStyle;
+            }
+        }
+
         var template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate",
             taskSpecification.CommandTemplate.Name, taskSpecification.Name);
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 
@@ -13,4 +13,5 @@ public interface IPoolableAdapter
     Task DisconnectAsync(object connection);
     
     bool IsConnected(object connection);
+    bool HasActiveForwardedPorts(object connection);
 }

@@ -48,6 +48,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
 
+## V6.4.11
+
+### Fixed
+- Expanded `SubmittedTaskInfo.Reason` database column length to `nvarchar(max)` via migration `ExpandSubmittedTaskInfoReasonLength` to prevent SQL truncation errors when Slurm returns verbose pending reasons (e.g. extensive unavailable node lists).
+- Fixed SSH port forwarding data transfer tunnels unexpectedly closing during long-running or cold-start inference jobs by preventing `ConnectionPool` cleanup timer from disconnecting physical SSH connections that host active forwarded ports (`HasActiveForwardedPorts`), maintaining tunnel liveness, and auto-detecting and recovering stale tunnels in `DataTransferLogic`.
+- Transparently return the exact HTTP status code and response payload from compute job nodes in `DataTransferController.HttpGetToJobNode` and `HttpPostToJobNode` instead of wrapping non-200 responses into generic `ProblemDetails` `400 Bad Request` exceptions.
+
+## V6.4.10
+
+### Fixed
+- Fixed credential authentication type resolution falling back to `PrivateKeyInSshAgent` instead of `SshCertificate` when SSH Certificate Authority is enabled (`UseCertificateAuthorityForAuthentication = true`).
+- Added automatic credential repair during startup seeding in `MiddlewareContext` to update incorrect authentication types in the database and reset `IsInitialized` for missing keys to trigger automatic re-provisioning without requiring manual database interventions.
+
+## V6.4.9
+
+### Added
+- Added support for `--gres=gpu:X` alongside `--gpus=X` directives in `SlurmTaskAdapter` and `SlurmSchedulerAdapter` to ensure compatibility with Slurm clusters requiring traditional GRES resource specifications.
+
 ## V6.4.8
 
 ### Added

@@ -119,8 +119,16 @@ public class DataTransferController : BaseController<DataTransferController>
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.HttpGetToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.SubmittedTaskInfoId,
-            model.NodeIPAddress, model.NodePort, model.SessionCode));
+        var nodeResponse = await _service.HttpGetToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.SubmittedTaskInfoId,
+            model.NodeIPAddress, model.NodePort, model.SessionCode);
+
+        var contentType = !string.IsNullOrWhiteSpace(nodeResponse.ContentType) ? nodeResponse.ContentType : "application/json; charset=utf-8";
+        return new ContentResult
+        {
+            Content = nodeResponse.Content ?? string.Empty,
+            ContentType = contentType,
+            StatusCode = nodeResponse.StatusCode
+        };
     }
 
     /// <summary>
@@ -141,8 +149,16 @@ public class DataTransferController : BaseController<DataTransferController>
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.HttpPostToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.HttpPayload,
-            model.SubmittedTaskInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
+        var nodeResponse = await _service.HttpPostToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.HttpPayload,
+            model.SubmittedTaskInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode);
+
+        var contentType = !string.IsNullOrWhiteSpace(nodeResponse.ContentType) ? nodeResponse.ContentType : "application/json; charset=utf-8";
+        return new ContentResult
+        {
+            Content = nodeResponse.Content ?? string.Empty,
+            ContentType = contentType,
+            StatusCode = nodeResponse.StatusCode
+        };
     }
     
     /// <summary>
