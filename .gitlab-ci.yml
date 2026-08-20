@@ -121,11 +121,14 @@ release_job:
       artifacts: true                     
   before_script:
     - mkdir -p ~/bin ~/.local/bin
-    - curl --location --output ~/bin/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
-    - chmod +x ~/bin/release-cli
-    - cp ~/bin/release-cli ~/.local/bin/release-cli 2>/dev/null || true
-    - cp ~/bin/release-cli /tmp/release-cli 2>/dev/null || true
-    - echo 'export PATH="$HOME/bin:$HOME/.local/bin:$PATH"' >> ~/.bashrc
+    - curl --location --output ./release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
+    - chmod +x ./release-cli
+    - cp ./release-cli ~/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli ~/.local/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli /tmp/release-cli 2>/dev/null || true
+    - cp ./release-cli /usr/local/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli /usr/bin/release-cli 2>/dev/null || true
+    - echo 'export PATH="$HOME/bin:$HOME/.local/bin:$CI_PROJECT_DIR:$PATH"' >> ~/.bashrc
     - export PATH="$HOME/bin:$HOME/.local/bin:$CI_PROJECT_DIR:$PATH"
   script:
     - echo "Creating RELEASE \"$TAG_NAME"\"
@@ -139,6 +142,7 @@ release_job:
     tag_name: '${TAG_NAME}'
   variables:
     GIT_STRATEGY: clone
+    PATH: "$CI_PROJECT_DIR:$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
   tags:
     - Docker
     - Centos9
