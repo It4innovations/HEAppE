@@ -354,6 +354,16 @@ namespace HEAppE.ConnectionPool
                                 if (slot.ConnectionInfo == null) continue;
 
                                 bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > _maxUnusedDuration;
+                                bool hasActiveTunnels = slot.ConnectionInfo != null && _adapter.HasActiveForwardedPorts(slot.ConnectionInfo.Connection);
+                                
+                                if (hasActiveTunnels)
+                                {
+                                    // Connection hosts active SSH forwarded ports (data transfer tunnels). Keep it alive.
+                                    slot.LastReleasedTime = DateTime.UtcNow;
+                                    _logger.LogDebug($"[User:{userEntry.Key}] Slot has active SSH tunnels. Keeping connection alive and resetting LastReleasedTime.");
+                                    continue;
+                                }
+
                                 _logger.LogDebug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + _maxUnusedDuration) - DateTime.UtcNow}");
                                 if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > _minSize)
                                 {

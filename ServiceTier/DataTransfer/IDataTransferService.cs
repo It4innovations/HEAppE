@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.ExtModels.DataTransfer.Models;
 
 namespace HEAppE.ServiceTier.DataTransfer;
@@ -13,10 +14,10 @@ public interface IDataTransferService
 
     Task CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode);
 
-    Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
+    Task<JobNodeHttpResponse> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode);
 
-    Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, string httpPayload,
+    Task<JobNodeHttpResponse> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, string httpPayload,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode);
 
     Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,

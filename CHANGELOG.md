@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.11
+
+### Fixed
+- Fixed SSH authentication failure (`Permission denied (publickey)`) on clusters requiring SSH CA certificates: `SshConnector` and `SftpFileSystemConnector` now automatically upgrade private key authentication to `SshCertificate` / `SshCertificateViaProxy` when an `sshCaToken` is available in context or `UseCertificateAuthorityForAuthentication` is enabled, without requiring manual database modification of `PreferredAuthType`.
+- Added `SshCertificate` and `SshCertificateViaProxy` support to `ManagementLogic.CreateClusterAuthenticationCredentials` and `CreateCredential`, and updated `CredentialValidator` to support key generation for SSH certificate credentials.
+- Fixed `Execution Timeout Expired` SQL error (error 258) in `ClusterRepository` (`GetAllWithActiveProjectFilter`, `GetById`, `AsQueryable`, `GetClustersFilteredAsync`) by adding `.AsSplitQuery()` to avoid Cartesian product explosion across multiple collection `.Include()` joins in environments with large numbers of active projects.
+- Expanded `SubmittedTaskInfo.Reason` database column length to `nvarchar(max)` via migration `ExpandSubmittedTaskInfoReasonLength` to prevent SQL truncation errors when Slurm returns verbose pending reasons (e.g. extensive unavailable node lists).
+- Fixed SSH port forwarding data transfer tunnels unexpectedly closing during long-running or cold-start inference jobs by preventing `ConnectionPool` cleanup timer from disconnecting physical SSH connections that host active forwarded ports (`HasActiveForwardedPorts`), maintaining tunnel liveness, and auto-detecting and recovering stale tunnels in `DataTransferLogic`.
+- Transparently return the exact HTTP status code and response payload from compute job nodes in `DataTransferController.HttpGetToJobNode` and `HttpPostToJobNode` instead of wrapping non-200 responses into generic `ProblemDetails` `400 Bad Request` exceptions.
+
 ## V6.4.10
 
 ### Fixed
