@@ -605,7 +605,7 @@ internal class LinuxCommands : ICommands
 
         foreach (var sourceDestination in sourceDestinations)
         {
-            cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
+            cmdBuilder.Append($"if [ -f \"{sourceDestination.Item1}\" ]; then cp \"{sourceDestination.Item1}\" \"{sourceDestination.Item2}\"; fi;");
         }
 
         try

@@ -1,23 +1,19 @@
 #pragma warning disable CS8600, CS8602, CS8603, CS8604, CS8625, CS8632
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+using System.IO;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
-using HEAppE.BusinessLogicTier.AuthMiddleware;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.Services.UserOrg;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
-using SshCaAPI;
 
 namespace HEAppE.RestApi.Logging;
 
@@ -31,56 +27,52 @@ public class LogRequestModelFilter : IAsyncActionFilter
         "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo?> SessionCodePropertyCache = new();
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 
-    private readonly JsonSerializerOptions _jsonOptions;
-
-    public LogRequestModelFilter(
-        ILogger<LogRequestModelFilter> logger,
-        IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService,
-        IHttpContextKeys httpContextKeys)
+    private static JsonSerializerOptions CreateJsonOptions()
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        _jsonOptions = new JsonSerializerOptions
+        return new JsonSerializerOptions
         {
             WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReferenceHandler = ReferenceHandler.IgnoreCycles,
-            MaxDepth = 64,
+            MaxDepth = 32,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             TypeInfoResolver = new DefaultJsonTypeInfoResolver
             {
-                Modifiers = { MaskSensitiveProperties }
+                Modifiers = { ConfigureTypeInfo }
             }
         };
+    }
+
+    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         context.HttpContext.Items["LogRequestModelFilter_Executed"] = true;
-        LogRequestDetailsAsync(context);
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            LogRequestFast(context);
+        }
+
         await next();
     }
 
-    private void LogRequestDetailsAsync(ActionExecutingContext context)
+    private void LogRequestFast(ActionExecutingContext context)
     {
-        if (!_logger.IsEnabled(LogLevel.Information)) return;
         try
         {
-            var safeArguments = context.ActionArguments
-                .Where(kvp => !IsUnsafeType(kvp.Value))
-                .ToDictionary(k => k.Key, v => v.Value);
+            var actionName = context.ActionDescriptor.DisplayName ?? "UnknownAction";
+            var headersJson = SerializeHeadersFast(context.HttpContext.Request.Headers);
+            var argumentsJson = SerializeArgumentsFast(context.ActionArguments);
 
-            var serializedArgs = JsonSerializer.Serialize(safeArguments, _jsonOptions);
-
-            var safeHeaders = ExtractSafeHeaders(context.HttpContext.Request.Headers);
-            var serializedHeaders = JsonSerializer.Serialize(safeHeaders, _jsonOptions);
-
-            _logger.LogInformation(
-                "Action: {Action}, Headers: {Headers}, Arguments: {Arguments}",
-                context.ActionDescriptor.DisplayName, serializedHeaders, serializedArgs);
+            _logger.LogInformation("Action: {Action}, Headers: {Headers}, Arguments: {Arguments}",
+                actionName, headersJson, argumentsJson);
         }
         catch (Exception ex)
         {
@@ -89,26 +81,56 @@ public class LogRequestModelFilter : IAsyncActionFilter
         }
     }
 
-    private Dictionary<string, string> ExtractSafeHeaders(IHeaderDictionary headers)
+    private static string SerializeHeadersFast(IHeaderDictionary headers)
     {
-        var result = new Dictionary<string, string>();
+        if (headers == null || headers.Count == 0) return "{}";
 
-        foreach (var header in headers)
+        var buffer = new ArrayBufferWriter<byte>(256);
+        using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+
+        foreach (var (key, value) in headers)
         {
-            if (SensitiveKeys.Contains(header.Key))
+            if (SensitiveKeys.Contains(key))
             {
-                result.Add(header.Key, "***REDACTED***");
+                writer.WriteString(key, "***REDACTED***");
             }
             else
             {
-                result.Add(header.Key, header.Value.ToString());
+                writer.WriteString(key, value.ToString());
             }
         }
 
-        return result;
+        writer.WriteEndObject();
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private static void MaskSensitiveProperties(JsonTypeInfo typeInfo)
+    private static string SerializeArgumentsFast(IDictionary<string, object?> arguments)
+    {
+        if (arguments == null || arguments.Count == 0) return "{}";
+
+        var buffer = new ArrayBufferWriter<byte>(512);
+        using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+
+        foreach (var (key, value) in arguments)
+        {
+            if (value == null) continue;
+            if (IsUnsafeType(value)) continue;
+
+            writer.WritePropertyName(key);
+            JsonSerializer.Serialize(writer, value, value.GetType(), JsonOptions);
+        }
+
+        writer.WriteEndObject();
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    private static void ConfigureTypeInfo(JsonTypeInfo typeInfo)
     {
         if (typeInfo.Kind != JsonTypeInfoKind.Object) return;
 
@@ -118,6 +140,12 @@ public class LogRequestModelFilter : IAsyncActionFilter
             {
                 property.CustomConverter = new StaticMaskConverter();
             }
+            else if (typeof(CancellationToken).IsAssignableFrom(property.PropertyType) ||
+                     typeof(Stream).IsAssignableFrom(property.PropertyType) ||
+                     typeof(Delegate).IsAssignableFrom(property.PropertyType))
+            {
+                property.ShouldSerialize = static (_, _) => false;
+            }
         }
     }
 
@@ -125,7 +153,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
     {
         if (value == null) return false;
         if (value is CancellationToken) return true;
-        if (value is System.IO.Stream) return true;
+        if (value is Stream) return true;
         if (value is Delegate) return true;
         return false;
     }
