@@ -1053,8 +1053,19 @@ public class ManagementLogic : IManagementLogic
                 .Select(x => (ClusterAuthenticationCredentialsAuthType?)x.PreferredAuthType)
                 .FirstOrDefault();
 
-            authType = preferredAuthType ?? ClusterAuthenticationCredentialsAuthType.PrivateKey; // Default fallback
-            _logger.LogInformation($"AuthType not provided, using preferred type from cluster project: {authType}");
+            if (preferredAuthType.HasValue && preferredAuthType.Value != ClusterAuthenticationCredentialsAuthType.Unknown)
+            {
+                authType = preferredAuthType.Value;
+            }
+            else if (!string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication)
+            {
+                authType = ClusterAuthenticationCredentialsAuthType.SshCertificate;
+            }
+            else
+            {
+                authType = ClusterAuthenticationCredentialsAuthType.PrivateKey; // Default fallback
+            }
+            _logger.LogInformation($"AuthType not provided, using resolved type: {authType}");
         }
 
         // If the auth type is Unknown, map to FirecRestIdpViaExpirio if cluster is FirecREST
@@ -3921,6 +3932,8 @@ public class ManagementLogic : IManagementLogic
                 break;
             case ClusterAuthenticationCredentialsAuthType.PrivateKey:
             case ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey:
+            case ClusterAuthenticationCredentialsAuthType.SshCertificate:
+            case ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy:
                 credentials = new()
                 {
                     Username = username,

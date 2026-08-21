@@ -48,9 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
 
+## V6.4.12
+
+### Changed
+- Rewrote `LogRequestModelFilter` for high-throughput zero-allocation request logging: replaced per-request reflection, `DefaultJsonTypeInfoResolver`, and LINQ `.ToDictionary()` allocations with a static cached `JsonSerializerOptions` instance and direct UTF-8 streaming via `Utf8JsonWriter` and `ArrayBufferWriter<byte>`, dramatically reducing request latency and GC pressure under load.
+- Switched log4net `FileAppender` locking model from `MinimalLock` to `ExclusiveLock` in `RestApi` and `DataStagingAPI` logging configurations (`log4net.config`, `log4netDocker.config`), eliminating OS-level file lock contention and request serialization during high-concurrency stress testing.
+
+### Fixed
+- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist: updated `LinuxCommands.CopyJobFilesAsync` to safely check for file presence using `if [ -f "..." ]; then cp ...; fi;` instead of `[ -f ... ] && cp ...`, preventing non-zero shell exit status when the last checked file is missing.
+
 ## V6.4.11
 
 ### Fixed
+- Fixed SSH authentication failure (`Permission denied (publickey)`) on clusters requiring SSH CA certificates: `SshConnector` and `SftpFileSystemConnector` now automatically upgrade private key authentication to `SshCertificate` / `SshCertificateViaProxy` when an `sshCaToken` is available in context or `UseCertificateAuthorityForAuthentication` is enabled, without requiring manual database modification of `PreferredAuthType`.
+- Added `SshCertificate` and `SshCertificateViaProxy` support to `ManagementLogic.CreateClusterAuthenticationCredentials` and `CreateCredential`, and updated `CredentialValidator` to support key generation for SSH certificate credentials.
+- Fixed `Execution Timeout Expired` SQL error (error 258) in `ClusterRepository` (`GetAllWithActiveProjectFilter`, `GetById`, `AsQueryable`, `GetClustersFilteredAsync`) by adding `.AsSplitQuery()` to avoid Cartesian product explosion across multiple collection `.Include()` joins in environments with large numbers of active projects.
 - Expanded `SubmittedTaskInfo.Reason` database column length to `nvarchar(max)` via migration `ExpandSubmittedTaskInfoReasonLength` to prevent SQL truncation errors when Slurm returns verbose pending reasons (e.g. extensive unavailable node lists).
 - Fixed SSH port forwarding data transfer tunnels unexpectedly closing during long-running or cold-start inference jobs by preventing `ConnectionPool` cleanup timer from disconnecting physical SSH connections that host active forwarded ports (`HasActiveForwardedPorts`), maintaining tunnel liveness, and auto-detecting and recovering stale tunnels in `DataTransferLogic`.
 - Transparently return the exact HTTP status code and response payload from compute job nodes in `DataTransferController.HttpGetToJobNode` and `HttpPostToJobNode` instead of wrapping non-200 responses into generic `ProblemDetails` `400 Bad Request` exceptions.

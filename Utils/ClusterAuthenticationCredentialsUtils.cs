@@ -31,7 +31,8 @@ public static class ClusterAuthenticationCredentialsUtils
 
             if (!string.IsNullOrEmpty(credential.PrivateKey))
             {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
+                    credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
                 {
                     return ClusterAuthenticationCredentialsAuthType.SshCertificate;
                 }
@@ -74,9 +75,10 @@ public static class ClusterAuthenticationCredentialsUtils
             
             if (!string.IsNullOrEmpty(credential.PrivateKey))
             {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
+                    credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
                 {
-                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                    return ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
                 }
                 else
                 {
