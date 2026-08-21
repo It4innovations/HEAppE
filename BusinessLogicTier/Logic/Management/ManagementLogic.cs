@@ -37,6 +37,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.X509;
@@ -4364,52 +4365,12 @@ public class ManagementLogic : IManagementLogic
         };
     }
 
+    private const string ExternalServicesLiveStatusCacheKey = "ExternalServices/LiveStatus";
+    private static readonly TimeSpan LiveStatusCacheDuration = TimeSpan.FromSeconds(5);
+
     public async Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to)
     {
-        var servicesToProbe = await GetServicesToProbeList();
-        
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var probeTasks = servicesToProbe.Select(async service =>
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            bool isAvailable = false;
-            string errorMsg = null;
-            long elapsed = 0;
-            try
-            {
-                var result = await service.ProbeFunc(cts.Token);
-                isAvailable = result.Success;
-                elapsed = result.ResponseTimeMs;
-                errorMsg = result.Error;
-            }
-            catch (OperationCanceledException)
-            {
-                errorMsg = "request timed out";
-            }
-            catch (Exception ex)
-            {
-                errorMsg = ex.Message;
-            }
-            finally
-            {
-                stopwatch.Stop();
-            }
-
-            return new ExternalServiceLiveStatus
-            {
-                ServiceName = service.Name.ToLowerInvariant(),
-                Type = service.Type.ToLowerInvariant(),
-                Protocol = service.Protocol.ToLowerInvariant(),
-                EndpointOrHost = service.EndpointOrHost,
-                Port = service.Port,
-                IsAvailable = isAvailable,
-                ResponseTimeMs = isAvailable ? elapsed : 0,
-                ErrorMessage = isAvailable ? null : (errorMsg ?? "unknown error"),
-                LastCheck = DateTime.UtcNow
-            };
-        });
-
-        var liveStatuses = (await Task.WhenAll(probeTasks)).ToList();
+        var liveStatuses = await GetExternalServicesLiveStatus();
 
         var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
         var toDate = to ?? DateTime.UtcNow;
@@ -4480,6 +4441,12 @@ public class ManagementLogic : IManagementLogic
 
     public async Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus()
     {
+        var cache = (IMemoryCache?)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        if (cache != null && cache.TryGetValue(ExternalServicesLiveStatusCacheKey, out List<ExternalServiceLiveStatus>? cachedStatus) && cachedStatus != null)
+        {
+            return cachedStatus;
+        }
+
         var servicesToProbe = await GetServicesToProbeList();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -4487,7 +4454,7 @@ public class ManagementLogic : IManagementLogic
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             bool isAvailable = false;
-            string errorMsg = null;
+            string? errorMsg = null;
             long elapsed = 0;
             try
             {
@@ -4523,7 +4490,11 @@ public class ManagementLogic : IManagementLogic
             };
         });
 
-        return (await Task.WhenAll(probeTasks)).ToList();
+        var results = (await Task.WhenAll(probeTasks)).ToList();
+
+        cache?.Set(ExternalServicesLiveStatusCacheKey, results, LiveStatusCacheDuration);
+
+        return results;
     }
 
     public async Task LogExternalServiceHealth(ExternalServiceHealthLog log)
@@ -4538,7 +4509,7 @@ public class ManagementLogic : IManagementLogic
         await _unitOfWork.ExternalServiceHealthLogRepository.DeleteOlderThanAsync(threshold);
     }
 
-    private async Task<(bool Success, long ResponseTimeMs, string Error)> TestTcpConnectionAsync(string host, int port, CancellationToken ct)
+    private async Task<(bool Success, long ResponseTimeMs, string? Error)> TestTcpConnectionAsync(string host, int port, CancellationToken ct)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -4564,11 +4535,34 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
+    private static async Task<(bool Success, long ResponseTimeMs, string? Error)> TestHttpEndpointAsync(string url, CancellationToken ct)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(2);
+            var response = await httpClient.GetAsync(url, ct);
+            stopwatch.Stop();
+            return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
+        }
+        catch (OperationCanceledException)
+        {
+            stopwatch.Stop();
+            return (false, 0, "request timed out");
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            return (false, 0, ex.Message);
+        }
+    }
+
     private async Task<List<ServiceToCheck>> GetServicesToProbeList()
     {
         var list = new List<ServiceToCheck>();
 
-        // 1. Clusters
+        // 1. Clusters (Dynamic from database)
         var clusters = (await _unitOfWork.ClusterRepository.GetAllAsync()).Where(c => !c.IsDeleted).ToList();
 
         foreach (var cluster in clusters)
@@ -4621,7 +4615,7 @@ public class ManagementLogic : IManagementLogic
         }
 
         // 2. HashiCorp Vault
-        if (!string.IsNullOrEmpty(VaultConnectorSettings.VaultBaseAddress))
+        if (!string.IsNullOrWhiteSpace(VaultConnectorSettings.VaultBaseAddress))
         {
             var vaultUrl = VaultConnectorSettings.VaultBaseAddress.TrimEnd('/');
             var checkPath = "/v1/sys/health";
@@ -4629,49 +4623,98 @@ public class ManagementLogic : IManagementLogic
             {
                 Name = "hashicorp vault",
                 Type = "keymanagement",
-                Protocol = vaultUrl.StartsWith("https") ? "https" : "http",
+                Protocol = vaultUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
                 EndpointOrHost = vaultUrl,
                 Port = null,
                 CommandOrPath = checkPath.ToLowerInvariant(),
-                ProbeFunc = async (ct) =>
-                {
-                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    using var httpClient = new HttpClient();
-                    httpClient.Timeout = TimeSpan.FromSeconds(2);
-                    var response = await httpClient.GetAsync(vaultUrl + checkPath, ct);
-                    stopwatch.Stop();
-                    return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
-                }
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(vaultUrl + checkPath, ct)
             });
         }
 
-        // 3. Keycloak
-        if (!string.IsNullOrEmpty(ExternalAuthConfiguration.BaseUrl))
+        // 3. Keycloak / OIDC Identity
+        if (!string.IsNullOrWhiteSpace(ExternalAuthConfiguration.BaseUrl))
         {
             var keycloakUrl = ExternalAuthConfiguration.BaseUrl.TrimEnd('/');
             var realm = ExternalAuthConfiguration.RealmName;
-            var checkPath = $"/realms/{realm}/.well-known/openid-configuration";
+            var checkPath = !string.IsNullOrEmpty(realm) ? $"/realms/{realm}/.well-known/openid-configuration" : "/.well-known/openid-configuration";
             list.Add(new ServiceToCheck
             {
                 Name = "keycloak",
                 Type = "identity",
-                Protocol = keycloakUrl.StartsWith("https") ? "https" : "http",
+                Protocol = keycloakUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
                 EndpointOrHost = keycloakUrl,
                 Port = null,
                 CommandOrPath = checkPath.ToLowerInvariant(),
-                ProbeFunc = async (ct) =>
-                {
-                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    using var httpClient = new HttpClient();
-                    httpClient.Timeout = TimeSpan.FromSeconds(2);
-                    var response = await httpClient.GetAsync(keycloakUrl + checkPath, ct);
-                    stopwatch.Stop();
-                    return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
-                }
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(keycloakUrl + checkPath, ct)
             });
         }
 
-        // 4. Database
+        // 4. Expirio API
+        if (!string.IsNullOrWhiteSpace(ExpirioSettings.BaseUrl))
+        {
+            var expirioUrl = ExpirioSettings.BaseUrl.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "expirio",
+                Type = "accounting",
+                Protocol = expirioUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = expirioUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(expirioUrl, ct)
+            });
+        }
+
+        // 5. SSH Certificate Authority API
+        if (!string.IsNullOrWhiteSpace(SshCaSettings.BaseUri))
+        {
+            var sshCaUrl = SshCaSettings.BaseUri.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "ssh ca",
+                Type = "certificateauthority",
+                Protocol = sshCaUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = sshCaUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(sshCaUrl, ct)
+            });
+        }
+
+        // 6. LEXIS UserOrg Service
+        if (!string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
+        {
+            var userOrgUrl = LexisAuthenticationConfiguration.BaseAddress.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "lexis userorg",
+                Type = "identity",
+                Protocol = userOrgUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = userOrgUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(userOrgUrl, ct)
+            });
+        }
+
+        // 7. LEXIS Token Flow Service
+        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration?.IsEnabled == true &&
+            !string.IsNullOrWhiteSpace(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.BaseUrl))
+        {
+            var tokenFlowUrl = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.BaseUrl.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "lexis token flow",
+                Type = "identity",
+                Protocol = tokenFlowUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = tokenFlowUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(tokenFlowUrl, ct)
+            });
+        }
+
+        // 8. SQL Database
         list.Add(new ServiceToCheck
         {
             Name = "sql server",
@@ -4694,13 +4737,13 @@ public class ManagementLogic : IManagementLogic
 
     private class ServiceToCheck
     {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Protocol { get; set; }
-        public string EndpointOrHost { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Protocol { get; set; } = string.Empty;
+        public string? EndpointOrHost { get; set; }
         public int? Port { get; set; }
-        public string CommandOrPath { get; set; }
-        public Func<CancellationToken, Task<(bool Success, long ResponseTimeMs, string Error)>> ProbeFunc { get; set; }
+        public string? CommandOrPath { get; set; }
+        public Func<CancellationToken, Task<(bool Success, long ResponseTimeMs, string? Error)>> ProbeFunc { get; set; } = null!;
     }
 
 
