@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "Detailed Job Reporting",
-    "version": "v6.4.11"
+    "version": "v6.4.12"
   },
   "paths": {
     "/heappe/JobReporting/AggregatedUserGroupResourceUsageReport": {

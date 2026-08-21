@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.12
+
+### Changed
+- Rewrote `LogRequestModelFilter` for high-throughput zero-allocation request logging: replaced per-request reflection, `DefaultJsonTypeInfoResolver`, and LINQ `.ToDictionary()` allocations with a static cached `JsonSerializerOptions` instance and direct UTF-8 streaming via `Utf8JsonWriter` and `ArrayBufferWriter<byte>`, dramatically reducing request latency and GC pressure under load.
+- Switched log4net `FileAppender` locking model from `MinimalLock` to `ExclusiveLock` in `RestApi` and `DataStagingAPI` logging configurations (`log4net.config`, `log4netDocker.config`), eliminating OS-level file lock contention and request serialization during high-concurrency stress testing.
+
+### Fixed
+- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist: updated `LinuxCommands.CopyJobFilesAsync` to safely check for file presence using `if [ -f "..." ]; then cp ...; fi;` instead of `[ -f ... ] && cp ...`, preventing non-zero shell exit status when the last checked file is missing.
+
 ## V6.4.11
 
 ### Fixed
