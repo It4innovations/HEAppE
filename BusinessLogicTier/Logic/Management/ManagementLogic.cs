@@ -4685,7 +4685,7 @@ public class ManagementLogic : IManagementLogic
         if (!string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
         {
             var userOrgUrl = LexisAuthenticationConfiguration.BaseAddress.TrimEnd('/');
-            var checkPath = "/health";
+            var checkPath = "/api/version";
             list.Add(new ServiceToCheck
             {
                 Name = "lexis userorg",
