@@ -4685,6 +4685,7 @@ public class ManagementLogic : IManagementLogic
         if (!string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
         {
             var userOrgUrl = LexisAuthenticationConfiguration.BaseAddress.TrimEnd('/');
+            var checkPath = "/health";
             list.Add(new ServiceToCheck
             {
                 Name = "lexis userorg",
@@ -4692,8 +4693,8 @@ public class ManagementLogic : IManagementLogic
                 Protocol = userOrgUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
                 EndpointOrHost = userOrgUrl,
                 Port = null,
-                CommandOrPath = null,
-                ProbeFunc = async (ct) => await TestHttpEndpointAsync(userOrgUrl, ct)
+                CommandOrPath = checkPath,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(userOrgUrl + checkPath, ct)
             });
         }
 
@@ -4726,9 +4727,33 @@ public class ManagementLogic : IManagementLogic
             ProbeFunc = async (ct) =>
             {
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                await _unitOfWork.ClusterRepository.GetByIdAsync(0);
-                stopwatch.Stop();
-                return (true, stopwatch.ElapsedMilliseconds, null);
+                try
+                {
+                    var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
+                        HEAppE.DataAccessTier.MiddlewareContextSettings.ConnectionString)
+                    {
+                        ConnectTimeout = 2,
+                        CommandTimeout = 2
+                    };
+                    using var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString);
+                    await connection.OpenAsync(ct);
+                    try
+                    {
+                        using var command = new Microsoft.Data.SqlClient.SqlCommand("SELECT 1", connection);
+                        await command.ExecuteScalarAsync(ct);
+                    }
+                    finally
+                    {
+                        connection.Close();
+                    }
+                    stopwatch.Stop();
+                    return (true, stopwatch.ElapsedMilliseconds, null);
+                }
+                catch (Exception ex)
+                {
+                    stopwatch.Stop();
+                    return (false, 0, ex.Message);
+                }
             }
         });
 
