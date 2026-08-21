@@ -3,6 +3,7 @@
 
 # macOS
 .DS_Store
+Library/
 
 # QScheduler temp files
 qscheduler-temp/

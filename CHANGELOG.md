@@ -41,8 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ForceDirectQuery` parameter to `GET /heappe/JobManagement/CurrentInfoForJob` for forcing physical scheduler queries with automatic terminal state locking.
 - Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
 - Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation.
-- Converted endpoints in `ManagementController` and `UserAndLimitationManagementController` to `async Task<IActionResult>` to prevent ASP.NET Core ThreadPool worker thread starvation under high concurrent load.
-- Added endpoint-specific rate limiting rules for `/heappe/Management/*` (120 req/min) and `/heappe/UserAndLimitationManagement/*` (300 req/min) in `appsettings.example.json`.
+- Added comprehensive non-blocking external services and database telemetry monitoring:
+  - High-throughput asynchronous telemetry capture for all external interactions (HashiCorp Vault, Keycloak/UserOrg, Expirio, SSH Certificate Authority, Slurm/PBS Pro/FirecREST SSH & REST scheduler executions, and EF Core Database queries).
+  - Ambient execution context (`JobExecutionContext`) using `AsyncLocal<JobContextData>` automatically correlates telemetry records with active `JobId`, `TaskId`, `ClusterId`, and `RequestId` (matching `log4net` trace ID for log searchability).
+  - Background asynchronous batch writer (`ExternalServiceTelemetryWriterBackgroundService`) flushing records every 2s (or upon reaching 100 records) to minimize DB write overhead and prevent latency impact on main HEAppE operations.
+  - Automatic scheduled purging of telemetry records older than retention threshold (default 30 days).
+  - EF Core database telemetry interceptor (`DatabaseCommandTelemetryInterceptor`) recording SQL latency, error codes, and slow queries while avoiding self-logging recursion.
+  - New REST API telemetry endpoints:
+    - `POST /heappe/Management/GetJobExternalServiceLogs` — returns all external service, SSH, and DB telemetry entries linked to a specific job with user authorization check.
+    - `POST /heappe/Management/GetExternalServicesStatistics` — returns aggregated statistics (total calls, failures, availability %, avg/min/max/P95 response times) over a configurable time window with optional service name and cluster filters.
+    - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
 
 ### Fixed
 - Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.

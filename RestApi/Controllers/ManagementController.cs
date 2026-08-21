@@ -29,6 +29,7 @@ using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
+using HEAppE.RestApiModels.AbstractModels;
 using HEAppE.RestApiModels.Management;
 using HEAppE.RestApi.Logging;
 using HEAppE.Services.Expirio;
@@ -2598,6 +2599,69 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var result = await _managementService.GetExternalServicesReport(model.From, model.To, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get external service and database telemetry logs for a specific job.
+    /// </summary>
+    /// <param name="model">Request parameters containing job ID and session code</param>
+    /// <returns>List of telemetry records for the specified job</returns>
+    [HttpPost("GetJobExternalServiceLogs")]
+    [ProducesResponseType(typeof(List<JobExternalServiceLogExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetJobExternalServiceLogs([FromBody] GetJobExternalServiceLogsModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetJobExternalServiceLogs(model.SubmittedJobInfoId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get aggregated external service and database telemetry statistics for a time window (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing time window and optional filters</param>
+    /// <returns>List of aggregated statistics including avg, min, max, P95, total and failed counts</returns>
+    [HttpPost("GetExternalServicesStatistics")]
+    [ProducesResponseType(typeof(List<ExternalServiceStatisticsExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetExternalServicesStatistics([FromBody] GetExternalServicesStatisticsModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetExternalServicesStatistics(model.From, model.To, model.ServiceName, model.ClusterId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get live availability and latency status for all registered external services (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing session code</param>
+    /// <returns>List of live status probes for all external services</returns>
+    [HttpPost("GetExternalServicesLiveStatus")]
+    [ProducesResponseType(typeof(List<ExternalServiceLiveStatusExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetExternalServicesLiveStatus([FromBody] SessionCodeModel model)
+    {
+        var validationResult = new SessionCodeValidator(model?.SessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetExternalServicesLiveStatus(model.SessionCode);
         return Ok(result);
     }
 

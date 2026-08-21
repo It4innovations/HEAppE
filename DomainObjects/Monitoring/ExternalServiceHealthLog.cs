@@ -28,14 +28,12 @@ public class ExternalServiceHealthLog : IdentifiableDbEntity
     /// <summary>
     /// Protocol used to reach this service (lowercase). Examples: "ssh", "http", "https", "sql".
     /// </summary>
-    [Required]
     [StringLength(20)]
     public string Protocol { get; set; }
 
     /// <summary>
     /// The host, URL, or IP address that was probed or used.
     /// </summary>
-    [Required]
     [StringLength(500)]
     public string EndpointOrHost { get; set; }
 
@@ -45,15 +43,14 @@ public class ExternalServiceHealthLog : IdentifiableDbEntity
     public int? Port { get; set; }
 
     /// <summary>
-    /// The specific scheduler command executed (e.g. "sbatch", "squeue") or HTTP path called
-    /// (e.g. "/v1/sys/health", "token-introspection"). Stored in lowercase.
-    /// Null for generic TCP reachability checks.
+    /// The specific scheduler command executed (e.g. "sbatch", "squeue"), HTTP path called
+    /// (e.g. "/v1/sys/health", "token-introspection"), or operation name (e.g. "GetSecret", "ExecuteQuery").
     /// </summary>
     [StringLength(250)]
     public string CommandOrPath { get; set; }
 
     /// <summary>
-    /// UTC timestamp when the check was recorded.
+    /// UTC timestamp when the check or operation was recorded.
     /// </summary>
     public DateTime Timestamp { get; set; }
 
@@ -63,13 +60,45 @@ public class ExternalServiceHealthLog : IdentifiableDbEntity
     public bool IsAvailable { get; set; }
 
     /// <summary>
-    /// Round-trip time in milliseconds. Zero when the request timed out or was not sent.
+    /// Round-trip or execution time in milliseconds.
     /// </summary>
     public long ResponseTimeMs { get; set; }
 
     /// <summary>
     /// Error message captured when IsAvailable is false. Null on success.
     /// </summary>
-    [StringLength(500)]
     public string ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Associated Job ID if this operation was triggered during processing of a specific job.
+    /// </summary>
+    public long? JobId { get; set; }
+
+    /// <summary>
+    /// Associated Task ID if this operation was triggered during processing of a specific task.
+    /// </summary>
+    public long? TaskId { get; set; }
+
+    /// <summary>
+    /// Associated Cluster ID if this operation was targeted at a specific cluster.
+    /// </summary>
+    public long? ClusterId { get; set; }
+
+    /// <summary>
+    /// HTTP status code (e.g. "200", "502"), SSH exit code (e.g. "127"), or SQL error number.
+    /// </summary>
+    [StringLength(50)]
+    public string StatusCode { get; set; }
+
+    /// <summary>
+    /// Correlation ID / Request ID matching log4net requestId and Log table for cross-referencing.
+    /// </summary>
+    [StringLength(100)]
+    public string RequestId { get; set; }
+
+    /// <summary>
+    /// Source of the telemetry entry: "Execution" (inline in-process telemetry) or "HealthCheck" (proactive polling).
+    /// </summary>
+    [StringLength(30)]
+    public string Source { get; set; }
 }

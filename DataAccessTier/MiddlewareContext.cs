@@ -167,6 +167,7 @@ public class MiddlewareContext : DbContext
         }
 
         optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;");
+        optionsBuilder.AddInterceptors(Interceptors.DatabaseCommandTelemetryInterceptor.Instance);
         optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
@@ -259,6 +260,13 @@ public class MiddlewareContext : DbContext
             .HasOne(cpccl => cpccl.ClusterProjectCredential)
             .WithMany(cpc => cpc.ClusterProjectCredentialsCheckLog)
             .HasForeignKey(cpccl => new { cpccl.ClusterProjectId, cpccl.ClusterAuthenticationCredentialsId });
+
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => l.JobId);
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => new { l.Timestamp, l.ServiceName });
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => l.ClusterId);
 
         modelBuilder.Entity<ClusterAuthenticationCredentials>()
             .Ignore(p => p.Password)

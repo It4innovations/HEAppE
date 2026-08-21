@@ -228,6 +228,9 @@ public interface IManagementLogic
     List<AdaptorUser> ListAdaptorUsers();
     Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId);
     Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to);
+    Task<List<ExternalServiceHealthLog>> GetJobExternalServiceLogs(long jobId);
+    Task<List<ExternalServiceStatistics>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string serviceName = null, long? clusterId = null);
+    Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus();
     Task LogExternalServiceHealth(ExternalServiceHealthLog log);
     Task PurgeOldExternalServiceHealthLogs();
 }

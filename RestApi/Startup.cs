@@ -135,6 +135,11 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
+        var telemetrySettings = new HEAppE.Services.Monitoring.ExternalServiceTelemetrySettings();
+        Configuration.GetSection("ExternalServiceTelemetrySettings").Bind(telemetrySettings);
+        services.AddSingleton(telemetrySettings);
+        services.AddSingleton<HEAppE.Services.Monitoring.IExternalServiceTelemetryService, HEAppE.Services.Monitoring.ExternalServiceTelemetryService>();
+
         services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -145,6 +150,7 @@ public class Startup
                 conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         })
+        .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("userorg", "identity"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddSingleton<IExpirioService, ExpirioService>();
@@ -156,12 +162,15 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
+        .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("expirio", "accounting"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("SshCaClient")
+            .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("ssh ca", "certificateauthority"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("FirecREST")
+            .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("firecrest", "cluster"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
         services.AddScoped<IRequestContext, RequestContext>();

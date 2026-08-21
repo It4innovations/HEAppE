@@ -2035,31 +2035,61 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             
             var domainReport = await managementLogic.GetExternalServicesReport(from, to);
-            return new ExternalServicesReportExt
+            return domainReport.ConvertIntToExt();
+        }
+    }
+
+    public async Task<List<JobExternalServiceLogExt>> GetJobExternalServiceLogs(long jobId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithProjectAsync(jobId) ??
+                      throw new InputValidationException("NotExistingJob", jobId);
+
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
+
+            long projectId = job.Project?.Id ?? 0;
+            bool isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
+            bool isJobOwner = job.Submitter?.Id == loggedUser.Id;
+
+            if (!isJobOwner && !isAdmin)
             {
-                LiveStatus = domainReport.LiveStatus.Select(ls => new ExternalServiceLiveStatusExt
-                {
-                    ServiceName = ls.ServiceName,
-                    Type = ls.Type,
-                    Protocol = ls.Protocol,
-                    EndpointOrHost = ls.EndpointOrHost,
-                    Port = ls.Port,
-                    IsAvailable = ls.IsAvailable,
-                    ResponseTimeMs = ls.ResponseTimeMs,
-                    ErrorMessage = ls.ErrorMessage,
-                    LastCheck = ls.LastCheck
-                }).ToList(),
-                Statistics = domainReport.Statistics.Select(s => new ExternalServiceStatisticsExt
-                {
-                    ServiceName = s.ServiceName,
-                    CommandOrPath = s.CommandOrPath,
-                    AvailabilityPercentage = s.AvailabilityPercentage,
-                    AverageResponseTimeMs = s.AverageResponseTimeMs,
-                    MinResponseTimeMs = s.MinResponseTimeMs,
-                    MaxResponseTimeMs = s.MaxResponseTimeMs,
-                    TotalChecks = s.TotalChecks
-                }).ToList()
-            };
+                throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                    loggedUser.GetLogIdentification(), job.Id);
+            }
+
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var logs = await managementLogic.GetJobExternalServiceLogs(jobId);
+            return logs.Select(l => l.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public async Task<List<ExternalServiceStatisticsExt>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string? serviceName, long? clusterId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var stats = await managementLogic.GetExternalServicesStatistics(from, to, serviceName, clusterId);
+            return stats.Select(s => s.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public async Task<List<ExternalServiceLiveStatusExt>> GetExternalServicesLiveStatus(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var liveStatus = await managementLogic.GetExternalServicesLiveStatus();
+            return liveStatus.Select(ls => ls.ConvertIntToExt()).ToList();
         }
     }
 

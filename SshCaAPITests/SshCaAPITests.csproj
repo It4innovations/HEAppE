@@ -35,6 +35,9 @@
     <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
     <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
+    <ProjectReference Include="..\Services\Services.csproj" />
+    <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
+    <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
   </ItemGroup>
 
   <ItemGroup>

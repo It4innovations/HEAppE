@@ -20,18 +20,49 @@ internal class ExternalServiceHealthLogRepository : GenericRepository<ExternalSe
         return await _dbSet
             .AsNoTracking()
             .Where(x => x.Timestamp >= from && x.Timestamp <= to)
+            .OrderBy(x => x.Timestamp)
             .ToListAsync();
+    }
+
+    public async Task<List<ExternalServiceHealthLog>> GetFilteredLogsInTimeRangeAsync(DateTime from, DateTime to, string serviceName = null, long? clusterId = null)
+    {
+        var query = _dbSet
+            .AsNoTracking()
+            .Where(x => x.Timestamp >= from && x.Timestamp <= to);
+
+        if (!string.IsNullOrEmpty(serviceName))
+        {
+            query = query.Where(x => x.ServiceName == serviceName);
+        }
+
+        if (clusterId.HasValue)
+        {
+            query = query.Where(x => x.ClusterId == clusterId.Value);
+        }
+
+        return await query.OrderBy(x => x.Timestamp).ToListAsync();
+    }
+
+    public async Task<List<ExternalServiceHealthLog>> GetLogsByJobIdAsync(long jobId)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(x => x.JobId == jobId)
+            .OrderBy(x => x.Timestamp)
+            .ToListAsync();
+    }
+
+    public async Task BulkInsertAsync(IEnumerable<ExternalServiceHealthLog> logs)
+    {
+        if (logs == null) return;
+        await _dbSet.AddRangeAsync(logs);
+        await _context.SaveChangesAsync();
     }
 
     public async Task DeleteOlderThanAsync(DateTime threshold)
     {
-        var logsToDelete = await _dbSet
+        await _dbSet
             .Where(x => x.Timestamp < threshold)
-            .ToListAsync();
-
-        if (logsToDelete.Any())
-        {
-            _dbSet.RemoveRange(logsToDelete);
-        }
+            .ExecuteDeleteAsync();
     }
 }

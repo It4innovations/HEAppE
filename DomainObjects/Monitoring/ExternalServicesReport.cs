@@ -19,12 +19,15 @@ public class ExternalServiceLiveStatus
 public class ExternalServiceStatistics
 {
     public string ServiceName { get; set; }
+    public string ServiceType { get; set; }
     public string CommandOrPath { get; set; }
     public double AvailabilityPercentage { get; set; }
     public long AverageResponseTimeMs { get; set; }
     public long MinResponseTimeMs { get; set; }
     public long MaxResponseTimeMs { get; set; }
+    public long P95ResponseTimeMs { get; set; }
     public long TotalChecks { get; set; }
+    public long FailedChecks { get; set; }
 }
 
 public class ExternalServicesReport

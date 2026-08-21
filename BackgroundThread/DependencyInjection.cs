@@ -40,6 +40,7 @@ namespace HEAppE.BackgroundThread
             services.AddHostedService<DatabaseTransactionLogBackupService>();
             services.AddHostedService<ClusterProjectCredentialsCheckLogBackgroundService>();
             services.AddHostedService<ExternalServiceHealthMonitoringBackgroundService>();
+            services.AddHostedService<ExternalServiceTelemetryWriterBackgroundService>();
 
             return services;
         }

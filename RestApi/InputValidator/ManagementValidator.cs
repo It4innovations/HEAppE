@@ -95,6 +95,8 @@ public class ManagementValidator : AbstractValidator
             ListAdaptorUsersModel ext => ValidateListAdaptorUsersModel(ext),
             GetJobsMonitoringModel ext => ValidateGetJobsMonitoringModel(ext),
             GetExternalServicesReportModel ext => ValidateGetExternalServicesReportModel(ext),
+            GetJobExternalServiceLogsModel ext => ValidateGetJobExternalServiceLogsModel(ext),
+            GetExternalServicesStatisticsModel ext => ValidateGetExternalServicesStatisticsModel(ext),
             _ => string.Empty
         };
 
@@ -935,6 +937,30 @@ public class ManagementValidator : AbstractValidator
 
         if (model.From.HasValue && model.To.HasValue && model.To.Value < model.From.Value)
             _messageBuilder.AppendLine("To date must be greater than or equal to From date.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetJobExternalServiceLogsModel(GetJobExternalServiceLogsModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(model.SubmittedJobInfoId, "SubmittedJobInfoId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetExternalServicesStatisticsModel(GetExternalServicesStatisticsModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.From.HasValue && model.To.HasValue && model.To.Value < model.From.Value)
+            _messageBuilder.AppendLine("To date must be greater than or equal to From date.");
+
+        if (model.ClusterId.HasValue && model.ClusterId.Value <= 0)
+            _messageBuilder.AppendLine("ClusterId must be greater than 0.");
 
         return _messageBuilder.ToString();
     }

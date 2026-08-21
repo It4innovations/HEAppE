@@ -245,4 +245,7 @@ public interface IManagementService
     List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
     Task<JobMonitoringPageExt> GetJobsMonitoring(int pageSize, long? lastJobId, string sessionCode);
     Task<ExternalServicesReportExt> GetExternalServicesReport(DateTime? from, DateTime? to, string sessionCode);
+    Task<List<JobExternalServiceLogExt>> GetJobExternalServiceLogs(long jobId, string sessionCode);
+    Task<List<ExternalServiceStatisticsExt>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string? serviceName, long? clusterId, string sessionCode);
+    Task<List<ExternalServiceLiveStatusExt>> GetExternalServicesLiveStatus(string sessionCode);
 }

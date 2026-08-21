@@ -13216,6 +13216,285 @@
         }
       }
     },
+    "/heappe/Management/GetJobExternalServiceLogs": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get external service and database telemetry logs for a specific job.",
+        "requestBody": {
+          "description": "Request parameters containing job ID and session code",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobExternalServiceLogExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/GetExternalServicesStatistics": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get aggregated external service and database telemetry statistics for a time window (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing time window and optional filters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalServiceStatisticsExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/GetExternalServicesLiveStatus": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get live availability and latency status for all registered external services (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing session code",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCodeModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCodeModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCodeModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalServiceLiveStatusExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/QScheduler/OpenSession": {
       "post": {
         "tags": [
@@ -18599,6 +18878,10 @@
             "type": "string",
             "nullable": true
           },
+          "ServiceType": {
+            "type": "string",
+            "nullable": true
+          },
           "CommandOrPath": {
             "type": "string",
             "nullable": true
@@ -18619,7 +18902,15 @@
             "type": "integer",
             "format": "int64"
           },
+          "P95ResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
           "TotalChecks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "FailedChecks": {
             "type": "integer",
             "format": "int64"
           }
@@ -18921,6 +19212,42 @@
         },
         "additionalProperties": false
       },
+      "GetExternalServicesStatisticsModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "From": {
+            "type": "string",
+            "description": "Start of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "To": {
+            "type": "string",
+            "description": "End of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ServiceName": {
+            "type": "string",
+            "description": "Optional filter by service name",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Optional filter by cluster ID",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GetFileTransferMethodModel": {
         "type": "object",
         "properties": {
@@ -18934,6 +19261,27 @@
           "SubmittedJobInfoId": {
             "type": "integer",
             "description": "Subbmited job info id",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetJobExternalServiceLogsModel": {
+        "required": [
+          "SubmittedJobInfoId"
+        ],
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "SubmittedJobInfoId": {
+            "type": "integer",
+            "description": "Submitted job info identifier",
             "format": "int64"
           }
         },
@@ -19286,6 +19634,83 @@
               "$ref": "#/components/schemas/TaskExtendedReportExt"
             },
             "description": "List of task extended reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobExternalServiceLogExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ServiceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ServiceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "Protocol": {
+            "type": "string",
+            "nullable": true
+          },
+          "EndpointOrHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "Port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Operation": {
+            "type": "string",
+            "nullable": true
+          },
+          "Timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "IsSuccess": {
+            "type": "boolean"
+          },
+          "ResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "StatusCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "JobId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "TaskId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "RequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "Source": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -21581,6 +22006,19 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "SessionCodeModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "SshKeyUserCredentialsModel": {
         "type": "object",

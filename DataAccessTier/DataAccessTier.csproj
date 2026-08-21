@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <AssemblyName>DataAccessTier</AssemblyName>
@@ -30,6 +30,7 @@
         <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
         <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
         <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+        <ProjectReference Include="..\Services\Services.csproj" />
         <ProjectReference Include="..\Utils\Utils.csproj" />
     </ItemGroup>
     <ItemGroup>

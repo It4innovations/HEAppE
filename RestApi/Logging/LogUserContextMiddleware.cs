@@ -57,16 +57,19 @@ namespace HEAppE.RestApi.Logging
             
             log4net.LogicalThreadContext.Properties["isUserAction"] = true;
 
-            try
+            using (JobExecutionContext.BeginScope(jobId: jobId, requestId: traceId))
             {
-                await _next(context);
-            }
-            finally
-            {
-                LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
-                LoggingUtils.RemoveJobIdFromLogThreadContext();
-                log4net.LogicalThreadContext.Properties.Remove("isUserAction");
-                log4net.LogicalThreadContext.Properties.Remove("requestId");
+                try
+                {
+                    await _next(context);
+                }
+                finally
+                {
+                    LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+                    LoggingUtils.RemoveJobIdFromLogThreadContext();
+                    log4net.LogicalThreadContext.Properties.Remove("isUserAction");
+                    log4net.LogicalThreadContext.Properties.Remove("requestId");
+                }
             }
         }
 

@@ -4414,13 +4414,39 @@ public class ManagementLogic : IManagementLogic
         var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
         var toDate = to ?? DateTime.UtcNow;
 
-        var logs = await _unitOfWork.ExternalServiceHealthLogRepository.GetLogsInTimeRangeAsync(fromDate, toDate);
-        var stats = logs
-            .GroupBy(l => new { ServiceName = l.ServiceName.ToLowerInvariant(), CommandOrPath = l.CommandOrPath?.ToLowerInvariant() })
+        var stats = await GetExternalServicesStatistics(fromDate, toDate);
+
+        return new ExternalServicesReport
+        {
+            LiveStatus = liveStatuses,
+            Statistics = stats
+        };
+    }
+
+    public async Task<List<ExternalServiceHealthLog>> GetJobExternalServiceLogs(long jobId)
+    {
+        return await _unitOfWork.ExternalServiceHealthLogRepository.GetLogsByJobIdAsync(jobId);
+    }
+
+    public async Task<List<ExternalServiceStatistics>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string serviceName = null, long? clusterId = null)
+    {
+        var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
+        var toDate = to ?? DateTime.UtcNow;
+
+        var logs = await _unitOfWork.ExternalServiceHealthLogRepository.GetFilteredLogsInTimeRangeAsync(fromDate, toDate, serviceName, clusterId);
+
+        return logs
+            .GroupBy(l => new 
+            { 
+                ServiceName = l.ServiceName.ToLowerInvariant(), 
+                ServiceType = l.ServiceType?.ToLowerInvariant() ?? "unknown",
+                CommandOrPath = l.CommandOrPath?.ToLowerInvariant() 
+            })
             .Select(g =>
             {
                 var total = g.Count();
                 var successful = g.Count(x => x.IsAvailable);
+                var failed = total - successful;
                 var successLogs = g.Where(x => x.IsAvailable).ToList();
 
                 double availabilityPct = total > 0 ? ((double)successful / total) * 100.0 : 0.0;
@@ -4428,23 +4454,76 @@ public class ManagementLogic : IManagementLogic
                 long minResponseTime = successLogs.Any() ? successLogs.Min(x => x.ResponseTimeMs) : 0;
                 long maxResponseTime = successLogs.Any() ? successLogs.Max(x => x.ResponseTimeMs) : 0;
 
+                long p95ResponseTime = 0;
+                if (successLogs.Count > 0)
+                {
+                    var sorted = successLogs.Select(x => x.ResponseTimeMs).OrderBy(x => x).ToList();
+                    int index = (int)Math.Ceiling(0.95 * sorted.Count) - 1;
+                    p95ResponseTime = sorted[Math.Clamp(index, 0, sorted.Count - 1)];
+                }
+
                 return new ExternalServiceStatistics
                 {
                     ServiceName = g.Key.ServiceName,
+                    ServiceType = g.Key.ServiceType,
                     CommandOrPath = g.Key.CommandOrPath,
                     AvailabilityPercentage = Math.Round(availabilityPct, 2),
                     AverageResponseTimeMs = avgResponseTime,
                     MinResponseTimeMs = minResponseTime,
                     MaxResponseTimeMs = maxResponseTime,
-                    TotalChecks = total
+                    P95ResponseTimeMs = p95ResponseTime,
+                    TotalChecks = total,
+                    FailedChecks = failed
                 };
             }).ToList();
+    }
 
-        return new ExternalServicesReport
+    public async Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus()
+    {
+        var servicesToProbe = await GetServicesToProbeList();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var probeTasks = servicesToProbe.Select(async service =>
         {
-            LiveStatus = liveStatuses,
-            Statistics = stats
-        };
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            bool isAvailable = false;
+            string errorMsg = null;
+            long elapsed = 0;
+            try
+            {
+                var result = await service.ProbeFunc(cts.Token);
+                isAvailable = result.Success;
+                elapsed = result.ResponseTimeMs;
+                errorMsg = result.Error;
+            }
+            catch (OperationCanceledException)
+            {
+                errorMsg = "request timed out";
+            }
+            catch (Exception ex)
+            {
+                errorMsg = ex.Message;
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
+
+            return new ExternalServiceLiveStatus
+            {
+                ServiceName = service.Name.ToLowerInvariant(),
+                Type = service.Type.ToLowerInvariant(),
+                Protocol = service.Protocol.ToLowerInvariant(),
+                EndpointOrHost = service.EndpointOrHost,
+                Port = service.Port,
+                IsAvailable = isAvailable,
+                ResponseTimeMs = isAvailable ? elapsed : 0,
+                ErrorMessage = isAvailable ? null : (errorMsg ?? "unknown error"),
+                LastCheck = DateTime.UtcNow
+            };
+        });
+
+        return (await Task.WhenAll(probeTasks)).ToList();
     }
 
     public async Task LogExternalServiceHealth(ExternalServiceHealthLog log)
@@ -4457,7 +4536,6 @@ public class ManagementLogic : IManagementLogic
     {
         var threshold = DateTime.UtcNow.AddDays(-30);
         await _unitOfWork.ExternalServiceHealthLogRepository.DeleteOlderThanAsync(threshold);
-        await _unitOfWork.SaveAsync();
     }
 
     private async Task<(bool Success, long ResponseTimeMs, string Error)> TestTcpConnectionAsync(string host, int port, CancellationToken ct)
