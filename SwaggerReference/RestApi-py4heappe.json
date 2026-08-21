@@ -13413,17 +13413,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionCodeModel"
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionCodeModel"
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionCodeModel"
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
               }
             }
           }
@@ -18917,6 +18917,19 @@
         },
         "additionalProperties": false
       },
+      "ExternalServicesLiveStatusModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ExternalServicesReportExt": {
         "type": "object",
         "properties": {
@@ -22006,19 +22019,6 @@
         ],
         "type": "integer",
         "format": "int32"
-      },
-      "SessionCodeModel": {
-        "type": "object",
-        "properties": {
-          "SessionCode": {
-            "maxLength": 50,
-            "minLength": 0,
-            "type": "string",
-            "description": "Session code",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
       },
       "SshKeyUserCredentialsModel": {
         "type": "object",

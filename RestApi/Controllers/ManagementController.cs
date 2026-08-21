@@ -2656,7 +2656,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetExternalServicesLiveStatus([FromBody] SessionCodeModel model)
+    public async Task<IActionResult> GetExternalServicesLiveStatus([FromBody] ExternalServicesLiveStatusModel model)
     {
         var validationResult = new SessionCodeValidator(model?.SessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
