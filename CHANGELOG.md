@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.13
+
+### Changed
+- Updated NuGet packages to latest patch/minor versions: `log4net` (3.4.0), `Newtonsoft.Json` (13.0.4), `BouncyCastle.Cryptography` (2.7.0), `SSH.NET` (2026.0.0), `RestSharp` (114.0.0), and `FluentValidation` (12.1.1).
+
+### Fixed
+- Fixed `EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey` throwing `ArgumentException: Not an OpenSSH private key` when processing encrypted Ed25519 private keys or Base64-encoded Vault credentials: integrated BouncyCastle `PemReader` for robust parsing of encrypted PKCS#8 / PEM keys and added automatic Base64 decoding.
+
 ## V6.4.12
 
 ### Changed
@@ -12,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switched log4net `FileAppender` locking model from `MinimalLock` to `ExclusiveLock` in `RestApi` and `DataStagingAPI` logging configurations (`log4net.config`, `log4netDocker.config`), eliminating OS-level file lock contention and request serialization during high-concurrency stress testing.
 
 ### Fixed
-- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist: updated `LinuxCommands.CopyJobFilesAsync` to safely check for file presence using `if [ -f "..." ]; then cp ...; fi;` instead of `[ -f ... ] && cp ...`, preventing non-zero shell exit status when the last checked file is missing.
+- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist.
 
 ## V6.4.11
 

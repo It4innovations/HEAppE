@@ -1,4 +1,4 @@
-﻿using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Utilities;
@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 using PemWriter = Org.BouncyCastle.OpenSsl.PemWriter;
 
 namespace HEAppE.CertificateGenerator.Generators.v2;
@@ -110,38 +111,93 @@ public class EdDSACertGeneratorV2 : GenericCertGeneratorV2
     public static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPem, string passphrase,
         string comment = null)
     {
-        var b64 = string.Join("",
-            privateKeyPem
-              .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-              .Where(l => !l.StartsWith("-----BEGIN") && !l.StartsWith("-----END"))
-        );
-
-        var data = Convert.FromBase64String(b64);
-        int idx = 0;
-
-        var magic = Encoding.ASCII.GetBytes("openssh-key-v1\0");
-        if (data.Length < magic.Length ||
-            !data.Take(magic.Length).SequenceEqual(magic))
+        try
         {
-            throw new ArgumentException("Not an OpenSSH private key.");
+            if (string.IsNullOrWhiteSpace(privateKeyPem))
+                return "Unable to convert";
+
+            if (!privateKeyPem.Contains("-----BEGIN"))
+            {
+                try
+                {
+                    var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(privateKeyPem));
+                    if (decoded.Contains("-----BEGIN"))
+                        privateKeyPem = decoded;
+                }
+                catch
+                {
+                    // Keep original privateKeyPem if base64 decoding fails
+                }
+            }
+
+            // 1. Try BouncyCastle PemReader (handles encrypted PEM, PKCS#8, etc.)
+            try
+            {
+                using var stringReader = new StringReader(privateKeyPem);
+                var pemReader = new PemReader(stringReader, new PasswordFinder(passphrase));
+                var obj = pemReader.ReadObject();
+
+                AsymmetricKeyParameter pubKey = null;
+                if (obj is AsymmetricCipherKeyPair keyPair)
+                {
+                    pubKey = keyPair.Public;
+                }
+                else if (obj is Ed25519PrivateKeyParameters edPrivateKey)
+                {
+                    pubKey = edPrivateKey.GeneratePublicKey();
+                }
+
+                if (pubKey != null)
+                {
+                    var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(pubKey);
+                    var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+                    var suf = !string.IsNullOrEmpty(comment) ? comment : _publicComment;
+                    return $"ssh-ed25519 {base64PublicKey} {suf}";
+                }
+            }
+            catch
+            {
+                // Fall back to raw OpenSSH parsing below
+            }
+
+            // 2. Fall back to raw OpenSSH binary parsing
+            var b64 = string.Join("",
+                privateKeyPem
+                  .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                  .Where(l => !l.StartsWith("-----BEGIN") && !l.StartsWith("-----END"))
+            );
+
+            var data = Convert.FromBase64String(b64);
+            int idx = 0;
+
+            var magic = Encoding.ASCII.GetBytes("openssh-key-v1\0");
+            if (data.Length < magic.Length ||
+                !data.Take(magic.Length).SequenceEqual(magic))
+            {
+                return "Unable to convert";
+            }
+            idx += magic.Length;
+
+            var cipherName = ReadString(data, ref idx);
+            var kdfName = ReadString(data, ref idx);
+            var kdfOptions = ReadBytes(data, ref idx);
+
+            var nkeys = ReadUInt32(data, ref idx);
+            if (nkeys < 1)
+                return "Unable to convert";
+
+            var pubBlob = ReadBytes(data, ref idx);
+
+            var pubB64 = Convert.ToBase64String(pubBlob);
+            var suf2 = !string.IsNullOrEmpty(comment)
+                         ? comment
+                         : _publicComment;
+            return $"ssh-ed25519 {pubB64} {suf2}";
         }
-        idx += magic.Length;
-
-        var cipherName = ReadString(data, ref idx);
-        var kdfName = ReadString(data, ref idx);
-        var kdfOptions = ReadBytes(data, ref idx);
-
-        var nkeys = ReadUInt32(data, ref idx);
-        if (nkeys < 1)
-            throw new ArgumentException("OpenSSH key neobsahuje žiadny public key.");
-
-        var pubBlob = ReadBytes(data, ref idx);
-
-        var pubB64 = Convert.ToBase64String(pubBlob);
-        var suf = !string.IsNullOrEmpty(comment)
-                     ? comment
-                     : _publicComment;
-        return $"ssh-ed25519 {pubB64} {suf}";
+        catch (Exception)
+        {
+            return "Unable to convert";
+        }
     }
 
     /// <summary>
