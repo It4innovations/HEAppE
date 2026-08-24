@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.13
+
+### Fixed
+- Fixed `EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey` throwing `ArgumentException: Not an OpenSSH private key` when processing encrypted Ed25519 private keys or Base64-encoded Vault credentials: integrated BouncyCastle `PemReader` for robust parsing of encrypted PKCS#8 / PEM keys and added automatic Base64 decoding.
+
 ## V6.4.12
 
 ### Changed
