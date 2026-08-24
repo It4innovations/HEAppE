@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switched log4net `FileAppender` locking model from `MinimalLock` to `ExclusiveLock` in `RestApi` and `DataStagingAPI` logging configurations (`log4net.config`, `log4netDocker.config`), eliminating OS-level file lock contention and request serialization during high-concurrency stress testing.
 
 ### Fixed
-- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist: updated `LinuxCommands.
+- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist.
 
 ## V6.4.11
 
