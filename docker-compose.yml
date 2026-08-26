@@ -27,6 +27,12 @@ services:
     container_name: "${INSTANCE_NAME}_mssql"
     restart: unless-stopped
     user: root
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$HOST_MSSQL_PASSWORD\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$HOST_MSSQL_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     volumes:
       - sql_volume:/var/opt/mssql
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
@@ -62,6 +68,10 @@ services:
       context: .
       dockerfile: DataStagingAPI/Dockerfile
     restart: unless-stopped
+    depends_on:
+      mssql:
+        condition: service_healthy
+        required: false
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
@@ -94,6 +104,10 @@ services:
       context: .
       dockerfile: RestApi/Dockerfile
     restart: unless-stopped
+    depends_on:
+      mssql:
+        condition: service_healthy
+        required: false
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
@@ -182,6 +196,7 @@ services:
   vault:
     image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vault"
+    restart: unless-stopped
     ports:
       - "8200:8200"
     environment:
@@ -203,6 +218,9 @@ services:
   vaultagent:
     image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vaultagent"
+    restart: unless-stopped
+    depends_on:
+      - vault
     ports:
       - "8100:8100"
     volumes:
@@ -249,6 +267,9 @@ services:
     build:
       context: .
       dockerfile: ./HashiCorpVaultScripts/DockerVersion/Dockerfile
+    restart: on-failure
+    depends_on:
+      - vault
     environment:
       INSTANCE_NAME: ${INSTANCE_NAME}
       VAULT_PASSWORD: ${VAULT_PASSWORD}
