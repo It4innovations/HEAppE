@@ -184,11 +184,13 @@ public class FileTransferLogic : IFileTransferLogic
         string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            response = await _sshCertificateAuthorityService
-                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken,
-                    jobInfo.Specification.FileTransferMethod.ServerHostname,
-                        _logger);
+            var clusterObj = jobInfo.Specification.Cluster;
+            var resourceName = !string.IsNullOrEmpty(clusterObj?.MasterNodeName)
+                ? clusterObj.MasterNodeName
+                : (jobInfo.Specification.FileTransferMethod.ServerHostname ?? clusterObj?.Name);
 
+            response = await _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, resourceName, _logger);
         }
 
         var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
@@ -270,8 +272,12 @@ public class FileTransferLogic : IFileTransferLogic
         SignResponse response = new SignResponse();
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
+            var resourceName = !string.IsNullOrEmpty(cluster.MasterNodeName)
+                ? cluster.MasterNodeName
+                : (transferMethod.ServerHostname ?? cluster.Name);
+
             response = await _sshCertificateAuthorityService
-                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname, _logger);
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, resourceName, _logger);
         }
 
         transferMethod.Credentials = new FileTransferKeyCredentials
@@ -634,8 +640,12 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
+            var resourceName = !string.IsNullOrEmpty(cluster.MasterNodeName)
+                ? cluster.MasterNodeName
+                : (cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname ?? cluster.Name);
+
             response = await _sshCertificateAuthorityService
-                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, cluster.FileTransferMethods.FirstOrDefault()?.ServerHostname, _logger);
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, resourceName, _logger);
         }
 
         string username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) 

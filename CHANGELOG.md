@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.14
+
+### Changed
+- Unified `ResolveUsernameFromContextAsync` logic across `ClusterInformationLogic`, `CredentialProvisioningLogic`, and `ManagementLogic` into a single shared helper `UsernameResolutionHelper`.
+
+### Fixed
+- Fixed bug in `ClusterInformationLogic` where `null` was passed instead of `publicKey` during POSIX username resolution, ensuring `publicKey` is correctly passed to SSH CA service to resolve usernames via the `signJSON` endpoint.
+
 ## V6.4.13
 
 ### Changed
