@@ -64,6 +64,11 @@ internal class DatabaseBackupService : IDatabaseBackupService
             if (!DatabaseFullBackupCanBeDone())
                 throw new DatabaseBackupException("FullBackupCantBeDone");
 
+            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.LocalPath))
+            {
+                Directory.CreateDirectory(DatabaseFullBackupConfiguration.Current.LocalPath);
+            }
+
             var databaseName = _context.Database.GetDbConnection().Database;
             var backupFileName = $"{DatabaseFullBackupConfiguration.Current.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
@@ -75,6 +80,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.Current.NASPath))
             {
+                Directory.CreateDirectory(DatabaseFullBackupConfiguration.Current.NASPath);
                 var nasFile = Path.Combine(DatabaseFullBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
@@ -163,6 +169,11 @@ internal class DatabaseBackupService : IDatabaseBackupService
             if (!DatabaseLogsBackupCanBeDone())
                 throw new DatabaseBackupException("BackupTransactionLogsCantBeDone");
 
+            if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.LocalPath))
+            {
+                Directory.CreateDirectory(DatabaseTransactionLogBackupConfiguration.Current.LocalPath);
+            }
+
             var databaseName = _context.Database.GetDbConnection().Database;
             var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.Current.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
@@ -174,6 +185,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.Current.NASPath))
             {
+                Directory.CreateDirectory(DatabaseTransactionLogBackupConfiguration.Current.NASPath);
                 var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
             }

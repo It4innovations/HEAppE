@@ -184,6 +184,11 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
+            if (!string.IsNullOrEmpty(_configuration.LocalPath))
+            {
+                Directory.CreateDirectory(_configuration.LocalPath);
+            }
+
             string backupFileName = $"{_configuration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
             string backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
@@ -196,6 +201,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
+                Directory.CreateDirectory(_configuration.NASPath);
                 string nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
@@ -314,6 +320,11 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
             var grouped = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
                              .Select(f => new FileInfo(f))
                              .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false })

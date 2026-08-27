@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.15
+
+### Fixed
+- Added defensive `Directory.Exists` checks and `Directory.CreateDirectory` handling in `DatabaseTransactionLogBackupService`, `DatabaseFullBackupBackgroundService`, and `DatabaseBackupService` to prevent `System.IO.DirectoryNotFoundException` during retention policy execution when backup directories do not exist on the local filesystem.
+
 ## V6.4.14
 
 ### Changed
