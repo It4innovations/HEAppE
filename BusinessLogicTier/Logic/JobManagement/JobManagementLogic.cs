@@ -475,11 +475,18 @@ internal class JobManagementLogic : IJobManagementLogic
                 var key = (job.Specification.ClusterId, job.Specification.ProjectId);
                 if (!serviceAccountsCache.ContainsKey(key))
                 {
-                    var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                        key.ClusterId, key.ProjectId, requireIsInitialized: true, adaptorUserId: null, logger: _logger);
-                    if (account != null)
+                    try
                     {
-                        serviceAccountsCache[key] = account;
+                        var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            key.ClusterId, key.ProjectId, requireIsInitialized: true, adaptorUserId: null, logger: _logger);
+                        if (account != null)
+                        {
+                            serviceAccountsCache[key] = account;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "No service account credentials initialized for cluster {ClusterId} project {ProjectId}. Background polling will fall back to cluster user.", key.ClusterId, key.ProjectId);
                     }
                 }
             }
