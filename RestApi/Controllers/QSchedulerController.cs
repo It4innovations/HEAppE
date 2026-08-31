@@ -58,7 +58,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="model">Session specification</param>
     /// <returns>Session ID</returns>
     [HttpPost("OpenSession")]
-    [HttpPost("/heappe/JobManagement/OpenQSchedulerSession")]
     [ProducesResponseType(typeof(long), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> OpenSession([FromBody] OpenQSchedulerSessionModel model)
@@ -78,7 +77,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="model">Session identification</param>
     /// <returns>Status message</returns>
     [HttpDelete("CloseSession")]
-    [HttpDelete("/heappe/JobManagement/CloseQSchedulerSession")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CloseSession([FromBody] CloseQSchedulerSessionModel model)
@@ -99,8 +97,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="sessionId">QScheduler session ID (returned by OpenSession)</param>
     /// <returns>Session info including current state, owner, timestamps</returns>
     [HttpGet("GetSessionInfo")]
-    [HttpGet("/heappe/JobManagement/GetQSchedulerSessionInfo")]
-    [HttpGet("/heappe/JobManagement/QSchedulerSessionInfo")]
     [ProducesResponseType(typeof(QSchedulerSessionInfoExt), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -123,7 +119,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="projectId">Optional project ID filter</param>
     /// <returns>List of session specifications including their state history (created/closed timestamps)</returns>
     [HttpGet("ListSessions")]
-    [HttpGet("/heappe/JobManagement/ListQSchedulerSessions")]
     [ProducesResponseType(typeof(IEnumerable<QSchedulerSessionInfoExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -323,8 +318,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="sessionCode">HEAppE session code</param>
     /// <param name="submittedTaskId">HEAppE Task ID</param>
     [HttpGet("GetTaskResult")]
-    [HttpGet("/heappe/JobManagement/GetQSchedulerTaskResult")]
-    [HttpGet("/heappe/JobManagement/GetQuantumTaskResult")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -342,8 +335,6 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <param name="submittedTaskId">HEAppE Task ID</param>
     /// <param name="artifactName">Artifact name (e.g. measurements, measurements_counts, sweep_results)</param>
     [HttpGet("GetTaskArtifact")]
-    [HttpGet("/heappe/JobManagement/GetQSchedulerTaskArtifact")]
-    [HttpGet("/heappe/JobManagement/GetQuantumTaskArtifact")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
