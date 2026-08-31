@@ -1202,72 +1202,34 @@ public class ManagementLogic : IManagementLogic
             isGenerated = generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey));
         }
 
-        var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
-            clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
-        var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
+        var userCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
             passphrase, clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
-
-            if (serviceAccount == null)
-            {
-                serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false, adaptorUserId));
-                _logger.LogInformation(
-                    $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
-            }
-
-            nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false, adaptorUserId));
+            userCredentials.ClusterProjectCredentials.Add(
+                CreateClusterProjectCredentials(clusterProject, userCredentials, false, false, adaptorUserId));
             _logger.LogInformation($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
         project.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.ProjectRepository.Update(project);
-        var serviceCredentialStored = false;
-        if (serviceCredentials.ClusterProjectCredentials.Any())
-        {
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-            serviceCredentialStored = true;
-        }
 
-        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(userCredentials);
         await _unitOfWork.SaveAsync();
 
         var vaultConnector = new VaultConnector(_logger);
-        bool vaultSuccess;
-
-        if (serviceCredentialStored)
-        {
-            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
-            
-            if (!vaultSuccess)
-            {
-                _logger.LogWarning("Failed to set service credentials in the vault. Rolling back database insert.");
-                // Perform rollback for serviceCredentials insertion here if needed
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
-                await _unitOfWork.SaveAsync();
-                throw new SecureVaultException("ConnectionFailed");
-            }
-        }
-
-        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
+        bool vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(userCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {
-            _logger.LogWarning("Failed to set non-service credentials in the vault. Rolling back database insert.");
-            // Perform rollback for nonServiceCredentials insertion here
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+            _logger.LogWarning("Failed to set user credentials in the vault. Rolling back database insert.");
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(userCredentials);
             await _unitOfWork.SaveAsync();
             throw new SecureVaultException("ConnectionFailed");
         }
 
-        return CredentialResponse.GetCredential(nonServiceCredentials, adaptorUserId);
+        return CredentialResponse.GetCredential(userCredentials, adaptorUserId);
     }
 
     /// <summary>
@@ -2945,67 +2907,29 @@ public class ManagementLogic : IManagementLogic
         var firstCluster = clusterProjects.FirstOrDefault()?.Cluster;
         var authType = preferredAuthType ?? (firstCluster != null ? ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(new ClusterAuthenticationCredentials { Username = username, Password = password, PrivateKey = secureShellKey.PrivateKeyPEM }, firstCluster) : ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey);
 
-        var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
-            firstCluster, true);
-        var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
+        var userCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
             passphrase, firstCluster, true);
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
-
-            if (serviceAccount == null)
-            {
-                serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false, adaptorUserId));
-                _logger.LogInformation(
-                    $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
-            }
-
-            nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false, adaptorUserId));
+            userCredentials.ClusterProjectCredentials.Add(
+                CreateClusterProjectCredentials(clusterProject, userCredentials, false, false, adaptorUserId));
             _logger.LogInformation($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
         project.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.ProjectRepository.Update(project);
-        var serviceCredentialStored = false;
-        if (serviceCredentials.ClusterProjectCredentials.Any())
-        {
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-            serviceCredentialStored = true;
-        }
 
-        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(userCredentials);
         _unitOfWork.Save();
 
         var vaultConnector = new VaultConnector(_logger);
-        bool vaultSuccess;
-
-        if (serviceCredentialStored)
-        {
-            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
-            
-            if (!vaultSuccess)
-            {
-                _logger.LogWarning("Failed to set service credentials in the vault. Rolling back database insert.");
-                // Perform rollback for serviceCredentials insertion here if needed
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
-                _unitOfWork.Save();
-                throw new SecureVaultException("ConnectionFailed");
-            }
-        }
-
-        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
+        bool vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(userCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {
-            _logger.LogWarning("Failed to set non-service credentials in the vault. Rolling back database insert.");
-            // Perform rollback for nonServiceCredentials insertion here
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+            _logger.LogWarning("Failed to set user credentials in the vault. Rolling back database insert.");
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(userCredentials);
             _unitOfWork.Save();
             throw new SecureVaultException("ConnectionFailed");
         }

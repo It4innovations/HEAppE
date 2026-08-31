@@ -505,9 +505,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GroupBy(j => new
             {
                 ClusterId = j.Job.Specification.ClusterId,
-                ClusterUsername = j.Job.Specification.Cluster.UpdateJobStateByServiceAccount.Value 
-                    ? string.Empty 
-                    : j.Job.Specification.ClusterUser.Username
+                ClusterUsername = j.Job.Specification.ClusterUser?.Username ?? string.Empty
             })
             .ToList();
 
@@ -517,9 +515,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var firstItem = itemsInGroup.First();
 
             var cluster = firstItem.Job.Specification.Cluster;
-            var clusterUser = cluster.UpdateJobStateByServiceAccount.Value 
-                ? null 
-                : firstItem.Job.Specification.ClusterUser;
+            var clusterUser = firstItem.Job.Specification.ClusterUser;
 
             var groupTasksResult = new List<SubmittedTaskInfo>();
             var tasksList = itemsInGroup.SelectMany(s => s.UnfinishedTasks).ToList();
@@ -1540,15 +1536,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
-        // Kerberos clusters (e.g. Metacentrum) have no persistent service account.
-        // The per-user ClusterUser is the correct credential; Kerberos ticket is obtained
-        // from the user's active SSH/PBS session context, not from a stored secret.
-        if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-        {
-            return (jobInfo, jobInfo.Specification.ClusterUser);
-        }
-
-        var credentials = await
+        var credentials = jobInfo.Specification.ClusterUser ?? await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
         return (jobInfo, credentials);

@@ -80,23 +80,16 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         var initializedCredentials = new List<ClusterAuthenticationCredentials>();
         List<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
         
-        if (onlyServiceAccounts)
+        var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, false, adaptorUserId, _logger)).ToList();
+        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger);
+        
+        if (credentials.Any())
         {
-            var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger)
-                                 ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
-            notInitializedCredentials.Add(serviceAccount);
-        }
-        else
-        {
-            var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger);
-            var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, false, adaptorUserId, _logger)).ToList();
-            
             notInitializedCredentials.AddRange(credentials);
-            
-            if (serviceAccount != null && notInitializedCredentials.All(c => c.Id != serviceAccount.Id))
-            {
-                notInitializedCredentials.Add(serviceAccount);
-            }
+        }
+        else if (serviceAccount != null)
+        {
+            notInitializedCredentials.Add(serviceAccount);
         }
 
         string? resolvedUsername = null;
