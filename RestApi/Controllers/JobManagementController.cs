@@ -185,6 +185,56 @@ public class JobManagementController : BaseController<JobManagementController>
     }
 
     /// <summary>
+    ///     List detailed jobs for project admin or manager with pagination and filters
+    /// </summary>
+    /// <param name="sessionCode">Session code</param>
+    /// <param name="jobStates">Comma separated string of job state IDs (e.g. "1,2,4,8,128")</param>
+    /// <param name="limit">Max number of jobs to return</param>
+    /// <param name="offset">Number of jobs to skip</param>
+    /// <param name="userId">Filter by user ID</param>
+    /// <param name="clusterId">Filter by cluster ID</param>
+    /// <param name="subProjectId">Filter by subproject ID</param>
+    /// <param name="projectId">Filter by project ID</param>
+    /// <param name="search">Search term (job or task name)</param>
+    /// <returns></returns>
+    [HttpGet("ListDetailedJobsForAdmin")]
+    [RequestSizeLimit(60)]
+    [ProducesResponseType(typeof(AdminJobPagedResultExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ListDetailedJobsForAdmin(
+        string sessionCode,
+        string jobStates = null,
+        int? limit = null,
+        int? offset = null,
+        long? userId = null,
+        long? clusterId = null,
+        long? subProjectId = null,
+        long? projectId = null,
+        string search = null)
+    {
+        var model = new ListDetailedJobsForAdminModel
+        {
+            SessionCode = sessionCode,
+            JobStates = jobStates,
+            Limit = limit,
+            Offset = offset,
+            UserId = userId,
+            ClusterId = clusterId,
+            SubProjectId = subProjectId,
+            ProjectId = projectId,
+            Search = search
+        };
+        var validationResult = new JobManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(await _service.ListDetailedJobsForAdmin(model.SessionCode, jobStates, limit, offset, userId, clusterId, subProjectId, projectId, search));
+    }
+
+    /// <summary>
     ///     Get current info for job
     /// </summary>
     /// <param name="sessionCode">Session code</param>

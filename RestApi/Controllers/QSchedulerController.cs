@@ -141,11 +141,33 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// <summary>
     ///     Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.
     /// </summary>
-    /// <param name="model">JSON string of CreateAndSubmitQSchedulerJobModel</param>
+    /// <remarks>
+    /// Sample JSON structure to enter into the 'model' form field:
+    /// 
+    ///     {
+    ///       "SessionCode": "your-heappe-session-code",
+    ///       "JobSpecification": {
+    ///         "Name": "QuantumJob",
+    ///         "ClusterId": 1,
+    ///         "ProjectId": 1,
+    ///         "Tasks": [
+    ///           {
+    ///             "Name": "GroverTask",
+    ///             "MachineId": "iqm_simulator",
+    ///             "WalltimeLimitSecs": 3600,
+    ///             "PayloadPartName": "circuit1",
+    ///             "UseSessions": false
+    ///           }
+    ///         ]
+    ///       }
+    ///     }
+    /// 
+    /// Note: Attach your circuit payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').
+    /// </remarks>
+    /// <param name="model">JSON string of CreateAndSubmitQSchedulerJobModel (see remarks for example JSON format)</param>
     /// <param name="userOrgService">User org service</param>
     /// <returns>Submitted job info</returns>
     [HttpPost("CreateAndSubmitJob")]
-    [HttpPost("/heappe/JobManagement/CreateAndSubmitQSchedulerJob")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(2_200_000_000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 2_200_000_000)]

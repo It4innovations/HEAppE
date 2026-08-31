@@ -3140,6 +3140,156 @@
         }
       }
     },
+    "/heappe/JobManagement/ListDetailedJobsForAdmin": {
+      "get": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "List detailed jobs for project admin or manager with pagination and filters",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "JobStates",
+            "in": "query",
+            "description": "Comma separated string of job state IDs (e.g. \"1,2,4,8,128\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Max number of jobs to return",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Offset",
+            "in": "query",
+            "description": "Number of jobs to skip",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "UserId",
+            "in": "query",
+            "description": "Filter by user ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Filter by cluster ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SubProjectId",
+            "in": "query",
+            "description": "Filter by subproject ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Search term (job or task name)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobPagedResultExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/JobManagement/CurrentInfoForJob": {
       "get": {
         "tags": [
@@ -14074,6 +14224,7 @@
           "QScheduler"
         ],
         "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
+        "description": "Sample JSON structure to enter into the 'model' form field:\n\n    {\n      \"SessionCode\": \"your-heappe-session-code\",\n      \"JobSpecification\": {\n        \"Name\": \"QuantumJob\",\n        \"ClusterId\": 1,\n        \"ProjectId\": 1,\n        \"Tasks\": [\n          {\n            \"Name\": \"GroverTask\",\n            \"MachineId\": \"iqm_simulator\",\n            \"WalltimeLimitSecs\": 3600,\n            \"PayloadPartName\": \"circuit1\",\n            \"UseSessions\": false\n          }\n        ]\n      }\n    }\n\nNote: Attach your circuit payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -14082,77 +14233,7 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
-                  }
-                }
-              },
-              "encoding": {
-                "model": {
-                  "style": "form"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmittedJobInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/CreateAndSubmitQSchedulerJob": {
-      "post": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "model": {
-                    "type": "string",
-                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
+                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel (see remarks for example JSON format)"
                   }
                 }
               },
@@ -15953,6 +16034,371 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "AdminJobPagedResultExt": {
+        "type": "object",
+        "properties": {
+          "TotalCount": {
+            "type": "integer",
+            "description": "Total count of matching jobs for pagination calculation",
+            "format": "int32"
+          },
+          "Limit": {
+            "type": "integer",
+            "description": "Max items requested per page",
+            "format": "int32",
+            "nullable": true
+          },
+          "Offset": {
+            "type": "integer",
+            "description": "Items skipped for pagination",
+            "format": "int32",
+            "nullable": true
+          },
+          "Items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmittedJobInfoExt"
+            },
+            "description": "Array of enriched jobs",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminSubmittedJobInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/JobStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CreationTime": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "SubmitTime": {
+            "type": "string",
+            "description": "Submit time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "TotalAllocatedTime": {
+            "type": "number",
+            "description": "Total allocation time",
+            "format": "double",
+            "nullable": true
+          },
+          "Submitter": {
+            "$ref": "#/components/schemas/AdminSubmitterInfoExt"
+          },
+          "SubmitterGroup": {
+            "type": "string",
+            "description": "Submitter group name",
+            "nullable": true
+          },
+          "ClusterUsername": {
+            "type": "string",
+            "description": "Cluster username used internally on HPC cluster",
+            "nullable": true
+          },
+          "ClusterAuthenticationType": {
+            "$ref": "#/components/schemas/ClusterAuthenticationCredentialsAuthTypeExt"
+          },
+          "ProjectId": {
+            "type": "integer",
+            "description": "Project ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "ProjectName": {
+            "type": "string",
+            "description": "Project name",
+            "nullable": true
+          },
+          "SubProjectId": {
+            "type": "integer",
+            "description": "SubProject ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "SubProjectIdentifier": {
+            "type": "string",
+            "description": "SubProject identifier",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "ClusterName": {
+            "type": "string",
+            "description": "Cluster name",
+            "nullable": true
+          },
+          "Reservation": {
+            "type": "string",
+            "description": "HPC reservation string",
+            "nullable": true
+          },
+          "Tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTaskInfoExt"
+            },
+            "description": "Array of tasks",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminSubmitterInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "User Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Username": {
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Email": {
+            "type": "string",
+            "description": "Email",
+            "nullable": true
+          },
+          "IdpSid": {
+            "type": "string",
+            "description": "Identity Provider Subject ID (e.g. Keycloak / OIDC SID)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminTaskInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/TaskStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Priority": {
+            "$ref": "#/components/schemas/TaskPriorityExt"
+          },
+          "AllocatedTime": {
+            "type": "number",
+            "description": "Allocated time",
+            "format": "double",
+            "nullable": true
+          },
+          "AllocatedCoreIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of allocated core ids",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "NodeType": {
+            "$ref": "#/components/schemas/ClusterNodeTypeForTaskExt"
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "description": "Error message",
+            "nullable": true
+          },
+          "CpuHyperThreading": {
+            "type": "boolean",
+            "description": "Cpu hyper threading",
+            "nullable": true
+          },
+          "Reason": {
+            "type": "string",
+            "description": "Reason (parsed from scheduler, e.g. SLURM)",
+            "nullable": true
+          },
+          "MinCores": {
+            "type": "integer",
+            "description": "Minimum CPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaxCores": {
+            "type": "integer",
+            "description": "Maximum CPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "GpuCores": {
+            "type": "integer",
+            "description": "GPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "GpuNodes": {
+            "type": "integer",
+            "description": "GPU nodes",
+            "format": "int32",
+            "nullable": true
+          },
+          "WalltimeLimit": {
+            "type": "integer",
+            "description": "Walltime limit",
+            "format": "int32",
+            "nullable": true
+          },
+          "Memory": {
+            "type": "integer",
+            "description": "Memory",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerCPU": {
+            "type": "integer",
+            "description": "Memory per CPU",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerGPU": {
+            "type": "integer",
+            "description": "Memory per GPU",
+            "format": "int64",
+            "nullable": true
+          },
+          "PlacementPolicy": {
+            "type": "string",
+            "description": "Placement policy",
+            "nullable": true
+          },
+          "IsExclusive": {
+            "type": "boolean",
+            "description": "Is exclusive",
+            "nullable": true
+          },
+          "IsRerunnable": {
+            "type": "boolean",
+            "description": "Is rerunnable",
+            "nullable": true
+          },
+          "JobArrays": {
+            "type": "string",
+            "description": "Job arrays",
+            "nullable": true
+          },
+          "StandardInputFile": {
+            "type": "string",
+            "description": "Standard input file",
+            "nullable": true
+          },
+          "StandardOutputFile": {
+            "type": "string",
+            "description": "Standard output file",
+            "nullable": true
+          },
+          "StandardErrorFile": {
+            "type": "string",
+            "description": "Standard error file",
+            "nullable": true
+          },
+          "ClusterTaskSubdirectory": {
+            "type": "string",
+            "description": "Cluster task subdirectory",
+            "nullable": true
+          },
+          "CommandTemplateId": {
+            "type": "integer",
+            "description": "Command template id",
+            "format": "int64",
+            "nullable": true
+          },
+          "TemplateParameterValues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandTemplateParameterValueExt"
+            },
+            "description": "Command template parameter values submitted by user",
+            "nullable": true
+          },
+          "EnvironmentVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentVariableExt"
+            },
+            "description": "Environment variables",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "AssignAdaptorUserToProjectModel": {
         "type": "object",
