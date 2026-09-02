@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
+- Fixed memory leak in `ClusterInformationService`: removed `CancellationChangeToken` registration on long-lived `CacheUtils.GlobalResetToken` during `SetCacheWithGlobalToken`, preventing accumulation of `CancellationTokenRegistration` and `CallbackNode` callback nodes under high API load.
+- Updated `ListAvailableClustersClearCache` to clear `MemoryCache` directly via `memCache.Clear()`.
 
 ## V6.4.15
 
