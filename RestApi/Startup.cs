@@ -89,7 +89,7 @@ public class Startup
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
-        Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+        DatabaseMigrationSettings.AutoMigrateDatabase = Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
         ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());

@@ -75,7 +75,7 @@ builder.Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration())
 builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
 builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
-builder.Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+DatabaseMigrationSettings.AutoMigrateDatabase = builder.Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
 builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
