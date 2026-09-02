@@ -1,13 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    [DbContext(typeof(MiddlewareContext))]
-    [Migration("20260902110000_AddIsBlockedToAdaptorUser")]
+    /// <inheritdoc />
     public partial class AddIsBlockedToAdaptorUser : Migration
     {
         /// <inheritdoc />
