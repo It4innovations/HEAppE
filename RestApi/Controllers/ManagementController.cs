@@ -69,7 +69,7 @@ public class ManagementController : BaseController<ManagementController>
 
     private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger)
     {
-        CacheUtils.InvalidateAllCache(logger);
+        CacheUtils.InvalidateClusterCache(logger, _cacheProvider);
     }
 
     #endregion
