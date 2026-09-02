@@ -1682,6 +1682,20 @@ public class ManagementService : IManagementService
         }
     }
 
+    public AdaptorUserCreatedExt SetAdaptorUserBlockStatus(string username, bool isBlocked, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var result = managementLogic.SetAdaptorUserBlockStatus(username, isBlocked);
+            return result.ConvertIntToExt();
+        }
+    }
+
     public string DeleteAdaptorUser(string modelUsername, string modelSessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))

@@ -87,6 +87,7 @@ public class ManagementValidator : AbstractValidator
             StatusModel ext => ValidateStatusModel(ext),
             CreateAdaptorUserModel ext => ValidateCreateAdaptorUserModel(ext),
             ModifyAdaptorUserModel ext => ValidateModifyAdaptorUserModel(ext),
+            SetAdaptorUserBlockStatusModel ext => ValidateSetAdaptorUserBlockStatusModel(ext),
             DeleteAdaptorUserModel ext => ValidateDeleteAdaptorUserModel(ext),
             AssignAdaptorUserToProjectModel ext => ValidateAssignAdaptorUserToProjectModel(ext),
             ListAdaptorUsersInProjectModel ext => ValidateListAdaptorUsersInProjectModel(ext),
@@ -166,6 +167,16 @@ public class ManagementValidator : AbstractValidator
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
         
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateSetAdaptorUserBlockStatusModel(SetAdaptorUserBlockStatusModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
         return _messageBuilder.ToString();
     }
 

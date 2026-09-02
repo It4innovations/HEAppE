@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
@@ -44,6 +44,13 @@ public class AdaptorUserExt
     [DataMember(Name = "UserType")]
     [Description("User type")]
     public AdaptorUserTypeExt UserType { get; set; }
+
+    /// <summary>
+    /// Is blocked
+    /// </summary>
+    [DataMember(Name = "IsBlocked")]
+    [Description("Is blocked")]
+    public bool IsBlocked { get; set; }
 
     /// <summary>
     /// Array of adaptor user groups

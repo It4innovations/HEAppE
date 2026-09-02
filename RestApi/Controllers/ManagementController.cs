@@ -590,6 +590,29 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(adaptorUser);
     }
+
+    /// <summary>
+    /// Set Adaptor User Block Status
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("SetAdaptorUserBlockStatus")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult SetAdaptorUserBlockStatus(SetAdaptorUserBlockStatusModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"SetAdaptorUserBlockStatus\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUser = _managementService.SetAdaptorUserBlockStatus(model.Username, model.IsBlocked, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(adaptorUser);
+    }
     
     /// <summary>
     /// Delete Adaptor User

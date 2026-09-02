@@ -232,6 +232,7 @@ public interface IManagementService
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
     AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode);
     AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
+    AdaptorUserCreatedExt SetAdaptorUserBlockStatus(string username, bool isBlocked, string sessionCode);
     string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
     AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);
     AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);

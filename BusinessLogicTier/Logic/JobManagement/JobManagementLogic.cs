@@ -1804,6 +1804,12 @@ internal class JobManagementLogic : IJobManagementLogic
             var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
             if (job == null) continue;
 
+            if ((job.Submitter != null && job.Submitter.IsBlocked) || (job.Specification?.Submitter != null && job.Specification.Submitter.IsBlocked))
+            {
+                _logger.LogWarning($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job owner '{job.Submitter?.Username ?? job.Specification?.Submitter?.Username}' is blocked.");
+                continue;
+            }
+
             if (dbSession != null && (job.SubmitTime == null || job.SubmitTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10)))
             {
                 _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job {job.Id} submit time ({job.SubmitTime:O}) is older than session creation time ({dbSession.CreatedAt:O}).");

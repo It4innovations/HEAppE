@@ -215,6 +215,7 @@ public interface IManagementLogic
     Task<dynamic> CheckClusterProjectCredentialsStatus();
     AdaptorUserCreated CreateAdaptorUser(string username);
     AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername);
+    AdaptorUserCreated SetAdaptorUserBlockStatus(string username, bool isBlocked);
     string DeleteAdaptorUser(string modelUsername);
     AdaptorUser GetAdaptorUserByUsername(string username);
     AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);

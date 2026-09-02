@@ -3385,6 +3385,26 @@ public class ManagementLogic : IManagementLogic
         return adaptorUserCreated;
     }
 
+    public AdaptorUserCreated SetAdaptorUserBlockStatus(string username, bool isBlocked)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        adaptorUser.IsBlocked = isBlocked;
+        adaptorUser.ModifiedAt = DateTime.UtcNow;
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        _logger.LogInformation($"SetAdaptorUserBlockStatus: User '{username}' block status set to {isBlocked}.");
+
+        return new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = string.Empty
+        };
+    }
+
     public string DeleteAdaptorUser(string modelUsername)
     {
         var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)

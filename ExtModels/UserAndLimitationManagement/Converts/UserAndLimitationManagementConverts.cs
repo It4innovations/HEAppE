@@ -26,6 +26,7 @@ public static class UserAndLimitationManagementConverts
             PublicKey = user.PublicKey,
             Email = user.Email,
             UserType = (AdaptorUserTypeExt)user.UserType,
+            IsBlocked = user.IsBlocked,
             AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExt(user))
                 .ToArray()
         };

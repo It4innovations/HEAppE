@@ -4,6 +4,8 @@
 # macOS
 .DS_Store
 Library/
+scratch/
+NuGet.Config
 
 # QScheduler temp files
 qscheduler-temp/

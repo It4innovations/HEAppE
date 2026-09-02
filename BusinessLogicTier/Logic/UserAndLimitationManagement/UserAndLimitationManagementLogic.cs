@@ -119,6 +119,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
                 cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
             }
+            if (user != null && user.IsBlocked)
+            {
+                _logger.LogWarning("User {UserId} is blocked and access was rejected.", user.Id);
+                throw new UnauthorizedAccessException("Unauthorized");
+            }
             return user;
         }
 
@@ -135,6 +140,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             {
                 if (cached.ExpirationTime > DateTime.UtcNow)
                 {
+                    if (cached.User != null && cached.User.IsBlocked)
+                    {
+                        _logger.LogWarning("User {Username} is blocked and access was rejected.", cached.User.Username);
+                        throw new UnauthorizedAccessException("Unauthorized");
+                    }
                     return cached.User;
                 }
             }
@@ -177,6 +187,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         var user = session.User;
+        if (user != null && user.IsBlocked)
+        {
+            _logger.LogWarning("User {Username} is blocked and access was rejected.", user.Username);
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+
         if (cache != null && user != null)
         {
             string sessionCacheKey = $"SessionUser_{sessionCode}";
@@ -191,7 +207,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     
     public AdaptorUser GetUserById(long id)
     {
-        return _unitOfWork.AdaptorUserRepository.GetById(id);
+        var user = _unitOfWork.AdaptorUserRepository.GetById(id);
+        if (user != null && user.IsBlocked)
+        {
+            _logger.LogWarning("User {UserId} is blocked and access was rejected.", id);
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+        return user;
     }
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
@@ -669,6 +691,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             }
         }
 
+        if (user.IsBlocked)
+        {
+            _logger.LogWarning($"OpenId: User \"{user.Username}\" is blocked and access was rejected.");
+            throw new UnauthorizedAccessException($"User '{user.Username}' is blocked.");
+        }
+
         var hasUserGroup = false;
 
         user.AdaptorUserUserGroupRoles.ForEach(f =>
@@ -809,8 +837,16 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private AdaptorUser GetActiveUser(string username)
     {
         _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
-        return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(username) ??
                throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
+
+        if (user.IsBlocked)
+        {
+            _logger.LogWarning($"User \"{username}\" is blocked and access was rejected.");
+            throw new UnauthorizedAccessException($"User '{username}' is blocked.");
+        }
+
+        return user;
     }
 
     private SessionCode CreateSessionCode(AdaptorUser user)
