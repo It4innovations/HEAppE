@@ -51,8 +51,7 @@ public class ClusterInformationService : IClusterInformationService
     private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
     {
         var options = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes))
-            .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken));
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes));
     
         _cacheProvider.Set(key, value, options);
     }
@@ -209,6 +208,7 @@ public class ClusterInformationService : IClusterInformationService
         if (_cacheProvider is MemoryCache memCache)
         {
             clearedKeysCount = memCache.Count;
+            memCache.Clear();
         }
 
         CacheUtils.InvalidateAllCache(_logger);
@@ -217,7 +217,7 @@ public class ClusterInformationService : IClusterInformationService
         {
             ClearedKeysCount = clearedKeysCount,
             Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
-            Description = "Cache cleared for current user using global reset token"
+            Description = "Cache cleared for current user"
         };
     }
 
