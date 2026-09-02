@@ -12,6 +12,11 @@ services:
     environment:
       TZ: "UTC"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /app/shared/agentsocket || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     networks:
       - sshagent_internal_network
     profiles:
@@ -84,6 +89,12 @@ services:
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]-datastagingapi
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - db_internal_network
       - external_network
@@ -125,6 +136,12 @@ services:
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/heappe/Health | grep -q '\"IsHealthy\":true' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - sshagent_internal_network
       - db_internal_network
@@ -207,6 +224,12 @@ services:
     command: server
     cap_add:
       - IPC_LOCK
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8200/v1/sys/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - vaultNet
     logging:
@@ -230,6 +253,12 @@ services:
     command: proxy -config=/vault/config/vault-agent.hcl -log-level debug -log-file=/vault/logs/vault-agent.log
     cap_add:
       - IPC_LOCK
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8100/v1/sys/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - vaultNet
     logging:
