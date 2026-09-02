@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.16
+
+### Fixed
+- Fixed memory leak in `ClusterInformationService`: removed `CancellationChangeToken` registration on long-lived `CacheUtils.GlobalResetToken` during `SetCacheWithGlobalToken`, preventing accumulation of `CancellationTokenRegistration` and `CallbackNode` callback nodes under high API load.
+- Updated `ListAvailableClustersClearCache` to clear `MemoryCache` directly via `memCache.Clear()`.
+
 ## V6.4.15
 
 ### Fixed
