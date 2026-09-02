@@ -30,11 +30,15 @@ public static class CacheUtils
     }
 
     /// <summary>
-    /// Invalidates cluster & command template cache entries via cluster reset token.
+    /// Invalidates cluster & command template cache entries via cluster reset token and memory cache clearing.
     /// </summary>
-    public static void InvalidateClusterCache(ILogger logger)
+    public static void InvalidateClusterCache(ILogger logger, IMemoryCache cache = null)
     {
         logger.LogDebug("Invalidating Cluster and CommandTemplate cache entries via cluster reset token.");
+        if (cache is MemoryCache memCache)
+        {
+            memCache.Clear();
+        }
         var oldTokenSource = Interlocked.Exchange(ref _clusterInfoResetToken, new CancellationTokenSource());
         oldTokenSource.Cancel();
         oldTokenSource.Dispose();
@@ -79,6 +83,13 @@ public static class CacheUtils
     public static void AddClusterInvalidation(ICacheEntry entry)
     {
         entry.AddExpirationToken(new CancellationChangeToken(_clusterInfoResetToken.Token));
-        entry.AddExpirationToken(new CancellationChangeToken(_globalResetToken.Token));
+    }
+
+    /// <summary>
+    /// Adds a cluster-scoped invalidation token to the cache entry options.
+    /// </summary>
+    public static void AddClusterInvalidation(MemoryCacheEntryOptions options)
+    {
+        options.AddExpirationToken(new CancellationChangeToken(_clusterInfoResetToken.Token));
     }
 }

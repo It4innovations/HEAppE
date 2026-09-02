@@ -54,6 +54,8 @@ public class ClusterInformationService : IClusterInformationService
         var options = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes));
     
+        CacheUtils.AddClusterInvalidation(options);
+
         _cacheProvider.Set(key, value, options);
     }
 
