@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed memory leak in `ClusterInformationService`: removed `CancellationChangeToken` registration on long-lived `CacheUtils.GlobalResetToken` during `SetCacheWithGlobalToken`, preventing accumulation of `CancellationTokenRegistration` and `CallbackNode` callback nodes under high API load.
 - Updated `ListAvailableClustersClearCache` to clear `MemoryCache` directly via `memCache.Clear()`.
+- Fixed error masking and retry strategy in `ConnectionPool`: preserved initial root-cause connection exceptions (e.g. SSH socket timeout), implemented exponential backoff (1s, 2s, 4s, 8s max) for connection retries, and added support for automatic SSH CA token re-obtaining/refreshing during retries if the token expires.
+- Added JWT token expiration pre-validation in `SshCertificateAuthorityService.SignAsync` to catch expired OTT tokens prior to making HTTP requests to `signJSON`, preventing 500 errors, useless retries, and Polly circuit breaker trips.
 
 ## V6.4.15
 
