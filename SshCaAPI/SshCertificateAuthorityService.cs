@@ -98,6 +98,31 @@ namespace SshCaAPI
         {
             logger?.LogInformation("[SignService] Method: SignAsync");
 
+            if (!string.IsNullOrEmpty(ott))
+            {
+                try
+                {
+                    var tokenHandler = new JwtSecurityTokenHandler();
+                    if (tokenHandler.CanReadToken(ott))
+                    {
+                        var jwtToken = tokenHandler.ReadJwtToken(ott);
+                        if (jwtToken.ValidTo != DateTime.MinValue && jwtToken.ValidTo <= DateTime.UtcNow)
+                        {
+                            logger?.LogWarning($"[SignService] Provided SSH CA token (OTT) has expired at {jwtToken.ValidTo} UTC (Current: {DateTime.UtcNow} UTC).");
+                            throw new SshCAServiceTypeException("SignTokenExpired") { Details = $"The provided SSH CA token (OTT) has expired at {jwtToken.ValidTo} UTC." };
+                        }
+                    }
+                }
+                catch (SshCAServiceTypeException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogDebug(ex, "[SignService] Could not parse OTT token as JWT for expiration pre-check.");
+                }
+            }
+
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
