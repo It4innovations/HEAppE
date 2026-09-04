@@ -371,57 +371,60 @@ public class ManagementLogic : IManagementLogic
         var openIdAdaptorUserGroup =
             CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
-        using (TransactionScope transactionScope = new(
-                   TransactionScopeOption.Required,
-                   new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
+        _unitOfWork.ExecuteExecutionStrategy(() =>
         {
-            _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
-            _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
-            _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
-
-            try
+            using (TransactionScope transactionScope = new(
+                       TransactionScopeOption.Required,
+                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
             {
+                _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
+
+                try
+                {
+                    _unitOfWork.Save();
+                }
+                //catch unique constraing to AccountingString 
+                catch (Exception ex) when (ex.InnerException is not null &&
+                                           ex.InnerException.Message.Contains("IX_Project_AccountingString"))
+                {
+                    throw new InvalidRequestException("ProjectAlreadyExist");
+                }
+                
+                RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
+
+                var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
+
+                var adaptorUserGroup = userToUpdate.UserType switch
+                {
+                    AdaptorUserType.Default => defaultAdaptorUserGroup,
+                    AdaptorUserType.OpenId => openIdAdaptorUserGroup,
+                    AdaptorUserType.Lexis => lexisAdaptorUserGroup,
+                    _ => defaultAdaptorUserGroup
+                };
+                
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
+                _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
                 _unitOfWork.Save();
+                
+                // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
+                // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
+                // Without this, the 10-second UserById cache would return a stale snapshot and the role check
+                // for the brand-new project would fail with a 403 Forbidden.
+                var userCache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+                userCache?.Remove($"UserById_{userToUpdate.Id}");
+                
+                _logger.LogInformation($"Created project with id {project.Id}.");
+                _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
+                transactionScope.Complete();
             }
-            //catch unique constraing to AccountingString 
-            catch (Exception ex) when (ex.InnerException is not null &&
-                                       ex.InnerException.Message.Contains("IX_Project_AccountingString"))
-            {
-                throw new InvalidRequestException("ProjectAlreadyExist");
-            }
-            
-            RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
-
-            var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
-
-            var adaptorUserGroup = userToUpdate.UserType switch
-            {
-                AdaptorUserType.Default => defaultAdaptorUserGroup,
-                AdaptorUserType.OpenId => openIdAdaptorUserGroup,
-                AdaptorUserType.Lexis => lexisAdaptorUserGroup,
-                _ => defaultAdaptorUserGroup
-            };
-            
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
-            _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
-            _unitOfWork.Save();
-            
-            // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
-            // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
-            // Without this, the 10-second UserById cache would return a stale snapshot and the role check
-            // for the brand-new project would fail with a 403 Forbidden.
-            var userCache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
-            userCache?.Remove($"UserById_{userToUpdate.Id}");
-            
-            _logger.LogInformation($"Created project with id {project.Id}.");
-            _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
-            transactionScope.Complete();
-        }
+        });
 
         return project;
     }

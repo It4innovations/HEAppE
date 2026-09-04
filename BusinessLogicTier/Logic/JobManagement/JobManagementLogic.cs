@@ -1025,54 +1025,37 @@ internal class JobManagementLogic : IJobManagementLogic
         if (!jobValidation.IsValid)
             throw new InputValidationException("NotValidJobSpecification", jobValidation.Message);
         
-        {
-            SubmittedJobInfo jobInfo;
-            jobInfo = CreateSubmittedJobInfo(specification);
-            using (var transactionScope = new TransactionScope(
-                       TransactionScopeOption.Required,
-                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                       TransactionScopeAsyncFlowOption.Enabled))
-            {
-                _unitOfWork.JobSpecificationRepository.Insert(specification);
-                _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
+        SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
+        _unitOfWork.JobSpecificationRepository.Insert(specification);
+        _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
 
-                await _unitOfWork.SaveAsync();
-                transactionScope.Complete();
-            }
+        await _unitOfWork.SaveAsync();
 
-            return jobInfo;
-        }
+        return jobInfo;
     }
 
     public async Task DeleteJobDbRecord(long jobInfoId, long specificationId)
     {
-        using (var cleanupTransaction = new TransactionScope(
-                   TransactionScopeOption.Required,
-                   new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                   TransactionScopeAsyncFlowOption.Enabled))
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(jobInfoId);
+        if (jobInfo != null)
         {
-            var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(jobInfoId);
-            if (jobInfo != null)
+            if (jobInfo.Tasks != null)
             {
-                if (jobInfo.Tasks != null)
+                foreach (var task in jobInfo.Tasks.ToList())
                 {
-                    foreach (var task in jobInfo.Tasks.ToList())
-                    {
-                        _unitOfWork.SubmittedTaskInfoRepository.Delete(task);
-                    }
+                    _unitOfWork.SubmittedTaskInfoRepository.Delete(task);
                 }
-                _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
             }
-            
-            var specification = await _unitOfWork.JobSpecificationRepository.GetByIdAsync(specificationId);
-            if (specification != null)
-            {
-                _unitOfWork.JobSpecificationRepository.Delete(specification);
-            }
-            
-            await _unitOfWork.SaveAsync();
-            cleanupTransaction.Complete();
+            _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
         }
+        
+        var specification = await _unitOfWork.JobSpecificationRepository.GetByIdAsync(specificationId);
+        if (specification != null)
+        {
+            _unitOfWork.JobSpecificationRepository.Delete(specification);
+        }
+        
+        await _unitOfWork.SaveAsync();
     }
 
     public async Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser)

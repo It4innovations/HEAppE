@@ -23,6 +23,10 @@ public interface IUnitOfWork : IDisposable
 
     void Save();
     Task SaveAsync();
+    void ExecuteExecutionStrategy(Action operation);
+    T ExecuteExecutionStrategy<T>(Func<T> operation);
+    Task ExecuteExecutionStrategyAsync(Func<Task> operation);
+    Task<T> ExecuteExecutionStrategyAsync<T>(Func<Task<T>> operation);
 
     #endregion
 

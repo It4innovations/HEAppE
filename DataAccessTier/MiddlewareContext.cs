@@ -645,28 +645,32 @@ public class MiddlewareContext : DbContext
 
             if (useSetIdentity)
             {
-                using var transaction = Database.BeginTransaction();
-                try
+                var executionStrategy = Database.CreateExecutionStrategy();
+                executionStrategy.Execute(() =>
                 {
-                    using var command = Database.GetDbConnection().CreateCommand();
-                    command.Transaction = transaction.GetDbTransaction();
-                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
-                    if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
-                    command.ExecuteNonQuery();
+                    using var transaction = Database.BeginTransaction();
+                    try
+                    {
+                        using var command = Database.GetDbConnection().CreateCommand();
+                        command.Transaction = transaction.GetDbTransaction();
+                        command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
+                        if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
+                        command.ExecuteNonQuery();
 
-                    SaveChanges();
+                        SaveChanges();
 
-                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
-                    command.ExecuteNonQuery();
+                        command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
+                        command.ExecuteNonQuery();
 
-                    transaction.Commit();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error inserting seed data with IDENTITY_INSERT for {tableName}");
-                    transaction.Rollback();
-                    throw;
-                }
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error inserting seed data with IDENTITY_INSERT for {tableName}");
+                        transaction.Rollback();
+                        throw;
+                    }
+                });
             }
             else
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
@@ -61,6 +62,30 @@ public class DatabaseUnitOfWork : IUnitOfWork
     public async Task SaveAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public void ExecuteExecutionStrategy(Action operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        strategy.Execute(operation);
+    }
+
+    public T ExecuteExecutionStrategy<T>(Func<T> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return strategy.Execute(operation);
+    }
+
+    public async Task ExecuteExecutionStrategyAsync(Func<Task> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(operation);
+    }
+
+    public async Task<T> ExecuteExecutionStrategyAsync<T>(Func<Task<T>> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(operation);
     }
 
     #endregion
