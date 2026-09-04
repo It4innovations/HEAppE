@@ -166,7 +166,11 @@ public class MiddlewareContext : DbContext
             connectionString = builder.ConnectionString;
         }
 
-        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;");
+        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
+            sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null));
         optionsBuilder.AddInterceptors(Interceptors.DatabaseCommandTelemetryInterceptor.Instance);
         optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }

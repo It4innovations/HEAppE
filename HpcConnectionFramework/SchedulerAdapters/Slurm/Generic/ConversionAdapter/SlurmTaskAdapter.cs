@@ -296,13 +296,13 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (isGpuAllocation)
         {
             int? gpuCount = null;
-            if (maxCores.HasValue)
-            {
-                gpuCount = maxCores.Value;
-            }
-            else if (gpuCores.HasValue && gpuCores.Value > 0)
+            if (gpuCores.HasValue && gpuCores.Value > 0)
             {
                 gpuCount = gpuCores.Value;
+            }
+            else if (maxCores.HasValue)
+            {
+                gpuCount = maxCores.Value;
             }
 
             if (gpuCount.HasValue)
@@ -311,13 +311,13 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 {
                     doAppend($" --gres=gpu:{gpuCount}");
                 }
-                else if (string.Equals(SlurmGpuRequestStyle, "Gpu", StringComparison.OrdinalIgnoreCase) || string.Equals(SlurmGpuRequestStyle, "Gpus", StringComparison.OrdinalIgnoreCase))
+                else if (string.Equals(SlurmGpuRequestStyle, "Both", StringComparison.OrdinalIgnoreCase) || string.Equals(SlurmGpuRequestStyle, "Gres,Gpu", StringComparison.OrdinalIgnoreCase))
                 {
+                    doAppend($" --gres=gpu:{gpuCount}");
                     doAppend($" --gpus={gpuCount}");
                 }
                 else
                 {
-                    doAppend($" --gres=gpu:{gpuCount}");
                     doAppend($" --gpus={gpuCount}");
                 }
             }

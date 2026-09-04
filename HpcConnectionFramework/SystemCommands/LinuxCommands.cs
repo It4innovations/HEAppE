@@ -592,7 +592,7 @@ internal class LinuxCommands : ICommands
                 : clusterProject.ProjectStoragePath;
             
             string account = jobInfo.Specification.ClusterUser.Username;
-            projectBasePath = ExpandPath(projectBasePath, jobInfo, account);
+            projectBasePath = ExpandPath(projectBasePath, jobInfo, account).Trim();
 
             var copyFilesClusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             var heappeJobsDir = $"{copyFilesClusterConfig.InstanceIdentifierPath.TrimStart('/')}/{copyFilesClusterConfig.JobLogArchiveSubPath.TrimStart('/')}";
@@ -613,7 +613,9 @@ internal class LinuxCommands : ICommands
 
         foreach (var sourceDestination in sourceDestinations)
         {
-            cmdBuilder.Append($"if [ -f \"{sourceDestination.Item1}\" ]; then cp \"{sourceDestination.Item1}\" \"{sourceDestination.Item2}\"; fi;");
+            var src = sourceDestination.Item1?.Trim();
+            var dst = sourceDestination.Item2?.Trim();
+            cmdBuilder.Append($"if [ -f \"{src}\" ]; then cp \"{src}\" \"{dst}\"; fi;");
         }
 
         try

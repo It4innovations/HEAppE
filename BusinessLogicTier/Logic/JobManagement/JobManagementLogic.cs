@@ -1667,6 +1667,9 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             projectBasePath = basePath;
         }
+
+        basePath = FileSystemUtils.ExpandRemotePath(basePath, jobInfo.Specification.ClusterUser.Username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
+        projectBasePath = FileSystemUtils.ExpandRemotePath(projectBasePath, jobInfo.Specification.ClusterUser.Username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
         
         var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var localBasePath = Path.Combine(
