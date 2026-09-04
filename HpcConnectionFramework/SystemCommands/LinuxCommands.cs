@@ -407,17 +407,16 @@ internal class LinuxCommands : ICommands
             var mkdirCmd = $"mkdir -p {bashSafeRootDir}/.key_scripts";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), mkdirCmd, _logger);
 
-            // 4. Upload files via SFTP
-            _logger.LogInformation($"Uploading script files to remote cluster via SFTP (commit {localCommitHash})...");
-            using var sftpClient = new SftpClient(sshClient.ConnectionInfo);
-            sftpClient.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
-            sftpClient.Connect();
+            // 4. Upload files via SFTP (or SSH fallback if SFTP fails/unsupported)
+            _logger.LogInformation($"Uploading script files to remote cluster (commit {localCommitHash})...");
 
             string relativeKeyScriptsDir = rootDir.StartsWith("~/")
                 ? rootDir.Substring(2) + "/.key_scripts"
                 : rootDir.TrimStart('/') + "/.key_scripts";
 
             var files = Directory.GetFiles(localKeyScriptsPath);
+            var preparedFiles = new Dictionary<string, byte[]>();
+
             foreach (var filePath in files)
             {
                 var fileName = Path.GetFileName(filePath);
@@ -433,32 +432,78 @@ internal class LinuxCommands : ICommands
                 {
                     fileContent = await File.ReadAllBytesAsync(filePath);
                 }
-
-                using var memStream = new MemoryStream(fileContent);
-                var remoteFilePath = $"{relativeKeyScriptsDir}/{fileName}";
-                sftpClient.UploadFile(memStream, remoteFilePath, true);
+                preparedFiles[fileName] = fileContent;
             }
 
-            // 5. Write .commit_hash file via SFTP
-            if (!string.IsNullOrEmpty(localCommitHash))
+            bool uploadedSuccessfully = false;
+            try
             {
-                using var hashStream = new MemoryStream(Encoding.UTF8.GetBytes(localCommitHash));
-                var remoteHashPath = $"{relativeKeyScriptsDir}/.commit_hash";
-                sftpClient.UploadFile(hashStream, remoteHashPath, true);
+                using var sftpClient = new SftpClient(sshClient.ConnectionInfo);
+                sftpClient.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+                sftpClient.Connect();
+
+                foreach (var kvp in preparedFiles)
+                {
+                    using var memStream = new MemoryStream(kvp.Value);
+                    var remoteFilePath = $"{relativeKeyScriptsDir}/{kvp.Key}";
+                    sftpClient.UploadFile(memStream, remoteFilePath, true);
+                }
+
+                if (!string.IsNullOrEmpty(localCommitHash))
+                {
+                    using var hashStream = new MemoryStream(Encoding.UTF8.GetBytes(localCommitHash));
+                    var remoteHashPath = $"{relativeKeyScriptsDir}/.commit_hash";
+                    sftpClient.UploadFile(hashStream, remoteHashPath, true);
+                }
+
+                sftpClient.Disconnect();
+                uploadedSuccessfully = true;
+                _logger.LogInformation("Script directory initialized/updated successfully via SFTP.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"SFTP upload failed ({ex.Message}). Falling back to SSH base64 upload...");
             }
 
-            sftpClient.Disconnect();
+            if (!uploadedSuccessfully)
+            {
+                try
+                {
+                    foreach (var kvp in preparedFiles)
+                    {
+                        var base64 = Convert.ToBase64String(kvp.Value);
+                        var remoteFilePath = $"{bashSafeRootDir}/.key_scripts/{kvp.Key}";
+                        var uploadCmd = $"echo '{base64}' | base64 -d > {remoteFilePath}";
+                        await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadCmd, _logger);
+                    }
 
-            // 6. Set executable permissions via SSH
+                    if (!string.IsNullOrEmpty(localCommitHash))
+                    {
+                        var hashBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(localCommitHash));
+                        var remoteHashPath = $"{bashSafeRootDir}/.key_scripts/.commit_hash";
+                        var uploadHashCmd = $"echo '{hashBase64}' | base64 -d > {remoteHashPath}";
+                        await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadHashCmd, _logger);
+                    }
+
+                    uploadedSuccessfully = true;
+                    _logger.LogInformation("Script directory initialized/updated successfully via SSH base64 fallback.");
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.LogError($"SSH base64 script upload fallback failed: {fallbackEx.Message}");
+                    return false;
+                }
+            }
+
+            // 5. Set executable permissions via SSH
             var chmodCmd = $"mkdir -p {bashSafeRootDir} && chmod -R 755 {bashSafeRootDir}/.key_scripts";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
 
-            _logger.LogInformation("Script directory initialized/updated successfully via SFTP.");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"SFTP script directory initialization failed: {ex.Message}");
+            _logger.LogError($"Script directory initialization failed: {ex.Message}");
             return false;
         }
     }

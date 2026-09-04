@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
   - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+- Fixed cluster script directory initialization failures in `LinuxCommands`:
+  - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
+  - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.
 
 ## V6.4.17
 
