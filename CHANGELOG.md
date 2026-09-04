@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.4.18
+
+### Fixed
+- Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
+  - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
+  - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+
+## V6.4.17
+
+### Fixed
+- Fixed memory leak in REST API (`Program.cs`): disabled `reloadOnChange: true` configuration file watcher for `appsettings.json`, preventing accumulation of hundreds of thousands of `ConfigurationReloadToken`, `CancellationTokenSource`, and `ChangeTokenRegistration` callback nodes under Linux/Docker environments.
+- Added EF Core transient fault resiliency in `MiddlewareContext`: configured `EnableRetryOnFailure()` on `UseSqlServer` to automatically retry database connections upon transient failures and SQL Server database restarts (Error 4060).
+- Fixed path sanitization and whitespace trimming in `JobManagementLogic`, `ManagementLogic`, `LinuxCommands`, and `FileSystemUtils`: added `.Trim()` handling for scratch and project base paths, preventing execution errors caused by whitespace in remote cluster paths.
+- Propagated root-cause SSH connection errors and added automatic re-obtaining/refreshing of expired SSH CA tokens on connection retries in `ConnectionPool`.
+
 ## V6.4.16
 
 ### Fixed

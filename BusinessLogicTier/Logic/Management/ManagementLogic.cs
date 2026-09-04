@@ -727,7 +727,7 @@ public class ManagementLogic : IManagementLogic
     {
         if (string.IsNullOrEmpty(path)) return string.Empty;
 
-        var clean = path;
+        var clean = path.Trim();
         if (customConfiguration != null)
         {
             var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
@@ -736,7 +736,8 @@ public class ManagementLogic : IManagementLogic
 
         return clean
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
-            .TrimEnd('\\', '/');
+            .TrimEnd('\\', '/')
+            .Trim();
     }
 
     /// <summary>

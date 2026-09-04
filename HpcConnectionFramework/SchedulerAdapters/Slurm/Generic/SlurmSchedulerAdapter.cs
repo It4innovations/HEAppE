@@ -170,6 +170,23 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         try
         {
             command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sbatchCmd, _logger);
+
+            // Automatic fallback if Slurm rejects GPU request style
+            if (command.ExitStatus != 0)
+            {
+                var retrySshCommand = ToggleGpuRequestStyle(sshCommand);
+                if (retrySshCommand != sshCommand)
+                {
+                    _logger.LogWarning("Slurm command failed with GPU flags. Retrying job submission with toggled GPU request style...");
+                    var retrySbatchCmd = $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(retrySshCommand))}'";
+                    var retryCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), retrySbatchCmd, _logger);
+                    if (retryCommand.ExitStatus == 0)
+                    {
+                        command = retryCommand;
+                    }
+                }
+            }
+
             var scheduledJobIds = _convertor.GetJobIds(command.Result).ToList();
             
             var schedulerJobIdClusterAllocationNamePairs = scheduledJobIds.Select(id => (id, jobSpecification.Tasks.First().ClusterNodeType.ClusterAllocationName)).ToList();
@@ -500,6 +517,25 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return await _commands.CopyJobFilesAsync(schedulerConnectionConnection, jobInfo, sourceDestinations, sharedAccountsPoolMode);
     }
 
+    private static string ToggleGpuRequestStyle(string command)
+    {
+        if (string.IsNullOrEmpty(command))
+            return command;
+
+        if (command.Contains("--gpus="))
+        {
+            var toggled = Regex.Replace(command, @"#SBATCH\s+--gpus=(\d+)", "#SBATCH --gres=gpu:$1");
+            return toggled.Replace("--gpus=", "--gres=gpu:");
+        }
+        if (command.Contains("--gres=gpu:"))
+        {
+            var toggled = Regex.Replace(command, @"#SBATCH\s+--gres=gpu:(\d+)", "#SBATCH --gpus=$1");
+            return toggled.Replace("--gres=gpu:", "--gpus=");
+        }
+
+        return command;
+    }
+
     private static string PrepareSbatchCommand(
         string script_name,
         string job_name, string account, string partition,
@@ -523,13 +559,13 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             {
                 result += " --gres=gpu:" + gpuCount;
             }
-            else if (string.Equals(gpuRequestStyle, "Gpu", StringComparison.OrdinalIgnoreCase) || string.Equals(gpuRequestStyle, "Gpus", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(gpuRequestStyle, "Both", StringComparison.OrdinalIgnoreCase) || string.Equals(gpuRequestStyle, "Gres,Gpu", StringComparison.OrdinalIgnoreCase))
             {
+                result += " --gres=gpu:" + gpuCount;
                 result += " --gpus=" + gpuCount;
             }
             else
             {
-                result += " --gres=gpu:" + gpuCount;
                 result += " --gpus=" + gpuCount;
             }
         }
@@ -576,6 +612,22 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 command = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), sshCommand, _logger);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
+
+                if (command.ExitStatus != 0)
+                {
+                    var retryTestCmd = ToggleGpuRequestStyle(testCommand);
+                    if (retryTestCmd != testCommand)
+                    {
+                        var retrySshCommand = $"{_commands.InterpreterCommand} eval `(" + retryTestCmd + ")`";
+                        retrySshCommand = retrySshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+                        var retryCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), retrySshCommand, _logger);
+                        if (retryCommand.ExitStatus == 0)
+                        {
+                            command = retryCommand;
+                        }
+                    }
+                }
+
                 if (command.ExitStatus == 0)
                 {
                     checkLog.DryRunJobOk = true;
@@ -632,6 +684,21 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         //perform dry run
         SshCommandWrapper command =
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand, _logger);
+
+        if (command.ExitStatus != 0)
+        {
+            var retrySbatchCmd = ToggleGpuRequestStyle(sbatchCommand);
+            if (retrySbatchCmd != sbatchCommand)
+            {
+                var retrySshCommand = $"{_commands.InterpreterCommand} eval `(" + retrySbatchCmd + ")`";
+                retrySshCommand = retrySshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+                var retryCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection), retrySshCommand, _logger);
+                if (retryCommand.ExitStatus == 0)
+                {
+                    command = retryCommand;
+                }
+            }
+        }
         
         var regex = new Regex(
             @"Job (\d+) to start at ([0-9T:-]+).*?using (\d+) processors on nodes (\S+) in partition (\S+)");
