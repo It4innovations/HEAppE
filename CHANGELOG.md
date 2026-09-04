@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<<<<<<< HEAD
 ## V6.5.0
 
 ### Added
@@ -52,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `POST /heappe/Management/GetExternalServicesStatistics` — returns aggregated statistics (total calls, failures, availability %, avg/min/max/P95 response times) over a configurable time window with optional service name and cluster filters.
     - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
 
-## V6.4.18
+## V6.4.17
 
 ### Fixed
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
@@ -62,10 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed cluster script directory initialization failures in `LinuxCommands`:
   - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
   - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.
-
-## V6.4.17
-
-### Fixed
 - Fixed memory leak in REST API (`Program.cs`): disabled `reloadOnChange: true` configuration file watcher for `appsettings.json`, preventing accumulation of hundreds of thousands of `ConfigurationReloadToken`, `CancellationTokenSource`, and `ChangeTokenRegistration` callback nodes under Linux/Docker environments.
 - Added EF Core transient fault resiliency in `MiddlewareContext`: configured `EnableRetryOnFailure()` on `UseSqlServer` to automatically retry database connections upon transient failures and SQL Server database restarts (Error 4060).
 - Fixed path sanitization and whitespace trimming in `JobManagementLogic`, `ManagementLogic`, `LinuxCommands`, and `FileSystemUtils`: added `.Trim()` handling for scratch and project base paths, preventing execution errors caused by whitespace in remote cluster paths.
