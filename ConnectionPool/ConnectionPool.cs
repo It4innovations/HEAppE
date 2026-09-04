@@ -67,12 +67,11 @@ namespace HEAppE.ConnectionPool
         /// Callers should catch <see cref="ConnectionPoolExhaustedException"/> and return 429.
         /// </summary>
         private readonly int _acquireTimeoutMs = 10000;
-            
         private readonly Timer poolCleanTimer;
 
         private string TargetNodeStr => _port.HasValue ? $"{_masterNodeName}:{_port}" : _masterNodeName;
 
-        private string GetProtocolName(object connectionObj = null)
+        private string GetProtocolName(object? connectionObj = null)
         {
             if (connectionObj is SshClient) return "SSH";
             if (connectionObj is SftpClient) return "SFTP";
@@ -471,9 +470,8 @@ namespace HEAppE.ConnectionPool
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
             _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Requesting connection.");
-            var poolKey = (credentials.Id, credentials.SessionUserId);
-            var userContext = _userContexts.GetOrAdd(poolKey, key => {
-                _logger.LogDebug($"[User:{credentials.Username} (ID:{key.Item1})] [SessionUser:{key.Item2}] [Target:{GetProtocolName()}://{TargetNodeStr}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
+                _logger.LogDebug($"[User:{credentials.Username} (ID:{id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
                 return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
             });
 
