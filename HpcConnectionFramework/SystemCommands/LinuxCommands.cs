@@ -404,7 +404,12 @@ internal class LinuxCommands : ICommands
             }
 
             // 3. Ensure remote directory exists
-            var mkdirCmd = $"mkdir -p {bashSafeRootDir}/.key_scripts";
+            var keyScriptsRootDir = Path.Combine(rootDir, ".key_scripts").Replace('\\', '/');
+            string bashSafeKeyScriptsDir = keyScriptsRootDir.StartsWith("~/")
+                ? "~/" + "\"" + keyScriptsRootDir.Substring(2) + "\""
+                : "\"" + keyScriptsRootDir + "\"";
+
+            var mkdirCmd = $"mkdir -p {bashSafeKeyScriptsDir}";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), mkdirCmd, _logger);
 
             // 4. Upload files via SFTP (or SSH fallback if SFTP fails/unsupported)
@@ -472,7 +477,7 @@ internal class LinuxCommands : ICommands
                     foreach (var kvp in preparedFiles)
                     {
                         var base64 = Convert.ToBase64String(kvp.Value);
-                        var remoteFilePath = $"{bashSafeRootDir}/.key_scripts/{kvp.Key}";
+                        var remoteFilePath = $"{bashSafeKeyScriptsDir}/{kvp.Key}";
                         var uploadCmd = $"echo '{base64}' | base64 -d > {remoteFilePath}";
                         await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadCmd, _logger);
                     }
@@ -480,7 +485,7 @@ internal class LinuxCommands : ICommands
                     if (!string.IsNullOrEmpty(localCommitHash))
                     {
                         var hashBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(localCommitHash));
-                        var remoteHashPath = $"{bashSafeRootDir}/.key_scripts/.commit_hash";
+                        var remoteHashPath = $"{bashSafeKeyScriptsDir}/.commit_hash";
                         var uploadHashCmd = $"echo '{hashBase64}' | base64 -d > {remoteHashPath}";
                         await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadHashCmd, _logger);
                     }
@@ -496,7 +501,7 @@ internal class LinuxCommands : ICommands
             }
 
             // 5. Set executable permissions via SSH
-            var chmodCmd = $"mkdir -p {bashSafeRootDir} && chmod -R 755 {bashSafeRootDir}/.key_scripts";
+            var chmodCmd = $"mkdir -p {bashSafeKeyScriptsDir} && chmod -R 755 {bashSafeKeyScriptsDir}";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
 
             return true;
