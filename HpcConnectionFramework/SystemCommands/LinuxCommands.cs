@@ -338,7 +338,7 @@ internal class LinuxCommands : ICommands
                 if [ -z ""$SOURCE_PATH"" ]; then echo ""ERROR: .key_scripts not found""; exit 1; fi;
                 mkdir -p .key_scripts &&
                 cp -rf ""$SOURCE_PATH""/* .key_scripts/ &&
-                chmod -R 755 .key_scripts &&
+                chmod -R 755 .key_scripts 2>/dev/null || true;
                 sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh &&
                 echo ""INSTALLED_UPDATED"";
             else
@@ -501,7 +501,7 @@ internal class LinuxCommands : ICommands
             }
 
             // 5. Set executable permissions via SSH
-            var chmodCmd = $"mkdir -p {bashSafeKeyScriptsDir} && chmod -R 755 {bashSafeKeyScriptsDir}";
+            var chmodCmd = $"mkdir -p {bashSafeKeyScriptsDir} && (chmod -R 755 {bashSafeKeyScriptsDir} 2>/dev/null || true)";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
 
             return true;
