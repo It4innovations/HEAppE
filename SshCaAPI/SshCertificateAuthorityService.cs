@@ -123,6 +123,12 @@ namespace SshCaAPI
                 }
             }
 
+            if (!IsValidSshPublicKey(publicKey))
+            {
+                logger?.LogError($"[SignService Error] Invalid or destroyed SSH public key provided: '{publicKey}'. Request aborted before contacting SSH CA.");
+                throw new SshCAServiceTypeException("InvalidPublicKey") { Details = $"Provided public key '{publicKey}' is invalid or destroyed." };
+            }
+
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
@@ -217,6 +223,16 @@ namespace SshCaAPI
             }
 
             return null;
+        }
+
+        private static bool IsValidSshPublicKey(string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key) || key == "Unable to convert")
+                return false;
+
+            var trimmed = key.Trim();
+            // SSH CA API strictly requires Ed25519 keys ("ssh-ed25519")
+            return trimmed.StartsWith("ssh-ed25519");
         }
     }
     

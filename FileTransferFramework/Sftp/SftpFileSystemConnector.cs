@@ -136,11 +136,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
         ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
         try
         {
-            string publicKey = credentials.PublicKey;
-            if (string.IsNullOrEmpty(credentials.PublicKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
-            }
+            string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(credentials, _logger);
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
@@ -182,11 +178,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
     {
         try
         {
-            string publicKey = credentials.PublicKey;
-            if (string.IsNullOrEmpty(credentials.PublicKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
-            }
+            string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(credentials, _logger);
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));

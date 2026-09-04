@@ -3885,14 +3885,7 @@ public class ManagementLogic : IManagementLogic
         string? publicKey = null;
         if (firstCred != null)
         {
-            if (!string.IsNullOrEmpty(firstCred.PublicKey))
-            {
-                publicKey = firstCred.PublicKey;
-            }
-            else if (!string.IsNullOrEmpty(firstCred.PrivateKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstCred).PublicKeyInAuthorizedKeysFormat;
-            }
+            publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(firstCred, _logger);
         }
 
         var username = await ResolveUsernameFromContextAsync(adaptorUserId, project, publicKey);
