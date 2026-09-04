@@ -180,7 +180,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
         SignResponse response = new SignResponse();
-        string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
+        string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(clusterUserAuthCredentials, _logger);
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
             var clusterObj = jobInfo.Specification.Cluster;
@@ -673,7 +673,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new ClusterAuthenticationException("NotExistingClusterAuthenticationCredentials", loggedUser.Id, modelClusterId);
 
         SignResponse response = new SignResponse();
-        string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
+        string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(clusterUserAuthCredentials, _logger);
 
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
