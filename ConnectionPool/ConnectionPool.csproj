@@ -3,6 +3,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <AssemblyName>ConnectionPool</AssemblyName>
         <RootNamespace>HEAppE.ConnectionPool</RootNamespace>
+        <Nullable>annotations</Nullable>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="log4net" Version="3.4.0" />

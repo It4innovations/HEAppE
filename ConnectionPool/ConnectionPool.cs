@@ -307,7 +307,7 @@ namespace HEAppE.ConnectionPool
                     throw;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Release the active session permit if initialization failed
                 userContext.ActiveSessionsSemaphore.Release();
@@ -470,8 +470,9 @@ namespace HEAppE.ConnectionPool
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
             _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Requesting connection.");
-            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
-                _logger.LogDebug($"[User:{credentials.Username} (ID:{id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+            var poolKey = (credentials.Id, credentials.SessionUserId);
+            var userContext = _userContexts.GetOrAdd(poolKey, key => {
+                _logger.LogDebug($"[User:{credentials.Username} (ID:{key.Item1})] [SessionUser:{key.Item2}] [Target:{GetProtocolName()}://{TargetNodeStr}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
                 return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
             });
 
