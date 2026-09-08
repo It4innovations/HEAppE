@@ -89,6 +89,12 @@ services:
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]-datastagingapi
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
+      CORECLR_ENABLE_PROFILING: "${OTEL_ENABLE_PROFILING:-0}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${HOST_DATA_STAGING_CPUS:-2}"
+          memory: "${HOST_DATA_STAGING_MEMORY:-2G}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1"]
       interval: 15s
@@ -136,6 +142,12 @@ services:
       OTEL_SERVICE_NAME: heappe[${OTEL_SERVICE_SUFFIX_ID:-0}]
       OTEL_SDK_DISABLED: "${OTEL_DISABLED:-true}"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:${OTEL_HOST_GRPC_PORT:-4317}
+      CORECLR_ENABLE_PROFILING: "${OTEL_ENABLE_PROFILING:-0}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${HOST_APP_CPUS:-4}"
+          memory: "${HOST_APP_MEMORY:-4G}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/heappe/Health | grep -q '\"IsHealthy\":true' || exit 1"]
       interval: 15s
