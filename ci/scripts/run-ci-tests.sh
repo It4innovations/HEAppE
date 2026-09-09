@@ -28,6 +28,16 @@ dotnet build "HEAppE Core.sln" -c Release --no-restore
 
 mkdir -p /workspace/TestResults
 
+echo "==> Waiting for mssql-ci database readiness..."
+for i in {1..30}; do
+    if nc -z mssql-ci 1433 2>/dev/null || (exec 6<>/dev/tcp/mssql-ci/1433) 2>/dev/null; then
+        echo "Database mssql-ci is ready!"
+        break
+    fi
+    echo "Waiting for mssql-ci:1433... ($i/30)"
+    sleep 2
+done
+
 echo "==> Running tests with coverage..."
 set +e
 dotnet test "HEAppE Core.sln" \
@@ -35,6 +45,7 @@ dotnet test "HEAppE Core.sln" \
     --no-build \
     --collect:"XPlat Code Coverage" \
     --settings ci/coverage.runsettings \
+    --logger "junit;LogFilePath=/workspace/TestResults/junit_results.xml" \
     --logger "trx;LogFileName=test_results.trx" \
     --logger "console;verbosity=normal" \
     --results-directory /workspace/TestResults

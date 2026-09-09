@@ -26,8 +26,8 @@ services:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"Passw0rdSA123!\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"Passw0rdSA123!\" -Q \"SELECT 1\" || exit 1"]
       interval: 5s
       timeout: 5s
-      retries: 15
-      start_period: 15s
+      retries: 30
+      start_period: 30s
     networks:
       - ci-network
 
