@@ -229,7 +229,7 @@ services:
     container_name: "${INSTANCE_NAME}_vault"
     restart: unless-stopped
     ports:
-      - "8200:8200"
+      - "${HOST_VAULT_PORT:-8200}:8200"
     environment:
       VAULT_ADDR: "http://localhost:8200"
     volumes:
@@ -259,7 +259,7 @@ services:
     depends_on:
       - vault
     ports:
-      - "8100:8100"
+      - "${HOST_VAULT_AGENT_PORT:-8100}:8100"
     volumes:
       - vault-agent-volume:/vault/agent
       - "${BASE_PATH}/vault/agent:/vault/config"
