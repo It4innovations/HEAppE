@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  GIT_CLEAN_FLAGS: "none"
   
 
 
@@ -116,12 +117,12 @@ semgrep-sast:
 test_e2e:
   stage: test
   variables:
-    GIT_CLEAN_FLAGS: -ffdx -e .nuget -e TestResults -e "**/bin" -e "**/obj"
+    GIT_CLEAN_FLAGS: "none"
   before_script:
     - docker --version
     - docker compose version
     - echo "Cleaning up runner disk space and workspace before test run..."
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget /workspace/TestResults && chmod -R 777 /workspace" || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chmod -R 777 /workspace && rm -rf /workspace/.nuget /workspace/TestResults" || true
     - docker system prune -af --volumes || true
     - df -h
   script:
