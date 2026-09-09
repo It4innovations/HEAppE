@@ -15,7 +15,7 @@ public class RoleAssignmentConfiguration
 {
     private static readonly ConcurrentDictionary<AdaptorUserRoleType, ConcurrentDictionary<string, byte>> _dynamicRoleAssignments = new();
 
-    public static string[] Administrators { get; set; } = ["admin"];
+    public static string[] Administrators { get; set; }
     public static string[] Maintainers { get; set; }
     public static string[] Managers { get; set; }
     public static string[] Submitters { get; set; }
@@ -23,17 +23,21 @@ public class RoleAssignmentConfiguration
     public static string[] Reporters { get; set; }
     public static string[] ManagementAdmins { get; set; }
 
-    public static string[] GetConfiguredUsersForRole(AdaptorUserRoleType role) => role switch
+    public static string[] GetConfiguredUsersForRole(AdaptorUserRoleType role)
     {
-        AdaptorUserRoleType.Administrator => Administrators ?? Array.Empty<string>(),
-        AdaptorUserRoleType.Maintainer => Maintainers ?? Array.Empty<string>(),
-        AdaptorUserRoleType.Manager => Managers ?? Array.Empty<string>(),
-        AdaptorUserRoleType.Submitter => Submitters ?? Array.Empty<string>(),
-        AdaptorUserRoleType.GroupReporter => GroupReporters ?? Array.Empty<string>(),
-        AdaptorUserRoleType.Reporter => Reporters ?? Array.Empty<string>(),
-        AdaptorUserRoleType.ManagementAdmin => ManagementAdmins ?? Array.Empty<string>(),
-        _ => Array.Empty<string>()
-    };
+        var users = role switch
+        {
+            AdaptorUserRoleType.Administrator => Administrators ?? Array.Empty<string>(),
+            AdaptorUserRoleType.Maintainer => Maintainers ?? Array.Empty<string>(),
+            AdaptorUserRoleType.Manager => Managers ?? Array.Empty<string>(),
+            AdaptorUserRoleType.Submitter => Submitters ?? Array.Empty<string>(),
+            AdaptorUserRoleType.GroupReporter => GroupReporters ?? Array.Empty<string>(),
+            AdaptorUserRoleType.Reporter => Reporters ?? Array.Empty<string>(),
+            AdaptorUserRoleType.ManagementAdmin => ManagementAdmins ?? Array.Empty<string>(),
+            _ => Array.Empty<string>()
+        };
+        return users.Where(u => !string.IsNullOrWhiteSpace(u)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     public static void AddDynamicRoleAssignment(string username, AdaptorUserRoleType role)
     {
