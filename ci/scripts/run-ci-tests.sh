@@ -4,6 +4,13 @@ set -e
 export PATH="$PATH:$HOME/.dotnet/tools:/root/.dotnet/tools"
 export NUGET_PACKAGES="/root/.nuget/packages"
 
+cleanup_permissions() {
+    echo "==> Ensuring workspace permissions for host runner..."
+    chmod -R 777 /workspace 2>/dev/null || true
+    rm -rf /workspace/.nuget 2>/dev/null || true
+}
+trap cleanup_permissions EXIT
+
 echo "=========================================================="
 echo "    HEAppE Middleware CI Test & Coverage Runner"
 echo "=========================================================="

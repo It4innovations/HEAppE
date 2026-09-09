@@ -115,11 +115,13 @@ semgrep-sast:
 
 test_e2e:
   stage: test
+  variables:
+    GIT_CLEAN_FLAGS: -ffdx -e .nuget -e TestResults -e "**/bin" -e "**/obj"
   before_script:
     - docker --version
     - docker compose version
     - echo "Cleaning up runner disk space and workspace before test run..."
-    - docker run --rm -v "$PWD:/workspace" alpine rm -rf /workspace/.nuget || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget /workspace/TestResults && chmod -R 777 /workspace" || true
     - docker system prune -af --volumes || true
     - df -h
   script:
@@ -132,7 +134,7 @@ test_e2e:
     - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
   after_script:
     - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
-    - docker run --rm -v "$PWD:/workspace" alpine rm -rf /workspace/.nuget || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget && chmod -R 777 /workspace" || true
     - docker system prune -f || true
   artifacts:
     when: always
