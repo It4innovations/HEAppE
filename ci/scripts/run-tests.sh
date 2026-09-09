@@ -34,9 +34,10 @@ if [ "$SKIP_DOCKER" = false ]; then
 fi
 
 # Step 2: Build solution
-echo "==> Building HEAppE solution..."
+echo "==> Restoring and building HEAppE solution..."
 cd "$ROOT_DIR"
-dotnet build "HEAppE Core.sln" -c Release
+dotnet restore --configfile NuGet.Config "HEAppE Core.sln" || true
+dotnet build "HEAppE Core.sln" -c Release --no-restore
 
 # Step 3: Run tests with coverage
 echo "==> Executing test suites with Coverlet coverage instrumentation..."

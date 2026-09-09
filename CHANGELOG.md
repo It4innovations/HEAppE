@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<<<<<<< HEAD
 ## V6.5.0
 
 ### Added
@@ -42,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ForceDirectQuery` parameter to `GET /heappe/JobManagement/CurrentInfoForJob` for forcing physical scheduler queries with automatic terminal state locking.
 - Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
 - Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation.
+- Added support for UserOrg API v2 endpoints (`/api/v2/...`) with configurable switching strategy (`ApiVersion` in `LexisAuthenticationConfiguration`, defaulting to `"v2"`, supporting `"v1"`, `"v2"`, and `"auto"` fallback). Introduced `UserOrgV1Service`, `UserOrgV2Service`, and RFC 9457 `ProblemDetails` error handling while maintaining backwards compatibility for legacy v1 endpoints.
 - Added comprehensive non-blocking external services and database telemetry monitoring:
   - High-throughput asynchronous telemetry capture for all external interactions (HashiCorp Vault, Keycloak/UserOrg, Expirio, SSH Certificate Authority, Slurm/PBS Pro/FirecREST SSH & REST scheduler executions, and EF Core Database queries).
   - Ambient execution context (`JobExecutionContext`) using `AsyncLocal<JobContextData>` automatically correlates telemetry records with active `JobId`, `TaskId`, `ClusterId`, and `RequestId` (matching `log4net` trace ID for log searchability).
@@ -52,11 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `POST /heappe/Management/GetJobExternalServiceLogs` — returns all external service, SSH, and DB telemetry entries linked to a specific job with user authorization check.
     - `POST /heappe/Management/GetExternalServicesStatistics` — returns aggregated statistics (total calls, failures, availability %, avg/min/max/P95 response times) over a configurable time window with optional service name and cluster filters.
     - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
-
-## V6.4.17
-
-### Added
-- Added support for UserOrg API v2 endpoints (`/api/v2/...`) with configurable switching strategy (`ApiVersion` in `LexisAuthenticationConfiguration`, defaulting to `"v2"`, supporting `"v1"`, `"v2"`, and `"auto"` fallback). Introduced `UserOrgV1Service`, `UserOrgV2Service`, and RFC 9457 `ProblemDetails` error handling while maintaining backwards compatibility for legacy v1 endpoints.
 
 ### Fixed
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):

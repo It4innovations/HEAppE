@@ -113,6 +113,39 @@ semgrep-sast:
     paths:
       - gl-sast-report.json
 
+test_e2e:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apk add --no-cache bash curl
+  script:
+    - echo "Starting Docker infrastructure and executing test suites..."
+    - cd ci
+    - docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
+    - chmod +x scripts/wait-for-healthy.sh
+    - ./scripts/wait-for-healthy.sh 120
+    - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci
+    - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults
+  after_script:
+    - cd ci && docker compose -f docker-compose.ci.yml down -v || true
+  artifacts:
+    when: always
+    paths:
+      - TestResults/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: TestResults/CoverageReport/Cobertura.xml
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+
 release_job:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest

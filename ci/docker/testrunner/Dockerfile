@@ -13,6 +13,7 @@ RUN dotnet tool install -g dotnet-reportgenerator-globaltool
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
 WORKDIR /workspace
+COPY . /workspace
 
 # Set default entrypoint
 CMD ["bash"]

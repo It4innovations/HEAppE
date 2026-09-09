@@ -36,9 +36,13 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
 
         builder.ConfigureAppConfiguration((context, config) =>
         {
+            var envConnStr = Environment.GetEnvironmentVariable("ConnectionStrings__MiddlewareContext")
+                ?? Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+            var connStr = _connectionString ?? envConnStr ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;";
+
             var testConfig = new Dictionary<string, string?>
             {
-                { "ConnectionStrings:MiddlewareContext", _connectionString ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;" },
+                { "ConnectionStrings:MiddlewareContext", connStr },
                 { "DatabaseMigrationSettings:AutoMigrateDatabase", "true" },
                 { "IpRateLimiting:EnableEndpointRateLimiting", "false" },
                 { "JwtTokenIntrospectionConfiguration:IsEnabled", "false" },
@@ -99,7 +103,9 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
                 {
                     try
                     {
-                        var connStr = _connectionString ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;";
+                        var envConnStr = Environment.GetEnvironmentVariable("ConnectionStrings__MiddlewareContext")
+                            ?? Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+                        var connStr = _connectionString ?? envConnStr ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;";
                         var masterConnStr = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr) { InitialCatalog = "master" }.ConnectionString;
                         using (var masterConn = new Microsoft.Data.SqlClient.SqlConnection(masterConnStr))
                         {
