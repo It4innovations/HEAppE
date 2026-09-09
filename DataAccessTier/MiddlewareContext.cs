@@ -544,8 +544,7 @@ public class MiddlewareContext : DbContext
                 // If auth type changed to SshCertificate but PrivateKey is missing,
                 // reset IsInitialized so the system regenerates the key on next use.
                 bool isSshCert = clusterAuthenticationCredential.AuthenticationType
-                    is ClusterAuthenticationCredentialsAuthType.SshCertificate
-                    or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+                    is ClusterAuthenticationCredentialsAuthType.SshCertificate;
                 bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
                 if (isSshCert && keyMissing)
                 {

@@ -59,72 +59,68 @@ public class SftpFileSystemConnector : IPoolableAdapter
         var authType = credentials.AuthenticationType;
 
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
-            (authType is ClusterAuthenticationCredentialsAuthType.PrivateKey
-                     or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-                     or ClusterAuthenticationCredentialsAuthType.SshCertificate
-                     or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy))
+            (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey) || 
+             authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate)))
         {
-            authType = proxy is null
-                ? ClusterAuthenticationCredentialsAuthType.SshCertificate
-                : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            authType = ClusterAuthenticationCredentialsAuthType.SshCertificate;
         }
 
-        var sftpClient = (SftpClient)(authType switch
+        SftpClient sftpClient;
+        if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Password))
         {
-            ClusterAuthenticationCredentialsAuthType.Password
-                => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
-                    credentials.Password, port),
-
-            ClusterAuthenticationCredentialsAuthType.PasswordInteractive
-                => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName,
-                    credentials.Username, credentials.Password),
-
-            ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey
-                => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username,
-                    credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
-
-            ClusterAuthenticationCredentialsAuthType.PrivateKey
-                => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username,
-                    credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
-
-            ClusterAuthenticationCredentialsAuthType.PasswordViaProxy
-                => CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
-                    proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
-
-            ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy
-                => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host,
+            if(proxy == null)
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
+                    credentials.Password, port);
+            else
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
+                    proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port);
+        }
+        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
+        {
+            if(proxy == null)
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName,
+                    credentials.Username, credentials.Password);
+            else
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host,
                     proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
-                    credentials.Password, port),
-
-            ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy
-                => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type,
+                    credentials.Password, port);
+        }
+        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
+        {
+            if(proxy == null)
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username,
+                    credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port);
+            else
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type,
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
-                    credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
-
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-                => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
+                    credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port);
+        }
+        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey))
+        {
+            if(proxy == null)
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username,
+                    credentials.PrivateKey, credentials.PrivateKeyPassphrase, port);
+            else
+                sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
                     proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey,
-                    credentials.PrivateKeyPassphrase, port),
+                    credentials.PrivateKeyPassphrase, port);
+        }
+        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent) || 
+                 authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent))
+            sftpClient = (SftpClient) await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port);
+        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+            sftpClient = (SftpClient) await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster, lexisToken, port);
+        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+        {
+            if(proxy == null)
+                sftpClient = (SftpClient) await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port);
+            else
+                sftpClient = (SftpClient) await CreateConnectionObjectUsingSshCertificateViaProxyAsync(proxy.Host, proxy.Type,
+                    proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port);
+        }
+        else
+            throw new NotImplementedException("SFTP authentication credentials authentication type is not allowed!");
 
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                => await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port),
-
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-                => await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port),
-            
-            ClusterAuthenticationCredentialsAuthType.Kerberos
-                => await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster, lexisToken, port),
-            
-            ClusterAuthenticationCredentialsAuthType.SshCertificate => 
-                await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port),
-            
-            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
-                await CreateConnectionObjectUsingSshCertificateViaProxyAsync(proxy.Host, proxy.Type,
-                    proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
-
-            _ => throw new NotImplementedException(
-                "SFTP authentication credentials authentication type is not allowed!")
-        });
         sftpClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         sftpClient.KeepAliveInterval = TimeSpan.FromSeconds(30);

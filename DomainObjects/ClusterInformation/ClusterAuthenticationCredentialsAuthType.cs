@@ -1,20 +1,18 @@
+using System;
+
 namespace HEAppE.DomainObjects.ClusterInformation;
 
+[Flags]
 public enum ClusterAuthenticationCredentialsAuthType
 {
     Unknown = 0,
-    Password = 1,
-    PasswordInteractive = 2,
-    PasswordAndPrivateKey = 3,
+    PasswordInteractive = 1,
+    Password = 2,
     PrivateKey = 4,
-    PasswordViaProxy = 5,
-    PasswordInteractiveViaProxy = 6,
-    PasswordAndPrivateKeyViaProxy = 7,
-    PrivateKeyViaProxy = 8,
-    PrivateKeyInSshAgent = 9,
-    PrivateKeyInVaultAndInSshAgent = 10,
-    SshCertificate = 11,
-    SshCertificateViaProxy = 12,
-    Kerberos = 13,
-    FirecRestIdpViaExpirio = 14
+    PrivateKeyInSshAgent = 8,
+    PrivateKeyInVaultAndInSshAgent = 16,
+    SshCertificate = 32,
+    Kerberos = 64,
+    FirecRestIdpViaExpirio = 128,
+    PasswordAndPrivateKey = Password | PrivateKey
 }

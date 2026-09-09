@@ -461,36 +461,24 @@ public static class ClusterInformationConverts
     public static ClusterAuthenticationCredentialsAuthTypeExt ConvertIntToExt(
         this ClusterAuthenticationCredentialsAuthType type)
     {
-        return type switch
-        {
-            ClusterAuthenticationCredentialsAuthType.Password => ClusterAuthenticationCredentialsAuthTypeExt
-                .Password,
-            ClusterAuthenticationCredentialsAuthType.PasswordInteractive =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractive,
-            ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKey,
-            ClusterAuthenticationCredentialsAuthType.PrivateKey => ClusterAuthenticationCredentialsAuthTypeExt
-                .PrivateKey,
-            ClusterAuthenticationCredentialsAuthType.PasswordViaProxy => ClusterAuthenticationCredentialsAuthTypeExt
-                .PasswordViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractiveViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKeyViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent,
-            ClusterAuthenticationCredentialsAuthType.SshCertificate =>
-                ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate,
-            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.SshCertificateViaProxy,
-            ClusterAuthenticationCredentialsAuthType.Kerberos =>
-                ClusterAuthenticationCredentialsAuthTypeExt.Kerberos,
-            ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio =>
-                ClusterAuthenticationCredentialsAuthTypeExt.FirecRestIdpViaExpirio,
-            _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
-        };
+        if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.Password))
+            return ClusterAuthenticationCredentialsAuthTypeExt.Password;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
+            return ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractive;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
+            return ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKey;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey))
+            return ClusterAuthenticationCredentialsAuthTypeExt.PrivateKey;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent))
+            return ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+            return ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+            return ClusterAuthenticationCredentialsAuthTypeExt.Kerberos;
+        else if(type.HasFlag(ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio))
+            return ClusterAuthenticationCredentialsAuthTypeExt.FirecRestIdpViaExpirio;
+        else
+            return ClusterAuthenticationCredentialsAuthTypeExt.Unknown;
     }
 
     public static ClusterAuthenticationCredentialsAuthType ConvertExtToInt(
