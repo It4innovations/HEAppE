@@ -101,7 +101,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            var cache = LogicFactory.GetService<IMemoryCache>();
             if (cache != null)
             {
                 string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
@@ -132,7 +132,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
-        var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null)
         {
             string sessionCacheKey = $"SessionUser_{sessionCode}";
@@ -791,9 +791,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         for (var i = 0; i < hashBytes.Length; i++) _ = sb.Append(hashBytes[i].ToString("X2"));
         var hash = sb.ToString();
 
-        return hash != user.Password
-            ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
-            : CreateSessionCode(user).UniqueCode;
+        if (hash != user.Password)
+        {
+            _logger.LogWarning($"Password mismatch for {user.Username}. CreatedAt={user.CreatedAt:yyyy-MM-dd HH:mm:ss}, ExpectedHash={user.Password}, ComputedHash={hash}");
+            throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
+        }
+        return CreateSessionCode(user).UniqueCode;
     }
 
     private string AuthenticateUserWithDigitalSignature(DigitalSignatureCredentials credentials)

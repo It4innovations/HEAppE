@@ -424,7 +424,7 @@ public class ManagementLogic : IManagementLogic
                 // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
                 // Without this, the 10-second UserById cache would return a stale snapshot and the role check
                 // for the brand-new project would fail with a 403 Forbidden.
-                var userCache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+                var userCache = LogicFactory.GetService<IMemoryCache>();
                 userCache?.Remove($"UserById_{userToUpdate.Id}");
                 
                 _logger.LogInformation($"Created project with id {project.Id}.");
@@ -4202,7 +4202,7 @@ public class ManagementLogic : IManagementLogic
 
     public async Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus()
     {
-        var cache = (IMemoryCache?)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null && cache.TryGetValue(ExternalServicesLiveStatusCacheKey, out List<ExternalServiceLiveStatus>? cachedStatus) && cachedStatus != null)
         {
             return cachedStatus;

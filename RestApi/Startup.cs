@@ -183,9 +183,18 @@ public class Startup
         {
             options.AddPolicy(_allowSpecificOrigins, builder =>
             {
-                builder.WithOrigins(ApplicationAPIConfiguration.AllowedHosts)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
+                if (ApplicationAPIConfiguration.AllowedHosts != null && ApplicationAPIConfiguration.AllowedHosts.Length > 0)
+                {
+                    builder.WithOrigins(ApplicationAPIConfiguration.AllowedHosts)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
+                else
+                {
+                    builder.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
             });
         });
         

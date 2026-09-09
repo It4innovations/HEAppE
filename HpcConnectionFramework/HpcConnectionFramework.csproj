@@ -28,5 +28,8 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>SshCaAPITests</_Parameter1>
         </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>RestApi.IntegrationTests</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 </Project>

@@ -1,0 +1,132 @@
+version: '3.8'
+
+networks:
+  ci-network:
+    driver: bridge
+
+volumes:
+  shared_keys_vol:
+  sql_ci_vol:
+  sftp_ci_vol:
+
+services:
+  mssql-ci:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: heappe_mssql_ci
+    restart: unless-stopped
+    user: root
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      SA_PASSWORD: "Passw0rdSA123!"
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_ci_vol:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"Passw0rdSA123!\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"Passw0rdSA123!\" -Q \"SELECT 1\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks:
+      - ci-network
+
+  slurm-ci:
+    build:
+      context: ./docker/slurm
+    container_name: heappe_slurm_ci
+    hostname: slurm-ci
+    restart: unless-stopped
+    ports:
+      - "2222:22"
+      - "6817:6817"
+    volumes:
+      - shared_keys_vol:/shared_keys
+    healthcheck:
+      test: ["CMD-SHELL", "sinfo | grep -q 'idle' || sinfo | grep -q 'standard' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+    networks:
+      - ci-network
+
+  sshnode-ci:
+    build:
+      context: ./docker/sshnode
+    container_name: heappe_sshnode_ci
+    hostname: sshnode-ci
+    restart: unless-stopped
+    ports:
+      - "2223:22"
+    volumes:
+      - shared_keys_vol:/shared_keys
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ci-network
+
+  pbs-mock-ci:
+    build:
+      context: ./docker/pbs-mock
+    container_name: heappe_pbs_mock_ci
+    hostname: pbs-mock-ci
+    restart: unless-stopped
+    ports:
+      - "2224:22"
+    volumes:
+      - shared_keys_vol:/shared_keys
+    healthcheck:
+      test: ["CMD-SHELL", "qstat >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ci-network
+
+  qscheduler-ci:
+    build:
+      context: ./docker/qscheduler
+    container_name: heappe_qscheduler_ci
+    hostname: qscheduler-ci
+    restart: unless-stopped
+    ports:
+      - "4300:4300"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4300/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - ci-network
+
+  testrunner-ci:
+    build:
+      context: ./docker/testrunner
+    container_name: heappe_testrunner_ci
+    volumes:
+      - ../:/workspace
+      - shared_keys_vol:/shared_keys
+    environment:
+      CI: "true"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    depends_on:
+      mssql-ci:
+        condition: service_healthy
+      slurm-ci:
+        condition: service_healthy
+      sshnode-ci:
+        condition: service_healthy
+      pbs-mock-ci:
+        condition: service_healthy
+      qscheduler-ci:
+        condition: service_healthy
+    networks:
+      - ci-network

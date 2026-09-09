@@ -55,6 +55,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Authentication", "Authentic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Services", "Services\Services.csproj", "{CED33B51-D18E-4792-956B-2C81B7495688}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{74996FBF-F0AC-44A8-B1ED-8EF14BBADC9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RestApi.IntegrationTests", "Tests\RestApi.IntegrationTests\RestApi.IntegrationTests.csproj", "{EE6E5A85-4303-4B48-8723-A1FF20AAAA14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessLogicTier.Tests", "Tests\BusinessLogicTier.Tests\BusinessLogicTier.Tests.csproj", "{4CCF3781-8B51-41E9-B909-C5698789C8EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAccessTier.Tests", "Tests\DataAccessTier.Tests\DataAccessTier.Tests.csproj", "{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshCaAPITests", "SshCaAPITests\SshCaAPITests.csproj", "{34087A9B-3CA9-4695-ACCC-7DC58498AF8F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,11 +163,32 @@ Global
 		{CED33B51-D18E-4792-956B-2C81B7495688}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CED33B51-D18E-4792-956B-2C81B7495688}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CED33B51-D18E-4792-956B-2C81B7495688}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE6E5A85-4303-4B48-8723-A1FF20AAAA14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE6E5A85-4303-4B48-8723-A1FF20AAAA14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE6E5A85-4303-4B48-8723-A1FF20AAAA14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE6E5A85-4303-4B48-8723-A1FF20AAAA14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CCF3781-8B51-41E9-B909-C5698789C8EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CCF3781-8B51-41E9-B909-C5698789C8EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CCF3781-8B51-41E9-B909-C5698789C8EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CCF3781-8B51-41E9-B909-C5698789C8EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34087A9B-3CA9-4695-ACCC-7DC58498AF8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34087A9B-3CA9-4695-ACCC-7DC58498AF8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34087A9B-3CA9-4695-ACCC-7DC58498AF8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34087A9B-3CA9-4695-ACCC-7DC58498AF8F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A9A30F62-3C31-4DCA-8F22-DBEF673E7EEF}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EE6E5A85-4303-4B48-8723-A1FF20AAAA14} = {74996FBF-F0AC-44A8-B1ED-8EF14BBADC9B}
+		{4CCF3781-8B51-41E9-B909-C5698789C8EE} = {74996FBF-F0AC-44A8-B1ED-8EF14BBADC9B}
+		{A1E06DCD-235A-48AA-AC73-CF6AB23FCCBE} = {74996FBF-F0AC-44A8-B1ED-8EF14BBADC9B}
 	EndGlobalSection
 EndGlobal

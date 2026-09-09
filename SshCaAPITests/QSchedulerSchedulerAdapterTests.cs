@@ -363,8 +363,8 @@ public class QSchedulerSchedulerAdapterTests
         var project = new Project
         {
             Id = 10,
-            Name = "MyProject",
-            AccountingString = "MyProjectAcc",
+            Name = "MyProject_MultipleAggregations",
+            AccountingString = "MyProjectAcc_MultipleAggregations",
             UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
             ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
             {

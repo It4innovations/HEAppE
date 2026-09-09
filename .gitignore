@@ -6,6 +6,8 @@
 Library/
 scratch/
 NuGet.Config
+.dotnet/
+.local/
 
 # QScheduler temp files
 qscheduler-temp/

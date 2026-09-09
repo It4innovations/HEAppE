@@ -40,6 +40,11 @@ public class MiddlewareContext : DbContext
         _logger = logger;
     }
 
+    public MiddlewareContext(DbContextOptions<MiddlewareContext> options, ILogger logger = null) : base(options)
+    {
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<MiddlewareContext>.Instance;
+    }
+
     public static void InitializeDatabase(ILogger logger)
     {
         if (logger.GetType().Name.Contains("NullLogger") || Environment.GetCommandLineArgs().Any(a => a.Contains("ef"))) return;
@@ -151,28 +156,31 @@ public class MiddlewareContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        var connectionString = MiddlewareContextSettings.ConnectionString;
-        if (!string.IsNullOrEmpty(connectionString))
+        if (!optionsBuilder.IsConfigured)
         {
-            var builder = new SqlConnectionStringBuilder(connectionString);
-            if (!builder.MultipleActiveResultSets)
+            var connectionString = MiddlewareContextSettings.ConnectionString;
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                builder.MultipleActiveResultSets = true;
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                if (!builder.MultipleActiveResultSets)
+                {
+                    builder.MultipleActiveResultSets = true;
+                }
+                if (!builder.TrustServerCertificate)
+                {
+                    builder.TrustServerCertificate = true;
+                }
+                connectionString = builder.ConnectionString;
             }
-            if (!builder.TrustServerCertificate)
-            {
-                builder.TrustServerCertificate = true;
-            }
-            connectionString = builder.ConnectionString;
-        }
 
-        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
-            sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null));
-        optionsBuilder.AddInterceptors(Interceptors.DatabaseCommandTelemetryInterceptor.Instance);
-        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+            optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
+                sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null));
+            optionsBuilder.AddInterceptors(Interceptors.DatabaseCommandTelemetryInterceptor.Instance);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -648,6 +656,7 @@ public class MiddlewareContext : DbContext
     {
         if (items == null || !items.Any()) return;
 
+        ChangeTracker.Clear();
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
         _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
@@ -698,6 +707,7 @@ public class MiddlewareContext : DbContext
         }
         finally
         {
+            ChangeTracker.Clear();
             await Database.CloseConnectionAsync();
             _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
@@ -707,8 +717,7 @@ public class MiddlewareContext : DbContext
     {
         if (entity != null)
         {
-            Entry(entity).State = EntityState.Detached;
-            Entry(item).State = EntityState.Modified;
+            Entry(entity).CurrentValues.SetValues(item);
         }
         else
         {

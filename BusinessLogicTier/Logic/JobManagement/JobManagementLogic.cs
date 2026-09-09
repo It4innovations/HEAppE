@@ -2028,7 +2028,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         try
         {
-            var eventHub = (IHEAppEEventHub)LogicFactory.ServiceProvider?.GetService(typeof(IHEAppEEventHub));
+            var eventHub = LogicFactory.GetService<IHEAppEEventHub>();
             if (eventHub != null)
             {
                 await eventHub.PublishEventAsync(userId, eventType, source, data);

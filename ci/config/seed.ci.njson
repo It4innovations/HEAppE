@@ -1,0 +1,472 @@
+{
+   "MiddlewareContextSettings": {
+      "AdaptorUsers": [
+         {
+            "Id": 1,
+            "Username": "admin",
+            "Password": "93EB3DCF7328172F7B56AB3A5F1D31FE19460FC2C1B437F15D02BF455DEFFB9BC212FDFE6CE49BE5E4479C5EAA1CA56188627EBC612428987E81489E33EEBE3D",
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null
+         },
+         {
+            "Id": 2,
+            "Username": "submitter",
+            "Password": "93EB3DCF7328172F7B56AB3A5F1D31FE19460FC2C1B437F15D02BF455DEFFB9BC212FDFE6CE49BE5E4479C5EAA1CA56188627EBC612428987E81489E33EEBE3D",
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null
+         },
+         {
+            "Id": 3,
+            "Username": "manager",
+            "Password": "93EB3DCF7328172F7B56AB3A5F1D31FE19460FC2C1B437F15D02BF455DEFFB9BC212FDFE6CE49BE5E4479C5EAA1CA56188627EBC612428987E81489E33EEBE3D",
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null
+         },
+         {
+            "Id": 4,
+            "Username": "reporter",
+            "Password": "93EB3DCF7328172F7B56AB3A5F1D31FE19460FC2C1B437F15D02BF455DEFFB9BC212FDFE6CE49BE5E4479C5EAA1CA56188627EBC612428987E81489E33EEBE3D",
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null
+         },
+         {
+            "Id": 5,
+            "Username": "guest",
+            "Password": "93EB3DCF7328172F7B56AB3A5F1D31FE19460FC2C1B437F15D02BF455DEFFB9BC212FDFE6CE49BE5E4479C5EAA1CA56188627EBC612428987E81489E33EEBE3D",
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null
+         }
+      ],
+      "AdaptorUserGroups": [
+         {
+            "Id": 1,
+            "Name": "CITestGroup",
+            "Description": "CI Test Group",
+            "ProjectId": 1
+         },
+         {
+            "Id": 2,
+            "Name": "OtherTestGroup",
+            "Description": "Secondary CI Group",
+            "ProjectId": 2
+         }
+      ],
+      "AdaptorUserRoles": [
+         {
+            "Id": 1,
+            "Name": "Administrator",
+            "Description": "HEAppE administrator role with access to the entire system."
+         },
+         {
+            "Id": 2,
+            "Name": "Maintainer",
+            "Description": "HEAppE maintainer role for getting information about actual HEAppE status."
+         },
+         {
+            "Id": 3,
+            "Name": "Submitter",
+            "Description": "Standard user, can submit and check his own jobs."
+         },
+         {
+            "Id": 4,
+            "Name": "GroupReporter",
+            "Description": "Users with this role can report in assigned groups."
+         },
+         {
+            "Id": 5,
+            "Name": "Reporter",
+            "Description": "Users with this role can watch other jobs in the same group."
+         },
+         {
+            "Id": 6,
+            "Name": "ManagementAdmin",
+            "Description": "User with this role can create new project and use management API."
+         },
+         {
+            "Id": 7,
+            "Name": "Manager",
+            "Description": "User with this role can manage command templates, can submit and check his own jobs."
+         }
+      ],
+      "AdaptorUserUserGroupRoles": [
+         {
+            "AdaptorUserId": 1,
+            "AdaptorUserGroupId": 1,
+            "AdaptorUserRoleId": 1,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "AdaptorUserId": 2,
+            "AdaptorUserGroupId": 1,
+            "AdaptorUserRoleId": 3,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "AdaptorUserId": 3,
+            "AdaptorUserGroupId": 1,
+            "AdaptorUserRoleId": 7,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "AdaptorUserId": 4,
+            "AdaptorUserGroupId": 1,
+            "AdaptorUserRoleId": 5,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         }
+      ],
+      "Clusters": [
+         {
+            "Id": 1,
+            "Name": "SlurmTestCluster",
+            "Description": "Containerized Slurm CI Cluster",
+            "MasterNodeName": "slurm-ci",
+            "SchedulerType": 4,
+            "ConnectionProtocol": 2,
+            "TimeZone": "UTC",
+            "Port": 22,
+            "UpdateJobStateByServiceAccount": true,
+            "DomainName": "slurm.ci",
+            "ProxyConnectionId": null
+         },
+         {
+            "Id": 2,
+            "Name": "PbsTestCluster",
+            "Description": "Mock PBS Pro Cluster",
+            "MasterNodeName": "pbs-mock-ci",
+            "SchedulerType": 2,
+            "ConnectionProtocol": 2,
+            "TimeZone": "UTC",
+            "Port": 22,
+            "UpdateJobStateByServiceAccount": true,
+            "DomainName": "pbs.ci",
+            "ProxyConnectionId": null
+         },
+         {
+            "Id": 3,
+            "Name": "QSchedulerTestCluster",
+            "Description": "Real QScheduler Service Cluster",
+            "MasterNodeName": "qscheduler-ci",
+            "SchedulerType": 32,
+            "ConnectionProtocol": 1,
+            "TimeZone": "UTC",
+            "Port": 4300,
+            "UpdateJobStateByServiceAccount": true,
+            "DomainName": "qscheduler.ci",
+            "ProxyConnectionId": null
+         }
+      ],
+      "ClusterAuthenticationCredentials": [
+         {
+            "Id": 1,
+            "Username": "testuser",
+            "Password": "TestUserPass123!",
+            "PrivateKey": null,
+            "PrivateKeyPassphrase": null,
+            "PrivateKeyCertificate": null,
+            "CipherType": 1
+         },
+         {
+            "Id": 2,
+            "Username": "adminuser",
+            "Password": "AdminUserPass123!",
+            "PrivateKey": null,
+            "PrivateKeyPassphrase": null,
+            "PrivateKeyCertificate": null,
+            "CipherType": 1
+         }
+      ],
+      "Projects": [
+         {
+            "Id": 1,
+            "Name": "CITestProject",
+            "Description": "Primary CI Project",
+            "AccountingString": "ci-project",
+            "StartDate": "2020-01-01 00:00:00",
+            "EndDate": "2030-01-01 00:00:00",
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "UseAccountingStringForScheduler": true,
+            "IsOneToOneMapping": false,
+            "UsageType": 1
+         },
+         {
+            "Id": 2,
+            "Name": "QuantumProject",
+            "Description": "Quantum Computing Test Project",
+            "AccountingString": "q-project",
+            "StartDate": "2020-01-01 00:00:00",
+            "EndDate": "2030-01-01 00:00:00",
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "UseAccountingStringForScheduler": true,
+            "IsOneToOneMapping": false,
+            "UsageType": 3
+         }
+      ],
+      "Contacts": [
+         {
+            "Id": 1,
+            "Email": "admin@heappe-ci.test",
+            "IsDeleted": false,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "PublicKey": null
+         }
+      ],
+      "ProjectContacts": [
+         {
+            "ProjectId": 1,
+            "ContactId": 1,
+            "IsPI": true
+         },
+         {
+            "ProjectId": 2,
+            "ContactId": 1,
+            "IsPI": true
+         }
+      ],
+      "ClusterProjects": [
+         {
+            "Id": 1,
+            "ClusterId": 1,
+            "ProjectId": 1,
+            "ScratchStoragePath": "/scratch",
+            "ProjectStoragePath": "/scratch/projects",
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "Id": 2,
+            "ClusterId": 2,
+            "ProjectId": 1,
+            "ScratchStoragePath": "/var/spool/pbs/scratch",
+            "ProjectStoragePath": "/var/spool/pbs/projects",
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "Id": 3,
+            "ClusterId": 3,
+            "ProjectId": 2,
+            "ScratchStoragePath": "/tmp",
+            "ProjectStoragePath": "/tmp",
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         }
+      ],
+      "ClusterProjectCredentials": [
+         {
+            "ClusterProjectId": 1,
+            "ClusterAuthenticationCredentialsId": 1,
+            "IsServiceAccount": true,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "AdaptorUserId": null
+         },
+         {
+            "ClusterProjectId": 2,
+            "ClusterAuthenticationCredentialsId": 1,
+            "IsServiceAccount": true,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "AdaptorUserId": null
+         },
+         {
+            "ClusterProjectId": 3,
+            "ClusterAuthenticationCredentialsId": 1,
+            "IsServiceAccount": true,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "AdaptorUserId": null
+         }
+      ],
+      "ClusterNodeTypes": [
+         {
+            "Id": 1,
+            "Name": "standard",
+            "Description": "Standard 8-core CPU node",
+            "NumberOfNodes": 1,
+            "CoresPerNode": 8,
+            "Queue": "standard",
+            "QualityOfService": "normal",
+            "MaxWalltime": 36000,
+            "ClusterId": 1,
+            "FileTransferMethodId": 1,
+            "ClusterAllocationName": null,
+            "ClusterNodeTypeAggregationId": 1
+         },
+         {
+            "Id": 2,
+            "Name": "debug",
+            "Description": "Debug queue node",
+            "NumberOfNodes": 1,
+            "CoresPerNode": 4,
+            "Queue": "debug",
+            "QualityOfService": "normal",
+            "MaxWalltime": 3600,
+            "ClusterId": 1,
+            "FileTransferMethodId": 1,
+            "ClusterAllocationName": null,
+            "ClusterNodeTypeAggregationId": 1
+         },
+         {
+            "Id": 3,
+            "Name": "pbs_workq",
+            "Description": "PBS Work Queue",
+            "NumberOfNodes": 1,
+            "CoresPerNode": 4,
+            "Queue": "workq",
+            "QualityOfService": null,
+            "MaxWalltime": 3600,
+            "ClusterId": 2,
+            "FileTransferMethodId": 2,
+            "ClusterAllocationName": null,
+            "ClusterNodeTypeAggregationId": 1
+         },
+         {
+            "Id": 4,
+            "Name": "TestMachine",
+            "Description": "Quantum Test Machine",
+            "NumberOfNodes": 1,
+            "CoresPerNode": 1,
+            "Queue": "TestMachine",
+            "QualityOfService": null,
+            "MaxWalltime": 3600,
+            "ClusterId": 3,
+            "FileTransferMethodId": 1,
+            "ClusterAllocationName": null,
+            "ClusterNodeTypeAggregationId": 2
+         }
+      ],
+      "ClusterNodeTypeAggregations": [
+         {
+            "Id": 1,
+            "Name": "StandardCoreHours",
+            "Description": "Standard Core Hours",
+            "AllocationType": 1,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "ValidityFrom": "2020-01-01 00:00:00",
+            "ValidityTo": "2030-01-01 00:00:00"
+         },
+         {
+            "Id": 2,
+            "Name": "QPUSeconds",
+            "Description": "Quantum Processing Unit Seconds",
+            "AllocationType": 3,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false,
+            "ValidityFrom": "2020-01-01 00:00:00",
+            "ValidityTo": "2030-01-01 00:00:00"
+         }
+      ],
+      "ProjectClusterNodeTypeAggregations": [
+         {
+            "ProjectId": 1,
+            "ClusterNodeTypeAggregationId": 1,
+            "AllocationAmount": 100000,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "ProjectId": 2,
+            "ClusterNodeTypeAggregationId": 2,
+            "AllocationAmount": 50000,
+            "CreatedAt": "2020-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         }
+      ],
+      "CommandTemplates": [
+         {
+            "Id": 1,
+            "Name": "TestScriptTemplate",
+            "Description": "Test script template",
+            "ExtendedAllocationCommand": null,
+            "ExecutableFile": "~/.HEAppE/.key_scripts/test.sh",
+            "CommandParameters": "%%{inputParam}",
+            "PreparationScript": null,
+            "ClusterNodeTypeId": 1,
+            "IsGeneric": false,
+            "IsEnabled": true,
+            "IsDeleted": false,
+            "ProjectId": null
+         },
+         {
+            "Id": 2,
+            "Name": "GenericCommandTemplate",
+            "Description": "Command template for generic job",
+            "ExtendedAllocationCommand": null,
+            "ExecutableFile": "~/.HEAppE/.key_scripts/generic.sh",
+            "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
+            "PreparationScript": null,
+            "ClusterNodeTypeId": 1,
+            "IsGeneric": true,
+            "IsEnabled": true,
+            "IsDeleted": false,
+            "ProjectId": null
+         }
+      ],
+      "CommandTemplateParameters": [
+         {
+            "Id": 1,
+            "Identifier": "inputParam",
+            "Query": "",
+            "Description": "Input parameter for test script",
+            "CommandTemplateId": 1,
+            "IsVisible": true
+         },
+         {
+            "Id": 2,
+            "Identifier": "userScriptPath",
+            "Query": "",
+            "Description": "Path of the user script",
+            "CommandTemplateId": 2,
+            "IsVisible": true
+         },
+         {
+            "Id": 3,
+            "Identifier": "userScriptParametres",
+            "Query": "",
+            "Description": "Parameters for generic command template",
+            "CommandTemplateId": 2,
+            "IsVisible": false
+         }
+      ],
+      "FileTransferMethods": [
+         {
+            "Id": 1,
+            "ServerHostname": "slurm-ci",
+            "Protocol": 2,
+            "Port": 22,
+            "ClusterId": 1
+         },
+         {
+            "Id": 2,
+            "ServerHostname": "pbs-mock-ci",
+            "Protocol": 2,
+            "Port": 22,
+            "ClusterId": 2
+         }
+      ]
+   }
+}
