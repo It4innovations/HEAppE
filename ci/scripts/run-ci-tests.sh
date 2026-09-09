@@ -45,8 +45,8 @@ dotnet test "HEAppE Core.sln" \
     --no-build \
     --collect:"XPlat Code Coverage" \
     --settings ci/coverage.runsettings \
-    --logger "junit;LogFilePath=/workspace/TestResults/junit_results.xml" \
-    --logger "trx;LogFileName=test_results.trx" \
+    --logger "junit;LogFilePath=/workspace/TestResults/{assembly}_junit.xml" \
+    --logger "trx;LogFileName={assembly}_test_results.trx" \
     --logger "console;verbosity=normal" \
     --results-directory /workspace/TestResults
 TEST_EXIT_CODE=$?

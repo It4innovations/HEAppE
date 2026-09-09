@@ -142,6 +142,7 @@ test_e2e:
     paths:
       - TestResults/
     reports:
+      junit: TestResults/*junit*.xml
       coverage_report:
         coverage_format: cobertura
         path: TestResults/CoverageReport/Cobertura.xml
