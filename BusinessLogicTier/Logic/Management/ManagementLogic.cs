@@ -4000,49 +4000,44 @@ public class ManagementLogic : IManagementLogic
         string password, SecureShellKey sshKey, string passphrase, Cluster cluster, bool isGenerated)
     {
         ClusterAuthenticationCredentials credentials = null;
-        switch(authType)
-        {
-            case ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio:
-            case ClusterAuthenticationCredentialsAuthType.Unknown:
-            case ClusterAuthenticationCredentialsAuthType.Kerberos:
-                credentials = new()
-                {
-                    Username = username,
-                    ClusterProjectCredentials = new List<ClusterProjectCredential>(),
-                    IsGenerated = isGenerated
-                };
-                break;
-            case ClusterAuthenticationCredentialsAuthType.Password:
-                credentials = new()
-                {
-                    Username = username,
-                    Password = password,
-                    ClusterProjectCredentials = new List<ClusterProjectCredential>(),
-                    IsGenerated = isGenerated
-                };
-                break;
-            case ClusterAuthenticationCredentialsAuthType.PrivateKey:
-            case ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey:
-            case ClusterAuthenticationCredentialsAuthType.SshCertificate:
-            case ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy:
-                credentials = new()
-                {
-                    Username = username,
-                    Password = password,
-                    PrivateKey = sshKey.PrivateKeyPEM,
-                    PrivateKeyPassphrase = passphrase,
-                    CipherType = CipherGeneratorConfiguration.Type,
-                    PublicKeyFingerprint = sshKey?.PublicKeyFingerprint,
-                    PublicKey = sshKey?.PublicKeyInAuthorizedKeysFormat != null && sshKey.PublicKeyInAuthorizedKeysFormat.Length <= 200 
-                        ? sshKey.PublicKeyInAuthorizedKeysFormat 
-                        : null,
-                    ClusterProjectCredentials = new List<ClusterProjectCredential>(),
-                    IsGenerated = isGenerated
-                };
-                break;
-            default:
-                throw new AuthenticationTypeException("Not Supported Authentication");
-        }
+
+        if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio) || 
+           authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Unknown) ||
+           authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+            credentials = new()
+            {
+                Username = username,
+                ClusterProjectCredentials = new List<ClusterProjectCredential>(),
+                IsGenerated = isGenerated
+            };
+        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Password))
+            credentials = new()
+            {
+                Username = username,
+                Password = password,
+                ClusterProjectCredentials = new List<ClusterProjectCredential>(),
+                IsGenerated = isGenerated
+            };
+        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey) || 
+                authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey) ||
+                authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+            credentials = new()
+            {
+                Username = username,
+                Password = password,
+                PrivateKey = sshKey.PrivateKeyPEM,
+                PrivateKeyPassphrase = passphrase,
+                CipherType = CipherGeneratorConfiguration.Type,
+                PublicKeyFingerprint = sshKey?.PublicKeyFingerprint,
+                PublicKey = sshKey?.PublicKeyInAuthorizedKeysFormat != null && sshKey.PublicKeyInAuthorizedKeysFormat.Length <= 200 
+                    ? sshKey.PublicKeyInAuthorizedKeysFormat 
+                    : null,
+                ClusterProjectCredentials = new List<ClusterProjectCredential>(),
+                IsGenerated = isGenerated
+            };
+        else
+            throw new AuthenticationTypeException("Not Supported Authentication");
+        
         credentials.AuthenticationType = authType;
             //ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credentials, cluster);
         return credentials;
