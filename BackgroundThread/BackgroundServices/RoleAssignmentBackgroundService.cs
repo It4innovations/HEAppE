@@ -37,6 +37,9 @@ public class RoleAssignmentBackgroundService : BackgroundService
             {
                 using (IUnitOfWork workerUow = new DatabaseUnitOfWork(_logger))
                 {
+                    var dynamicAssignments = await workerUow.SystemRoleAssignmentRepository.GetAllAsync();
+                    RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
+
                     var groups = await workerUow.AdaptorUserGroupRepository.GetAllAsync();
                     var userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
 

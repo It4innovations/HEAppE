@@ -76,6 +76,19 @@ public class RoleAssignmentConfiguration
         return "None";
     }
 
+    public static void LoadDynamicRoleAssignments(IEnumerable<SystemRoleAssignment> assignments)
+    {
+        if (assignments == null) return;
+        _dynamicRoleAssignments.Clear();
+        foreach (var assignment in assignments)
+        {
+            if (!string.IsNullOrWhiteSpace(assignment.Username))
+            {
+                AddDynamicRoleAssignment(assignment.Username, assignment.Role);
+            }
+        }
+    }
+
     public static List<SystemRoleAssignment> GetAllRoleAssignments()
     {
         var result = new List<SystemRoleAssignment>();
@@ -89,7 +102,7 @@ public class RoleAssignmentConfiguration
                 result.Add(new SystemRoleAssignment
                 {
                     Username = user,
-                    Role = role.ToString(),
+                    Role = role,
                     Source = GetRoleAssignmentSource(user, role)
                 });
             }

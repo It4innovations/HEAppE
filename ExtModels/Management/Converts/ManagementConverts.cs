@@ -215,7 +215,7 @@ public static class ManagementConverts
         return new SystemRoleAssignmentExt
         {
             Username = assignment.Username,
-            Role = assignment.Role,
+            Role = assignment.Role.ToString(),
             Source = assignment.Source
         };
     }

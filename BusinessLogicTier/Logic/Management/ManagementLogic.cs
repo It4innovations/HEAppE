@@ -4533,6 +4533,17 @@ public class ManagementLogic : IManagementLogic
 
         RoleAssignmentConfiguration.AddDynamicRoleAssignment(username, role);
 
+        var existingDbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (existingDbAssignment == null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Insert(new SystemRoleAssignment
+            {
+                Username = adaptorUser.Username,
+                Role = role,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         var groups = _unitOfWork.AdaptorUserGroupRepository.GetAll()
             .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) &&
                          !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
@@ -4566,7 +4577,7 @@ public class ManagementLogic : IManagementLogic
         return new SystemRoleAssignment
         {
             Username = adaptorUser.Username,
-            Role = role.ToString(),
+            Role = role,
             Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
         };
     }
@@ -4581,6 +4592,12 @@ public class ManagementLogic : IManagementLogic
 
         RoleAssignmentConfiguration.RemoveDynamicRoleAssignment(username, role);
 
+        var dbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (dbAssignment != null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Delete(dbAssignment);
+        }
+
         var assignments = adaptorUser.AdaptorUserUserGroupRoles?
             .Where(r => r.AdaptorUserRoleId == (long)role && !r.IsDeleted)
             .ToList();
@@ -4594,8 +4611,9 @@ public class ManagementLogic : IManagementLogic
             }
 
             _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
-            _unitOfWork.Save();
         }
+
+        _unitOfWork.Save();
 
         var userCache = LogicFactory.GetService<IMemoryCache>();
         userCache?.Remove($"UserById_{adaptorUser.Id}");
@@ -4603,13 +4621,15 @@ public class ManagementLogic : IManagementLogic
         return new SystemRoleAssignment
         {
             Username = adaptorUser.Username,
-            Role = role.ToString(),
+            Role = role,
             Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
         };
     }
 
     public List<SystemRoleAssignment> ListSystemRoleAssignments()
     {
+        var dbAssignments = _unitOfWork.SystemRoleAssignmentRepository.GetAll();
+        RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dbAssignments);
         return RoleAssignmentConfiguration.GetAllRoleAssignments();
     }
 

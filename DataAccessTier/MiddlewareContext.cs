@@ -17,6 +17,7 @@ using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.DomainObjects.Monitoring;
+using HEAppE.DomainObjects.Management;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
 using Microsoft.Data.SqlClient;
@@ -328,6 +329,15 @@ public class MiddlewareContext : DbContext
             .Property(p => p.CustomConfiguration).HasJsonConversion();
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfigurationVaultToggles).HasJsonConversion();
+
+        modelBuilder.Entity<SystemRoleAssignment>(entity =>
+        {
+            entity.ToTable("SystemRoleAssignment");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Role).IsRequired();
+            entity.HasIndex(e => new { e.Username, e.Role }).IsUnique();
+        });
 
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
@@ -952,6 +962,12 @@ public class MiddlewareContext : DbContext
     #region Monitoring Entities
 
     public virtual DbSet<ExternalServiceHealthLog> ExternalServiceHealthLogs { get; set; }
+
+    #endregion
+
+    #region Management Entities
+
+    public virtual DbSet<SystemRoleAssignment> SystemRoleAssignments { get; set; }
 
     #endregion
 
