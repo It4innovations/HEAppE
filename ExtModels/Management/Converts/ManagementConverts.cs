@@ -209,5 +209,16 @@ public static class ManagementConverts
         };
     }
 
+    public static SystemRoleAssignmentExt ConvertIntToExt(this SystemRoleAssignment assignment)
+    {
+        if (assignment == null) return null;
+        return new SystemRoleAssignmentExt
+        {
+            Username = assignment.Username,
+            Role = assignment.Role,
+            Source = assignment.Source
+        };
+    }
+
     #endregion
 }

@@ -249,4 +249,7 @@ public interface IManagementService
     Task<List<JobExternalServiceLogExt>> GetJobExternalServiceLogs(long jobId, string sessionCode);
     Task<List<ExternalServiceStatisticsExt>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string? serviceName, long? clusterId, string sessionCode);
     Task<List<ExternalServiceLiveStatusExt>> GetExternalServicesLiveStatus(string sessionCode);
+    SystemRoleAssignmentExt AssignSystemRoleToUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode);
+    SystemRoleAssignmentExt RemoveSystemRoleFromUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode);
+    List<SystemRoleAssignmentExt> ListSystemRoleAssignments(string modelSessionCode);
 }

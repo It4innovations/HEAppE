@@ -6020,6 +6020,239 @@
         }
       }
     },
+    "/heappe/Management/AssignSystemRoleToUser": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Assign System Role to User across all projects",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/RemoveSystemRoleFromUser": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Remove System Role from User across all projects",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/SystemRoleAssignments": {
+      "get": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "List all System Role Assignments",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/Management/ProjectsByAccountingStrings": {
       "get": {
         "tags": [
@@ -15084,6 +15317,29 @@
         },
         "additionalProperties": false
       },
+      "AssignSystemRoleToUserModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Role": {
+            "$ref": "#/components/schemas/AdaptorUserRoleType"
+          }
+        },
+        "additionalProperties": false
+      },
       "AuthenticateLexisTokenModel": {
         "type": "object",
         "properties": {
@@ -20723,6 +20979,29 @@
         },
         "additionalProperties": false
       },
+      "RemoveSystemRoleFromUserModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Role": {
+            "$ref": "#/components/schemas/AdaptorUserRoleType"
+          }
+        },
+        "additionalProperties": false
+      },
       "ResourceAllocationTypeExt": {
         "enum": [
           1,
@@ -21090,6 +21369,27 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "SystemRoleAssignmentExt": {
+        "type": "object",
+        "properties": {
+          "Username": {
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Role": {
+            "type": "string",
+            "description": "Role name",
+            "nullable": true
+          },
+          "Source": {
+            "type": "string",
+            "description": "Assignment source (Appsettings, Dynamic, or Both)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "TaskCallbackModel": {
         "required": [

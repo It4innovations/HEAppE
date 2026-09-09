@@ -234,4 +234,7 @@ public interface IManagementLogic
     Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus();
     Task LogExternalServiceHealth(ExternalServiceHealthLog log);
     Task PurgeOldExternalServiceHealthLogs();
+    SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role);
+    SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role);
+    List<SystemRoleAssignment> ListSystemRoleAssignments();
 }

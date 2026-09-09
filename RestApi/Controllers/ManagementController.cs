@@ -815,6 +815,74 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(user);
     }
     
+    /// <summary>
+    /// Assign System Role to User across all projects
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("AssignSystemRoleToUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(SystemRoleAssignmentExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult AssignSystemRoleToUser(AssignSystemRoleToUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"AssignSystemRoleToUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignment = _managementService.AssignSystemRoleToUser(model.Username, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(assignment);
+    }
+
+    /// <summary>
+    /// Remove System Role from User across all projects
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RemoveSystemRoleFromUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(SystemRoleAssignmentExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult RemoveSystemRoleFromUser(RemoveSystemRoleFromUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveSystemRoleFromUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignment = _managementService.RemoveSystemRoleFromUser(model.Username, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(assignment);
+    }
+
+    /// <summary>
+    /// List all System Role Assignments
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("SystemRoleAssignments")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<SystemRoleAssignmentExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListSystemRoleAssignments(string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListSystemRoleAssignments\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignments = _managementService.ListSystemRoleAssignments(sessionCode);
+        return Ok(assignments);
+    }
+    
     #endregion
 
     #region Project

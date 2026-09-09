@@ -4523,6 +4523,97 @@ public class ManagementLogic : IManagementLogic
         return list;
     }
 
+    public SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.AddDynamicRoleAssignment(username, role);
+
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetAll()
+            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) &&
+                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .ToList();
+
+        foreach (var group in groups)
+        {
+            var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles?
+                .FirstOrDefault(r => r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)role);
+
+            if (existingAssignment != null)
+            {
+                if (existingAssignment.IsDeleted)
+                {
+                    existingAssignment.IsDeleted = false;
+                    existingAssignment.CreatedAt = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                adaptorUser.CreateSpecificUserRoleForUser(group, role);
+            }
+        }
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        var userCache = LogicFactory.GetService<IMemoryCache>();
+        userCache?.Remove($"UserById_{adaptorUser.Id}");
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role.ToString(),
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.RemoveDynamicRoleAssignment(username, role);
+
+        var assignments = adaptorUser.AdaptorUserUserGroupRoles?
+            .Where(r => r.AdaptorUserRoleId == (long)role && !r.IsDeleted)
+            .ToList();
+
+        if (assignments != null && assignments.Any())
+        {
+            foreach (var assignment in assignments)
+            {
+                assignment.IsDeleted = true;
+                assignment.ModifiedAt = DateTime.UtcNow;
+            }
+
+            _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+            _unitOfWork.Save();
+        }
+
+        var userCache = LogicFactory.GetService<IMemoryCache>();
+        userCache?.Remove($"UserById_{adaptorUser.Id}");
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role.ToString(),
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public List<SystemRoleAssignment> ListSystemRoleAssignments()
+    {
+        return RoleAssignmentConfiguration.GetAllRoleAssignments();
+    }
+
+
     private class ServiceToCheck
     {
         public string Name { get; set; } = string.Empty;
