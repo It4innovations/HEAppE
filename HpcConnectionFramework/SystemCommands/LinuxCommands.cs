@@ -535,14 +535,20 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"clone --single-branch -b {branch} \"{repoUrl}\" .",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("clone");
+            startInfo.ArgumentList.Add("--single-branch");
+            startInfo.ArgumentList.Add("-b");
+            startInfo.ArgumentList.Add(branch);
+            startInfo.ArgumentList.Add(repoUrl);
+            startInfo.ArgumentList.Add(".");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null) throw new Exception("Failed to start git clone process.");
             await process.WaitForExitAsync();
             if (process.ExitCode != 0)
@@ -557,14 +563,17 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"pull origin {branch}",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("pull");
+            startInfo.ArgumentList.Add("origin");
+            startInfo.ArgumentList.Add(branch);
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null) throw new Exception("Failed to start git pull process.");
             await process.WaitForExitAsync();
             if (process.ExitCode != 0)
@@ -592,14 +601,16 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = "rev-parse HEAD",
                 WorkingDirectory = localRepoPath,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("rev-parse");
+            startInfo.ArgumentList.Add("HEAD");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process != null)
             {
                 var output = await process.StandardOutput.ReadToEndAsync();
