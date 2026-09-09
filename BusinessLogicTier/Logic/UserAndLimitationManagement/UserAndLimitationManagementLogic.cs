@@ -840,8 +840,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private AdaptorUser GetActiveUser(string username)
     {
         _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
-        var user = _unitOfWork.AdaptorUserRepository.GetByName(username) ??
-               throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(username)
+               ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
+
+        if (user is null || user.IsDeleted)
+        {
+            throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
+        }
 
         if (user.IsBlocked)
         {

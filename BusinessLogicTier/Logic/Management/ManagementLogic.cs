@@ -205,6 +205,7 @@ public class ManagementLogic : IManagementLogic
         if (commandTemplate.CreatedFrom is not null) throw new InvalidRequestException("CommandTemplateNotStatic");
 
         var project = commandTemplate.Project ??
+                      (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value) : null) ??
                       throw new InputValidationException("NotPermitted");
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
@@ -3584,7 +3585,8 @@ public class ManagementLogic : IManagementLogic
         
         commandTemplate.Name = modelName;
         commandTemplate.Description = modelDescription;
-        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(commandTemplate.Project.AccountingString, "generic.sh");
+        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(
+            commandTemplate.Project?.AccountingString ?? (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value)?.AccountingString : null), "generic.sh");
         commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
         commandTemplate.PreparationScript = modelPreparationScript;
         commandTemplate.ClusterNodeType = clusterNodeType;

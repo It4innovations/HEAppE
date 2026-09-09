@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
 
 ### Fixed
+- Fixed `ModifyCommandTemplate` in `ManagementLogic` failing with `InputValidationException: NotPermitted` (HTTP 400) by adding eager loading of `Project` relation in `CommandTemplateRepository.GetById` and adding defensive repository lookup.
+- Fixed `GetActiveUser` in `UserAndLimitationManagementLogic` failing authentication when EF Core query filter evaluated related entities to null during split queries by adding a fallback lookup ignoring query filters.
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.

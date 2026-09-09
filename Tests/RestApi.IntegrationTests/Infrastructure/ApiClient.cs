@@ -62,6 +62,13 @@ public class ApiClient
         return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
     }
 
+    public async Task<HttpResponseMessage> PutJsonAsync<T>(string url, T data)
+    {
+        var json = JsonSerializer.Serialize(data, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        return await _client.PutAsync(url, content);
+    }
+
     public async Task<HttpResponseMessage> DeleteAsync(string url)
     {
         return await _client.DeleteAsync(url);

@@ -1,5 +1,7 @@
 using System.Net;
 using System.Threading.Tasks;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.RestApi.IntegrationTests.Infrastructure;
 using Xunit;
 using FluentAssertions;
@@ -22,9 +24,9 @@ public class AuthenticationTests : IClassFixture<HEAppEWebApplicationFactory>
     public async Task AuthenticateUserPassword_WithValidCredentials_ReturnsSessionCode()
     {
         var client = CreateClient();
-        var authModel = new
+        var authModel = new AuthenticateUserPasswordModel
         {
-            Credentials = new
+            Credentials = new PasswordCredentialsExt
             {
                 Username = "admin",
                 Password = "Passw0rd"
