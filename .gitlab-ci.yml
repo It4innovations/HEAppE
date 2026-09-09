@@ -118,6 +118,9 @@ test_e2e:
   before_script:
     - docker --version
     - docker compose version
+    - echo "Cleaning up runner disk space before test run..."
+    - docker system prune -af --volumes || true
+    - df -h
   script:
     - echo "Starting Docker infrastructure and executing test suites..."
     - cd ci
@@ -127,7 +130,8 @@ test_e2e:
     - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci
     - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults
   after_script:
-    - cd ci && docker compose -f docker-compose.ci.yml down -v || true
+    - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
+    - docker system prune -f || true
   artifacts:
     when: always
     paths:
