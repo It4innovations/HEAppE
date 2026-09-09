@@ -69,6 +69,7 @@ services:
   datastagingapi:
     image: "${DOCKER_REGISTRY-}datastagingapi"
     container_name: "${INSTANCE_NAME}_datastagingapi"
+    entrypoint: ["dotnet", "DataStagingAPI.dll"]
     build:
       context: .
       dockerfile: DataStagingAPI/Dockerfile
@@ -117,6 +118,7 @@ services:
   heappe:
     image: "${DOCKER_REGISTRY-}heappe"
     container_name: "${INSTANCE_NAME}_heappe"
+    entrypoint: ["dotnet", "RestApi.dll"]
     build:
       context: .
       dockerfile: RestApi/Dockerfile
