@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed `ModifyCommandTemplate` in `ManagementLogic` failing with `InputValidationException: NotPermitted` (HTTP 400) by adding eager loading of `Project` relation in `CommandTemplateRepository.GetById` and adding defensive repository lookup.
 - Fixed `GetActiveUser` in `UserAndLimitationManagementLogic` failing authentication when EF Core query filter evaluated related entities to null during split queries by adding a fallback lookup ignoring query filters.
+- Fixed database seed failure during test and startup initialization where `MiddlewareContextSettings` static collections accumulated duplicate entries across configuration bindings, causing EF Core tracking conflicts (`The instance of entity type ... cannot be tracked because another instance with the same key value for {'Id'} is already being tracked`). Added `Clear()` method to `MiddlewareContextSettings` and entity deduplication in `InsertOrUpdateSeedDataAsync`.
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.

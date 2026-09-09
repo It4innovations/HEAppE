@@ -87,6 +87,7 @@ public class Startup
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
         Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
+        MiddlewareContextSettings.Clear();
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
         DatabaseMigrationSettings.AutoMigrateDatabase = Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");

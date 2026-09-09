@@ -656,6 +656,71 @@ public class MiddlewareContext : DbContext
     {
         if (items == null || !items.Any()) return;
 
+        if (typeof(IdentifiableDbEntity).IsAssignableFrom(typeof(T)))
+        {
+            items = items.Cast<IdentifiableDbEntity>()
+                .GroupBy(x => x.Id)
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(AdaptorUserUserGroupRole))
+        {
+            items = items.Cast<AdaptorUserUserGroupRole>()
+                .GroupBy(x => (x.AdaptorUserId, x.AdaptorUserGroupId, x.AdaptorUserRoleId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialProject))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialProject>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackProjectId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialDomain))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialDomain>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackDomainId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectContact))
+        {
+            items = items.Cast<ProjectContact>()
+                .GroupBy(x => (x.ProjectId, x.ContactId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterProjectCredential))
+        {
+            items = items.Cast<ClusterProjectCredential>()
+                .GroupBy(x => (x.ClusterProjectId, x.ClusterAuthenticationCredentialsId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterNodeTypeAggregationAccounting))
+        {
+            items = items.Cast<ClusterNodeTypeAggregationAccounting>()
+                .GroupBy(x => (x.ClusterNodeTypeAggregationId, x.AccountingId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectClusterNodeTypeAggregation))
+        {
+            items = items.Cast<ProjectClusterNodeTypeAggregation>()
+                .GroupBy(x => (x.ProjectId, x.ClusterNodeTypeAggregationId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+
         ChangeTracker.Clear();
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
         _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");

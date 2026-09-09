@@ -91,6 +91,7 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
             {
                 config.AddNotJson(seedPath);
                 var configRoot = config.Build();
+                MiddlewareContextSettings.Clear();
                 configRoot.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
             }
         });

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -63,4 +63,37 @@ public class MiddlewareContextSettings
     public static List<ClusterProject> ClusterProjects { get; set; } = new();
 
     public static List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new();
+
+    public static void Clear()
+    {
+        AdaptorUsers.Clear();
+        AdaptorUserRoles.Clear();
+        AdaptorUserGroups.Clear();
+        AdaptorUserUserGroupRoles.Clear();
+        OpenStackInstances.Clear();
+        OpenStackDomains.Clear();
+        OpenStackProjectDomains.Clear();
+        OpenStackProjects.Clear();
+        OpenStackAuthenticationCredentials.Clear();
+        OpenStackAuthenticationCredentialDomains.Clear();
+        OpenStackAuthenticationCredentialProjects.Clear();
+        ClusterProxyConnections.Clear();
+        Clusters.Clear();
+        ClusterAuthenticationCredentials.Clear();
+        ClusterNodeTypes.Clear();
+        CommandTemplates.Clear();
+        CommandTemplateParameters.Clear();
+        FileTransferMethods.Clear();
+        Contacts.Clear();
+        Projects.Clear();
+        SubProjects.Clear();
+        Accountings.Clear();
+        AccountingStates.Clear();
+        ClusterNodeTypeAggregations.Clear();
+        ClusterNodeTypeAggregationAccounting.Clear();
+        ProjectClusterNodeTypeAggregations.Clear();
+        ProjectContacts.Clear();
+        ClusterProjects.Clear();
+        ClusterProjectCredentials.Clear();
+    }
 }
