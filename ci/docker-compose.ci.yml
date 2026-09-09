@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   ci-network:
     driver: bridge

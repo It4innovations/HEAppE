@@ -115,14 +115,9 @@ semgrep-sast:
 
 test_e2e:
   stage: test
-  image: docker:latest
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
   before_script:
-    - apk add --no-cache bash curl
+    - docker --version
+    - docker compose version
   script:
     - echo "Starting Docker infrastructure and executing test suites..."
     - cd ci
