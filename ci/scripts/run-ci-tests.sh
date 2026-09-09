@@ -2,12 +2,16 @@
 set -e
 
 export PATH="$PATH:$HOME/.dotnet/tools:/root/.dotnet/tools"
+export NUGET_PACKAGES="/root/.nuget/packages"
 
 echo "=========================================================="
 echo "    HEAppE Middleware CI Test & Coverage Runner"
 echo "=========================================================="
 
 cd /workspace
+
+# Clean up any legacy .nuget folder in workspace
+rm -rf /workspace/.nuget 2>/dev/null || true
 
 echo "==> Restoring solution..."
 dotnet restore "HEAppE Core.sln"
@@ -46,6 +50,10 @@ if command -v reportgenerator &> /dev/null || [ -f "/root/.dotnet/tools/reportge
 else
     echo "WARNING: reportgenerator binary not found in PATH or /root/.dotnet/tools"
 fi
+
+# Ensure host gitlab-runner user can access and clean up TestResults
+chmod -R 777 /workspace/TestResults 2>/dev/null || true
+rm -rf /workspace/.nuget 2>/dev/null || true
 
 if [ $TEST_EXIT_CODE -ne 0 ]; then
     echo "❌ Tests failed with exit code $TEST_EXIT_CODE"
