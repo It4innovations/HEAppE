@@ -505,6 +505,7 @@ public class JobManagementService : IJobManagementService
             .Include(x => x.Tasks)
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
             .Include(x => x.Tasks)
                 .ThenInclude(t => t.Specification)
                     .ThenInclude(ts => ts.EnvironmentVariables);
