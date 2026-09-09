@@ -132,12 +132,5 @@ services:
       - ci-network
     command:
       - /bin/bash
-      - -c
-      - |
-        set -e
-        dotnet restore "HEAppE Core.sln"
-        dotnet build "HEAppE Core.sln" -c Release --no-restore
-        mkdir -p /workspace/TestResults
-        dotnet test "HEAppE Core.sln" -c Release --no-build --collect:"XPlat Code Coverage" --settings ci/coverage.runsettings --logger "trx;LogFileName=test_results.trx" --logger "console;verbosity=normal" --results-directory /workspace/TestResults
-        reportgenerator -reports:"/workspace/TestResults/**/coverage.cobertura.xml" -targetdir:"/workspace/TestResults/CoverageReport" -reporttypes:"Html;Cobertura;TextSummary;Badges" -assemblyfilters:"+RestApi;+BusinessLogicTier;+DataAccessTier;+ServiceTier;+CertificateGenerator;+DomainObjects;+ExtModels;+RestApiModels;+HpcConnectionFramework;+FileTransferFramework;+BackgroundThread;-*Test*;-*Tests*;-*.Migrations"
+      - /workspace/ci/scripts/run-ci-tests.sh
 

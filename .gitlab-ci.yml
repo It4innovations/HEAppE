@@ -125,10 +125,10 @@ test_e2e:
     - echo "Starting Docker infrastructure and executing test suites..."
     - cd ci
     - docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
-    - chmod +x scripts/wait-for-healthy.sh
+    - chmod +x scripts/*.sh
     - ./scripts/wait-for-healthy.sh 120
     - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci
-    - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults
+    - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
   after_script:
     - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
     - docker system prune -f || true
