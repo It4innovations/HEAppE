@@ -50,7 +50,7 @@ jobs:
 
       - name: Restore NuGet Packages
         run: |
-          dotnet restore --configfile NuGet.Config "HEAppE Core.sln"
+          dotnet restore "HEAppE Core.sln"
 
       - name: Build HEAppE Solution
         run: |

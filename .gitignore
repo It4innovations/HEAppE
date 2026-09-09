@@ -5,7 +5,6 @@
 .DS_Store
 Library/
 scratch/
-NuGet.Config
 .dotnet/
 .local/
 

@@ -135,7 +135,7 @@ services:
       - -c
       - |
         set -e
-        dotnet restore --configfile NuGet.Config "HEAppE Core.sln"
+        dotnet restore "HEAppE Core.sln"
         dotnet build "HEAppE Core.sln" -c Release --no-restore
         mkdir -p /workspace/TestResults
         dotnet test "HEAppE Core.sln" -c Release --no-build --collect:"XPlat Code Coverage" --settings ci/coverage.runsettings --logger "trx;LogFileName=test_results.trx" --logger "console;verbosity=normal" --results-directory /workspace/TestResults
