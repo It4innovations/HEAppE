@@ -154,4 +154,51 @@ public class SlurmScriptGenerationTests
         cmd.Should().Contain("MY_VAR=\"MY_VALUE\"");
         cmd.Should().Contain("QUOTED_VAR=\"value with spaces\"");
     }
+
+    [Theory]
+    [InlineData("~", "$HOME")]
+    [InlineData("~/", "$HOME/")]
+    [InlineData("~/test-p01/HEAppE/Executions", "$HOME/test-p01/HEAppE/Executions")]
+    [InlineData("/storage/scratch/user", "/storage/scratch/user")]
+    [InlineData("", "")]
+    [InlineData(null, null)]
+    public void NormalizeShellPath_CorrectlyNormalizesTilde(string? input, string? expected)
+    {
+        SlurmTaskAdapter.NormalizeShellPath(input).Should().Be(expected);
+    }
+
+    [Fact]
+    public void SlurmTaskAdapter_TildePath_ExpandsToHomeVariableInCallbackScript()
+    {
+        var adapter = new SlurmTaskAdapter("sbatch");
+        adapter.UseCallback = true;
+        adapter.CallbackSecret = "test-token-123";
+        adapter.CallbackUrl = "https://heappe.example.com/callback";
+        adapter.WrapperScriptPath = "~/.HEAppE/.ATR-26-1/test-p01/.key_scripts/task_wrapper.sh";
+
+        adapter.SetPreparationAndCommand(
+            workDir: "~/test-p01/HEAppE/Executions/kon0379/38988/38988",
+            preparationScript: "echo prep",
+            commandLine: "echo run",
+            stdOutFile: "~/test-p01/HEAppE/Executions/kon0379/38988/38988/stdout",
+            stdErrFile: "~/test-p01/HEAppE/Executions/kon0379/38988/38988/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        // Must NOT contain literal quotes around tildes which would break bash
+        cmd.Should().NotContain("\"~/");
+
+        // Must use $HOME inside quotes
+        cmd.Should().Contain("mkdir -p \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/.heappe\"");
+        cmd.Should().Contain("echo \"test-token-123\" > \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/.heappe/callback_token\"");
+        cmd.Should().Contain("cat << \"EOF_HEAPPE_USER_TASK\" > \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/.heappe/heappe_user_task.sh\"");
+        cmd.Should().Contain("chmod +x \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/.heappe/heappe_user_task.sh\"");
+        cmd.Should().Contain("cd \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988\"");
+        cmd.Should().Contain("rm -f \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stdout\" \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stderr\"");
+        cmd.Should().Contain("touch \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stdout\" \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stderr\"");
+        cmd.Should().Contain("exec bash \"$HOME/.HEAppE/.ATR-26-1/test-p01/.key_scripts/task_wrapper.sh\" \"https://heappe.example.com/callback\" \"slurm\"");
+        cmd.Should().Contain("1>> \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stdout\" 2>> \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stderr\"");
+    }
 }
