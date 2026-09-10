@@ -897,11 +897,21 @@ public class ManagementController : BaseController<ManagementController>
     [RequestSizeLimit(3000)]
     [ProducesResponseType(typeof(List<ProjectExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectsByAccountingStrings([FromQuery] string[] accountingString, string sessionCode)
     {
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        if (accountingString == null || accountingString.Length == 0)
+        {
+            return Ok(new List<ProjectExt>());
+        }
+
         List<ProjectExt> projects = new();
         foreach (var element in accountingString)
             try
@@ -910,7 +920,7 @@ public class ManagementController : BaseController<ManagementController>
                 projects.Add(project);
                 _logger.LogDebug($"Project with accounting string \"{element}\" found.");
             }
-            catch (Exception e)
+            catch (RequestedObjectDoesNotExistException e)
             {
                 _logger.LogWarning($"Project with accounting string \"{element}\" not found. {e.Message}");
             }
