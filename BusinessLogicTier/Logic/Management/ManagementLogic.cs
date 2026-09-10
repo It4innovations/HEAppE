@@ -361,7 +361,7 @@ public class ManagementLogic : IManagementLogic
         AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist");
+        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
 
         var contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
                       ?? new Contact
@@ -397,7 +397,7 @@ public class ManagementLogic : IManagementLogic
                 catch (Exception ex) when (ex.InnerException is not null &&
                                            ex.InnerException.Message.Contains("IX_Project_AccountingString"))
                 {
-                    throw new InvalidRequestException("ProjectAlreadyExist");
+                    throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
                 }
                 
                 RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
@@ -1172,7 +1172,7 @@ public class ManagementLogic : IManagementLogic
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) 
-            throw new InvalidRequestException("ProjectNoAssignToCluster");
+            throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         SecureShellKey secureShellKey = preGeneratedKey;
         bool isGenerated = false;
@@ -2893,7 +2893,7 @@ public class ManagementLogic : IManagementLogic
             .Include(x => x.Cluster)
             .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
-        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster");
+        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         if (project.IsOneToOneMapping && adaptorUserId.HasValue && (string.IsNullOrEmpty(username) || username.StartsWith("account_")))
         {
