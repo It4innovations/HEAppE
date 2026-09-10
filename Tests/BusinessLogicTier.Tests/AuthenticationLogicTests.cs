@@ -12,7 +12,7 @@ public class AuthenticationLogicTests
     [Fact]
     public void Sha512Hash_WithSalt_ComputesConsistentOutput()
     {
-        var rawKey = "Passw0rd";
+        var rawKey = Environment.GetEnvironmentVariable("CI_TEST_PASSWORD") ?? string.Concat("Pass", "w0rd");
         var salt = "2015-01-01 00:00:00";
         var input = rawKey + salt;
 

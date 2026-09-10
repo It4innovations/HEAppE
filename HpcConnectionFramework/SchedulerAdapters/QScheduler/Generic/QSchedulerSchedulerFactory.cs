@@ -30,7 +30,7 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singletons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -61,7 +61,7 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
         {
             var wrapper = new RexSchedulerWrapper

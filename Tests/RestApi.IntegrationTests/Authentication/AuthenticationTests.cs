@@ -29,7 +29,7 @@ public class AuthenticationTests : IClassFixture<HEAppEWebApplicationFactory>
             Credentials = new PasswordCredentialsExt
             {
                 Username = "admin",
-                Password = "Passw0rd"
+                Password = TestCredentials.DefaultPassword
             }
         };
 
@@ -70,7 +70,7 @@ public class AuthenticationTests : IClassFixture<HEAppEWebApplicationFactory>
             Credentials = new
             {
                 Username = "nonexistent_user_12345",
-                Password = "Passw0rd"
+                Password = TestCredentials.DefaultPassword
             }
         };
 

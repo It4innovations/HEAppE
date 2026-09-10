@@ -3450,8 +3450,8 @@ public class ManagementLogic : IManagementLogic
             if (existingAssignment.IsDeleted)
             {
                 var userGroupsToRestore = project.AdaptorUserGroups
-                    .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                                 !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+                    .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                                 (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
                     .Select(ug => ug.Id)
                     .ToList();
 
@@ -3473,8 +3473,8 @@ public class ManagementLogic : IManagementLogic
         }
 
         var userGroups = project.AdaptorUserGroups
-            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
             .ToList();
 
         foreach (var userGroup in userGroups)
@@ -4545,8 +4545,8 @@ public class ManagementLogic : IManagementLogic
         }
 
         var groups = _unitOfWork.AdaptorUserGroupRepository.GetAll()
-            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) &&
-                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) &&
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
             .ToList();
 
         foreach (var group in groups)

@@ -586,6 +586,7 @@ public class MiddlewareContext : DbContext
         }
         SaveChanges();
         _logger.LogInformation("Seed data into the database completed.");
+        MiddlewareContextSettings.Clear();
     }
 
     private void ValidateSeed()

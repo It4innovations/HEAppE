@@ -38,12 +38,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler instances mapped by cluster and project details
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Scheduler instances mapped by cluster and project details
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), FirecRestSchedulerAdapter> _schedulerAdapters = new();
+    private readonly Dictionary<(string, long projectId, long?), FirecRestSchedulerAdapter> _schedulerAdapters = new();
 
     /// <summary>
     ///     Data convertor singleton for translating between HEAppE and FirecRest formats
@@ -127,7 +127,7 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
             uniqueKey += $"|{clientSecret}";
 
         // try to get existing scheduler
-        var uniqueIdentifier = (uniqueKey, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        var uniqueIdentifier = (uniqueKey, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
 
         FirecRestSchedulerAdapter schedulerAdapter = null;
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))

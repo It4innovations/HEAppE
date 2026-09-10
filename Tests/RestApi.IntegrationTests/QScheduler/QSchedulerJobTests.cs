@@ -18,7 +18,7 @@ public class QSchedulerJobTests : IClassFixture<HEAppEWebApplicationFactory>
     {
         _httpClient = factory.CreateClient();
         _client = new ApiClient(_httpClient);
-        _client.SetApiKey("admin", "Passw0rd");
+        _client.SetApiKey("admin");
     }
 
     [Fact]

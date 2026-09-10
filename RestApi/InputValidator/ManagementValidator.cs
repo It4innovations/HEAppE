@@ -594,9 +594,12 @@ public class ManagementValidator : AbstractValidator
             _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
 
         //validate template params
-        foreach (var parameter in model.TemplateParameters)
-            if (string.IsNullOrEmpty(parameter.Identifier))
-                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        if (model.TemplateParameters != null)
+        {
+            foreach (var parameter in model.TemplateParameters)
+                if (string.IsNullOrEmpty(parameter.Identifier))
+                    _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        }
 
         return _messageBuilder.ToString();
     }
