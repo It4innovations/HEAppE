@@ -38,7 +38,7 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
         {
             var envConnStr = Environment.GetEnvironmentVariable("ConnectionStrings__MiddlewareContext")
                 ?? Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
-            var connStr = _connectionString ?? envConnStr ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;";
+            var connStr = _connectionString ?? envConnStr ?? TestCredentials.GetDefaultConnectionString();
 
             var testConfig = new Dictionary<string, string?>
             {
@@ -91,6 +91,7 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
             {
                 config.AddNotJson(seedPath);
                 var configRoot = config.Build();
+                MiddlewareContextSettings.Clear();
                 configRoot.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
             }
         });
@@ -105,7 +106,7 @@ public class HEAppEWebApplicationFactory : WebApplicationFactory<Startup>
                     {
                         var envConnStr = Environment.GetEnvironmentVariable("ConnectionStrings__MiddlewareContext")
                             ?? Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
-                        var connStr = _connectionString ?? envConnStr ?? "Server=localhost,1433;Database=HEAppE_CI;User Id=sa;Password=Passw0rdSA123!;TrustServerCertificate=True;MultipleActiveResultSets=true;Connect Timeout=30;";
+                        var connStr = _connectionString ?? envConnStr ?? TestCredentials.GetDefaultConnectionString();
                         var masterConnStr = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr) { InitialCatalog = "master" }.ConnectionString;
                         using (var masterConn = new Microsoft.Data.SqlClient.SqlConnection(masterConnStr))
                         {

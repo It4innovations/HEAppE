@@ -465,10 +465,12 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         }
     }
 
+    public static string NormalizeShellPath(string path) => SchedulerDataConvertor.NormalizeShellPath(path);
+
     /// <summary>
     ///     Set preparation command for task
     /// </summary>
-    /// <param name="workDir">Task work directory</param>
+    /// <param name="workDir">Task work dir</param>
     /// <param name="preparationScript">Task preparation script</param>
     /// <param name="commandLine">Task command</param>
     /// <param name="stdOutFile">Standard output file</param>
@@ -476,7 +478,12 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        var normWorkDir = NormalizeShellPath(workDir);
+        var normStdOut = NormalizeShellPath(stdOutFile);
+        var normStdErr = NormalizeShellPath(stdErrFile);
+        var normWrapper = NormalizeShellPath(WrapperScriptPath);
         var nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
+        var normNodefileDir = NormalizeShellPath(nodefileDir);
         var taskSourceSb = new StringBuilder();
 
         if (UseCallback)
@@ -486,11 +493,11 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             {
                 var qsubPart = _taskAppender.ToString();
                 var sb = new StringBuilder();
-                sb.Append($"mkdir -p \"{workDir}/.heappe\" && ");
-                sb.Append($"echo \"{CallbackSecret}\" > \"{workDir}/.heappe/callback_token\" && ");
-                sb.Append($"chmod 600 \"{workDir}/.heappe/callback_token\" && ");
+                sb.Append($"mkdir -p \"{normWorkDir}/.heappe\" && ");
+                sb.Append($"echo \"{CallbackSecret}\" > \"{normWorkDir}/.heappe/callback_token\" && ");
+                sb.Append($"chmod 600 \"{normWorkDir}/.heappe/callback_token\" && ");
                 
-                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{workDir}/.heappe/heappe_user_task.sh\"\n");
+                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{normWorkDir}/.heappe/heappe_user_task.sh\"\n");
                 if (!string.IsNullOrEmpty(preparationScript))
                 {
                     sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
@@ -501,8 +508,8 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 }
                 sb.Append("EOF_HEAPPE_USER_TASK\n");
                 
-                sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
-                sb.Append($"echo 'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"' | {qsubPart}{pbsSignalArg}");
+                sb.Append($"chmod +x \"{normWorkDir}/.heappe/heappe_user_task.sh\" && ");
+                sb.Append($"echo 'cd \"{normWorkDir}\"; rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\"; exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"pbs\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\"' | {qsubPart}{pbsSignalArg}");
                 
                 _taskAppender = sb;
             }
@@ -531,8 +538,8 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
                 }
                 _taskAppender.AppendLine("EOF_HEAPPE_USER_TASK");
                 _taskAppender.AppendLine("chmod +x .heappe/heappe_user_task.sh");
-                _taskAppender.AppendLine($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile}");
-                _taskAppender.AppendLine($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"pbs\" 1>> {stdOutFile} 2>> {stdErrFile}");
+                _taskAppender.AppendLine($"rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\"");
+                _taskAppender.AppendLine($"exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"pbs\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\"");
             }
 
             return;
@@ -540,13 +547,13 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
 
         if (!_pbs)
             taskSourceSb.Append($"echo '");
-        taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
+        taskSourceSb.Append($"cd \"{normNodefileDir}\";cd \"{normWorkDir}\";");
         taskSourceSb.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
                 : recursiveSymlinkCommand.Last().Equals(';')
                     ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
+                    : $"{recursiveSymlinkCommand};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
 
         taskSourceSb.Append(
             string.IsNullOrEmpty(preparationScript)

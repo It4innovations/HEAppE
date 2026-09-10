@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
@@ -27,7 +27,7 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singeltons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -52,7 +52,7 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (

@@ -147,8 +147,12 @@ public class UserOrgV2Service(IHttpClientFactory httpClientFactory) : IUserOrgSe
                         throw new AuthenticationTypeException("BadRequest", "UserOrg") { Details = details };
                     case HttpStatusCode.Unauthorized:
                         throw new AuthenticationTypeException("InvalidToken", "UserOrg") { Details = details };
+                    case HttpStatusCode.Forbidden:
+                        throw new AuthenticationTypeException("Forbidden", "UserOrg") { Details = details };
                     case HttpStatusCode.NotFound:
                         throw new AuthenticationTypeException("NotFound", "UserOrg") { Details = details };
+                    case HttpStatusCode.MethodNotAllowed:
+                        throw new AuthenticationTypeException("MethodNotAllowed", "UserOrg") { Details = details };
                     case HttpStatusCode.PreconditionFailed:
                         throw new AuthenticationTypeException("PreconditionFailed", "UserOrg") { Details = details };
                     case HttpStatusCode.InternalServerError:
@@ -159,6 +163,10 @@ public class UserOrgV2Service(IHttpClientFactory httpClientFactory) : IUserOrgSe
                         throw new AuthenticationTypeException("ExternalApiError", "UserOrg") { Details = details };
                 }
             }
+        }
+        catch (AuthenticationTypeException)
+        {
+            throw;
         }
         catch (TaskCanceledException ex)
         {

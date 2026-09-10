@@ -386,25 +386,37 @@ public class SftpFileSystemConnector : IPoolableAdapter
     private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username,
         string privateKey, string privateKeyPassword, int? port)
     {
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new SshClientArgumentException("UnknownPrivateKeyException");
+        }
+
         try
         {
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+            var pkFile = string.IsNullOrEmpty(privateKeyPassword)
+                ? new PrivateKeyFile(stream)
+                : new PrivateKeyFile(stream, privateKeyPassword);
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     username,
-                    new PrivateKeyFile(stream, privateKeyPassword)),
+                    pkFile),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
                     username,
-                    new PrivateKeyFile(stream, privateKeyPassword))
+                    pkFile)
             };
 
             var client = new SftpClient(connectionInfo);
             client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
+        }
+        catch (SshClientArgumentException)
+        {
+            throw;
         }
         catch (Exception e)
         {
@@ -430,9 +442,17 @@ public class SftpFileSystemConnector : IPoolableAdapter
         ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
         string username, string privateKey, string privateKeyPassword, int? port)
     {
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new SshClientArgumentException("UnknownPrivateKeyException");
+        }
+
         try
         {
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+            var pkFile = string.IsNullOrEmpty(privateKeyPassword)
+                ? new PrivateKeyFile(stream)
+                : new PrivateKeyFile(stream, privateKeyPassword);
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
@@ -443,7 +463,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, privateKeyPassword)),
+                    pkFile),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
@@ -453,12 +473,16 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, privateKeyPassword))
+                    pkFile)
             };
 
             var client = new SftpClient(connectionInfo);
             client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
+        }
+        catch (SshClientArgumentException)
+        {
+            throw;
         }
         catch (Exception e)
         {

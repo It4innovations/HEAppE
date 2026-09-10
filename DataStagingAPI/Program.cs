@@ -73,6 +73,7 @@ else
 builder.Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
 builder.Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
 builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
+MiddlewareContextSettings.Clear();
 builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 DatabaseMigrationSettings.AutoMigrateDatabase = builder.Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");

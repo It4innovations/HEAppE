@@ -195,6 +195,7 @@ public class DataTransferLogic : IDataTransferLogic
             if (!tunnels.Any())
             {
                 _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
+                _taskLocks.TryRemove(transferMethod.SubmittedTaskId, out _);
             }
         
             _logger.LogInformation($"Tunnel on port {transferMethod.Port} for task {transferMethod.SubmittedTaskId} successfully closed by owner {loggedUser.Id}.");
@@ -304,6 +305,7 @@ public class DataTransferLogic : IDataTransferLogic
         finally
         {
             taskLock.Release();
+            _taskLocks.TryRemove(taskInfo.Id, out _);
         }
     }
 

@@ -98,6 +98,8 @@ public class ManagementValidator : AbstractValidator
             GetExternalServicesReportModel ext => ValidateGetExternalServicesReportModel(ext),
             GetJobExternalServiceLogsModel ext => ValidateGetJobExternalServiceLogsModel(ext),
             GetExternalServicesStatisticsModel ext => ValidateGetExternalServicesStatisticsModel(ext),
+            AssignSystemRoleToUserModel ext => ValidateAssignSystemRoleToUserModel(ext),
+            RemoveSystemRoleFromUserModel ext => ValidateRemoveSystemRoleFromUserModel(ext),
             _ => string.Empty
         };
 
@@ -149,6 +151,26 @@ public class ManagementValidator : AbstractValidator
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
         
         ValidateId(ext.ProjectId, "ProjectId");
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateAssignSystemRoleToUserModel(AssignSystemRoleToUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateRemoveSystemRoleFromUserModel(RemoveSystemRoleFromUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
         if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
 
         return _messageBuilder.ToString();
@@ -572,9 +594,12 @@ public class ManagementValidator : AbstractValidator
             _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
 
         //validate template params
-        foreach (var parameter in model.TemplateParameters)
-            if (string.IsNullOrEmpty(parameter.Identifier))
-                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        if (model.TemplateParameters != null)
+        {
+            foreach (var parameter in model.TemplateParameters)
+                if (string.IsNullOrEmpty(parameter.Identifier))
+                    _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        }
 
         return _messageBuilder.ToString();
     }

@@ -205,6 +205,7 @@ public class ManagementLogic : IManagementLogic
         if (commandTemplate.CreatedFrom is not null) throw new InvalidRequestException("CommandTemplateNotStatic");
 
         var project = commandTemplate.Project ??
+                      (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value) : null) ??
                       throw new InputValidationException("NotPermitted");
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
@@ -360,7 +361,7 @@ public class ManagementLogic : IManagementLogic
         AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist");
+        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
 
         var contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
                       ?? new Contact
@@ -396,7 +397,7 @@ public class ManagementLogic : IManagementLogic
                 catch (Exception ex) when (ex.InnerException is not null &&
                                            ex.InnerException.Message.Contains("IX_Project_AccountingString"))
                 {
-                    throw new InvalidRequestException("ProjectAlreadyExist");
+                    throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
                 }
                 
                 RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
@@ -1171,7 +1172,7 @@ public class ManagementLogic : IManagementLogic
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) 
-            throw new InvalidRequestException("ProjectNoAssignToCluster");
+            throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         SecureShellKey secureShellKey = preGeneratedKey;
         bool isGenerated = false;
@@ -2892,7 +2893,7 @@ public class ManagementLogic : IManagementLogic
             .Include(x => x.Cluster)
             .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
-        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster");
+        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         if (project.IsOneToOneMapping && adaptorUserId.HasValue && (string.IsNullOrEmpty(username) || username.StartsWith("account_")))
         {
@@ -3449,8 +3450,8 @@ public class ManagementLogic : IManagementLogic
             if (existingAssignment.IsDeleted)
             {
                 var userGroupsToRestore = project.AdaptorUserGroups
-                    .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                                 !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+                    .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                                 (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
                     .Select(ug => ug.Id)
                     .ToList();
 
@@ -3472,8 +3473,8 @@ public class ManagementLogic : IManagementLogic
         }
 
         var userGroups = project.AdaptorUserGroups
-            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
             .ToList();
 
         foreach (var userGroup in userGroups)
@@ -3584,7 +3585,8 @@ public class ManagementLogic : IManagementLogic
         
         commandTemplate.Name = modelName;
         commandTemplate.Description = modelDescription;
-        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(commandTemplate.Project.AccountingString, "generic.sh");
+        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(
+            commandTemplate.Project?.AccountingString ?? (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value)?.AccountingString : null), "generic.sh");
         commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
         commandTemplate.PreparationScript = modelPreparationScript;
         commandTemplate.ClusterNodeType = clusterNodeType;
@@ -4520,6 +4522,117 @@ public class ManagementLogic : IManagementLogic
 
         return list;
     }
+
+    public SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.AddDynamicRoleAssignment(username, role);
+
+        var existingDbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (existingDbAssignment == null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Insert(new SystemRoleAssignment
+            {
+                Username = adaptorUser.Username,
+                Role = role,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetAll()
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) &&
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
+            .ToList();
+
+        foreach (var group in groups)
+        {
+            var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles?
+                .FirstOrDefault(r => r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)role);
+
+            if (existingAssignment != null)
+            {
+                if (existingAssignment.IsDeleted)
+                {
+                    existingAssignment.IsDeleted = false;
+                    existingAssignment.CreatedAt = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                adaptorUser.CreateSpecificUserRoleForUser(group, role);
+            }
+        }
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        var userCache = LogicFactory.GetService<IMemoryCache>();
+        userCache?.Remove($"UserById_{adaptorUser.Id}");
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role,
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.RemoveDynamicRoleAssignment(username, role);
+
+        var dbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (dbAssignment != null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Delete(dbAssignment);
+        }
+
+        var assignments = adaptorUser.AdaptorUserUserGroupRoles?
+            .Where(r => r.AdaptorUserRoleId == (long)role && !r.IsDeleted)
+            .ToList();
+
+        if (assignments != null && assignments.Any())
+        {
+            foreach (var assignment in assignments)
+            {
+                assignment.IsDeleted = true;
+                assignment.ModifiedAt = DateTime.UtcNow;
+            }
+
+            _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        }
+
+        _unitOfWork.Save();
+
+        var userCache = LogicFactory.GetService<IMemoryCache>();
+        userCache?.Remove($"UserById_{adaptorUser.Id}");
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role,
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public List<SystemRoleAssignment> ListSystemRoleAssignments()
+    {
+        var dbAssignments = _unitOfWork.SystemRoleAssignmentRepository.GetAll();
+        RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dbAssignments);
+        return RoleAssignmentConfiguration.GetAllRoleAssignments();
+    }
+
 
     private class ServiceToCheck
     {

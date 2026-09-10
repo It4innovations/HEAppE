@@ -110,12 +110,17 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        public async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
+        public async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
-            return await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken);
+            return await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken, refreshSshCaToken);
         }
 
-        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
+        public async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
+        {
+            return await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken, null);
+        }
+
+        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
             _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Requesting connection.");
             var poolKey = (credentials.Id, credentials.SessionUserId);
@@ -284,7 +289,7 @@ namespace HEAppE.ConnectionPool
                         }
 
                         _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
-                        var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken);
+                        var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken, refreshSshCaToken);
                         slot.ConnectionInfo = newConnection;
                         slot.ReferenceCount = 0;
 
@@ -462,132 +467,7 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        public async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
-        {
-            return await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken, refreshSshCaToken);
-        }
 
-        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
-        {
-            _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Requesting connection.");
-            var poolKey = (credentials.Id, credentials.SessionUserId);
-            var userContext = _userContexts.GetOrAdd(poolKey, key => {
-                _logger.LogDebug($"[User:{credentials.Username} (ID:{key.Item1})] [SessionUser:{key.Item2}] [Target:{GetProtocolName()}://{TargetNodeStr}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
-                return new SharedUserContext(_maxConnectionsPerUser, _maxSessionsPerConnection);
-            });
-
-            // Restrict maximum concurrent active SSH commands globally per user connection pool.
-            // Use a timeout so that saturated-pool callers fail fast instead of becoming zombie threads.
-            if (!await userContext.ActiveSessionsSemaphore.WaitAsync(_acquireTimeoutMs))
-            {
-                throw new ConnectionPoolExhaustedException(
-                    $"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Connection pool saturated: could not acquire active-session permit within {_acquireTimeoutMs}ms. " +
-                    $"Current pool: {_maxConnectionsPerUser} connections × {_maxSessionsPerConnection} sessions.");
-            }
-            try
-            {
-                // Fast path: reuse existing active connection by finding the one with minimum load
-                int minRefSlotIndex = -1;
-                int minRefCount = int.MaxValue;
-
-                await userContext.UserSemaphore.WaitAsync();
-                try
-                {
-                    for (int i = 0; i < userContext.Slots.Length; i++)
-                    {
-                        var slot = userContext.Slots[i];
-                        if (slot.ConnectionInfo != null && _adapter.IsConnected(slot.ConnectionInfo.Connection))
-                        {
-                            if (slot.ReferenceCount < minRefCount)
-                            {
-                                minRefCount = slot.ReferenceCount;
-                                minRefSlotIndex = i;
-                            }
-                        }
-                    }
-
-                    if (minRefSlotIndex != -1 && minRefCount < _maxSessionsPerConnection)
-                    {
-                        var chosenSlot = userContext.Slots[minRefSlotIndex];
-                        chosenSlot.ReferenceCount++;
-                        chosenSlot.ConnectionInfo.LastUsed = DateTime.UtcNow;
-                        _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName(chosenSlot.ConnectionInfo.Connection)}://{TargetNodeStr}] Reusing connection in slot {minRefSlotIndex} (Active sessions: {chosenSlot.ReferenceCount}/{_maxSessionsPerConnection})");
-                        return chosenSlot.ConnectionInfo;
-                    }
-
-                    userContext.UserSemaphore.Release();
-                }
-                catch
-                {
-                    userContext.UserSemaphore.Release();
-                    throw;
-                }
-
-                // Slow path: find slot to establish new connection
-                var targetSlot = userContext.GetNextSlot();
-                await targetSlot.SlotSemaphore.WaitAsync();
-                try
-                {
-                    if (targetSlot.ConnectionInfo != null && _adapter.IsConnected(targetSlot.ConnectionInfo.Connection))
-                    {
-                        _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName(targetSlot.ConnectionInfo.Connection)}://{TargetNodeStr}] Slot became available with active connection during wait.");
-                        userContext.UserSemaphore.Release();
-                        targetSlot.ReferenceCount++;
-                        return targetSlot.ConnectionInfo;
-                    }
-
-                    if (targetSlot.ConnectionInfo != null)
-                    {
-                        var oldConnection = targetSlot.ConnectionInfo;
-                        targetSlot.ConnectionInfo = null;
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await _adapter.DisconnectAsync(oldConnection.Connection);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning($"Error while disconnecting old connection for user {oldConnection.AuthCredentials.Username} (ID:{oldConnection.AuthCredentials.Id}) [Target:{GetProtocolName(oldConnection.Connection)}://{TargetNodeStr}] during replacement", ex);
-                            }
-                            finally
-                            {
-                                if (oldConnection.Connection is IDisposable disposable)
-                                {
-                                    try { disposable.Dispose(); } catch { /* ignore */ }
-                                }
-                            }
-                        });
-                        Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
-                        userContext.UserSemaphore.Release();
-                    }
-
-                    _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
-                    var newConnection = await InitializeConnectionAsync(credentials, cluster, sshCaToken, lexisToken, refreshSshCaToken);
-                    targetSlot.ConnectionInfo = newConnection;
-                    targetSlot.ReferenceCount = 0;
-
-                    Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
-                    if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > _minSize)
-                    {
-                        _logger.LogDebug($"Starting cleanup timer for {GetProtocolName()}://{TargetNodeStr}.");
-                        poolCleanTimer.Start();
-                    }
-
-                    targetSlot.ReferenceCount++;
-                    return targetSlot.ConnectionInfo;
-                }
-                finally
-                {
-                    targetSlot.SlotSemaphore.Release();
-                }
-            }
-            catch
-            {
-                userContext.ActiveSessionsSemaphore.Release();
-                throw;
-            }
-        }
 
 
         
@@ -612,6 +492,8 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> InitializeConnectionAsync(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
+            await EnsureVaultDataLoadedAsync(cred);
+
             int maxRetries = _connectionRetryAttempts;
             int currentAttempt = 0;
             ConnectionInfo connection = new ConnectionInfo { LastUsed = DateTime.UtcNow, AuthCredentials = cred };

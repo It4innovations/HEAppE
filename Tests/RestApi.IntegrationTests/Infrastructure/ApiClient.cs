@@ -22,10 +22,11 @@ public class ApiClient
         };
     }
 
-    public void SetApiKey(string username, string key = "Passw0rd")
+    public void SetApiKey(string username, string? key = null)
     {
+        var password = key ?? TestCredentials.DefaultPassword;
         _client.DefaultRequestHeaders.Remove("X-API-Key");
-        _client.DefaultRequestHeaders.Add("X-API-Key", $"{username}:{key}");
+        _client.DefaultRequestHeaders.Add("X-API-Key", $"{username}:{password}");
     }
 
     public void ClearAuth()
@@ -47,6 +48,11 @@ public class ApiClient
         return JsonSerializer.Deserialize<T>(content, _jsonOptions);
     }
 
+    public async Task<HttpResponseMessage> PostAsync(string url)
+    {
+        return await _client.PostAsync(url, new StringContent(string.Empty, Encoding.UTF8, "application/json"));
+    }
+
     public async Task<HttpResponseMessage> PostJsonAsync<T>(string url, T data)
     {
         var json = JsonSerializer.Serialize(data, _jsonOptions);
@@ -62,8 +68,33 @@ public class ApiClient
         return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
     }
 
+    public async Task<HttpResponseMessage> PutJsonAsync<T>(string url, T data)
+    {
+        var json = JsonSerializer.Serialize(data, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        return await _client.PutAsync(url, content);
+    }
+
+    public async Task<TResult> PutJsonAsync<TRequest, TResult>(string url, TRequest data)
+    {
+        var response = await PutJsonAsync(url, data);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
+    }
+
     public async Task<HttpResponseMessage> DeleteAsync(string url)
     {
         return await _client.DeleteAsync(url);
+    }
+
+    public async Task<HttpResponseMessage> DeleteJsonAsync<T>(string url, T data)
+    {
+        var json = JsonSerializer.Serialize(data, _jsonOptions);
+        var request = new HttpRequestMessage(HttpMethod.Delete, url)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+        return await _client.SendAsync(request);
     }
 }

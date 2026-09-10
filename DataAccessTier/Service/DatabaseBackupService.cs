@@ -74,7 +74,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
 #pragma warning disable EF1002 // Database name cannot be parameterized
-            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             // Copy to NAS
@@ -179,7 +180,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
 #pragma warning disable EF1002 // Database name cannot be parameterized
-            _context.Database.ExecuteSqlRaw($"BACKUP LOG [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            _context.Database.ExecuteSqlRaw($"BACKUP LOG [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             // Copy to NAS
@@ -433,7 +435,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             Directory.CreateDirectory(DatabaseFullBackupConfiguration.Current.LocalPath);
 
 #pragma warning disable EF1002
-            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             byte[] dbBackupBytes = await File.ReadAllBytesAsync(backupPath);

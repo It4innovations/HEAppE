@@ -2107,5 +2107,47 @@ public class ManagementService : IManagementService
         }
     }
 
+    public SystemRoleAssignmentExt AssignSystemRoleToUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignment = managementLogic.AssignSystemRoleToUser(modelUsername, modelRole);
+            return assignment.ConvertIntToExt();
+        }
+    }
+
+    public SystemRoleAssignmentExt RemoveSystemRoleFromUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignment = managementLogic.RemoveSystemRoleFromUser(modelUsername, modelRole);
+            return assignment.ConvertIntToExt();
+        }
+    }
+
+    public List<SystemRoleAssignmentExt> ListSystemRoleAssignments(string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignments = managementLogic.ListSystemRoleAssignments();
+            return assignments.Select(a => a.ConvertIntToExt()).ToList();
+        }
+    }
+
     #endregion
 }

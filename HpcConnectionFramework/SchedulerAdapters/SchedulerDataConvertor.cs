@@ -458,5 +458,13 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         return "'" + value.Replace("'", "'\\''") + "'";
     }
 
+    public static string NormalizeShellPath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+        if (path == "~") return "$HOME";
+        if (path.StartsWith("~/")) return "$HOME/" + path.Substring(2);
+        return path;
+    }
+
     #endregion
 }

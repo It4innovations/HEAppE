@@ -91,13 +91,6 @@ public class Program
                                     }
                                 }
                             }
-
-                            using (var cmd = conn.CreateCommand())
-                            {
-                                cmd.CommandTimeout = 0; // Infinite timeout
-                                cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
-                                cmd.ExecuteNonQuery();
-                            }
                         }
                         logger.LogInformation("Startup logging database maintenance completed successfully.");
                     }

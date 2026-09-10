@@ -17,6 +17,7 @@ using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.DomainObjects.Monitoring;
+using HEAppE.DomainObjects.Management;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
 using Microsoft.Data.SqlClient;
@@ -329,6 +330,15 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfigurationVaultToggles).HasJsonConversion();
 
+        modelBuilder.Entity<SystemRoleAssignment>(entity =>
+        {
+            entity.ToTable("SystemRoleAssignment");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Role).IsRequired();
+            entity.HasIndex(e => new { e.Username, e.Role }).IsUnique();
+        });
+
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
             .Where(t => typeof(ISoftDeletableEntity).IsAssignableFrom(t.ClrType));
@@ -576,6 +586,7 @@ public class MiddlewareContext : DbContext
         }
         SaveChanges();
         _logger.LogInformation("Seed data into the database completed.");
+        MiddlewareContextSettings.Clear();
     }
 
     private void ValidateSeed()
@@ -655,6 +666,71 @@ public class MiddlewareContext : DbContext
     private async Task InsertOrUpdateSeedDataAsync<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
     {
         if (items == null || !items.Any()) return;
+
+        if (typeof(IdentifiableDbEntity).IsAssignableFrom(typeof(T)))
+        {
+            items = items.Cast<IdentifiableDbEntity>()
+                .GroupBy(x => x.Id)
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(AdaptorUserUserGroupRole))
+        {
+            items = items.Cast<AdaptorUserUserGroupRole>()
+                .GroupBy(x => (x.AdaptorUserId, x.AdaptorUserGroupId, x.AdaptorUserRoleId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialProject))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialProject>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackProjectId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialDomain))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialDomain>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackDomainId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectContact))
+        {
+            items = items.Cast<ProjectContact>()
+                .GroupBy(x => (x.ProjectId, x.ContactId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterProjectCredential))
+        {
+            items = items.Cast<ClusterProjectCredential>()
+                .GroupBy(x => (x.ClusterProjectId, x.ClusterAuthenticationCredentialsId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterNodeTypeAggregationAccounting))
+        {
+            items = items.Cast<ClusterNodeTypeAggregationAccounting>()
+                .GroupBy(x => (x.ClusterNodeTypeAggregationId, x.AccountingId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectClusterNodeTypeAggregation))
+        {
+            items = items.Cast<ProjectClusterNodeTypeAggregation>()
+                .GroupBy(x => (x.ProjectId, x.ClusterNodeTypeAggregationId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
 
         ChangeTracker.Clear();
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
@@ -887,6 +963,12 @@ public class MiddlewareContext : DbContext
     #region Monitoring Entities
 
     public virtual DbSet<ExternalServiceHealthLog> ExternalServiceHealthLogs { get; set; }
+
+    #endregion
+
+    #region Management Entities
+
+    public virtual DbSet<SystemRoleAssignment> SystemRoleAssignments { get; set; }
 
     #endregion
 
