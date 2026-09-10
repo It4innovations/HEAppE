@@ -48,9 +48,9 @@ public class UserOrgService : IUserOrgService
                 logger.LogDebug("[UserOrg Strategy] Auto mode: trying v2 endpoint first...");
                 return await _v2Service.GetUserInfoAsync(accessToken, instanceId, logger);
             }
-            catch (AuthenticationTypeException ex) when (ex.Details?.Contains("NotFound") == true || ex.Details?.Contains("404") == true)
+            catch (AuthenticationTypeException ex) when (IsV2FallbackWarranted(ex))
             {
-                logger.LogWarning("[UserOrg Strategy] Auto mode: v2 returned NotFound (404), falling back to v1...");
+                logger.LogWarning($"[UserOrg Strategy] Auto mode: v2 returned {ex.Message} (or endpoint not mapped), falling back to v1...");
                 return await _v1Service.GetUserInfoAsync(accessToken, instanceId, logger);
             }
         }
@@ -68,14 +68,31 @@ public class UserOrgService : IUserOrgService
                 logger.LogDebug("[UserOrg Strategy] Auto mode: trying v2 permissions endpoint first...");
                 return await _v2Service.GetCommandTemplatePermissionsAsync(accessToken, heappeInstanceIdentifier, instanceId, logger);
             }
-            catch (AuthenticationTypeException ex) when (ex.Details?.Contains("NotFound") == true || ex.Details?.Contains("404") == true)
+            catch (AuthenticationTypeException ex) when (IsV2FallbackWarranted(ex))
             {
-                logger.LogWarning("[UserOrg Strategy] Auto mode: v2 permissions returned NotFound (404), falling back to v1...");
+                logger.LogWarning($"[UserOrg Strategy] Auto mode: v2 permissions returned {ex.Message} (or endpoint not mapped), falling back to v1...");
                 return await _v1Service.GetCommandTemplatePermissionsAsync(accessToken, heappeInstanceIdentifier, instanceId, logger);
             }
         }
 
         return await ResolveService().GetCommandTemplatePermissionsAsync(accessToken, heappeInstanceIdentifier, instanceId, logger);
+    }
+
+    private static bool IsV2FallbackWarranted(AuthenticationTypeException ex)
+    {
+        if (ex.Message is "NotFound" or "Forbidden" or "MethodNotAllowed" or "NotImplemented")
+            return true;
+
+        string allDetails = $"{ex.Message} {ex.Details} {ex.InnerException?.Message} {((ex.InnerException as AuthenticationTypeException)?.Details)}";
+        return allDetails.Contains("NotFound", StringComparison.OrdinalIgnoreCase) ||
+               allDetails.Contains("404") ||
+               allDetails.Contains("Forbidden", StringComparison.OrdinalIgnoreCase) ||
+               allDetails.Contains("403") ||
+               allDetails.Contains("no permission mapping", StringComparison.OrdinalIgnoreCase) ||
+               allDetails.Contains("MethodNotAllowed", StringComparison.OrdinalIgnoreCase) ||
+               allDetails.Contains("405") ||
+               allDetails.Contains("NotImplemented", StringComparison.OrdinalIgnoreCase) ||
+               allDetails.Contains("501");
     }
 
     public void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName, ILogger logger)
