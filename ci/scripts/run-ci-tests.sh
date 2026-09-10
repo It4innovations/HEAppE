@@ -6,7 +6,7 @@ export NUGET_PACKAGES="/root/.nuget/packages"
 
 cleanup_permissions() {
     echo "==> Ensuring workspace permissions for host runner..."
-    chmod -R 777 /workspace 2>/dev/null || true
+    chmod -R 777 /workspace/TestResults 2>/dev/null || true
     rm -rf /workspace/.nuget 2>/dev/null || true
 }
 trap cleanup_permissions EXIT
@@ -95,6 +95,7 @@ run_phase "phase3_management_crud" "Phase 3: Management CRUD Full Lifecycle Suit
 start_section "coverage_report" "Generating Code Coverage Reports"
 if command -v reportgenerator &> /dev/null || [ -f "/root/.dotnet/tools/reportgenerator" ]; then
     REPORTGEN_BIN=$(command -v reportgenerator || echo "/root/.dotnet/tools/reportgenerator")
+    rm -rf /workspace/TestResults/CoverageReport
     "$REPORTGEN_BIN" \
         -reports:"/workspace/TestResults/**/coverage.cobertura.xml" \
         -targetdir:"/workspace/TestResults/CoverageReport" \
@@ -107,6 +108,9 @@ if command -v reportgenerator &> /dev/null || [ -f "/root/.dotnet/tools/reportge
         echo "==> Coverage Summary:"
         cat /workspace/TestResults/CoverageReport/Summary.txt
     fi
+
+    # Clean up raw coverlet XML directories to prevent artifact bloat (saves multiple gigabytes)
+    find /workspace/TestResults -mindepth 1 -maxdepth 1 -type d ! -name "CoverageReport" -exec rm -rf {} + 2>/dev/null || true
 else
     echo "WARNING: reportgenerator binary not found in PATH or /root/.dotnet/tools"
 fi

@@ -122,7 +122,7 @@ test_e2e:
     - docker --version
     - docker compose version
     - echo "Cleaning up runner disk space and workspace before test run..."
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chmod -R 777 /workspace && rm -rf /workspace/.nuget /workspace/TestResults" || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget /workspace/TestResults" || true
     - docker system prune -af --volumes || true
     - df -h
   script:
@@ -135,13 +135,15 @@ test_e2e:
     - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
   after_script:
     - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget && chmod -R 777 /workspace" || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget && chmod -R 777 /workspace/TestResults" || true
     - docker system prune -f || true
   coverage: '/Line coverage:\s+(\d+(?:\.\d+)?%)/'
   artifacts:
     when: always
     paths:
-      - TestResults/
+      - TestResults/CoverageReport/
+      - TestResults/*junit*.xml
+      - TestResults/*.trx
     reports:
       junit: TestResults/*junit*.xml
       coverage_report:
