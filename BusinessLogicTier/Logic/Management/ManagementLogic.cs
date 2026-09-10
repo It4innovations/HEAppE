@@ -1157,12 +1157,37 @@ public class ManagementLogic : IManagementLogic
             //return existing credential with same type of throw exception
             var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType.Value);
             if (existingWithSameType != null)
-                return CredentialResponse.GetCredential(existingWithSameType, projectId);
+                return CreateCredentialResponse(existingWithSameType, adaptorUserId);
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
 
         return await CreateCredential(username, password, project, adaptorUserId, authType.Value, generateNewKey, privateKey, passphrase, preGeneratedKey);
+    }
+
+    private CredentialResponse CreateCredentialResponse(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
+    {
+        var response = CredentialResponse.GetCredential(clusterCredentials, adaptorUserId);
+        if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(clusterCredentials.PrivateKey))
+        {
+            try
+            {
+                var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterCredentials);
+                if (derived != null)
+                {
+                    response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
+                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint))
+                    {
+                        response.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to derive public key for credential {clusterCredentials.Id} ({clusterCredentials.Username}).");
+            }
+        }
+        return response;
     }
 
     private async Task<CredentialResponse> CreateCredential(string username, string? password, Project project, long? adaptorUserId, 
@@ -1213,7 +1238,7 @@ public class ManagementLogic : IManagementLogic
         foreach (var clusterProject in clusterProjects)
         {
             userCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, userCredentials, false, false, adaptorUserId));
+                CreateClusterProjectCredentials(clusterProject, userCredentials, adaptorUserId == null, false, adaptorUserId));
             _logger.LogInformation($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
@@ -1234,7 +1259,7 @@ public class ManagementLogic : IManagementLogic
             throw new SecureVaultException("ConnectionFailed");
         }
 
-        return CredentialResponse.GetCredential(userCredentials, adaptorUserId);
+        return CreateCredentialResponse(userCredentials, adaptorUserId);
     }
 
     /// <summary>
@@ -1270,7 +1295,7 @@ public class ManagementLogic : IManagementLogic
         
         return projectCredentials
             .Where(cpc => !cpc.IsDeleted && !cpc.ClusterAuthenticationCredentials.IsDeleted)
-            .Select(cpc => CredentialResponse.GetCredential(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
+            .Select(cpc => CreateCredentialResponse(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
             .DistinctBy(x => new { x.Username, x.AdaptorUserId })
             .ToList();
     }
@@ -1367,7 +1392,7 @@ public class ManagementLogic : IManagementLogic
         await _unitOfWork.SaveAsync();
 
         return credentials
-                .Select(x => CredentialResponse.GetCredential(x, adaptorUserId))
+                .Select(x => CreateCredentialResponse(x, adaptorUserId))
                 .ToList();
     }
 
@@ -3893,7 +3918,10 @@ public class ManagementLogic : IManagementLogic
                     PrivateKey = sshKey.PrivateKeyPEM,
                     PrivateKeyPassphrase = passphrase,
                     CipherType = CipherGeneratorConfiguration.Type,
-                    PublicKeyFingerprint = sshKey.PublicKeyFingerprint,
+                    PublicKeyFingerprint = sshKey?.PublicKeyFingerprint,
+                    PublicKey = sshKey?.PublicKeyInAuthorizedKeysFormat != null && sshKey.PublicKeyInAuthorizedKeysFormat.Length <= 200 
+                        ? sshKey.PublicKeyInAuthorizedKeysFormat 
+                        : null,
                     ClusterProjectCredentials = new List<ClusterProjectCredential>(),
                     IsGenerated = isGenerated
                 };
