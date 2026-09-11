@@ -107,6 +107,26 @@ public sealed class ScriptsConfiguration
     public int EventualConsistencyRetryDelayMs { get; set; } = 1000;
 
     /// <summary>
+    ///     Enable callback mode for job state updates across all schedulers (HPC, Quantum, etc.)
+    /// </summary>
+    public bool EnableCallback { get; set; } = false;
+
+    /// <summary>
+    ///     Enable graceful timeout warning signal before walltime expiration for Slurm and PBS (optional)
+    /// </summary>
+    public bool EnableGracefulTimeout { get; set; } = false;
+
+    /// <summary>
+    ///     Graceful timeout signal warning delay in seconds before walltime limit (default: 30s)
+    /// </summary>
+    public int GracefulTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    ///     HPC callback URL
+    /// </summary>
+    public string CallbackUrl { get; set; }
+
+    /// <summary>
     ///     Custom command prefix prepended to all executed SSH commands on the cluster
     /// </summary>
     public string? SshCommandPrefix { get; set; }

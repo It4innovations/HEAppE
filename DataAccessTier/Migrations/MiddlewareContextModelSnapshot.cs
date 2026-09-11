@@ -36,6 +36,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("CustomConfiguration")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CustomConfigurationVaultToggles")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -897,6 +900,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int>("State")
                         .HasColumnType("int");
 
+                    b.Property<int>("StateSource")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StateUpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("SubmitTime")
                         .HasColumnType("datetime2");
 
@@ -1006,6 +1015,12 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("State")
                         .HasColumnType("int");
+
+                    b.Property<int>("StateSource")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StateUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<long?>("SubmittedJobInfoId")
                         .HasColumnType("bigint");
@@ -1336,7 +1351,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<long>("CommandTemplateId")
+                    b.Property<long?>("CommandTemplateId")
                         .HasColumnType("bigint");
 
                     b.Property<bool?>("CpuHyperThreading")
@@ -1456,6 +1471,110 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("TaskSpecificationId");
 
                     b.ToTable("TaskSpecificationRequiredNode");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.Management.SystemRoleAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Username", "Role")
+                        .IsUnique();
+
+                    b.ToTable("SystemRoleAssignment", (string)null);
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.Monitoring.ExternalServiceHealthLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CommandOrPath")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("EndpointOrHost")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<long?>("JobId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Protocol")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<long>("ResponseTimeMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ServiceType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StatusCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("TaskId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClusterId");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("Timestamp", "ServiceName");
+
+                    b.ToTable("ExternalServiceHealthLog");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
@@ -1640,6 +1759,13 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+                    b.Property<string>("IdpSid")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -1789,6 +1915,44 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("OpenStackSession");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SessionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("QSchedulerSession");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.SessionCode", b =>
@@ -2231,9 +2395,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.CommandTemplate", "CommandTemplate")
                         .WithMany()
-                        .HasForeignKey("CommandTemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CommandTemplateId");
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.JobSpecification", "JobSpecification")
                         .WithMany("Tasks")
@@ -2384,6 +2546,17 @@ namespace HEAppE.DataAccessTier.Migrations
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.OpenStackSession", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "User")
                         .WithMany()

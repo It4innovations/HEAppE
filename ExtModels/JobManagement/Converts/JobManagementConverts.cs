@@ -130,7 +130,7 @@ public static class JobManagementConverts
                 SynchronizationType = FileSynchronizationType.IncrementalAppend
             },
             ClusterNodeTypeId = taskSpecificationExt.ClusterNodeTypeId.Value,
-            CommandTemplateId = taskSpecificationExt.CommandTemplateId ?? 0,
+            CommandTemplateId = taskSpecificationExt.CommandTemplateId,
             EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
@@ -200,14 +200,107 @@ public static class JobManagementConverts
             Id = jobInfo.Id,
             Name = jobInfo.Name,
             State = jobInfo.State.ConvertIntToExt(),
+            StateSource = jobInfo.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StateUpdatedAt, timezone),
             CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
-            StartTime = jobInfo.StartTime,
-            EndTime = jobInfo.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             SubProject = jobInfo.Specification.SubProject?.Identifier,
             Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt(timezone))
                 .ToArray()
+        };
+        return convert;
+    }
+
+    public static AdminSubmittedJobInfoExt ConvertToAdminSubmittedJobInfoExt(this SubmittedJobInfo jobInfo)
+    {
+        string timezone = jobInfo.Specification?.Cluster?.TimeZone 
+            ?? jobInfo.Project?.ClusterProjects?.FirstOrDefault(cp => !cp.IsDeleted)?.Cluster?.TimeZone;
+
+        AdminSubmittedJobInfoExt convert = new()
+        {
+            Id = jobInfo.Id,
+            Name = jobInfo.Name,
+            State = jobInfo.State.ConvertIntToExt(),
+            StateSource = jobInfo.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StateUpdatedAt, timezone),
+            CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
+            SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
+            TotalAllocatedTime = jobInfo.TotalAllocatedTime,
+            Submitter = jobInfo.Submitter == null ? null : new AdminSubmitterInfoExt
+            {
+                Id = jobInfo.Submitter.Id,
+                Username = jobInfo.Submitter.Username,
+                Email = jobInfo.Submitter.Email,
+                IdpSid = jobInfo.Submitter.IdpSid
+            },
+            SubmitterGroup = jobInfo.Specification?.SubmitterGroup?.Name,
+            ClusterUsername = jobInfo.Specification?.ClusterUser?.Username,
+            ClusterAuthenticationType = jobInfo.Specification?.ClusterUser?.AuthenticationType != null 
+                ? jobInfo.Specification.ClusterUser.AuthenticationType.ConvertIntToExt() 
+                : null,
+            ProjectId = jobInfo.Project?.Id,
+            ProjectName = jobInfo.Project?.Name,
+            SubProjectId = jobInfo.Specification?.SubProjectId,
+            SubProjectIdentifier = jobInfo.Specification?.SubProject?.Identifier,
+            ClusterId = jobInfo.Specification?.ClusterId ?? jobInfo.Specification?.Cluster?.Id,
+            ClusterName = jobInfo.Specification?.Cluster?.Name,
+            Reservation = jobInfo.Specification?.Reservation,
+            Tasks = jobInfo.Tasks?.Select(t => t.ConvertToAdminTaskInfoExt(timezone)).ToArray()
+        };
+        return convert;
+    }
+
+    private static AdminTaskInfoExt ConvertToAdminTaskInfoExt(this SubmittedTaskInfo task, string timezone)
+    {
+        var spec = task.Specification;
+        AdminTaskInfoExt convert = new()
+        {
+            Id = task.Id,
+            Name = task.Name,
+            State = task.State.ConvertIntToExt(),
+            StateSource = task.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StateUpdatedAt, timezone),
+            Priority = task.Priority.ConvertIntToExt(),
+            AllocatedTime = task.AllocatedTime,
+            AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct().ToArray(),
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
+            NodeType = task.NodeType == null ? null : task.NodeType.ConvertIntToExt(task.Project, spec?.CommandTemplate),
+            ErrorMessage = task.ErrorMessage,
+            Reason = task.Reason,
+            CpuHyperThreading = task.CpuHyperThreading ?? spec?.CpuHyperThreading,
+            MinCores = spec?.MinCores,
+            MaxCores = spec?.MaxCores,
+            GpuCores = spec?.GpuCores,
+            GpuNodes = spec?.GpuNodes,
+            WalltimeLimit = spec?.WalltimeLimit,
+            Memory = spec?.Memory,
+            MemoryPerCPU = spec?.MemoryPerCPU,
+            MemoryPerGPU = spec?.MemoryPerGPU,
+            PlacementPolicy = spec?.PlacementPolicy,
+            IsExclusive = spec?.IsExclusive,
+            IsRerunnable = spec?.IsRerunnable,
+            JobArrays = spec?.JobArrays,
+            StandardInputFile = spec?.StandardInputFile,
+            StandardOutputFile = spec?.StandardOutputFile,
+            StandardErrorFile = spec?.StandardErrorFile,
+            ClusterTaskSubdirectory = spec?.ClusterTaskSubdirectory,
+            CommandTemplateId = spec?.CommandTemplateId,
+            TemplateParameterValues = spec?.CommandParameterValues?.Select(v => new CommandTemplateParameterValueExt
+            {
+                CommandParameterIdentifier = v.CommandParameterIdentifier ?? v.TemplateParameter?.Identifier,
+                ParameterValue = v.Value
+            }).ToArray(),
+            EnvironmentVariables = spec?.EnvironmentVariables?.Select(e => new EnvironmentVariableExt
+            {
+                Name = e.Name,
+                Value = e.Value
+            }).ToArray()
         };
         return convert;
     }
@@ -249,12 +342,14 @@ public static class JobManagementConverts
             Id = task.Id,
             Name = task.Name,
             State = task.State.ConvertIntToExt(),
+            StateSource = task.StateSource.ConvertIntToExt(),
+            StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StateUpdatedAt, timezone),
             Priority = task.Priority.ConvertIntToExt(),
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
-            StartTime = task.StartTime,
-            EndTime = task.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,
@@ -442,6 +537,12 @@ public static class JobManagementConverts
     public static JobStateExt ConvertIntToExt(this JobState jobState)
     {
         _ = Enum.TryParse(jobState.ToString(), out JobStateExt convert);
+        return convert;
+    }
+
+    public static JobStateSourceExt ConvertIntToExt(this JobStateSource jobStateSource)
+    {
+        _ = Enum.TryParse(jobStateSource.ToString(), out JobStateSourceExt convert);
         return convert;
     }
 

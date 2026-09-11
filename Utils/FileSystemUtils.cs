@@ -272,7 +272,7 @@ public class FileSystemUtils
                 .Replace("$USER", username);
         }
 
-        var result = path;
+        var result = path.Trim();
         if (customConfiguration != null && customConfiguration.ContainsKey("HomeDirectoryTemplate") && result.StartsWith("~"))
         {
             result = resolvedHomeDir + result.Substring(1);
@@ -284,6 +284,6 @@ public class FileSystemUtils
             .Replace("$HOME", resolvedHomeDir)
             .Replace("${HOME}", resolvedHomeDir);
 
-        return result;
+        return result.Trim();
     }
 }

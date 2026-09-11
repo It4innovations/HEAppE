@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
@@ -179,12 +179,12 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CurrentUsageAndLimitationsForCurrentUser(string sessionCode)
+    public async Task<IActionResult> CurrentUsageAndLimitationsForCurrentUser(string sessionCode)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
+        return Ok(await Task.Run(() => _service.CurrentUsageAndLimitationsForCurrentUserByProject(sessionCode)));
     }
 
     /// <summary>
@@ -200,12 +200,12 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ProjectsForCurrentUser(string sessionCode)
+    public async Task<IActionResult> ProjectsForCurrentUser(string sessionCode)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.ProjectsForCurrentUser(sessionCode));
+        return Ok(await Task.Run(() => _service.ProjectsForCurrentUser(sessionCode)));
     }
 
     /// <summary>
@@ -221,12 +221,12 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetCurrentUserInfo(string sessionCode)
+    public async Task<IActionResult> GetCurrentUserInfo(string sessionCode)
     {
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.GetCurrentUserInfo(sessionCode));
+        return Ok(await Task.Run(() => _service.GetCurrentUserInfo(sessionCode)));
     }
 
     #endregion

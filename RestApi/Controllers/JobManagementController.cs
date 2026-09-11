@@ -1,3 +1,4 @@
+using System;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
@@ -184,6 +185,56 @@ public class JobManagementController : BaseController<JobManagementController>
     }
 
     /// <summary>
+    ///     List detailed jobs for project admin or manager with pagination and filters
+    /// </summary>
+    /// <param name="sessionCode">Session code</param>
+    /// <param name="jobStates">Comma separated string of job state IDs (e.g. "1,2,4,8,128")</param>
+    /// <param name="limit">Max number of jobs to return</param>
+    /// <param name="offset">Number of jobs to skip</param>
+    /// <param name="userId">Filter by user ID</param>
+    /// <param name="clusterId">Filter by cluster ID</param>
+    /// <param name="subProjectId">Filter by subproject ID</param>
+    /// <param name="projectId">Filter by project ID</param>
+    /// <param name="search">Search term (job or task name)</param>
+    /// <returns></returns>
+    [HttpGet("ListDetailedJobsForAdmin")]
+    [RequestSizeLimit(60)]
+    [ProducesResponseType(typeof(AdminJobPagedResultExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ListDetailedJobsForAdmin(
+        string sessionCode,
+        string jobStates = null,
+        int? limit = null,
+        int? offset = null,
+        long? userId = null,
+        long? clusterId = null,
+        long? subProjectId = null,
+        long? projectId = null,
+        string search = null)
+    {
+        var model = new ListDetailedJobsForAdminModel
+        {
+            SessionCode = sessionCode,
+            JobStates = jobStates,
+            Limit = limit,
+            Offset = offset,
+            UserId = userId,
+            ClusterId = clusterId,
+            SubProjectId = subProjectId,
+            ProjectId = projectId,
+            Search = search
+        };
+        var validationResult = new JobManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(await _service.ListDetailedJobsForAdmin(model.SessionCode, jobStates, limit, offset, userId, clusterId, subProjectId, projectId, search));
+    }
+
+    /// <summary>
     ///     Get current info for job
     /// </summary>
     /// <param name="sessionCode">Session code</param>
@@ -197,17 +248,18 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId, bool forceDirectQuery = false)
     {
         var model = new CurrentInfoForJobModel
         {
             SessionCode = sessionCode,
-            SubmittedJobInfoId = submittedJobInfoId
+            SubmittedJobInfoId = submittedJobInfoId,
+            ForceDirectQuery = forceDirectQuery
         };
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode, model.ForceDirectQuery));
     }
 
     /// <summary>
@@ -300,6 +352,66 @@ public class JobManagementController : BaseController<JobManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(await _service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
+    }
+
+    /// <summary>
+    ///     Update task status callback
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("TaskCallback")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TaskCallback([FromBody] TaskCallbackModel model)
+    {
+        if (model == null || string.IsNullOrEmpty(model.Token))
+        {
+            return BadRequest("Invalid callback payload. Token is required.");
+        }
+
+        string? scheduledJobId = model.ScheduledJobId;
+        string? sessionId = model.SessionId;
+        string? qSchedulerState = model.QSchedulerState;
+        string? rawResponse = model.RawResponse;
+
+        // If nested QScheduler properties are present, resolve them
+        if (string.IsNullOrEmpty(scheduledJobId) && string.IsNullOrEmpty(sessionId))
+        {
+            var nestedId = model.GetTaskOrSessionId();
+            if (model.TaskElement != null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.TaskElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+            {
+                scheduledJobId = nestedId;
+            }
+            else if (model.SessionElement != null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Null && model.SessionElement.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+            {
+                sessionId = nestedId;
+            }
+        }
+
+        if (string.IsNullOrEmpty(qSchedulerState))
+        {
+            qSchedulerState = model.GetState();
+        }
+
+        if (string.IsNullOrEmpty(rawResponse))
+        {
+            rawResponse = model.GetRawResponse();
+        }
+
+        if (string.IsNullOrEmpty(scheduledJobId) && !string.IsNullOrEmpty(sessionId))
+        {
+            scheduledJobId = $"session:{sessionId}";
+        }
+
+        if (string.IsNullOrEmpty(scheduledJobId))
+        {
+            return BadRequest("Invalid callback payload. task_id or session_id is required.");
+        }
+
+        await _service.ProcessTaskCallbackAsync(scheduledJobId, model.Token, rawResponse, qSchedulerState);
+        return Ok("Task status updated successfully.");
     }
 
     #endregion

@@ -21,7 +21,7 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
 
     #region Methods
 
-    public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey()
+    public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKeyExpiredBefore(System.DateTime threshold)
     {
         return _dbSet
             .Include(x => x.SubmittedJob)
@@ -35,11 +35,11 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
             .Include(x => x.SubmittedJob)
                 .ThenInclude(j => j.Specification)
                     .ThenInclude(s => s.Project)
-            .Where(x => !x.IsDeleted)
+            .Where(x => !x.IsDeleted && x.AddedAt <= threshold)
             .ToList();
     }
 
-    public async Task<IEnumerable<FileTransferTemporaryKey>> GetAllActiveTemporaryKeyAsync()
+    public async Task<IEnumerable<FileTransferTemporaryKey>> GetAllActiveTemporaryKeyExpiredBeforeAsync(System.DateTime threshold)
     {
         return await _dbSet
             .Include(x => x.SubmittedJob)
@@ -53,7 +53,7 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
             .Include(x => x.SubmittedJob)
                 .ThenInclude(j => j.Specification)
                     .ThenInclude(s => s.Project)
-            .Where(x => !x.IsDeleted)
+            .Where(x => !x.IsDeleted && x.AddedAt <= threshold)
             .ToListAsync();
     }
 

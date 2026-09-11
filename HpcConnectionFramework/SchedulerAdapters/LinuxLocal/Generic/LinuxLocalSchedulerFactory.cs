@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
@@ -26,7 +26,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singletons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _linuxSchedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _linuxSchedulerSingletons = new();
 
     /// <summary>
     ///     Convertor singletons
@@ -57,7 +57,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))
             _linuxSchedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (

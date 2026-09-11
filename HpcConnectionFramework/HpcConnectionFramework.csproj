@@ -24,4 +24,12 @@
         <ProjectReference Include="..\Tmds.Ssh\src\Tmds.Ssh\Tmds.Ssh.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
     </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>SshCaAPITests</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>RestApi.IntegrationTests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
 </Project>

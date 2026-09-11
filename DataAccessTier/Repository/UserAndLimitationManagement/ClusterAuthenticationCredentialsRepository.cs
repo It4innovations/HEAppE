@@ -293,13 +293,14 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var query = _context.ClusterProjectCredentials
             .Where(cpc => cpc.ClusterProject.ClusterId == clusterId && 
                           cpc.ClusterProject.ProjectId == projectId &&
-                          cpc.IsServiceAccount);
+                          !cpc.IsDeleted);
 
         // Filter by user mapping
-        if (project.IsOneToOneMapping)
-            query = query.Where(cpc => cpc.AdaptorUserId == adaptorUserId);
-        else
-            query = query.Where(cpc => cpc.AdaptorUserId == null);
+        if (adaptorUserId.HasValue)
+        {
+            query = query.Where(cpc => cpc.AdaptorUserId == adaptorUserId || cpc.AdaptorUserId == null)
+                         .OrderByDescending(cpc => cpc.AdaptorUserId);
+        }
 
         if (requireIsInitialized)
             query = query.Where(cpc => cpc.IsInitialized);
@@ -347,6 +348,19 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             .Where(c => c.Username == username)
             .ToList();
         return (await WithVaultData(credentials, logger)).ToList();
+    }
+
+    public async Task<ClusterAuthenticationCredentials> GetAnyServiceAccountCredentialsForClusterAsync(long clusterId, ILogger logger = null)
+    {
+        var query = _context.ClusterProjectCredentials
+            .Where(cpc => cpc.ClusterProject.ClusterId == clusterId && cpc.IsServiceAccount && !cpc.IsDeleted);
+
+        var cred = await query
+            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+            .FirstOrDefaultAsync();
+
+        if (cred == null) return null;
+        return await WithVaultData(cred);
     }
 
     #endregion

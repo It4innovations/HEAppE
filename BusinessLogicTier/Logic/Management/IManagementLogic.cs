@@ -11,6 +11,7 @@ using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.Monitoring;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -108,15 +109,15 @@ public interface IManagementLogic
     Cluster GetClusterById(long clusterId);
     Cluster GetByIdWithProxyConnection(long clusterId);
 
-    Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<Cluster> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles);
 
-    Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<Cluster> ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles);
 
     void RemoveCluster(long id);
 
@@ -214,6 +215,7 @@ public interface IManagementLogic
     Task<dynamic> CheckClusterProjectCredentialsStatus();
     AdaptorUserCreated CreateAdaptorUser(string username);
     AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername);
+    AdaptorUserCreated SetAdaptorUserBlockStatus(string username, bool isBlocked);
     string DeleteAdaptorUser(string modelUsername);
     AdaptorUser GetAdaptorUserByUsername(string username);
     AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
@@ -225,4 +227,14 @@ public interface IManagementLogic
     AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     List<AdaptorUser> ListAdaptorUsers();
+    Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId);
+    Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to);
+    Task<List<ExternalServiceHealthLog>> GetJobExternalServiceLogs(long jobId);
+    Task<List<ExternalServiceStatistics>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string serviceName = null, long? clusterId = null);
+    Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus();
+    Task LogExternalServiceHealth(ExternalServiceHealthLog log);
+    Task PurgeOldExternalServiceHealthLogs();
+    SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role);
+    SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role);
+    List<SystemRoleAssignment> ListSystemRoleAssignments();
 }

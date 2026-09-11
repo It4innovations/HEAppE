@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -31,6 +31,20 @@ public class SubmittedJobInfoExt
     [DataMember(Name = "State")]
     [Description("State")]
     public JobStateExt? State { get; set; }
+
+    /// <summary>
+    /// Source of state update
+    /// </summary>
+    [DataMember(Name = "StateSource")]
+    [Description("Source of state update")]
+    public JobStateSourceExt? StateSource { get; set; }
+
+    /// <summary>
+    /// Timestamp of last state update
+    /// </summary>
+    [DataMember(Name = "StateUpdatedAt")]
+    [Description("Timestamp of last state update")]
+    public DateTime? StateUpdatedAt { get; set; }
 
     /// <summary>
     /// Creation time

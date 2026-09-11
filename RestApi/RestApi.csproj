@@ -93,4 +93,33 @@ namespace HEAppE.RestApi
         <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-Dictionary.json $(OutputPath)RestApi.dll Dictionary" />
         <Exec Command="dotnet tool run swagger tofile --output ../SwaggerReference/RestApi-py4heappe.json $(OutputPath)RestApi.dll py4heappe" />
     </Target>
+  <UsingTask TaskName="UpdateVersionInAppSettings" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <AppSettingsPath ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          if (!File.Exists(AppSettingsPath))
+          {
+              Log.LogError("File not found: " + AppSettingsPath);
+              return false;
+          }
+          string fileContent = File.ReadAllText(AppSettingsPath, System.Text.Encoding.UTF8);
+          fileContent = Regex.Replace(fileContent, "(\"Version\"[ \t]*:[ \t]*\")v[^\"]*(\")", "$1v" + Version + "$2");
+          fileContent = Regex.Replace(fileContent, "(\"Description\"[ \t]*:[ \t]*\"HEAppE middleware API )v[^\"]*(\")", "$1v" + Version + "$2");
+          File.WriteAllText(AppSettingsPath, fileContent, new System.Text.UTF8Encoding(false));
+          Log.LogMessage(MessageImportance.High, "[HEAppE] appsettings.example.json updated to v" + Version);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="UpdateAppSettingsVersion" BeforeTargets="BeforeBuild" Inputs="$(MSBuildThisFileDirectory)../CHANGELOG.md" Outputs="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp">
+    <UpdateVersionInAppSettings AppSettingsPath="$(MSBuildThisFileDirectory)appsettings.example.json" Version="$(HeappeVersion)" />
+    <Touch Files="$(MSBuildThisFileDirectory)appsettings.example.json.version.stamp" AlwaysCreate="true" />
+  </Target>
 </Project>

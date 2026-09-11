@@ -14,6 +14,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.QScheduler.Generic;
 using HEAppE.Services.Expirio;
 using SshCaAPI;
 
@@ -43,6 +44,7 @@ public abstract class SchedulerFactory
                 SchedulerType.Slurm => new SlurmSchedulerFactory(),
                 SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
                 SchedulerType.HyperQueue => new HyperQueueSchedulerFactory(),
+                SchedulerType.QScheduler => new QSchedulerSchedulerFactory(),
                 _ => throw new SchedulerException("NotValidType", type)
             };
             _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
@@ -68,7 +70,8 @@ public abstract class SchedulerFactory
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
-            clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId);
+            clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId,
+            clusterConf.ConnectionProtocol, clusterConf.Port);
 
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,

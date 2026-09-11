@@ -118,6 +118,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToList();
@@ -165,6 +167,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.FileTransferMethod)
             // Top-level navigations used by scheduler factory
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(j => j.Submitter)
             .Where(j => j.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
             .ToListAsync();
@@ -322,9 +326,16 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.Project)
                     .ThenInclude(p => p.ClusterProjects)
                         .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                        .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .Include(j => j.Project)
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(j => j.Project)
+                .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                    .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .Include(j => j.Submitter)
             .Include(j => j.FileTransferTemporaryKeys)
             .Include(j => j.Tasks)
@@ -393,9 +404,16 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                 .ThenInclude(s => s.Project)
                     .ThenInclude(p => p.ClusterProjects)
                         .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                        .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .Include(j => j.Project)
                 .ThenInclude(p => p.ClusterProjects)
                     .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(j => j.Project)
+                .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                    .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .Include(j => j.Submitter)
             .Include(j => j.FileTransferTemporaryKeys)
             .Include(j => j.Tasks)
@@ -439,6 +457,56 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
                         .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
                             .ThenInclude(cnta => cnta.ClusterNodeTypeAggregationAccountings)
                                 .ThenInclude(cna => cna.Accounting)
+            .FirstOrDefaultAsync(j => j.Id == id);
+
+        if (job != null)
+            await AttachCommandTemplatesIncludingDeletedAsync(job.Tasks);
+
+        return job;
+    }
+
+    public async Task<SubmittedJobInfo> GetByIdForSubmitAsync(long id)
+    {
+        var job = await _dbSet
+            .AsSplitQuery()
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+                    .ThenInclude(c => c.ClusterProjects)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Project)
+                    .ThenInclude(p => p.ProjectClusterNodeTypeAggregations)
+                        .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
+            .Include(j => j.Submitter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.DependsOn)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.RequiredNodes)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.TaskParalizationSpecifications)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.RequestedNodeGroups)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.ClusterNodeType)
+                        .ThenInclude(cnt => cnt.ClusterNodeTypeAggregation)
             .FirstOrDefaultAsync(j => j.Id == id);
 
         if (job != null)
@@ -616,7 +684,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var missingIds = taskList
             .Where(t => t.Specification?.CommandTemplate == null && t.Specification?.CommandTemplateId > 0)
-            .Select(t => t.Specification.CommandTemplateId)
+            .Select(t => t.Specification.CommandTemplateId.Value)
             .Distinct()
             .ToList();
 
@@ -631,7 +699,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         foreach (var task in taskList)
         {
             if (task.Specification?.CommandTemplate == null && task.Specification?.CommandTemplateId > 0)
-                if (templates.TryGetValue(task.Specification.CommandTemplateId, out var template))
+                if (templates.TryGetValue(task.Specification.CommandTemplateId.Value, out var template))
                     task.Specification.CommandTemplate = template;
         }
     }
@@ -643,7 +711,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
         var missingIds = taskList
             .Where(t => t.Specification?.CommandTemplate == null && t.Specification?.CommandTemplateId > 0)
-            .Select(t => t.Specification.CommandTemplateId)
+            .Select(t => t.Specification.CommandTemplateId.Value)
             .Distinct()
             .ToList();
 
@@ -658,7 +726,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         foreach (var task in taskList)
         {
             if (task.Specification?.CommandTemplate == null && task.Specification?.CommandTemplateId > 0)
-                if (templates.TryGetValue(task.Specification.CommandTemplateId, out var template))
+                if (templates.TryGetValue(task.Specification.CommandTemplateId.Value, out var template))
                     task.Specification.CommandTemplate = template;
         }
     }

@@ -1,0 +1,107 @@
+name: HEAppE CI/CD Test & Coverage Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Test & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Multi-Container Test Infrastructure
+        run: |
+          cd ci
+          docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
+
+      - name: Wait for Services to become Healthy
+        run: |
+          cd ci
+          chmod +x scripts/wait-for-healthy.sh
+          ./scripts/wait-for-healthy.sh 120
+
+      - name: Restore NuGet Packages
+        run: |
+          dotnet restore "HEAppE Core.sln"
+
+      - name: Build HEAppE Solution
+        run: |
+          dotnet build "HEAppE Core.sln" -c Release -p:CI=true --no-restore
+
+      - name: Execute Test Suites with Code Coverage
+        id: test
+        run: |
+          dotnet test "HEAppE Core.sln" \
+            -c Release \
+            --no-build \
+            --collect:"XPlat Code Coverage" \
+            --settings ci/coverage.runsettings \
+            --logger "trx;LogFileName=test_results.trx" \
+            --logger "GitHubActions" \
+            --results-directory ./TestResults
+
+      - name: Generate Code Coverage Reports (HTML & Cobertura)
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
+        if: always()
+        with:
+          reports: 'TestResults/**/coverage.cobertura.xml'
+          targetdir: 'TestResults/CoverageReport'
+          reporttypes: 'Html;Cobertura;MarkdownSummary;Badges'
+          assemblyfilters: '+RestApi;+BusinessLogicTier;+DataAccessTier;+ServiceTier;+CertificateGenerator;+DomainObjects;+ExtModels;+RestApiModels;+HpcConnectionFramework;+FileTransferFramework;+BackgroundThread;-*Test*;-*Tests*;-*.Migrations'
+
+      - name: Publish Code Coverage Summary to PR / Job Summary
+        if: always() && steps.test.outcome != 'skipped'
+        run: |
+          if [ -f "TestResults/CoverageReport/Summary.md" ]; then
+            cat TestResults/CoverageReport/Summary.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Test Results Artifacts (TRX)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-trx
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+
+      - name: Upload Code Coverage Artifacts (HTML & Cobertura)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-coverage-report
+          path: TestResults/CoverageReport
+          if-no-files-found: warn
+
+      - name: Teardown Docker Infrastructure
+        if: always()
+        run: |
+          cd ci
+          docker compose -f docker-compose.ci.yml down -v

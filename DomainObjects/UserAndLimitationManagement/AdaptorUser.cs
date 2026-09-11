@@ -25,9 +25,14 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         [StringLength(250)]
         public string Email { get; set; }
+
+        [StringLength(250)]
+        public string? IdpSid { get; set; }
         public bool Synchronize { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+
+        public bool IsBlocked { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -43,11 +48,15 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public string GetLogIdentification()
         {
-            if (string.IsNullOrEmpty(this.Username))
+            if (!string.IsNullOrEmpty(this.Username))
             {
-                return Email;
+                return Username;
             }
-            return Username;
+            if (!string.IsNullOrEmpty(this.IdpSid))
+            {
+                return IdpSid;
+            }
+            return Id.ToString();
         }
 
         /// <summary>
@@ -83,7 +92,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public override string ToString()
         {
-            return string.Format("AdaptorUser: Id={0}, Username={1}, Email={2}", Id, Username, Email);
+            return string.Format("AdaptorUser: Id={0}, Username={1}, IdpSid={2}", Id, Username, IdpSid);
         }
     }
 }

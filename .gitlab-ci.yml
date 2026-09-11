@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  GIT_CLEAN_FLAGS: "none"
   
 
 
@@ -112,6 +113,86 @@ semgrep-sast:
   artifacts:
     paths:
       - gl-sast-report.json
+
+test_e2e:
+  stage: test
+  variables:
+    GIT_CLEAN_FLAGS: "none"
+  before_script:
+    - docker --version
+    - docker compose version
+    - echo "Cleaning up runner disk space and workspace before test run..."
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget /workspace/TestResults" || true
+    - docker system prune -af --volumes || true
+    - df -h
+  script:
+    - echo "Starting Docker infrastructure and executing test suites..."
+    - cd ci
+    - docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
+    - chmod +x scripts/*.sh
+    - ./scripts/wait-for-healthy.sh 120
+    - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci
+    - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
+  after_script:
+    - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget && chmod -R 777 /workspace/TestResults" || true
+    - docker system prune -f || true
+  coverage: '/Line coverage:\s+(\d+(?:\.\d+)?%)/'
+  artifacts:
+    when: always
+    paths:
+      - TestResults/CoverageReport/
+      - TestResults/*junit*.xml
+      - TestResults/*.trx
+    reports:
+      junit: TestResults/*junit*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: TestResults/CoverageReport/Cobertura.xml
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+
+coverage_threshold:
+  stage: test
+  needs:
+    - job: test_e2e
+      artifacts: true
+  image: alpine:latest
+  allow_failure: true
+  variables:
+    TARGET_COVERAGE: "100"
+  script:
+    - echo "=========================================================="
+    - echo "        Code Coverage Target & Threshold Check"
+    - echo "=========================================================="
+    - |
+      if [ ! -f TestResults/CoverageReport/Summary.txt ]; then
+        echo "⚠️ Coverage report TestResults/CoverageReport/Summary.txt not found!"
+        exit 1
+      fi
+      cat TestResults/CoverageReport/Summary.txt
+      echo "----------------------------------------------------------"
+      COVERAGE=$(awk -F': ' '/Line coverage:/ {gsub(/%/,"",$2); print $2}' TestResults/CoverageReport/Summary.txt | tr -d ' \r\n')
+      if [ -z "$COVERAGE" ]; then
+        echo "⚠️ Could not parse Line coverage percentage from Summary.txt"
+        exit 1
+      fi
+      echo "Current Line Coverage: ${COVERAGE}%"
+      echo "Target Line Coverage:  ${TARGET_COVERAGE}%"
+      echo "----------------------------------------------------------"
+      IS_BELOW=$(awk -v cov="$COVERAGE" -v target="$TARGET_COVERAGE" 'BEGIN {print (cov < target) ? 1 : 0}')
+      if [ "$IS_BELOW" -eq 1 ]; then
+        echo "⚠️  [WARNING] Total line coverage is ${COVERAGE}%, which is below target ${TARGET_COVERAGE}%!"
+        echo "⚠️  Review TestResults/CoverageReport/index.html to inspect uncovered lines."
+        exit 1
+      fi
+      echo "🎉 [SUCCESS] Line coverage target met: ${COVERAGE}% >= ${TARGET_COVERAGE}%"
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
 
 release_job:
   stage: release

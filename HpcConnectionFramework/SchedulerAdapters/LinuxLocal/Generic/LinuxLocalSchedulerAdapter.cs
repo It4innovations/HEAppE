@@ -342,11 +342,8 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="taskInfo">Task info</param>
     /// <param name="nodeHost">Cluster node address</param>
     /// <param name="nodePort">Cluster node port</param>
-    public async Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
-    {
-        await Task.Delay(1);
+    public Task CreateTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort) =>
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
-    }
 
 
     /// <summary>
@@ -354,11 +351,8 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="taskInfo">Task info</param>
-    public async Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo)
-    {
-        await Task.Delay(1);
+    public Task RemoveTunnelAsync(object connectorClient, SubmittedTaskInfo taskInfo) =>
         throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
-    }
 
     /// <summary>
     ///     Get tunnels information
@@ -442,7 +436,6 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         if (dryRunJobFailedCount > 0)
             checkLog.DryRunJobOk = false;
 
-        await Task.Delay(1);
         return null;
     }
 
@@ -537,6 +530,16 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         }
 
         return allHistoricalTasks;
+    }
+
+    public Task<string> GetMachineArchitectureAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId)
+    {
+        throw new NotSupportedException("GetMachineArchitecture is not supported by LinuxLocal");
+    }
+
+    public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
+    {
+        throw new NotSupportedException("GetMachineCalibration is not supported by LinuxLocal");
     }
 
     #endregion

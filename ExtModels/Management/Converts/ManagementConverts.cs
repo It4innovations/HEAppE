@@ -143,5 +143,82 @@ public static class ManagementConverts
         return convert;
     }
 
+    public static JobExternalServiceLogExt ConvertIntToExt(this HEAppE.DomainObjects.Monitoring.ExternalServiceHealthLog log)
+    {
+        return new JobExternalServiceLogExt
+        {
+            Id = log.Id,
+            ServiceName = log.ServiceName,
+            ServiceType = log.ServiceType,
+            Protocol = log.Protocol,
+            EndpointOrHost = log.EndpointOrHost,
+            Port = log.Port,
+            Operation = log.CommandOrPath,
+            Timestamp = log.Timestamp,
+            IsSuccess = log.IsAvailable,
+            ResponseTimeMs = log.ResponseTimeMs,
+            StatusCode = log.StatusCode,
+            ErrorMessage = log.ErrorMessage,
+            JobId = log.JobId,
+            TaskId = log.TaskId,
+            ClusterId = log.ClusterId,
+            RequestId = log.RequestId,
+            Source = log.Source
+        };
+    }
+
+    public static ExternalServiceStatisticsExt ConvertIntToExt(this HEAppE.DomainObjects.Monitoring.ExternalServiceStatistics stats)
+    {
+        return new ExternalServiceStatisticsExt
+        {
+            ServiceName = stats.ServiceName,
+            ServiceType = stats.ServiceType,
+            CommandOrPath = stats.CommandOrPath,
+            AvailabilityPercentage = stats.AvailabilityPercentage,
+            AverageResponseTimeMs = stats.AverageResponseTimeMs,
+            MinResponseTimeMs = stats.MinResponseTimeMs,
+            MaxResponseTimeMs = stats.MaxResponseTimeMs,
+            P95ResponseTimeMs = stats.P95ResponseTimeMs,
+            TotalChecks = stats.TotalChecks,
+            FailedChecks = stats.FailedChecks
+        };
+    }
+
+    public static ExternalServiceLiveStatusExt ConvertIntToExt(this HEAppE.DomainObjects.Monitoring.ExternalServiceLiveStatus status)
+    {
+        return new ExternalServiceLiveStatusExt
+        {
+            ServiceName = status.ServiceName,
+            Type = status.Type,
+            Protocol = status.Protocol,
+            EndpointOrHost = status.EndpointOrHost,
+            Port = status.Port,
+            IsAvailable = status.IsAvailable,
+            ResponseTimeMs = status.ResponseTimeMs,
+            ErrorMessage = status.ErrorMessage,
+            LastCheck = status.LastCheck
+        };
+    }
+
+    public static ExternalServicesReportExt ConvertIntToExt(this HEAppE.DomainObjects.Monitoring.ExternalServicesReport report)
+    {
+        return new ExternalServicesReportExt
+        {
+            LiveStatus = report.LiveStatus?.Select(x => x.ConvertIntToExt()).ToList(),
+            Statistics = report.Statistics?.Select(x => x.ConvertIntToExt()).ToList()
+        };
+    }
+
+    public static SystemRoleAssignmentExt ConvertIntToExt(this SystemRoleAssignment assignment)
+    {
+        if (assignment == null) return null;
+        return new SystemRoleAssignmentExt
+        {
+            Username = assignment.Username,
+            Role = assignment.Role.ToString(),
+            Source = assignment.Source
+        };
+    }
+
     #endregion
 }

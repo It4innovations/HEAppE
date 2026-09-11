@@ -74,7 +74,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.Current.LocalPath, backupFileName);
 
 #pragma warning disable EF1002 // Database name cannot be parameterized
-            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             // Copy to NAS
@@ -179,7 +180,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.Current.LocalPath, backupFileName);
 
 #pragma warning disable EF1002 // Database name cannot be parameterized
-            _context.Database.ExecuteSqlRaw($"BACKUP LOG [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            _context.Database.ExecuteSqlRaw($"BACKUP LOG [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             // Copy to NAS
@@ -433,7 +435,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
             Directory.CreateDirectory(DatabaseFullBackupConfiguration.Current.LocalPath);
 
 #pragma warning disable EF1002
-            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath));
+            // nosemgrep: security_code_scan.SCS0002-1 - databaseName is retrieved from connection metadata and cannot be parameterized in T-SQL BACKUP
+            await _context.Database.ExecuteSqlRawAsync($"BACKUP DATABASE [{databaseName}] TO DISK = @path WITH INIT;", new SqlParameter("@path", backupPath)); // nosemgrep
 #pragma warning restore EF1002
 
             byte[] dbBackupBytes = await File.ReadAllBytesAsync(backupPath);
@@ -474,6 +477,33 @@ internal class DatabaseBackupService : IDatabaseBackupService
             });
             byte[] vaultSecretsBytes = System.Text.Encoding.UTF8.GetBytes(vaultSecretsJson);
 
+            // Export Cluster secrets
+            _logger.LogInformation("Exporting ClusterSecrets from database and HashiCorp Vault.");
+            var clustersList = await _context.Clusters.ToListAsync();
+            var clusterSecretsDict = new Dictionary<long, Dictionary<string, string>>();
+            foreach (var cluster in clustersList)
+            {
+                try
+                {
+                    var secrets = await _vaultConnector.GetClusterSecretsAsync(cluster.Id);
+                    if (secrets != null && secrets.Any())
+                    {
+                        clusterSecretsDict[cluster.Id] = secrets;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to retrieve Vault cluster secrets for Cluster ID {cluster.Id}");
+                }
+            }
+
+            var clusterSecretsJson = JsonSerializer.Serialize(clusterSecretsDict, new JsonSerializerOptions 
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            byte[] clusterSecretsBytes = System.Text.Encoding.UTF8.GetBytes(clusterSecretsJson);
+
             // 3. Create ZIP archive in memory
             byte[] zipBytes;
             using (var memoryStream = new MemoryStream())
@@ -492,6 +522,13 @@ internal class DatabaseBackupService : IDatabaseBackupService
                     using (var entryStream = vaultEntry.Open())
                     {
                         await entryStream.WriteAsync(vaultSecretsBytes, 0, vaultSecretsBytes.Length);
+                    }
+
+                    // Add cluster_secrets.json
+                    var clusterEntry = archive.CreateEntry("cluster_secrets.json");
+                    using (var entryStream = clusterEntry.Open())
+                    {
+                        await entryStream.WriteAsync(clusterSecretsBytes, 0, clusterSecretsBytes.Length);
                     }
                 }
                 zipBytes = memoryStream.ToArray();
@@ -537,12 +574,14 @@ internal class DatabaseBackupService : IDatabaseBackupService
             // 2. Extract files from ZIP archive
             byte[] dbBackupBytes = null;
             byte[] vaultSecretsBytes = null;
+            byte[] clusterSecretsBytes = null;
 
             using (var ms = new MemoryStream(zipBytes))
             using (var archive = new ZipArchive(ms, ZipArchiveMode.Read))
             {
                 var dbEntry = archive.GetEntry("database.bak") ?? throw new Exception("Migration package is missing database.bak");
                 var vaultEntry = archive.GetEntry("vault_secrets.json") ?? throw new Exception("Migration package is missing vault_secrets.json");
+                var clusterSecretsEntry = archive.GetEntry("cluster_secrets.json");
 
                 using (var entryStream = dbEntry.Open())
                 using (var dbMs = new MemoryStream())
@@ -556,6 +595,16 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 {
                     await entryStream.CopyToAsync(vaultMs);
                     vaultSecretsBytes = vaultMs.ToArray();
+                }
+
+                if (clusterSecretsEntry != null)
+                {
+                    using (var entryStream = clusterSecretsEntry.Open())
+                    using (var clusterMs = new MemoryStream())
+                    {
+                        await entryStream.CopyToAsync(clusterMs);
+                        clusterSecretsBytes = clusterMs.ToArray();
+                    }
                 }
             }
 
@@ -614,6 +663,26 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 {
                     _logger.LogDebug($"Writing Vault secret for Credential ID: {vaultPart.Id}");
                     await _vaultConnector.SetClusterAuthenticationCredentialsAsync(vaultPart);
+                }
+            }
+
+            if (clusterSecretsBytes != null)
+            {
+                _logger.LogInformation("Parsing and restoring Vault cluster secrets.");
+                var clusterSecretsJson = System.Text.Encoding.UTF8.GetString(clusterSecretsBytes);
+                var clusterSecretsDict = JsonSerializer.Deserialize<Dictionary<long, Dictionary<string, string>>>(clusterSecretsJson, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (clusterSecretsDict != null)
+                {
+                    foreach (var pair in clusterSecretsDict)
+                    {
+                        _logger.LogDebug($"Writing Vault cluster secrets for Cluster ID: {pair.Key}");
+                        await _vaultConnector.SetClusterSecretsAsync(pair.Key, pair.Value);
+                    }
                 }
             }
 

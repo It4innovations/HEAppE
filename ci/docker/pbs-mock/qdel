@@ -1,0 +1,19 @@
+#!/bin/bash
+# Mock qdel for PBS Pro testing
+
+SPOOL_DIR="/var/spool/pbs/jobs"
+
+if [ -z "$1" ]; then
+    echo "usage: qdel job_id ..." >&2
+    exit 1
+fi
+
+for job_id in "$@"; do
+    if [ -f "$SPOOL_DIR/$job_id.status" ]; then
+        sed -i 's/job_state = .*/job_state = E/' "$SPOOL_DIR/$job_id.status"
+        echo "Job $job_id deleted."
+    else
+        echo "qdel: Unknown Job Id $job_id" >&2
+    fi
+done
+exit 0

@@ -110,8 +110,22 @@ public class ExtendedClusterExt
     [Description("Custom configuration")]
     public Dictionary<string, string>? CustomConfiguration { get; set; }
 
+    /// <summary>
+    /// Custom configuration vault toggles
+    /// </summary>
+    [DataMember(Name = "CustomConfigurationVaultToggles")]
+    [Description("Custom configuration vault toggles")]
+    public Dictionary<string, bool>? CustomConfigurationVaultToggles { get; set; }
+
+    /// <summary>
+    /// Use callback
+    /// </summary>
+    [DataMember(Name = "UseCallback")]
+    [Description("Use callback")]
+    public bool UseCallback { get; set; }
+
     public override string ToString()
     {
-        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; NodeTypes={NodeTypes})";
+        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; NodeTypes={NodeTypes}; UseCallback={UseCallback})";
     }
 }

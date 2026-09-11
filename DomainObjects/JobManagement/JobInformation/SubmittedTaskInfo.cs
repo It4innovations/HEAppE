@@ -15,6 +15,10 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
 
     public TaskState State { get; set; }
 
+    public JobStateSource StateSource { get; set; } = JobStateSource.Unknown;
+
+    public DateTime? StateUpdatedAt { get; set; }
+
     public TaskPriority Priority { get; set; }
 
     /// <summary>
@@ -58,6 +62,9 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
     public string CallbackSecret { get; set; }
 
     [NotMapped] public Dictionary<string, string> ParsedParameters { get; set; }
+
+    [NotMapped] public bool ForceSessionSubmit { get; set; }
+    [NotMapped] public bool ForceStatusQuery { get; set; }
 
     public virtual Project Project { get; set; }
 

@@ -177,5 +177,27 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
         return await _dbSet.FirstOrDefaultAsync(w => w.Email == email);
     }
 
+    public AdaptorUser GetByIdpSidIgnoreQueryFilters(string idpSid)
+    {
+        return _dbSet
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .IgnoreQueryFilters() 
+            .FirstOrDefault(w => w.IdpSid == idpSid);
+    }
+
+    public async Task<AdaptorUser> GetByIdpSidIgnoreQueryFiltersAsync(string idpSid)
+    {
+        return await _dbSet
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(x => x.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .IgnoreQueryFilters() 
+            .FirstOrDefaultAsync(w => w.IdpSid == idpSid);
+    }
+
     #endregion
 }

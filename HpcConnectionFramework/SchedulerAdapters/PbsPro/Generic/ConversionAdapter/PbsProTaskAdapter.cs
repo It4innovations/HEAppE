@@ -316,6 +316,12 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         set => DoAppend(value != null ? $" -l gpu_mem={value}mb" : string.Empty);
     }
 
+    public bool UseCallback { get; set; }
+    public int GracefulTimeoutSeconds { get; set; }
+    public string CallbackSecret { get; set; }
+    public string CallbackUrl { get; set; }
+    public string WrapperScriptPath { get; set; }
+
     /// <summary>
     ///     Set requested resources for task
     /// </summary>
@@ -445,7 +451,13 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             
             _taskAppender.Append(" -v ");
             foreach (var variable in variables)
-                _taskAppender.Append($"{variable.Name}={variable.Value},");
+            {
+                if (!System.Text.RegularExpressions.Regex.IsMatch(variable.Name, @"^[a-zA-Z_][a-zA-Z0-9_]*$"))
+                    throw new ArgumentException($"Invalid environment variable name: {variable.Name}");
+
+                var escapedValue = "\"" + variable.Value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                _taskAppender.Append($"{variable.Name}={escapedValue},");
+            }
             _taskAppender.Remove(_taskAppender.Length - 1, 1);
 
             if (_pbs)
@@ -453,10 +465,12 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
         }
     }
 
+    public static string NormalizeShellPath(string path) => SchedulerDataConvertor.NormalizeShellPath(path);
+
     /// <summary>
     ///     Set preparation command for task
     /// </summary>
-    /// <param name="workDir">Task work directory</param>
+    /// <param name="workDir">Task work dir</param>
     /// <param name="preparationScript">Task preparation script</param>
     /// <param name="commandLine">Task command</param>
     /// <param name="stdOutFile">Standard output file</param>
@@ -464,17 +478,82 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        var normWorkDir = NormalizeShellPath(workDir);
+        var normStdOut = NormalizeShellPath(stdOutFile);
+        var normStdErr = NormalizeShellPath(stdErrFile);
+        var normWrapper = NormalizeShellPath(WrapperScriptPath);
         var nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
+        var normNodefileDir = NormalizeShellPath(nodefileDir);
         var taskSourceSb = new StringBuilder();
+
+        if (UseCallback)
+        {
+            var pbsSignalArg = GracefulTimeoutSeconds > 0 ? $" -W signal=SIGTERM@{GracefulTimeoutSeconds}" : string.Empty;
+            if (!_pbs)
+            {
+                var qsubPart = _taskAppender.ToString();
+                var sb = new StringBuilder();
+                sb.Append($"mkdir -p \"{normWorkDir}/.heappe\" && ");
+                sb.Append($"echo \"{CallbackSecret}\" > \"{normWorkDir}/.heappe/callback_token\" && ");
+                sb.Append($"chmod 600 \"{normWorkDir}/.heappe/callback_token\" && ");
+                
+                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{normWorkDir}/.heappe/heappe_user_task.sh\"\n");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    sb.Append(commandLine.Last().Equals('\n') ? commandLine : $"{commandLine}\n");
+                }
+                sb.Append("EOF_HEAPPE_USER_TASK\n");
+                
+                sb.Append($"chmod +x \"{normWorkDir}/.heappe/heappe_user_task.sh\" && ");
+                sb.Append($"echo 'cd \"{normWorkDir}\"; rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\"; exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"pbs\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\"' | {qsubPart}{pbsSignalArg}");
+                
+                _taskAppender = sb;
+            }
+            else
+            {
+                if (GracefulTimeoutSeconds > 0)
+                {
+                    _taskAppender.AppendLine($"#PBS -W signal=SIGTERM@{GracefulTimeoutSeconds}");
+                }
+                _taskAppender.AppendLine();
+                _taskAppender.AppendLine("mkdir -p .heappe");
+                _taskAppender.AppendLine($"echo \"{CallbackSecret}\" > .heappe/callback_token");
+                _taskAppender.AppendLine("chmod 600 .heappe/callback_token");
+                if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+                {
+                    _taskAppender.AppendLine(recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
+                }
+                _taskAppender.AppendLine("cat << \"EOF_HEAPPE_USER_TASK\" > .heappe/heappe_user_task.sh");
+                if (!string.IsNullOrEmpty(preparationScript))
+                {
+                    _taskAppender.AppendLine(preparationScript);
+                }
+                if (!string.IsNullOrEmpty(commandLine))
+                {
+                    _taskAppender.AppendLine(commandLine);
+                }
+                _taskAppender.AppendLine("EOF_HEAPPE_USER_TASK");
+                _taskAppender.AppendLine("chmod +x .heappe/heappe_user_task.sh");
+                _taskAppender.AppendLine($"rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\"");
+                _taskAppender.AppendLine($"exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"pbs\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\"");
+            }
+
+            return;
+        }
+
         if (!_pbs)
             taskSourceSb.Append($"echo '");
-        taskSourceSb.Append($"cd {nodefileDir};cd {workDir};");
+        taskSourceSb.Append($"cd \"{normNodefileDir}\";cd \"{normWorkDir}\";");
         taskSourceSb.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
                 : recursiveSymlinkCommand.Last().Equals(';')
                     ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
+                    : $"{recursiveSymlinkCommand};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
 
         taskSourceSb.Append(
             string.IsNullOrEmpty(preparationScript)

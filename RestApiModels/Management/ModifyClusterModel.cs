@@ -101,4 +101,11 @@ public class ModifyClusterModel : SessionCodeModel
     [DataMember(Name = "CustomConfiguration", IsRequired = false)]
     [Description("Custom configuration")]
     public System.Collections.Generic.Dictionary<string, string>? CustomConfiguration { get; set; }
+
+    /// <summary>
+    /// Custom configuration vault toggles
+    /// </summary>
+    [DataMember(Name = "CustomConfigurationVaultToggles", IsRequired = false)]
+    [Description("Custom configuration vault toggles")]
+    public System.Collections.Generic.Dictionary<string, bool>? CustomConfigurationVaultToggles { get; set; }
 }

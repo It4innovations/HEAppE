@@ -59,4 +59,12 @@ public interface IRexScheduler
 
     Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(List<SubmittedTaskInfo> missingTasks,
         ClusterAuthenticationCredentials account, string sshCaToken, string lexisToken);
+
+    Task<string> GetMachineArchitectureAsync(Cluster cluster, string machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+
+    Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task<long> OpenSessionAsync(Cluster cluster, string machineId, string project, int walltimeLimitSecs, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task<System.IO.Stream> GetQuantumTaskArtifactAsync(Cluster cluster, string scheduledJobId, string artifactName, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 }

@@ -1,6 +1,7 @@
 using System.Linq;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.Utils.Validation;
 
 namespace HEAppE.RestApi.InputValidator;
@@ -23,10 +24,12 @@ public class JobManagementValidator : AbstractValidator
         var message = _validationObject switch
         {
             CreateJobByProjectModel model => ValidateCreateJobModel(model),
+            CreateAndSubmitQSchedulerJobModel model => ValidateCreateAndSubmitQSchedulerJobModel(model),
             SubmitJobModel model => ValidateSubmitJobModel(model),
             CancelJobModel model => ValidateCancelJobModel(model),
             DeleteJobModel model => ValidateDeleteJobModel(model),
             ListJobsForCurrentUserModel model => ValidateListJobsForCurrentUserModel(model),
+            ListDetailedJobsForAdminModel model => ValidateListDetailedJobsForAdminModel(model),
             CurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
             CopyJobDataToTempModel model => ValidateCopyJobDataToTempModel(model),
             CopyJobDataFromTempModel model => ValidateCopyJobDataFromTempModel(model),
@@ -94,6 +97,16 @@ public class JobManagementValidator : AbstractValidator
         return _messageBuilder.ToString();
     }
 
+    private string ValidateListDetailedJobsForAdminModel(ListDetailedJobsForAdminModel model)
+    {
+        ValidateSessionCode(model.SessionCode);
+        if (model.Limit.HasValue && model.Limit.Value < 0)
+            _messageBuilder.AppendLine("Limit must be a non-negative integer.");
+        if (model.Offset.HasValue && model.Offset.Value < 0)
+            _messageBuilder.AppendLine("Offset must be a non-negative integer.");
+        return _messageBuilder.ToString();
+    }
+
     private string ValidateDeleteJobModel(DeleteJobModel model)
     {
         ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
@@ -121,6 +134,72 @@ public class JobManagementValidator : AbstractValidator
         ValidatePositiveId(model.JobSpecification.ProjectId, "ProjectId");
         ValidateSessionCode(model.SessionCode);
         return _messageBuilder.ToString();
+    }
+
+    private string ValidateCreateAndSubmitQSchedulerJobModel(CreateAndSubmitQSchedulerJobModel model)
+    {
+        if (model.JobSpecification == null)
+        {
+            _messageBuilder.Append("JobSpecification is required; ");
+            return _messageBuilder.ToString();
+        }
+
+        ValidateQSchedulerJobSpecificationExt(model.JobSpecification);
+        ValidateSessionCode(model.SessionCode);
+        return _messageBuilder.ToString();
+    }
+
+    private void ValidateQSchedulerJobSpecificationExt(QSchedulerJobSpecificationExt job)
+    {
+        if (string.IsNullOrEmpty(job.Name) || job.Name.Length > 50)
+            _messageBuilder.Append("Job name is required and must be max 50 chars; ");
+
+        ValidatePositiveId(job.ProjectId, "ProjectId");
+        ValidatePositiveId(job.ClusterId, "ClusterId");
+
+        if (job.Tasks == null || job.Tasks.Length == 0)
+        {
+            _messageBuilder.Append("Job must contain at least 1 task; ");
+            return;
+        }
+
+        foreach (var task in job.Tasks)
+        {
+            ValidateQSchedulerTaskSpecificationExt(task);
+        }
+    }
+
+    private void ValidateQSchedulerTaskSpecificationExt(QSchedulerTaskSpecificationExt task)
+    {
+        if (string.IsNullOrEmpty(task.Name) || task.Name.Length > 50)
+            _messageBuilder.Append("Task name is required and must be max 50 chars; ");
+
+        if (string.IsNullOrEmpty(task.MachineId) || task.MachineId.Length > 100)
+            _messageBuilder.Append("MachineId is required and must be max 100 chars; ");
+
+        if (task.WalltimeLimitSecs <= 0)
+            _messageBuilder.Append("WalltimeLimitSecs must be greater than 0; ");
+
+        if (task.SessionId.HasValue && task.SessionId.Value <= 0)
+            _messageBuilder.Append("SessionId must be greater than 0; ");
+
+        // Validate payload rules: Must have either PayloadPartName or PayloadFilePath
+        bool hasPart = !string.IsNullOrEmpty(task.PayloadPartName);
+        bool hasPath = !string.IsNullOrEmpty(task.PayloadFilePath);
+
+        if (!hasPart && !hasPath)
+        {
+            _messageBuilder.Append($"Task '{task.Name}' must have either PayloadPartName or PayloadFilePath; ");
+        }
+        else if (hasPart && hasPath)
+        {
+            _messageBuilder.Append($"Task '{task.Name}' cannot have both PayloadPartName and PayloadFilePath; ");
+        }
+
+        if (hasPath && task.PayloadFilePath.Contains(".."))
+        {
+            _messageBuilder.Append($"Task '{task.Name}' contains invalid path traversal characters; ");
+        }
     }
 
     // --- Complex Object Validators ---

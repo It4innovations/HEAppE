@@ -222,8 +222,15 @@ public class ManagementService : IManagementService
             // The UserById_ cache is evicted inside ManagementLogic.CreateProject.
             if (!string.IsNullOrEmpty(sessionCode))
             {
-                var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
-                cache?.Remove($"SessionUser_{sessionCode}");
+                try
+                {
+                    var cache = LogicFactory.GetService<IMemoryCache>();
+                    cache?.Remove($"SessionUser_{sessionCode}");
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to evict SessionUser from cache for session code {SessionCode}", sessionCode);
+                }
             }
             
             return project.ConvertIntToExt();
@@ -347,8 +354,9 @@ public class ManagementService : IManagementService
             }
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            long? adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             return (await managementLogic.GetSecureShellKeys(projectId,
-                adaptorUserId: loggedUser.Id, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
+                adaptorUserId: adaptorUserId, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -496,33 +504,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isAdministrator)
-                {
-                    adaptorUserId = loggedUser.Id;
-                }
-                else if (isManager)
-                {
-                    // Managers can create service accounts if they don't specify adaptorUserId, 
-                    // or they might want to create for themselves. 
-                    // HEAppE usually defaults to null for shared projects if not specified.
-                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
-                }
-                else if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        // Submitters in shared projects can only create service account credentials if allowed by logic
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
 
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -608,29 +594,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isAdministrator)
-                {
-                    adaptorUserId = loggedUser.Id;
-                }
-                else if (isManager)
-                {
-                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
-                }
-                else if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -665,21 +633,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -778,7 +736,8 @@ public class ManagementService : IManagementService
             //get all user projects for conversion
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return (await managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id, isAdministrator))
+            long? adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+            return (await managementLogic.ClusterAccountStatus(projectId, username, adaptorUserId, isAdministrator))
                 .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }
@@ -1018,7 +977,9 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var cluster = managementLogic.GetClusterById(clusterId);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
+            return ext;
         }
     }
     
@@ -1031,44 +992,87 @@ public class ManagementService : IManagementService
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects, false)).ToList();
+            var clusters = clusterLogic.ListAvailableClusters()
+                .Select(s =>
+                {
+                    var ext = s.ConvertIntToExtendedExt(projects, false);
+                    ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(s.CustomConfiguration).EnableCallback;
+                    return ext;
+                })
+                .ToList();
             return clusters;
         }
     }
 
-    public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    private static Dictionary<string, string> SanitizeCustomConfiguration(Dictionary<string, string>? customConfiguration)
+    {
+        var config = customConfiguration != null
+            ? new Dictionary<string, string>(customConfiguration, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "EnableCallback", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback ? "true" : "false" },
+            { "EnableGracefulTimeout", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout ? "true" : "false" },
+            { "GracefulTimeoutSeconds", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds.ToString() },
+            { "SyncScriptsViaSftp", HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp ? "true" : "false" }
+        };
+
+        if (!string.IsNullOrEmpty(HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl))
+        {
+            defaults["CallbackUrl"] = HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+        }
+
+        foreach (var (key, defaultValue) in defaults)
+        {
+            if (!config.TryGetValue(key, out var val) || string.IsNullOrWhiteSpace(val))
+            {
+                config[key] = defaultValue;
+            }
+        }
+
+        return config;
+    }
+
+    public async Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode)
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
+        customConfiguration = SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
+            var cluster = await managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
+            return ext;
         }
     }
 
-    public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    public async Task<ExtendedClusterExt> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode)
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode)
     {
+        customConfiguration = SanitizeCustomConfiguration(customConfiguration);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
+            var cluster = await managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
-                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration);
-            return cluster.ConvertIntToExtendedExt(projects, false);
+                timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId, customConfiguration, customConfigurationVaultToggles);
+            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
+            return ext;
         }
     }
 
@@ -1637,6 +1641,20 @@ public class ManagementService : IManagementService
         }
     }
 
+    public AdaptorUserCreatedExt SetAdaptorUserBlockStatus(string username, bool isBlocked, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var result = managementLogic.SetAdaptorUserBlockStatus(username, isBlocked);
+            return result.ConvertIntToExt();
+        }
+    }
+
     public string DeleteAdaptorUser(string modelUsername, string modelSessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -1891,6 +1909,202 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
             await managementLogic.ImportMigrationPackage(encryptedPackageStream, passphrase);
+        }
+    }
+
+    public async Task<JobMonitoringPageExt> GetJobsMonitoring(int pageSize, long? lastJobId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var domainPage = await managementLogic.GetJobsMonitoring(pageSize, lastJobId);
+            return new JobMonitoringPageExt
+            {
+                Count = domainPage.Count,
+                NextCursorId = domainPage.NextCursorId,
+                Jobs = domainPage.Jobs.Select(j => new JobMonitoringExt
+                {
+                    Id = j.Id,
+                    Name = j.Name,
+                    State = j.State,
+                    SubmittedBy = j.SubmittedBy,
+                    Project = j.Project,
+                    Cluster = j.Cluster,
+                    CreationTime = j.CreationTime,
+                    SubmitTime = j.SubmitTime,
+                    StartTime = j.StartTime,
+                    EndTime = j.EndTime,
+                    TotalAllocatedTime = j.TotalAllocatedTime,
+
+                    WaitingLimit = j.WaitingLimit,
+                    NotificationEmail = j.NotificationEmail,
+                    PhoneNumber = j.PhoneNumber,
+                    NotifyOnAbort = j.NotifyOnAbort,
+                    NotifyOnFinish = j.NotifyOnFinish,
+                    NotifyOnStart = j.NotifyOnStart,
+                    Reservation = j.Reservation,
+
+                    Tasks = j.Tasks.Select(t => new JobMonitoringTaskExt
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        State = t.State,
+                        ScheduledJobId = t.ScheduledJobId,
+                        AllocatedCores = t.AllocatedCores,
+                        AllocatedGpus = t.AllocatedGpus,
+                        AllocatedTime = t.AllocatedTime,
+                        StartTime = t.StartTime,
+                        EndTime = t.EndTime,
+                        ErrorMessage = t.ErrorMessage,
+
+                        Priority = t.Priority,
+                        Reason = t.Reason,
+                        AllParameters = t.AllParameters,
+                        MinCores = t.MinCores,
+                        MaxCores = t.MaxCores,
+                        WalltimeLimit = t.WalltimeLimit,
+                        Memory = t.Memory,
+                        MemoryPerCPU = t.MemoryPerCPU,
+                        MemoryPerGPU = t.MemoryPerGPU,
+                        IsExclusive = t.IsExclusive,
+                        IsRerunnable = t.IsRerunnable,
+                        StandardInputFile = t.StandardInputFile,
+                        StandardOutputFile = t.StandardOutputFile,
+                        StandardErrorFile = t.StandardErrorFile,
+                        LocalDirectory = t.LocalDirectory,
+                        ClusterTaskSubdirectory = t.ClusterTaskSubdirectory,
+                        CpuHyperThreading = t.CpuHyperThreading,
+                        CommandTemplateId = t.CommandTemplateId,
+                        CommandTemplateName = t.CommandTemplateName,
+
+                        CommandParameterValues = t.CommandParameterValues.Select(cpv => new HEAppE.ExtModels.ClusterInformation.Models.CommandTemplateParameterValueExt
+                        {
+                            CommandParameterIdentifier = cpv.Identifier,
+                            ParameterValue = cpv.Value
+                        }).ToList(),
+
+                        EnvironmentVariables = t.EnvironmentVariables.Select(ev => new HEAppE.ExtModels.JobManagement.Models.EnvironmentVariableExt
+                        {
+                            Name = ev.Name,
+                            Value = ev.Value
+                        }).ToList()
+                    }).ToList()
+                }).ToList()
+            };
+        }
+    }
+
+    public async Task<ExternalServicesReportExt> GetExternalServicesReport(DateTime? from, DateTime? to, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var domainReport = await managementLogic.GetExternalServicesReport(from, to);
+            return domainReport.ConvertIntToExt();
+        }
+    }
+
+    public async Task<List<JobExternalServiceLogExt>> GetJobExternalServiceLogs(long jobId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var job = await unitOfWork.SubmittedJobInfoRepository.GetByIdWithProjectAsync(jobId) ??
+                      throw new InputValidationException("NotExistingJob", jobId);
+
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
+
+            long projectId = job.Project?.Id ?? 0;
+            bool isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
+            bool isJobOwner = job.Submitter?.Id == loggedUser.Id;
+
+            if (!isJobOwner && !isAdmin)
+            {
+                throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                    loggedUser.GetLogIdentification(), job.Id);
+            }
+
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var logs = await managementLogic.GetJobExternalServiceLogs(jobId);
+            return logs.Select(l => l.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public async Task<List<ExternalServiceStatisticsExt>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string? serviceName, long? clusterId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var stats = await managementLogic.GetExternalServicesStatistics(from, to, serviceName, clusterId);
+            return stats.Select(s => s.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public async Task<List<ExternalServiceLiveStatusExt>> GetExternalServicesLiveStatus(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            
+            var liveStatus = await managementLogic.GetExternalServicesLiveStatus();
+            return liveStatus.Select(ls => ls.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public SystemRoleAssignmentExt AssignSystemRoleToUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignment = managementLogic.AssignSystemRoleToUser(modelUsername, modelRole);
+            return assignment.ConvertIntToExt();
+        }
+    }
+
+    public SystemRoleAssignmentExt RemoveSystemRoleFromUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignment = managementLogic.RemoveSystemRoleFromUser(modelUsername, modelRole);
+            return assignment.ConvertIntToExt();
+        }
+    }
+
+    public List<SystemRoleAssignmentExt> ListSystemRoleAssignments(string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    _logger, AdaptorUserRoleType.Administrator, _expirioService, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var assignments = managementLogic.ListSystemRoleAssignments();
+            return assignments.Select(a => a.ConvertIntToExt()).ToList();
         }
     }
 

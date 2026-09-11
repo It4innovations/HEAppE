@@ -161,6 +161,15 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         var templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
             template.TemplateParameters, taskSpecification.CommandParameterValues);
 
+        // Set callback parameters
+        taskAdapter.UseCallback = clusterConfig.EnableCallback;
+        taskAdapter.GracefulTimeoutSeconds = clusterConfig.EnableGracefulTimeout ? clusterConfig.GracefulTimeoutSeconds : 0;
+        taskAdapter.CallbackSecret = taskSpecification.CallbackSecret;
+        taskAdapter.CallbackUrl = clusterConfig.Scripts.CallbackUrl;
+        taskAdapter.WrapperScriptPath = clusterConfig.GetPathToScript(
+            taskSpecification.Project.AccountingString, "task_wrapper.sh", 
+            taskSpecification.JobSpecification.ClusterUser?.Username);
+
         var executableFile = ResolveExecutableFile(template, jobSpecification);
         taskAdapter.SetPreparationAndCommand(workDirectory,
             ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
@@ -268,7 +277,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                                                   Regex.IsMatch(taskParametersValue.Value, @""".+""",
                                                       RegexOptions.IgnoreCase | RegexOptions.Compiled);
                 finalParameters.Add(templateParameter.Identifier,
-                    isStringOfGenericParameters ? taskParametersValue.Value : Regex.Escape(taskParametersValue.Value));
+                    isStringOfGenericParameters ? taskParametersValue.Value : ShellEscape(taskParametersValue.Value));
             }
             else
             {
@@ -441,6 +450,20 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             }
         }
         return executableFile;
+    }
+
+    public static string ShellEscape(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "''";
+        return "'" + value.Replace("'", "'\\''") + "'";
+    }
+
+    public static string NormalizeShellPath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+        if (path == "~") return "$HOME";
+        if (path.StartsWith("~/")) return "$HOME/" + path.Substring(2);
+        return path;
     }
 
     #endregion

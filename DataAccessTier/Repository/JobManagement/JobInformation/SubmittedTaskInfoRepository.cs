@@ -273,6 +273,106 @@ internal class SubmittedTaskInfoRepository : GenericRepository<SubmittedTaskInfo
         return _context.Set<ResourceConsumed>().FirstOrDefault(r => r.SubmittedTaskInfoId == taskId);
     }
 
+    public async Task<SubmittedTaskInfo> GetByScheduledJobIdAsync(string scheduledJobId)
+    {
+        var taskPrefix = $"task:{scheduledJobId}";
+        var taskSuffix = $":task:{scheduledJobId}";
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .FirstOrDefaultAsync(t => t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix));
+    }
+
+    public async Task<List<SubmittedTaskInfo>> GetTasksByScheduledJobIdAsync(string scheduledJobId)
+    {
+        var taskPrefix = $"task:{scheduledJobId}";
+        var taskSuffix = $":task:{scheduledJobId}";
+
+        HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession? newestSession = null;
+        if (scheduledJobId.StartsWith("session:"))
+        {
+            var parts = scheduledJobId.Split(':');
+            if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
+            {
+                newestSession = await _context.Set<HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession>()
+                    .OrderByDescending(s => s.Id)
+                    .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+            }
+        }
+
+        var query = _dbSet
+            .AsSplitQuery()
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.ClusterNodeType)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Where(t => (t.ScheduledJobId == taskPrefix || t.ScheduledJobId == scheduledJobId || t.ScheduledJobId.EndsWith(taskSuffix)) && t.State < TaskState.Finished);
+
+        if (newestSession != null)
+        {
+            query = query.Where(t => _context.Set<SubmittedJobInfo>()
+                .Any(j => j.Id == EF.Property<long>(t, "SubmittedJobInfoId") && 
+                          j.SubmitTime != null && 
+                          j.SubmitTime >= newestSession.CreatedAt.AddSeconds(-10)));
+        }
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<List<SubmittedTaskInfo>> GetTasksByQSchedulerSessionIdAsync(long sessionId)
+    {
+        var newestSession = await _context.Set<HEAppE.DomainObjects.UserAndLimitationManagement.QSchedulerSession>()
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+
+        var prefix1 = $"session:{sessionId}";
+        var prefix2 = $"session:{sessionId}:";
+
+        var query = _dbSet
+            .AsSplitQuery()
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Cluster)
+            .Include(t => t.Specification)
+                .ThenInclude(ts => ts.JobSpecification)
+                    .ThenInclude(js => js.Submitter)
+            .Where(t => t.ScheduledJobId == prefix1 || t.ScheduledJobId.StartsWith(prefix2));
+
+        if (newestSession != null)
+        {
+            query = query.Where(t => _context.Set<SubmittedJobInfo>()
+                .Any(j => j.Id == EF.Property<long>(t, "SubmittedJobInfoId") && 
+                          j.SubmitTime != null && 
+                          j.SubmitTime >= newestSession.CreatedAt.AddSeconds(-10)));
+        }
+
+        return await query.ToListAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task<TaskState?> GetCurrentTaskStateAsync(long taskId)
+    {
+        // AsNoTracking ensures we bypass the EF change-tracking cache and always hit the DB.
+        // This is needed when a concurrent request (e.g. a callback on a separate UnitOfWork)
+        // may have updated the row after this context first loaded the entity.
+        return await _dbSet
+            .AsNoTracking()
+            .Where(t => t.Id == taskId)
+            .Select(t => (TaskState?)t.State)
+            .FirstOrDefaultAsync();
+    }
+
     public IEnumerable<SubmittedTaskInfo> GetSubmittedTasksForAccounting(System.DateTime startTime, System.DateTime endTime, long projectId)
     {
         return _dbSet

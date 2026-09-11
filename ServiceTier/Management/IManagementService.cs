@@ -116,15 +116,15 @@ public interface IManagementService
     ExtendedClusterExt GetClusterById(long clusterId, string sessionCode);
     List<ExtendedClusterExt> GetClusters(string sessionCode);
 
-    ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    Task<ExtendedClusterExt> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode);
 
-    ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    Task<ExtendedClusterExt> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
-        Dictionary<string, string>? customConfiguration, string sessionCode);
+        Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles, string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);
 
@@ -232,6 +232,7 @@ public interface IManagementService
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
     AdaptorUserCreatedExt CreateAdaptorUser(string username, string sessionCode);
     AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
+    AdaptorUserCreatedExt SetAdaptorUserBlockStatus(string username, bool isBlocked, string sessionCode);
     string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
     AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);
     AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
@@ -243,4 +244,12 @@ public interface IManagementService
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
+    Task<JobMonitoringPageExt> GetJobsMonitoring(int pageSize, long? lastJobId, string sessionCode);
+    Task<ExternalServicesReportExt> GetExternalServicesReport(DateTime? from, DateTime? to, string sessionCode);
+    Task<List<JobExternalServiceLogExt>> GetJobExternalServiceLogs(long jobId, string sessionCode);
+    Task<List<ExternalServiceStatisticsExt>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string? serviceName, long? clusterId, string sessionCode);
+    Task<List<ExternalServiceLiveStatusExt>> GetExternalServicesLiveStatus(string sessionCode);
+    SystemRoleAssignmentExt AssignSystemRoleToUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode);
+    SystemRoleAssignmentExt RemoveSystemRoleFromUser(string modelUsername, AdaptorUserRoleType modelRole, string modelSessionCode);
+    List<SystemRoleAssignmentExt> ListSystemRoleAssignments(string modelSessionCode);
 }

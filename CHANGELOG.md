@@ -5,11 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.0
+
+### Added
+- Introduced **QScheduler** scheduler adapter (`SchedulerType.QScheduler = 32`) for dispatching quantum computing workloads to remote QScheduler backends (e.g. IQM) over SSH-tunnelled REST API (https://github.com/It4innovations/qscheduler).
+  - Full adapter lifecycle: session creation, task submission, task state polling, and integration into the existing `SchedulerFactory` / `RexSchedulerWrapper` / connection-pool architecture.
+  - `QSchedulerDataConvertor` parses JSON state responses (`waiting`, `running`, `finished`, `failed`, `error`, `cancelled`) into HEAppE `TaskState` values.
+  - Unit tests for `QSchedulerDataConvertor` covering all state transitions, error field extraction, and malformed input handling.
+  - Added support for asynchronous wait state-machine during QScheduler session activation, direct task submissions, and active SSH polling bypass when notify callbacks are active.
+- New QScheduler session and job endpoints:
+  - `POST /heappe/JobManagement/OpenQSchedulerSession` — creates a new remote QScheduler session.
+  - `DELETE /heappe/JobManagement/CloseQSchedulerSession` — deletes an existing QScheduler session.
+  - `GET /heappe/JobManagement/GetQSchedulerSessionInfo` — returns info about a specific session.
+  - `GET /heappe/JobManagement/ListQSchedulerSessions` — lists all active QScheduler sessions for a job.
+  - `POST /heappe/JobManagement/CreateAndSubmitQSchedulerJob` — creates and immediately submits a quantum job within an existing session.
+  - `GET /heappe/JobManagement/GetQSchedulerTaskResult` — retrieves the result of a completed QScheduler task.
+  - `GET /heappe/JobManagement/GetQSchedulerTaskArtifact` — retrieves an artifact produced by a QScheduler task.
+- New QScheduler machine information endpoints:
+  - `GET /heappe/ClusterInformation/MachineArchitecture` — returns hardware topology/architecture of a QScheduler machine.
+  - `GET /heappe/ClusterInformation/MachineCalibration` — returns calibration data for a specified machine and calibration endpoint.
+- Added input models `GetMachineArchitectureModel` and `GetMachineCalibrationModel` with full validation in `ClusterInformationValidator`.
+- Added unified webhook status callback endpoint `POST /heappe/JobManagement/TaskCallback` to receive job/task status updates directly from cluster schedulers without polling.
+- Added generic WebSocket push notification system at `GET /heappe/Events`. Clients can open persistent connections to receive real-time CloudEvents (v1.0) streaming of job, task, and session state changes (e.g. `org.heappe.job.state-changed`, `org.heappe.task.state-changed`, `org.heappe.session.state-changed`). Fully supports header-based `X-API-Key` and query/header-based `SessionCode` authentication.
+- Added `GET /heappe/Dictionary/GetJobStateSources` endpoint exposing `JobStateSource` enum values.
+- Added support for storing custom configuration secrets (like `QSchedulerNotifyToken`) in HashiCorp Vault, with dynamic API masking (`"********"`) for all vault-toggled custom configuration values in cluster information responses.
+- Added migration and backup package support for exporting and restoring HashiCorp Vault-stored cluster secrets in `cluster_secrets.json` within encrypted ZIP packages.
+- Added automatic QScheduler session closure upon final task completion in a job. Sessions are dynamically tracked and closed once all tasks reach their final state (Finished, Failed, Canceled, or Deleted).
+- Added `IdpSid` property (length 250) to `AdaptorUser` table and implemented non-breaking identity federation matching for UserOrg login with automatic migration of existing accounts.
+- Added sliding window TTL (15 minutes) for WebSocket event buffers in `HEAppEEventHub` using `IMemoryCache` to prevent memory growth for inactive users.
+- Added structured, privacy-safe JSON serialization for `JobSpecification` logs on job creation, eliminating hard-to-read multiline output and protecting user e-mails from leakage.
+- Added `QSchedulerHost` custom configuration property to allow configuring the target hostname for QScheduler REST API requests (defaults to `localhost`).
+- Added support for file transfers (uploads/downloads) to QScheduler clusters when using SSH or SSHInteractive connection protocols, including dynamic override of HTTP/HTTPS file transfer methods to use SFTP directly to the master node filesystem.
+- Added robust connection error handling for QScheduler REST API: catches connection refused errors and returns a clear `UnableToCreateConnectionException` (HTTP 400 Bad Request).
+- Added `JobStateSource` / `StateSource` annotation (`Callback`, `UserVerified`, `BackgroundPoll`) and `StateUpdatedAt` timestamp tracking for jobs and tasks.
+- Added `ForceDirectQuery` parameter to `GET /heappe/JobManagement/CurrentInfoForJob` for forcing physical scheduler queries with automatic terminal state locking.
+- Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
+- Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation.
+- Added support for UserOrg API v2 endpoints (`/api/v2/...`) with configurable switching strategy (`ApiVersion` in `LexisAuthenticationConfiguration`, defaulting to `"v2"`, supporting `"v1"`, `"v2"`, and `"auto"` fallback). Introduced `UserOrgV1Service`, `UserOrgV2Service`, and RFC 9457 `ProblemDetails` error handling while maintaining backwards compatibility for legacy v1 endpoints.
+- Added comprehensive non-blocking external services and database telemetry monitoring:
+  - High-throughput asynchronous telemetry capture for all external interactions (HashiCorp Vault, Keycloak/UserOrg, Expirio, SSH Certificate Authority, Slurm/PBS Pro/FirecREST SSH & REST scheduler executions, and EF Core Database queries).
+  - Ambient execution context (`JobExecutionContext`) using `AsyncLocal<JobContextData>` automatically correlates telemetry records with active `JobId`, `TaskId`, `ClusterId`, and `RequestId` (matching `log4net` trace ID for log searchability).
+  - Background asynchronous batch writer (`ExternalServiceTelemetryWriterBackgroundService`) flushing records every 2s (or upon reaching 100 records) to minimize DB write overhead and prevent latency impact on main HEAppE operations.
+  - Automatic scheduled purging of telemetry records older than retention threshold (default 30 days).
+  - EF Core database telemetry interceptor (`DatabaseCommandTelemetryInterceptor`) recording SQL latency, error codes, and slow queries while avoiding self-logging recursion.
+  - New REST API telemetry endpoints:
+    - `POST /heappe/Management/GetJobExternalServiceLogs` — returns all external service, SSH, and DB telemetry entries linked to a specific job with user authorization check.
+    - `POST /heappe/Management/GetExternalServicesStatistics` — returns aggregated statistics (total calls, failures, availability %, avg/min/max/P95 response times) over a configurable time window with optional service name and cluster filters.
+    - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
+
+### Fixed
+- Fixed `ModifyCommandTemplate` in `ManagementLogic` failing with `InputValidationException: NotPermitted` (HTTP 400) by adding eager loading of `Project` relation in `CommandTemplateRepository.GetById` and adding defensive repository lookup.
+- Fixed `GetActiveUser` in `UserAndLimitationManagementLogic` failing authentication when EF Core query filter evaluated related entities to null during split queries by adding a fallback lookup ignoring query filters.
+- Fixed database seed failure during test and startup initialization where `MiddlewareContextSettings` static collections accumulated duplicate entries across configuration bindings, causing EF Core tracking conflicts (`The instance of entity type ... cannot be tracked because another instance with the same key value for {'Id'} is already being tracked`). Added `Clear()` method to `MiddlewareContextSettings` and entity deduplication in `InsertOrUpdateSeedDataAsync`.
+- Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
+  - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
+  - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+- Fixed cluster script directory initialization failures in `LinuxCommands`:
+  - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
+  - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.
+- Fixed memory leak in REST API (`Program.cs`): disabled `reloadOnChange: true` configuration file watcher for `appsettings.json`, preventing accumulation of hundreds of thousands of `ConfigurationReloadToken`, `CancellationTokenSource`, and `ChangeTokenRegistration` callback nodes under Linux/Docker environments.
+- Updated `CreateJob` endpoint in `JobManagementController`: removed `[LogBehavior(LoggingBehavior.HeadersOnly)]` to enable full request payload logging (including `JobSpecification` models).
+- Added EF Core transient fault resiliency in `MiddlewareContext`: configured `EnableRetryOnFailure()` on `UseSqlServer` to automatically retry database connections upon transient failures and SQL Server database restarts (Error 4060).
+- Fixed path sanitization and whitespace trimming in `JobManagementLogic`, `ManagementLogic`, `LinuxCommands`, and `FileSystemUtils`: added `.Trim()` handling for scratch and project base paths, preventing execution errors caused by whitespace in remote cluster paths.
+- Propagated root-cause SSH connection errors and added automatic re-obtaining/refreshing of expired SSH CA tokens on connection retries in `ConnectionPool`.
+
 ## V6.4.16
 
 ### Fixed
+- Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
+- Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
 - Fixed memory leak in `ClusterInformationService`: removed `CancellationChangeToken` registration on long-lived `CacheUtils.GlobalResetToken` during `SetCacheWithGlobalToken`, preventing accumulation of `CancellationTokenRegistration` and `CallbackNode` callback nodes under high API load.
 - Updated `ListAvailableClustersClearCache` to clear `MemoryCache` directly via `memCache.Clear()`.
+- Fixed error masking and retry strategy in `ConnectionPool`: preserved initial root-cause connection exceptions (e.g. SSH socket timeout), implemented exponential backoff (1s, 2s, 4s, 8s max) for connection retries, and added support for automatic SSH CA token re-obtaining/refreshing during retries if the token expires.
+- Added JWT token expiration pre-validation in `SshCertificateAuthorityService.SignAsync` to catch expired OTT tokens prior to making HTTP requests to `signJSON`, preventing 500 errors, useless retries, and Polly circuit breaker trips.
 
 ## V6.4.15
 

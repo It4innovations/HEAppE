@@ -12,6 +12,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.ExtModels.ClusterInformation.Converts;
 
@@ -65,9 +66,55 @@ public static class ClusterInformationConverts
             FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray(),
-            CustomConfiguration = cluster.CustomConfiguration
+            CustomConfiguration = MaskCustomConfiguration(cluster),
+            CustomConfigurationVaultToggles = cluster.CustomConfigurationVaultToggles
         };
         return convert;
+    }
+
+    private static Dictionary<string, string>? MaskCustomConfiguration(Cluster cluster)
+    {
+        var copy = cluster.CustomConfiguration != null 
+            ? new Dictionary<string, string>(cluster.CustomConfiguration, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "EnableCallback", HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback ? "true" : "false" },
+            { "EnableGracefulTimeout", HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout ? "true" : "false" },
+            { "GracefulTimeoutSeconds", HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds.ToString() },
+            { "SyncScriptsViaSftp", HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp ? "true" : "false" }
+        };
+
+        if (!string.IsNullOrEmpty(HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl))
+        {
+            defaults["CallbackUrl"] = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+        }
+
+        foreach (var (key, defaultValue) in defaults)
+        {
+            if (!copy.TryGetValue(key, out var val) || string.IsNullOrWhiteSpace(val))
+            {
+                copy[key] = defaultValue;
+            }
+        }
+
+        if (copy.ContainsKey("ClusterCallbackNotifyToken")) copy["ClusterCallbackNotifyToken"] = "********";
+        if (copy.ContainsKey("QSchedulerNotifyToken")) copy["QSchedulerNotifyToken"] = "********";
+
+        // Mask all keys that are toggled to be stored in Vault
+        if (cluster.CustomConfigurationVaultToggles != null)
+        {
+            foreach (var pair in cluster.CustomConfigurationVaultToggles)
+            {
+                if (pair.Value && copy.ContainsKey(pair.Key))
+                {
+                    copy[pair.Key] = "********";
+                }
+            }
+        }
+
+        return copy;
     }
     
     public static SchedulerTypeExt ConvertIntToExt(this SchedulerType schedulerType)
@@ -79,6 +126,7 @@ public static class ClusterInformationConverts
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
             SchedulerType.FirecRestSlurm => SchedulerTypeExt.FirecRestSlurm,
+            SchedulerType.QScheduler => SchedulerTypeExt.QScheduler,
             _ => throw new InputValidationException(
                 "EnumValueMustBeInInterval",
                 "Scheduler type",

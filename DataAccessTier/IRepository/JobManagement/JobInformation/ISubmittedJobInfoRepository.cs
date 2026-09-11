@@ -39,6 +39,8 @@ public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
     public SubmittedJobInfo GetByIdForStatus(long id);
     Task<SubmittedJobInfo> GetByIdForStatusAsync(long id);
 
+    Task<SubmittedJobInfo> GetByIdForSubmitAsync(long id);
+
     public IEnumerable<SubmittedJobInfo> GetAllWithoutQueryFilters();
     Task<IEnumerable<SubmittedJobInfo>> GetAllWithoutQueryFiltersAsync();
     IQueryable<SubmittedJobInfo> GetQueryableWithoutFilters();

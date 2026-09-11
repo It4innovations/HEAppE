@@ -10,7 +10,7 @@ public sealed class SwaggerConfiguration
     /// <summary>
     ///     Swagger prefix
     /// </summary>
-    private static string _prefixDocPath;
+    private static string _prefixDocPath = "swagger";
 
     #endregion
 
@@ -61,7 +61,7 @@ public sealed class SwaggerConfiguration
     /// </summary>
     public static string PrefixDocPath
     {
-        get => _prefixDocPath;
+        get => string.IsNullOrEmpty(_prefixDocPath) ? "swagger" : _prefixDocPath;
         set => _prefixDocPath = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
     }
 

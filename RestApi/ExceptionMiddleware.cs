@@ -219,6 +219,13 @@ public class ExceptionMiddleware
                     : RedactErrorMessage(firecrestApiException.ResponseContent);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case QSchedulerApiException qSchedulerApiException:
+                problem.Title = "QScheduler API Problem";
+                problem.Detail = string.IsNullOrEmpty(qSchedulerApiException.ResponseContent)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(qSchedulerApiException.ResponseContent);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case ExpirioBadRequestException:
                 problem.Title = "Expirio Bad Request";
                 problem.Detail = GetExceptionMessage(exception);
@@ -262,10 +269,20 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case InvalidRequestException:
-            case UnableToCreateConnectionException:
                 problem.Title = "Invalid Request";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
+                break;
+            case System.Collections.Generic.KeyNotFoundException:
+                problem.Title = "Not Found";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                break;
+
+            case UnableToCreateConnectionException:
+                problem.Title = "Connection Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
                 break;
             case SshException:
                 problem.Title = "SSH Problem";

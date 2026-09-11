@@ -37,6 +37,11 @@ public class FirecRestFileSystemManager : AbstractFileSystemManager
 
     private async Task<(string Url, string Token)> GetFirecrestUrlAndTokenAsync(Cluster cluster, string userToken)
     {
+        if (cluster.SchedulerType != SchedulerType.FirecRestSlurm)
+        {
+            throw new NotSupportedException("FirecRest file transfer is only supported for FirecRest clusters.");
+        }
+
         string url = FirecRestUtils.GetFirecRestUrl(cluster);
         string idpUrl = "";
 

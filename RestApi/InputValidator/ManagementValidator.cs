@@ -87,12 +87,19 @@ public class ManagementValidator : AbstractValidator
             StatusModel ext => ValidateStatusModel(ext),
             CreateAdaptorUserModel ext => ValidateCreateAdaptorUserModel(ext),
             ModifyAdaptorUserModel ext => ValidateModifyAdaptorUserModel(ext),
+            SetAdaptorUserBlockStatusModel ext => ValidateSetAdaptorUserBlockStatusModel(ext),
             DeleteAdaptorUserModel ext => ValidateDeleteAdaptorUserModel(ext),
             AssignAdaptorUserToProjectModel ext => ValidateAssignAdaptorUserToProjectModel(ext),
             ListAdaptorUsersInProjectModel ext => ValidateListAdaptorUsersInProjectModel(ext),
             ListAdaptorUsersInUserGroupModel ext => ValidateListAdaptorUsersInUserGroupModel(ext),
             AssignAdaptorUserToUserGroupModel ext => ValidateAssignAdaptorUserToUserGroupModel(ext),
             ListAdaptorUsersModel ext => ValidateListAdaptorUsersModel(ext),
+            GetJobsMonitoringModel ext => ValidateGetJobsMonitoringModel(ext),
+            GetExternalServicesReportModel ext => ValidateGetExternalServicesReportModel(ext),
+            GetJobExternalServiceLogsModel ext => ValidateGetJobExternalServiceLogsModel(ext),
+            GetExternalServicesStatisticsModel ext => ValidateGetExternalServicesStatisticsModel(ext),
+            AssignSystemRoleToUserModel ext => ValidateAssignSystemRoleToUserModel(ext),
+            RemoveSystemRoleFromUserModel ext => ValidateRemoveSystemRoleFromUserModel(ext),
             _ => string.Empty
         };
 
@@ -149,6 +156,26 @@ public class ManagementValidator : AbstractValidator
         return _messageBuilder.ToString();
     }
 
+    private string ValidateAssignSystemRoleToUserModel(AssignSystemRoleToUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateRemoveSystemRoleFromUserModel(RemoveSystemRoleFromUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
     private string ValidateDeleteAdaptorUserModel(DeleteAdaptorUserModel ext)
     {
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
@@ -162,6 +189,16 @@ public class ManagementValidator : AbstractValidator
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
         
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateSetAdaptorUserBlockStatusModel(SetAdaptorUserBlockStatusModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
         return _messageBuilder.ToString();
     }
 
@@ -557,9 +594,12 @@ public class ManagementValidator : AbstractValidator
             _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
 
         //validate template params
-        foreach (var parameter in model.TemplateParameters)
-            if (string.IsNullOrEmpty(parameter.Identifier))
-                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        if (model.TemplateParameters != null)
+        {
+            foreach (var parameter in model.TemplateParameters)
+                if (string.IsNullOrEmpty(parameter.Identifier))
+                    _messageBuilder.AppendLine("Identifier can not be null or empty.");
+        }
 
         return _messageBuilder.ToString();
     }
@@ -908,6 +948,55 @@ public class ManagementValidator : AbstractValidator
 
         if(ContainsIllegalCharactersForFileName(model.BackupFileName))
             _messageBuilder.AppendLine($"BackupFileName contains illegal characters. Provide only file name.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetJobsMonitoringModel(GetJobsMonitoringModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.PageSize <= 0)
+            _messageBuilder.AppendLine("PageSize must be greater than 0.");
+
+        if (model.LastJobId.HasValue && model.LastJobId.Value <= 0)
+            _messageBuilder.AppendLine("LastJobId must be greater than 0.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetExternalServicesReportModel(GetExternalServicesReportModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.From.HasValue && model.To.HasValue && model.To.Value < model.From.Value)
+            _messageBuilder.AppendLine("To date must be greater than or equal to From date.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetJobExternalServiceLogsModel(GetJobExternalServiceLogsModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(model.SubmittedJobInfoId, "SubmittedJobInfoId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetExternalServicesStatisticsModel(GetExternalServicesStatisticsModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.From.HasValue && model.To.HasValue && model.To.Value < model.From.Value)
+            _messageBuilder.AppendLine("To date must be greater than or equal to From date.");
+
+        if (model.ClusterId.HasValue && model.ClusterId.Value <= 0)
+            _messageBuilder.AppendLine("ClusterId must be greater than 0.");
 
         return _messageBuilder.ToString();
     }

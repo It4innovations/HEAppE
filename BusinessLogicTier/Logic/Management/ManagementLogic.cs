@@ -19,6 +19,11 @@ using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault;
+using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.DomainObjects.Monitoring;
+using System.Net.Http;
+using System.Threading;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -33,6 +38,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.X509;
@@ -40,6 +46,7 @@ using Org.BouncyCastle.Security;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using Tmds.Ssh;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -198,6 +205,7 @@ public class ManagementLogic : IManagementLogic
         if (commandTemplate.CreatedFrom is not null) throw new InvalidRequestException("CommandTemplateNotStatic");
 
         var project = commandTemplate.Project ??
+                      (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value) : null) ??
                       throw new InputValidationException("NotPermitted");
 
         var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
@@ -353,7 +361,7 @@ public class ManagementLogic : IManagementLogic
         AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist");
+        if (existingProject != null) throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
 
         var contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
                       ?? new Contact
@@ -371,57 +379,67 @@ public class ManagementLogic : IManagementLogic
         var openIdAdaptorUserGroup =
             CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
-        using (TransactionScope transactionScope = new(
-                   TransactionScopeOption.Required,
-                   new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
+        _unitOfWork.ExecuteExecutionStrategy(() =>
         {
-            _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
-            _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
-            _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
-
-            try
+            using (TransactionScope transactionScope = new(
+                       TransactionScopeOption.Required,
+                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
             {
+                _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
+
+                try
+                {
+                    _unitOfWork.Save();
+                }
+                //catch unique constraing to AccountingString 
+                catch (Exception ex) when (ex.InnerException is not null &&
+                                           ex.InnerException.Message.Contains("IX_Project_AccountingString"))
+                {
+                    throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
+                }
+                
+                RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
+
+                var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
+
+                var adaptorUserGroup = userToUpdate.UserType switch
+                {
+                    AdaptorUserType.Default => defaultAdaptorUserGroup,
+                    AdaptorUserType.OpenId => openIdAdaptorUserGroup,
+                    AdaptorUserType.Lexis => lexisAdaptorUserGroup,
+                    _ => defaultAdaptorUserGroup
+                };
+                
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
+                userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
+                _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
                 _unitOfWork.Save();
+                
+                // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
+                // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
+                // Without this, the 10-second UserById cache would return a stale snapshot and the role check
+                // for the brand-new project would fail with a 403 Forbidden.
+                try
+                {
+                    var userCache = LogicFactory.GetService<IMemoryCache>();
+                    userCache?.Remove($"UserById_{userToUpdate.Id}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to evict user from cache");
+                }
+                
+                _logger.LogInformation($"Created project with id {project.Id}.");
+                _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
+                transactionScope.Complete();
             }
-            //catch unique constraing to AccountingString 
-            catch (Exception ex) when (ex.InnerException is not null &&
-                                       ex.InnerException.Message.Contains("IX_Project_AccountingString"))
-            {
-                throw new InvalidRequestException("ProjectAlreadyExist");
-            }
-            
-            RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
-
-            var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
-
-            var adaptorUserGroup = userToUpdate.UserType switch
-            {
-                AdaptorUserType.Default => defaultAdaptorUserGroup,
-                AdaptorUserType.OpenId => openIdAdaptorUserGroup,
-                AdaptorUserType.Lexis => lexisAdaptorUserGroup,
-                _ => defaultAdaptorUserGroup
-            };
-            
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
-            userToUpdate.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
-            _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
-            _unitOfWork.Save();
-            
-            // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
-            // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
-            // Without this, the 10-second UserById cache would return a stale snapshot and the role check
-            // for the brand-new project would fail with a 403 Forbidden.
-            var userCache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
-            userCache?.Remove($"UserById_{userToUpdate.Id}");
-            
-            _logger.LogInformation($"Created project with id {project.Id}.");
-            _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
-            transactionScope.Complete();
-        }
+        });
 
         return project;
     }
@@ -727,7 +745,7 @@ public class ManagementLogic : IManagementLogic
     {
         if (string.IsNullOrEmpty(path)) return string.Empty;
 
-        var clean = path;
+        var clean = path.Trim();
         if (customConfiguration != null)
         {
             var clusterConfig = ClusterRuntimeConfiguration.For(customConfiguration);
@@ -736,7 +754,8 @@ public class ManagementLogic : IManagementLogic
 
         return clean
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
-            .TrimEnd('\\', '/');
+            .TrimEnd('\\', '/')
+            .Trim();
     }
 
     /// <summary>
@@ -1145,12 +1164,37 @@ public class ManagementLogic : IManagementLogic
             //return existing credential with same type of throw exception
             var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType.Value);
             if (existingWithSameType != null)
-                return CredentialResponse.GetCredential(existingWithSameType, projectId);
+                return CreateCredentialResponse(existingWithSameType, adaptorUserId);
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
 
         return await CreateCredential(username, password, project, adaptorUserId, authType.Value, generateNewKey, privateKey, passphrase, preGeneratedKey);
+    }
+
+    private CredentialResponse CreateCredentialResponse(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
+    {
+        var response = CredentialResponse.GetCredential(clusterCredentials, adaptorUserId);
+        if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(clusterCredentials.PrivateKey))
+        {
+            try
+            {
+                var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterCredentials);
+                if (derived != null)
+                {
+                    response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
+                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint))
+                    {
+                        response.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to derive public key for credential {clusterCredentials.Id} ({clusterCredentials.Username}).");
+            }
+        }
+        return response;
     }
 
     private async Task<CredentialResponse> CreateCredential(string username, string? password, Project project, long? adaptorUserId, 
@@ -1160,7 +1204,7 @@ public class ManagementLogic : IManagementLogic
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) 
-            throw new InvalidRequestException("ProjectNoAssignToCluster");
+            throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         SecureShellKey secureShellKey = preGeneratedKey;
         bool isGenerated = false;
@@ -1195,72 +1239,34 @@ public class ManagementLogic : IManagementLogic
             isGenerated = generateNewKey == true || (generateNewKey == null && string.IsNullOrEmpty(privateKey));
         }
 
-        var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
-            clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
-        var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
+        var userCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
             passphrase, clusterProjects.FirstOrDefault()?.Cluster, isGenerated);
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
-
-            if (serviceAccount == null)
-            {
-                serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false, adaptorUserId));
-                _logger.LogInformation(
-                    $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
-            }
-
-            nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false, adaptorUserId));
+            userCredentials.ClusterProjectCredentials.Add(
+                CreateClusterProjectCredentials(clusterProject, userCredentials, adaptorUserId == null, false, adaptorUserId));
             _logger.LogInformation($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
         project.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.ProjectRepository.Update(project);
-        var serviceCredentialStored = false;
-        if (serviceCredentials.ClusterProjectCredentials.Any())
-        {
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-            serviceCredentialStored = true;
-        }
 
-        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(userCredentials);
         await _unitOfWork.SaveAsync();
 
         var vaultConnector = new VaultConnector(_logger);
-        bool vaultSuccess;
-
-        if (serviceCredentialStored)
-        {
-            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
-            
-            if (!vaultSuccess)
-            {
-                _logger.LogWarning("Failed to set service credentials in the vault. Rolling back database insert.");
-                // Perform rollback for serviceCredentials insertion here if needed
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
-                await _unitOfWork.SaveAsync();
-                throw new SecureVaultException("ConnectionFailed");
-            }
-        }
-
-        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
+        bool vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(userCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {
-            _logger.LogWarning("Failed to set non-service credentials in the vault. Rolling back database insert.");
-            // Perform rollback for nonServiceCredentials insertion here
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+            _logger.LogWarning("Failed to set user credentials in the vault. Rolling back database insert.");
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(userCredentials);
             await _unitOfWork.SaveAsync();
             throw new SecureVaultException("ConnectionFailed");
         }
 
-        return CredentialResponse.GetCredential(nonServiceCredentials, adaptorUserId);
+        return CreateCredentialResponse(userCredentials, adaptorUserId);
     }
 
     /// <summary>
@@ -1296,7 +1302,7 @@ public class ManagementLogic : IManagementLogic
         
         return projectCredentials
             .Where(cpc => !cpc.IsDeleted && !cpc.ClusterAuthenticationCredentials.IsDeleted)
-            .Select(cpc => CredentialResponse.GetCredential(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
+            .Select(cpc => CreateCredentialResponse(cpc.ClusterAuthenticationCredentials, cpc.AdaptorUserId))
             .DistinctBy(x => new { x.Username, x.AdaptorUserId })
             .ToList();
     }
@@ -1393,7 +1399,7 @@ public class ManagementLogic : IManagementLogic
         await _unitOfWork.SaveAsync();
 
         return credentials
-                .Select(x => CredentialResponse.GetCredential(x, adaptorUserId))
+                .Select(x => CreateCredentialResponse(x, adaptorUserId))
                 .ToList();
     }
 
@@ -1802,10 +1808,10 @@ public class ManagementLogic : IManagementLogic
     /// <param name="proxyConnectionId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    public async Task<Cluster> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles)
     {
         if (proxyConnectionId.HasValue)
         {
@@ -1817,6 +1823,22 @@ public class ManagementLogic : IManagementLogic
         {
             if (clusterConnectionProtocol == ClusterConnectionProtocol.None)
                 clusterConnectionProtocol = ClusterConnectionProtocol.Https;
+        }
+
+        var secretsToSave = new Dictionary<string, string>();
+        if (customConfigurationVaultToggles != null && customConfiguration != null)
+        {
+            foreach (var key in customConfigurationVaultToggles.Keys)
+            {
+                if (customConfigurationVaultToggles[key] && customConfiguration.TryGetValue(key, out var val))
+                {
+                    if (!string.IsNullOrEmpty(val))
+                    {
+                        secretsToSave[key] = val;
+                    }
+                    customConfiguration[key] = "";
+                }
+            }
         }
 
         var cluster = new Cluster
@@ -1831,10 +1853,17 @@ public class ManagementLogic : IManagementLogic
             UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
             DomainName = domainName,
             ProxyConnectionId = proxyConnectionId,
-            CustomConfiguration = customConfiguration
+            CustomConfiguration = customConfiguration,
+            CustomConfigurationVaultToggles = customConfigurationVaultToggles
         };
         _unitOfWork.ClusterRepository.Insert(cluster);
         _unitOfWork.Save();
+
+        if (secretsToSave.Count > 0)
+        {
+            var vaultConnector = new VaultConnector(_logger);
+            await vaultConnector.SetClusterSecretsAsync(cluster.Id, secretsToSave);
+        }
 
         return cluster;
     }
@@ -1853,12 +1882,14 @@ public class ManagementLogic : IManagementLogic
     /// <param name="updateJobStateByServiceAccount"></param>
     /// <param name="domainName"></param>
     /// <param name="proxyConnectionId"></param>
+    /// <param name="customConfiguration"></param>
+    /// <param name="customConfigurationVaultToggles"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
+    public async Task<Cluster> ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName,
-        long? proxyConnectionId, Dictionary<string, string>? customConfiguration)
+        long? proxyConnectionId, Dictionary<string, string>? customConfiguration, Dictionary<string, bool>? customConfigurationVaultToggles)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
@@ -1922,6 +1953,136 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
+        // --- Generic Custom Configuration Vault Management ---
+        bool hasVaultSecrets =
+            (customConfigurationVaultToggles != null && customConfigurationVaultToggles.Values.Any(v => v)) ||
+            (existingCluster.CustomConfigurationVaultToggles != null && existingCluster.CustomConfigurationVaultToggles.Values.Any(v => v));
+
+        Dictionary<string, string> existingVaultSecrets;
+        Dictionary<string, string> updatedVaultSecrets;
+        var vaultConnector = new VaultConnector(_logger);
+
+        if (hasVaultSecrets)
+        {
+            existingVaultSecrets = await vaultConnector.GetClusterSecretsAsync(existingCluster.Id) ?? new Dictionary<string, string>();
+            updatedVaultSecrets = new Dictionary<string, string>(existingVaultSecrets);
+        }
+        else
+        {
+            existingVaultSecrets = new Dictionary<string, string>();
+            updatedVaultSecrets = new Dictionary<string, string>();
+        }
+
+        bool vaultSecretsModified = false;
+
+        var allKeys = new HashSet<string>();
+        if (customConfiguration != null) allKeys.UnionWith(customConfiguration.Keys);
+        if (customConfigurationVaultToggles != null) allKeys.UnionWith(customConfigurationVaultToggles.Keys);
+        if (existingCluster.CustomConfiguration != null) allKeys.UnionWith(existingCluster.CustomConfiguration.Keys);
+        if (existingCluster.CustomConfigurationVaultToggles != null) allKeys.UnionWith(existingCluster.CustomConfigurationVaultToggles.Keys);
+
+        foreach (var key in allKeys)
+        {
+            bool storeInVault = customConfigurationVaultToggles != null && 
+                                customConfigurationVaultToggles.TryGetValue(key, out bool toggled) && 
+                                toggled;
+
+            string? newValue = null;
+            customConfiguration?.TryGetValue(key, out newValue);
+
+            if (storeInVault)
+            {
+                if (newValue == "********")
+                {
+                    // Leave what's in Vault
+                }
+                else if (string.IsNullOrEmpty(newValue))
+                {
+                    // Remove from Vault
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+                else
+                {
+                    // Update/add in Vault
+                    updatedVaultSecrets[key] = newValue;
+                    vaultSecretsModified = true;
+                }
+
+                // Ensure it is empty in DB
+                if (customConfiguration != null)
+                {
+                    customConfiguration[key] = "";
+                }
+            }
+            else // DB Storage
+            {
+                if (newValue == "********")
+                {
+                    // Check if it was previously stored in Vault
+                    bool previouslyInVault = existingCluster.CustomConfigurationVaultToggles != null && 
+                                             existingCluster.CustomConfigurationVaultToggles.TryGetValue(key, out bool prevToggled) && 
+                                             prevToggled;
+
+                    if (previouslyInVault)
+                    {
+                        // Restore value from Vault to DB
+                        if (existingVaultSecrets.TryGetValue(key, out var vaultVal))
+                        {
+                            if (customConfiguration != null) customConfiguration[key] = vaultVal;
+                        }
+                        
+                        // Remove from Vault since it is now stored in DB
+                        if (updatedVaultSecrets.Remove(key))
+                        {
+                            vaultSecretsModified = true;
+                        }
+                    }
+                    else
+                    {
+                        // Restore existing value from DB to dictionary if present
+                        if (existingCluster.CustomConfiguration != null && existingCluster.CustomConfiguration.TryGetValue(key, out var existingToken))
+                        {
+                            if (customConfiguration != null) customConfiguration[key] = existingToken;
+                        }
+                    }
+                }
+                else if (string.IsNullOrEmpty(newValue))
+                {
+                    // Clear in DB and ensure removed from Vault
+                    if (customConfiguration != null) customConfiguration[key] = "";
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+                else
+                {
+                    // New plain value - stored in DB as-is (already in customConfiguration)
+                    // Ensure removed from Vault
+                    if (updatedVaultSecrets.Remove(key))
+                    {
+                        vaultSecretsModified = true;
+                    }
+                }
+            }
+        }
+
+        if (vaultSecretsModified)
+        {
+            if (updatedVaultSecrets.Count == 0)
+            {
+                await vaultConnector.DeleteClusterSecretsAsync(existingCluster.Id);
+            }
+            else
+            {
+                await vaultConnector.SetClusterSecretsAsync(existingCluster.Id, updatedVaultSecrets);
+            }
+        }
+        // ------------------------------------------------------
+
         existingCluster.Name = name;
         existingCluster.Description = description;
         existingCluster.MasterNodeName = masterNodeName;
@@ -1933,6 +2094,7 @@ public class ManagementLogic : IManagementLogic
         existingCluster.DomainName = domainName;
         existingCluster.ProxyConnectionId = proxyConnectionId;
         existingCluster.CustomConfiguration = customConfiguration;
+        existingCluster.CustomConfigurationVaultToggles = customConfigurationVaultToggles;
         _unitOfWork.ClusterRepository.Update(existingCluster);
         _unitOfWork.Save();
 
@@ -2763,7 +2925,7 @@ public class ManagementLogic : IManagementLogic
             .Include(x => x.Cluster)
             .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
-        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster");
+        if (!clusterProjects.Any()) throw new InvalidRequestException("ProjectNoAssignToCluster", project.Id);
 
         if (project.IsOneToOneMapping && adaptorUserId.HasValue && (string.IsNullOrEmpty(username) || username.StartsWith("account_")))
         {
@@ -2782,67 +2944,29 @@ public class ManagementLogic : IManagementLogic
         var firstCluster = clusterProjects.FirstOrDefault()?.Cluster;
         var authType = preferredAuthType ?? (firstCluster != null ? ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(new ClusterAuthenticationCredentials { Username = username, Password = password, PrivateKey = secureShellKey.PrivateKeyPEM }, firstCluster) : ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey);
 
-        var serviceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey, passphrase,
-            firstCluster, true);
-        var nonServiceCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
+        var userCredentials = CreateClusterAuthenticationCredentials(authType, username, password, secureShellKey,
             passphrase, firstCluster, true);
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
-
-            if (serviceAccount == null)
-            {
-                serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false, adaptorUserId));
-                _logger.LogInformation(
-                    $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
-            }
-
-            nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false, adaptorUserId));
+            userCredentials.ClusterProjectCredentials.Add(
+                CreateClusterProjectCredentials(clusterProject, userCredentials, false, false, adaptorUserId));
             _logger.LogInformation($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
         project.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.ProjectRepository.Update(project);
-        var serviceCredentialStored = false;
-        if (serviceCredentials.ClusterProjectCredentials.Any())
-        {
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-            serviceCredentialStored = true;
-        }
 
-        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+        _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(userCredentials);
         _unitOfWork.Save();
 
         var vaultConnector = new VaultConnector(_logger);
-        bool vaultSuccess;
-
-        if (serviceCredentialStored)
-        {
-            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
-            
-            if (!vaultSuccess)
-            {
-                _logger.LogWarning("Failed to set service credentials in the vault. Rolling back database insert.");
-                // Perform rollback for serviceCredentials insertion here if needed
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
-                _unitOfWork.Save();
-                throw new SecureVaultException("ConnectionFailed");
-            }
-        }
-
-        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
+        bool vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(userCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {
-            _logger.LogWarning("Failed to set non-service credentials in the vault. Rolling back database insert.");
-            // Perform rollback for nonServiceCredentials insertion here
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+            _logger.LogWarning("Failed to set user credentials in the vault. Rolling back database insert.");
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(userCredentials);
             _unitOfWork.Save();
             throw new SecureVaultException("ConnectionFailed");
         }
@@ -3008,12 +3132,8 @@ public class ManagementLogic : IManagementLogic
         return project.AccountingStates?.ToList() ?? new List<AccountingState>();
     }
 
-    public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
+    public Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
     {
-        await Task.Delay(1);
-
-
-
         var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
 
         var statistics = new Status.Statistics_()
@@ -3078,7 +3198,7 @@ public class ManagementLogic : IManagementLogic
             Details = details
         };
 
-        return result;
+        return Task.FromResult(result);
     }
 
     public StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo)
@@ -3302,6 +3422,26 @@ public class ManagementLogic : IManagementLogic
         return adaptorUserCreated;
     }
 
+    public AdaptorUserCreated SetAdaptorUserBlockStatus(string username, bool isBlocked)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        adaptorUser.IsBlocked = isBlocked;
+        adaptorUser.ModifiedAt = DateTime.UtcNow;
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        _logger.LogInformation($"SetAdaptorUserBlockStatus: User '{username}' block status set to {isBlocked}.");
+
+        return new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = string.Empty
+        };
+    }
+
     public string DeleteAdaptorUser(string modelUsername)
     {
         var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
@@ -3342,8 +3482,8 @@ public class ManagementLogic : IManagementLogic
             if (existingAssignment.IsDeleted)
             {
                 var userGroupsToRestore = project.AdaptorUserGroups
-                    .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                                 !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+                    .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                                 (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
                     .Select(ug => ug.Id)
                     .ToList();
 
@@ -3365,8 +3505,8 @@ public class ManagementLogic : IManagementLogic
         }
 
         var userGroups = project.AdaptorUserGroups
-            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
-                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) && 
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
             .ToList();
 
         foreach (var userGroup in userGroups)
@@ -3477,7 +3617,8 @@ public class ManagementLogic : IManagementLogic
         
         commandTemplate.Name = modelName;
         commandTemplate.Description = modelDescription;
-        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(commandTemplate.Project.AccountingString, "generic.sh");
+        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(
+            commandTemplate.Project?.AccountingString ?? (commandTemplate.ProjectId.HasValue ? _unitOfWork.ProjectRepository.GetById(commandTemplate.ProjectId.Value)?.AccountingString : null), "generic.sh");
         commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
         commandTemplate.PreparationScript = modelPreparationScript;
         commandTemplate.ClusterNodeType = clusterNodeType;
@@ -3784,7 +3925,10 @@ public class ManagementLogic : IManagementLogic
                     PrivateKey = sshKey.PrivateKeyPEM,
                     PrivateKeyPassphrase = passphrase,
                     CipherType = CipherGeneratorConfiguration.Type,
-                    PublicKeyFingerprint = sshKey.PublicKeyFingerprint,
+                    PublicKeyFingerprint = sshKey?.PublicKeyFingerprint,
+                    PublicKey = sshKey?.PublicKeyInAuthorizedKeysFormat != null && sshKey.PublicKeyInAuthorizedKeysFormat.Length <= 200 
+                        ? sshKey.PublicKeyInAuthorizedKeysFormat 
+                        : null,
                     ClusterProjectCredentials = new List<ClusterProjectCredential>(),
                     IsGenerated = isGenerated
                 };
@@ -3881,14 +4025,7 @@ public class ManagementLogic : IManagementLogic
         string? publicKey = null;
         if (firstCred != null)
         {
-            if (!string.IsNullOrEmpty(firstCred.PublicKey))
-            {
-                publicKey = firstCred.PublicKey;
-            }
-            else if (!string.IsNullOrEmpty(firstCred.PrivateKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(firstCred).PublicKeyInAuthorizedKeysFormat;
-            }
+            publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(firstCred, _logger);
         }
 
         var username = await ResolveUsernameFromContextAsync(adaptorUserId, project, publicKey);
@@ -3911,6 +4048,665 @@ public class ManagementLogic : IManagementLogic
         {
             await _unitOfWork.SaveAsync();
         }
+    }
+
+    public async Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId)
+    {
+        var query = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Include(j => j.Submitter)
+            .Include(j => j.Project)
+            .Include(j => j.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(j => j.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables)
+            .AsSplitQuery();
+
+        if (lastJobId.HasValue)
+        {
+            query = query.Where(j => j.Id < lastJobId.Value);
+        }
+
+        var jobs = await query
+            .OrderByDescending(j => j.Id)
+            .Take(pageSize + 1)
+            .ToListAsync();
+
+        long? nextCursorId = null;
+        if (jobs.Count > pageSize)
+        {
+            nextCursorId = jobs[pageSize - 1].Id;
+            jobs.RemoveAt(pageSize);
+        }
+
+        var jobExts = jobs.Select(j => new JobMonitoringInfo
+        {
+            Id = j.Id,
+            Name = j.Name,
+            State = j.State.ToString().ToLowerInvariant(),
+            SubmittedBy = j.Submitter?.Username,
+            Project = j.Project?.Name,
+            Cluster = j.Specification?.Cluster?.Name,
+            CreationTime = j.CreationTime,
+            SubmitTime = j.SubmitTime,
+            StartTime = j.StartTime,
+            EndTime = j.EndTime,
+            TotalAllocatedTime = j.TotalAllocatedTime,
+
+            WaitingLimit = j.Specification?.WaitingLimit,
+            NotificationEmail = j.Specification?.NotificationEmail,
+            PhoneNumber = j.Specification?.PhoneNumber,
+            NotifyOnAbort = j.Specification?.NotifyOnAbort,
+            NotifyOnFinish = j.Specification?.NotifyOnFinish,
+            NotifyOnStart = j.Specification?.NotifyOnStart,
+            Reservation = j.Specification?.Reservation,
+
+            Tasks = j.Tasks.Select(t => new JobMonitoringTaskInfo
+            {
+                Id = t.Id,
+                Name = t.Name,
+                State = t.State.ToString().ToLowerInvariant(),
+                ScheduledJobId = t.ScheduledJobId,
+                AllocatedCores = t.AllocatedCores,
+                AllocatedGpus = t.AllocatedGpus,
+                AllocatedTime = t.AllocatedTime,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                ErrorMessage = t.ErrorMessage,
+
+                Priority = t.Priority.ToString().ToLowerInvariant(),
+                Reason = t.Reason,
+                AllParameters = t.AllParameters,
+                MinCores = t.Specification?.MinCores,
+                MaxCores = t.Specification?.MaxCores,
+                WalltimeLimit = t.Specification?.WalltimeLimit,
+                Memory = t.Specification?.Memory,
+                MemoryPerCPU = t.Specification?.MemoryPerCPU,
+                MemoryPerGPU = t.Specification?.MemoryPerGPU,
+                IsExclusive = t.Specification?.IsExclusive ?? false,
+                IsRerunnable = t.Specification?.IsRerunnable ?? false,
+                StandardInputFile = t.Specification?.StandardInputFile,
+                StandardOutputFile = t.Specification?.StandardOutputFile,
+                StandardErrorFile = t.Specification?.StandardErrorFile,
+                LocalDirectory = t.Specification?.LocalDirectory,
+                ClusterTaskSubdirectory = t.Specification?.ClusterTaskSubdirectory,
+                CpuHyperThreading = t.Specification?.CpuHyperThreading,
+                CommandTemplateId = t.Specification?.CommandTemplateId,
+                CommandTemplateName = t.Specification?.CommandTemplate?.Name,
+
+                CommandParameterValues = t.Specification?.CommandParameterValues?.Select(cpv => new CommandParameterValueInfo
+                {
+                    Identifier = cpv.TemplateParameter?.Identifier ?? cpv.CommandParameterIdentifier,
+                    Value = cpv.Value
+                }).ToList() ?? new List<CommandParameterValueInfo>(),
+
+                EnvironmentVariables = t.Specification?.EnvironmentVariables?.Select(ev => new EnvironmentVariableInfo
+                {
+                    Name = ev.Name,
+                    Value = ev.Value
+                }).ToList() ?? new List<EnvironmentVariableInfo>()
+            }).ToList()
+        }).ToList();
+
+        return new JobMonitoringPage
+        {
+            Jobs = jobExts,
+            NextCursorId = nextCursorId,
+            Count = jobExts.Count
+        };
+    }
+
+    private const string ExternalServicesLiveStatusCacheKey = "ExternalServices/LiveStatus";
+    private static readonly TimeSpan LiveStatusCacheDuration = TimeSpan.FromSeconds(5);
+
+    public async Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to)
+    {
+        var liveStatuses = await GetExternalServicesLiveStatus();
+
+        var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
+        var toDate = to ?? DateTime.UtcNow;
+
+        var stats = await GetExternalServicesStatistics(fromDate, toDate);
+
+        return new ExternalServicesReport
+        {
+            LiveStatus = liveStatuses,
+            Statistics = stats
+        };
+    }
+
+    public async Task<List<ExternalServiceHealthLog>> GetJobExternalServiceLogs(long jobId)
+    {
+        return await _unitOfWork.ExternalServiceHealthLogRepository.GetLogsByJobIdAsync(jobId);
+    }
+
+    public async Task<List<ExternalServiceStatistics>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string serviceName = null, long? clusterId = null)
+    {
+        var fromDate = from ?? DateTime.UtcNow.AddHours(-24);
+        var toDate = to ?? DateTime.UtcNow;
+
+        var logs = await _unitOfWork.ExternalServiceHealthLogRepository.GetFilteredLogsInTimeRangeAsync(fromDate, toDate, serviceName, clusterId);
+
+        return logs
+            .GroupBy(l => new 
+            { 
+                ServiceName = l.ServiceName.ToLowerInvariant(), 
+                ServiceType = l.ServiceType?.ToLowerInvariant() ?? "unknown",
+                CommandOrPath = l.CommandOrPath?.ToLowerInvariant() 
+            })
+            .Select(g =>
+            {
+                var total = g.Count();
+                var successful = g.Count(x => x.IsAvailable);
+                var failed = total - successful;
+                var successLogs = g.Where(x => x.IsAvailable).ToList();
+
+                double availabilityPct = total > 0 ? ((double)successful / total) * 100.0 : 0.0;
+                long avgResponseTime = successLogs.Any() ? (long)successLogs.Average(x => x.ResponseTimeMs) : 0;
+                long minResponseTime = successLogs.Any() ? successLogs.Min(x => x.ResponseTimeMs) : 0;
+                long maxResponseTime = successLogs.Any() ? successLogs.Max(x => x.ResponseTimeMs) : 0;
+
+                long p95ResponseTime = 0;
+                if (successLogs.Count > 0)
+                {
+                    var sorted = successLogs.Select(x => x.ResponseTimeMs).OrderBy(x => x).ToList();
+                    int index = (int)Math.Ceiling(0.95 * sorted.Count) - 1;
+                    p95ResponseTime = sorted[Math.Clamp(index, 0, sorted.Count - 1)];
+                }
+
+                return new ExternalServiceStatistics
+                {
+                    ServiceName = g.Key.ServiceName,
+                    ServiceType = g.Key.ServiceType,
+                    CommandOrPath = g.Key.CommandOrPath,
+                    AvailabilityPercentage = Math.Round(availabilityPct, 2),
+                    AverageResponseTimeMs = avgResponseTime,
+                    MinResponseTimeMs = minResponseTime,
+                    MaxResponseTimeMs = maxResponseTime,
+                    P95ResponseTimeMs = p95ResponseTime,
+                    TotalChecks = total,
+                    FailedChecks = failed
+                };
+            }).ToList();
+    }
+
+    public async Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus()
+    {
+        try
+        {
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            if (cache != null && cache.TryGetValue(ExternalServicesLiveStatusCacheKey, out List<ExternalServiceLiveStatus>? cachedStatus) && cachedStatus != null)
+            {
+                return cachedStatus;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read external services status from cache");
+        }
+
+        var servicesToProbe = await GetServicesToProbeList();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var probeTasks = servicesToProbe.Select(async service =>
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            bool isAvailable = false;
+            string? errorMsg = null;
+            long elapsed = 0;
+            try
+            {
+                var result = await service.ProbeFunc(cts.Token);
+                isAvailable = result.Success;
+                elapsed = result.ResponseTimeMs;
+                errorMsg = result.Error;
+            }
+            catch (OperationCanceledException)
+            {
+                errorMsg = "request timed out";
+            }
+            catch (Exception ex)
+            {
+                errorMsg = ex.Message;
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
+
+            return new ExternalServiceLiveStatus
+            {
+                ServiceName = service.Name.ToLowerInvariant(),
+                Type = service.Type.ToLowerInvariant(),
+                Protocol = service.Protocol.ToLowerInvariant(),
+                EndpointOrHost = service.EndpointOrHost,
+                Port = service.Port,
+                IsAvailable = isAvailable,
+                ResponseTimeMs = isAvailable ? elapsed : 0,
+                ErrorMessage = isAvailable ? null : (errorMsg ?? "unknown error"),
+                LastCheck = DateTime.UtcNow
+            };
+        });
+
+        var results = (await Task.WhenAll(probeTasks)).ToList();
+
+        try
+        {
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            cache?.Set(ExternalServicesLiveStatusCacheKey, results, LiveStatusCacheDuration);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to write external services status to cache");
+        }
+
+        return results;
+    }
+
+    public async Task LogExternalServiceHealth(ExternalServiceHealthLog log)
+    {
+        _unitOfWork.ExternalServiceHealthLogRepository.Insert(log);
+        await _unitOfWork.SaveAsync();
+    }
+
+    public async Task PurgeOldExternalServiceHealthLogs()
+    {
+        var threshold = DateTime.UtcNow.AddDays(-30);
+        await _unitOfWork.ExternalServiceHealthLogRepository.DeleteOlderThanAsync(threshold);
+    }
+
+    private async Task<(bool Success, long ResponseTimeMs, string? Error)> TestTcpConnectionAsync(string host, int port, CancellationToken ct)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var tcpClient = new System.Net.Sockets.TcpClient();
+            var connectTask = tcpClient.ConnectAsync(host, port);
+            if (await Task.WhenAny(connectTask, Task.Delay(2000, ct)) == connectTask)
+            {
+                await connectTask;
+                stopwatch.Stop();
+                return (tcpClient.Connected, stopwatch.ElapsedMilliseconds, tcpClient.Connected ? null : "connection failed");
+            }
+            else
+            {
+                stopwatch.Stop();
+                return (false, 0, "tcp connection timeout");
+            }
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            return (false, 0, ex.Message);
+        }
+    }
+
+    private static async Task<(bool Success, long ResponseTimeMs, string? Error)> TestHttpEndpointAsync(string url, CancellationToken ct)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(2);
+            var response = await httpClient.GetAsync(url, ct);
+            stopwatch.Stop();
+            return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
+        }
+        catch (OperationCanceledException)
+        {
+            stopwatch.Stop();
+            return (false, 0, "request timed out");
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            return (false, 0, ex.Message);
+        }
+    }
+
+    private async Task<List<ServiceToCheck>> GetServicesToProbeList()
+    {
+        var list = new List<ServiceToCheck>();
+
+        // 1. Clusters (Dynamic from database)
+        var clusters = (await _unitOfWork.ClusterRepository.GetAllAsync()).Where(c => !c.IsDeleted).ToList();
+
+        foreach (var cluster in clusters)
+        {
+            var host = cluster.MasterNodeName;
+            var port = cluster.ConnectionProtocol == ClusterConnectionProtocol.Https ? 443 : 80;
+
+            if (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+            {
+                if ((cluster.SchedulerType & SchedulerType.FirecRestSlurm) != SchedulerType.FirecRestSlurm)
+                {
+                    // QScheduler
+                    int resolvedPort = 4300;
+                    if (cluster.CustomConfiguration != null &&
+                        cluster.CustomConfiguration.TryGetValue("QSchedulerPort", out var portStr) &&
+                        int.TryParse(portStr, out var customPort))
+                    {
+                        resolvedPort = customPort;
+                    }
+                    else if (cluster.Port.HasValue)
+                    {
+                        resolvedPort = cluster.Port.Value;
+                    }
+                    port = resolvedPort;
+                }
+            }
+            else
+            {
+                // SSH
+                port = cluster.Port ?? 22;
+            }
+
+            // If master node name is actually a URL, parse it to extract the real host and port
+            if (Uri.TryCreate(cluster.MasterNodeName, UriKind.Absolute, out var uri))
+            {
+                host = uri.Host;
+                port = uri.Port;
+            }
+
+            list.Add(new ServiceToCheck
+            {
+                Name = cluster.Name.ToLowerInvariant(),
+                Type = "cluster",
+                Protocol = cluster.ConnectionProtocol.ToString().ToLowerInvariant(),
+                EndpointOrHost = host,
+                Port = port,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestTcpConnectionAsync(host, port, ct)
+            });
+        }
+
+        // 2. HashiCorp Vault
+        if (!string.IsNullOrWhiteSpace(VaultConnectorSettings.VaultBaseAddress))
+        {
+            var vaultUrl = VaultConnectorSettings.VaultBaseAddress.TrimEnd('/');
+            var checkPath = "/v1/sys/health";
+            list.Add(new ServiceToCheck
+            {
+                Name = "hashicorp vault",
+                Type = "keymanagement",
+                Protocol = vaultUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = vaultUrl,
+                Port = null,
+                CommandOrPath = checkPath.ToLowerInvariant(),
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(vaultUrl + checkPath, ct)
+            });
+        }
+
+        // 3. Keycloak / OIDC Identity
+        if (!string.IsNullOrWhiteSpace(ExternalAuthConfiguration.BaseUrl))
+        {
+            var keycloakUrl = ExternalAuthConfiguration.BaseUrl.TrimEnd('/');
+            var realm = ExternalAuthConfiguration.RealmName;
+            var checkPath = !string.IsNullOrEmpty(realm) ? $"/realms/{realm}/.well-known/openid-configuration" : "/.well-known/openid-configuration";
+            list.Add(new ServiceToCheck
+            {
+                Name = "keycloak",
+                Type = "identity",
+                Protocol = keycloakUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = keycloakUrl,
+                Port = null,
+                CommandOrPath = checkPath.ToLowerInvariant(),
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(keycloakUrl + checkPath, ct)
+            });
+        }
+
+        // 4. Expirio API
+        if (!string.IsNullOrWhiteSpace(ExpirioSettings.BaseUrl))
+        {
+            var expirioUrl = ExpirioSettings.BaseUrl.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "expirio",
+                Type = "accounting",
+                Protocol = expirioUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = expirioUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(expirioUrl, ct)
+            });
+        }
+
+        // 5. SSH Certificate Authority API
+        if (!string.IsNullOrWhiteSpace(SshCaSettings.BaseUri))
+        {
+            var sshCaUrl = SshCaSettings.BaseUri.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "ssh ca",
+                Type = "certificateauthority",
+                Protocol = sshCaUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = sshCaUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(sshCaUrl, ct)
+            });
+        }
+
+        // 6. LEXIS UserOrg Service
+        if (!string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
+        {
+            var userOrgUrl = LexisAuthenticationConfiguration.BaseAddress.TrimEnd('/');
+            var checkPath = "/api/version";
+            list.Add(new ServiceToCheck
+            {
+                Name = "lexis userorg",
+                Type = "identity",
+                Protocol = userOrgUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = userOrgUrl,
+                Port = null,
+                CommandOrPath = checkPath,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(userOrgUrl + checkPath, ct)
+            });
+        }
+
+        // 7. LEXIS Token Flow Service
+        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration?.IsEnabled == true &&
+            !string.IsNullOrWhiteSpace(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.BaseUrl))
+        {
+            var tokenFlowUrl = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.BaseUrl.TrimEnd('/');
+            list.Add(new ServiceToCheck
+            {
+                Name = "lexis token flow",
+                Type = "identity",
+                Protocol = tokenFlowUrl.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "https" : "http",
+                EndpointOrHost = tokenFlowUrl,
+                Port = null,
+                CommandOrPath = null,
+                ProbeFunc = async (ct) => await TestHttpEndpointAsync(tokenFlowUrl, ct)
+            });
+        }
+
+        // 8. SQL Database
+        list.Add(new ServiceToCheck
+        {
+            Name = "sql server",
+            Type = "database",
+            Protocol = "sql",
+            EndpointOrHost = "database connection",
+            Port = null,
+            CommandOrPath = "select 1",
+            ProbeFunc = async (ct) =>
+            {
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
+                        HEAppE.DataAccessTier.MiddlewareContextSettings.ConnectionString)
+                    {
+                        ConnectTimeout = 2,
+                        CommandTimeout = 2
+                    };
+                    using var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString);
+                    await connection.OpenAsync(ct);
+                    try
+                    {
+                        using var command = new Microsoft.Data.SqlClient.SqlCommand("SELECT 1", connection);
+                        await command.ExecuteScalarAsync(ct);
+                    }
+                    finally
+                    {
+                        connection.Close();
+                    }
+                    stopwatch.Stop();
+                    return (true, stopwatch.ElapsedMilliseconds, null);
+                }
+                catch (Exception ex)
+                {
+                    stopwatch.Stop();
+                    return (false, 0, ex.Message);
+                }
+            }
+        });
+
+        return list;
+    }
+
+    public SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.AddDynamicRoleAssignment(username, role);
+
+        var existingDbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (existingDbAssignment == null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Insert(new SystemRoleAssignment
+            {
+                Username = adaptorUser.Username,
+                Role = role,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetAll()
+            .Where(ug => (string.IsNullOrEmpty(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) || !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix)) &&
+                         (string.IsNullOrEmpty(ExternalAuthConfiguration.HEAppEUserPrefix) || !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix)))
+            .ToList();
+
+        foreach (var group in groups)
+        {
+            var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles?
+                .FirstOrDefault(r => r.AdaptorUserGroupId == group.Id && r.AdaptorUserRoleId == (long)role);
+
+            if (existingAssignment != null)
+            {
+                if (existingAssignment.IsDeleted)
+                {
+                    existingAssignment.IsDeleted = false;
+                    existingAssignment.CreatedAt = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                adaptorUser.CreateSpecificUserRoleForUser(group, role);
+            }
+        }
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        try
+        {
+            var userCache = LogicFactory.GetService<IMemoryCache>();
+            userCache?.Remove($"UserById_{adaptorUser.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
+        }
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role,
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+
+        _ = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(role.ToString())
+            ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", role);
+
+        RoleAssignmentConfiguration.RemoveDynamicRoleAssignment(username, role);
+
+        var dbAssignment = _unitOfWork.SystemRoleAssignmentRepository.GetByUsernameAndRole(adaptorUser.Username, role);
+        if (dbAssignment != null)
+        {
+            _unitOfWork.SystemRoleAssignmentRepository.Delete(dbAssignment);
+        }
+
+        var assignments = adaptorUser.AdaptorUserUserGroupRoles?
+            .Where(r => r.AdaptorUserRoleId == (long)role && !r.IsDeleted)
+            .ToList();
+
+        if (assignments != null && assignments.Any())
+        {
+            foreach (var assignment in assignments)
+            {
+                assignment.IsDeleted = true;
+                assignment.ModifiedAt = DateTime.UtcNow;
+            }
+
+            _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        }
+
+        _unitOfWork.Save();
+
+        try
+        {
+            var userCache = LogicFactory.GetService<IMemoryCache>();
+            userCache?.Remove($"UserById_{adaptorUser.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
+        }
+
+        return new SystemRoleAssignment
+        {
+            Username = adaptorUser.Username,
+            Role = role,
+            Source = RoleAssignmentConfiguration.GetRoleAssignmentSource(adaptorUser.Username, role)
+        };
+    }
+
+    public List<SystemRoleAssignment> ListSystemRoleAssignments()
+    {
+        var dbAssignments = _unitOfWork.SystemRoleAssignmentRepository.GetAll();
+        RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dbAssignments);
+        return RoleAssignmentConfiguration.GetAllRoleAssignments();
+    }
+
+
+    private class ServiceToCheck
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Protocol { get; set; } = string.Empty;
+        public string? EndpointOrHost { get; set; }
+        public int? Port { get; set; }
+        public string? CommandOrPath { get; set; }
+        public Func<CancellationToken, Task<(bool Success, long ResponseTimeMs, string? Error)>> ProbeFunc { get; set; } = null!;
     }
 
 

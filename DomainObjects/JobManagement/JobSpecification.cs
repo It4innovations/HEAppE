@@ -148,4 +148,46 @@ public class JobSpecification : CommonJobProperties
 
         return output;
     }
+
+    public string ToLogSafeJsonString()
+    {
+        try
+        {
+            var safeSpec = new
+            {
+                Id,
+                Name,
+                Project = Project != null ? new { Project.Id, Project.Name, Project.AccountingString } : null,
+                WalltimeLimit,
+                WaitingLimit,
+                Submitter = Submitter != null ? new { Submitter.Id, Submitter.Username, Submitter.IdpSid } : null,
+                SubmitterGroup = SubmitterGroup != null ? new { SubmitterGroup.Id, SubmitterGroup.Name } : null,
+                Cluster = Cluster != null ? new { Cluster.Id, Cluster.Name, Cluster.SchedulerType, Cluster.ConnectionProtocol } : null,
+                FileTransferMethod = FileTransferMethod != null ? new { FileTransferMethod.Id, FileTransferMethod.ServerHostname, FileTransferMethod.Protocol } : null,
+                Tasks = Tasks?.Select(t => new
+                {
+                    t.Id,
+                    t.Name,
+                    t.MinCores,
+                    t.MaxCores,
+                    t.WalltimeLimit,
+                    t.StandardInputFile,
+                    t.StandardOutputFile,
+                    t.StandardErrorFile,
+                    NodeType = t.ClusterNodeType != null ? new { t.ClusterNodeType.Id, t.ClusterNodeType.Name, t.ClusterNodeType.Queue } : null,
+                    CommandTemplate = t.CommandTemplate != null ? new { t.CommandTemplate.Id, t.CommandTemplate.Name } : null
+                }).ToList()
+            };
+
+            var jsonOptions = new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            };
+            return JsonSerializer.Serialize(safeSpec, jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            return $"[JSON Serialization failed: {ex.Message}] " + ToString();
+        }
+    }
 }

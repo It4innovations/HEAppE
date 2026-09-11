@@ -281,7 +281,6 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         if (dryRunJobFailedCount > 0)
             checkLog.DryRunJobOk = false;
 
-        await Task.Delay(1);
         return null;
     }
 
@@ -378,6 +377,16 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         }
 
         return allHistoricalTasks;
+    }
+
+    public Task<string> GetMachineArchitectureAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId)
+    {
+        throw new NotSupportedException("GetMachineArchitecture is not supported by HyperQueue");
+    }
+
+    public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
+    {
+        throw new NotSupportedException("GetMachineCalibration is not supported by HyperQueue");
     }
 
     #endregion

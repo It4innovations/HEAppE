@@ -38,6 +38,7 @@ public interface IJobManagementLogic
     /// <summary>Lightweight status read - uses a minimal DB query, no SSH-related includes.</summary>
     SubmittedJobInfo GetSubmittedJobInfoByIdForStatus(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
     Task<SubmittedJobInfo> GetSubmittedJobInfoByIdForStatusAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
+    Task<SubmittedJobInfo> GetSubmittedJobInfoByIdForSubmitAsync(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false);
     SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser, bool checkSharedJobInfoAccess = false);
     Task<SubmittedTaskInfo> GetSubmittedTaskInfoByIdAsync(long submittedTaskInfoId, AdaptorUser loggedUser, bool checkSharedJobInfoAccess = false);
     IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);
@@ -64,4 +65,11 @@ public interface IJobManagementLogic
     Task<(DryRunJobSpecification Specification, Cluster Cluster, Project Project)> PrepareDryRunJobAsync(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser);
 
     IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long loggedUserId);
+    Task<long> ProcessTaskCallbackAsync(string scheduledJobId, string token, string? rawResponse, string? qSchedulerState);
+    Task<long> OpenQSchedulerSessionAsync(long clusterId, long projectId, string machineId, int walltimeLimitSecs, AdaptorUser loggedUser);
+    Task CloseQSchedulerSessionAsync(long clusterId, long projectId, long sessionId, AdaptorUser loggedUser);
+    Task<QSchedulerSession> GetQSchedulerSessionInfoAsync(long sessionId, AdaptorUser loggedUser);
+    Task<System.Collections.Generic.IEnumerable<QSchedulerSession>> ListQSchedulerSessionsAsync(AdaptorUser loggedUser, QSchedulerSessionState? state = null, long? clusterId = null, long? projectId = null);
+    Task<System.IO.Stream> GetQuantumTaskResultAsync(long submittedTaskId, AdaptorUser loggedUser);
+    Task<System.IO.Stream> GetQuantumTaskArtifactAsync(long submittedTaskId, string artifactName, AdaptorUser loggedUser);
 }

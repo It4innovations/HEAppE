@@ -42,6 +42,8 @@ public class RexSchedulerWrapper : IRexScheduler
 
     #region Instances
 
+    public Project Project { get; set; }
+
     /// <summary>
     ///     Reference to the scheduler adapter.
     /// </summary>
@@ -443,9 +445,25 @@ public class RexSchedulerWrapper : IRexScheduler
         try
         {
             schedulerConnection = await GetConnectionForUserAsync(clusterAuthCredentials, cluster, sshCaToken, lexisToken);
+            var customConfig = new Dictionary<string, string>(cluster.CustomConfiguration ?? new Dictionary<string, string>());
+            if (Project != null)
+            {
+                customConfig["ProjectAccountingString"] = Project.AccountingString;
+                if (Project.UsageType == HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
+                {
+                    var aggregations = Project.ProjectClusterNodeTypeAggregations?
+                        .Where(a => a.ClusterNodeTypeAggregation != null)
+                        .ToList();
+                    if (aggregations != null && aggregations.Any())
+                    {
+                        var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
+                        customConfig["ProjectQuantumSecondsLimit"] = totalAllocation.ToString();
+                    }
+                }
+            }
             return await _adapter.InitializeClusterScriptDirectoryAsync(schedulerConnection.Connection,
                 clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
-                clusterAuthCredentials.Username, isServiceAccount, cluster.CustomConfiguration);
+                clusterAuthCredentials.Username, isServiceAccount, customConfig);
         }
         catch (HEAppE.Exceptions.AbstractTypes.BaseException)
         {
@@ -597,10 +615,118 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<string> GetMachineArchitectureAsync(Cluster cluster, string machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        try
+        {
+            return await _adapter.GetMachineArchitectureAsync(schedulerConnection.Connection, cluster, machineId);
+        }
+        finally
+        {
+            await ReturnConnectionAsync(schedulerConnection);
+        }
+    }
+
+    public async Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        try
+        {
+            return await _adapter.GetMachineCalibrationAsync(schedulerConnection.Connection, cluster, machineId, calibrationId, endpoint);
+        }
+        finally
+        {
+            await ReturnConnectionAsync(schedulerConnection);
+        }
+    }
+    public async Task<long> OpenSessionAsync(Cluster cluster, string machineId, string project, int walltimeLimitSecs, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.OpenSessionAsync(schedulerConnection.Connection, cluster, machineId, this.Project, walltimeLimitSecs);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        throw new NotSupportedException("OpenSession is only supported by QScheduler.");
+    }
+
+    public async Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                await qScheduler.CloseSessionAsync(schedulerConnection.Connection, cluster, sessionId);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("CloseSession is only supported by QScheduler.");
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetQuantumTaskResultAsync(schedulerConnection.Connection, cluster, scheduledJobId);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("GetQuantumTaskResult is only supported by QScheduler.");
+        }
+    }
+
+    public async Task<System.IO.Stream> GetQuantumTaskArtifactAsync(Cluster cluster, string scheduledJobId, string artifactName, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetQuantumTaskArtifactAsync(schedulerConnection.Connection, cluster, scheduledJobId, artifactName);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("GetQuantumTaskArtifact is only supported by QScheduler.");
+        }
+    }
+
     private readonly ConnectionInfo DummyConnectionInfo = new ConnectionInfo { Connection = new object(), AuthCredentials = null, LastUsed = DateTime.Now };
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
+        if (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)
+        {
+            var connector = new ConnectionPool.HttpConnector();
+            var connObj = await connector.CreateConnectionObjectAsync(cluster.MasterNodeName, credentials, cluster, sshCaToken, lexisToken, cluster.Port);
+            return new ConnectionInfo { Connection = connObj, AuthCredentials = credentials, LastUsed = DateTime.Now };
+        }
         if (_connectionPool == null || cluster.SchedulerType.HasFlag(SchedulerType.FirecRestSlurm))
             return DummyConnectionInfo;
         return await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
@@ -608,8 +734,8 @@ public class RexSchedulerWrapper : IRexScheduler
 
     private Task ReturnConnectionAsync(ConnectionInfo schedulerConnection)
     {
-        if (_connectionPool == null || schedulerConnection == null || schedulerConnection == DummyConnectionInfo)
-            return Task.Delay(1);
+        if (_connectionPool == null || schedulerConnection == null || schedulerConnection == DummyConnectionInfo || schedulerConnection.AuthCredentials == null)
+            return Task.CompletedTask;
         return _connectionPool.ReturnConnectionAsync(schedulerConnection);
     }
 

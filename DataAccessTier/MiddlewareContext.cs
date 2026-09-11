@@ -16,6 +16,8 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.Monitoring;
+using HEAppE.DomainObjects.Management;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
 using Microsoft.Data.SqlClient;
@@ -37,6 +39,11 @@ public class MiddlewareContext : DbContext
     public MiddlewareContext(ILogger logger)
     {
         _logger = logger;
+    }
+
+    public MiddlewareContext(DbContextOptions<MiddlewareContext> options, ILogger logger = null) : base(options)
+    {
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<MiddlewareContext>.Instance;
     }
 
     public static void InitializeDatabase(ILogger logger)
@@ -150,23 +157,31 @@ public class MiddlewareContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        var connectionString = MiddlewareContextSettings.ConnectionString;
-        if (!string.IsNullOrEmpty(connectionString))
+        if (!optionsBuilder.IsConfigured)
         {
-            var builder = new SqlConnectionStringBuilder(connectionString);
-            if (!builder.MultipleActiveResultSets)
+            var connectionString = MiddlewareContextSettings.ConnectionString;
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                builder.MultipleActiveResultSets = true;
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                if (!builder.MultipleActiveResultSets)
+                {
+                    builder.MultipleActiveResultSets = true;
+                }
+                if (!builder.TrustServerCertificate)
+                {
+                    builder.TrustServerCertificate = true;
+                }
+                connectionString = builder.ConnectionString;
             }
-            if (!builder.TrustServerCertificate)
-            {
-                builder.TrustServerCertificate = true;
-            }
-            connectionString = builder.ConnectionString;
-        }
 
-        optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;");
-        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+            optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
+                sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null));
+            optionsBuilder.AddInterceptors(Interceptors.DatabaseCommandTelemetryInterceptor.Instance);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -259,6 +274,13 @@ public class MiddlewareContext : DbContext
             .WithMany(cpc => cpc.ClusterProjectCredentialsCheckLog)
             .HasForeignKey(cpccl => new { cpccl.ClusterProjectId, cpccl.ClusterAuthenticationCredentialsId });
 
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => l.JobId);
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => new { l.Timestamp, l.ServiceName });
+        modelBuilder.Entity<ExternalServiceHealthLog>()
+            .HasIndex(l => l.ClusterId);
+
         modelBuilder.Entity<ClusterAuthenticationCredentials>()
             .Ignore(p => p.Password)
             .Ignore(p => p.PrivateKey)
@@ -305,6 +327,17 @@ public class MiddlewareContext : DbContext
 
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfiguration).HasJsonConversion();
+        modelBuilder.Entity<Cluster>()
+            .Property(p => p.CustomConfigurationVaultToggles).HasJsonConversion();
+
+        modelBuilder.Entity<SystemRoleAssignment>(entity =>
+        {
+            entity.ToTable("SystemRoleAssignment");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Role).IsRequired();
+            entity.HasIndex(e => new { e.Username, e.Role }).IsUnique();
+        });
 
         // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
         var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
@@ -364,6 +397,9 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<SubmittedTaskInfo>()
             .HasIndex(t => t.ScheduledJobId)
             .HasFilter("[ScheduledJobId] IS NOT NULL");
+
+        modelBuilder.Entity<QSchedulerSession>()
+            .HasIndex(s => s.SessionId);
 
         modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
             .HasIndex("ClusterAuthenticationCredentialsId");
@@ -550,6 +586,7 @@ public class MiddlewareContext : DbContext
         }
         SaveChanges();
         _logger.LogInformation("Seed data into the database completed.");
+        MiddlewareContextSettings.Clear();
     }
 
     private void ValidateSeed()
@@ -630,6 +667,72 @@ public class MiddlewareContext : DbContext
     {
         if (items == null || !items.Any()) return;
 
+        if (typeof(IdentifiableDbEntity).IsAssignableFrom(typeof(T)))
+        {
+            items = items.Cast<IdentifiableDbEntity>()
+                .GroupBy(x => x.Id)
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(AdaptorUserUserGroupRole))
+        {
+            items = items.Cast<AdaptorUserUserGroupRole>()
+                .GroupBy(x => (x.AdaptorUserId, x.AdaptorUserGroupId, x.AdaptorUserRoleId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialProject))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialProject>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackProjectId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(OpenStackAuthenticationCredentialDomain))
+        {
+            items = items.Cast<OpenStackAuthenticationCredentialDomain>()
+                .GroupBy(x => (x.OpenStackAuthenticationCredentialId, x.OpenStackDomainId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectContact))
+        {
+            items = items.Cast<ProjectContact>()
+                .GroupBy(x => (x.ProjectId, x.ContactId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterProjectCredential))
+        {
+            items = items.Cast<ClusterProjectCredential>()
+                .GroupBy(x => (x.ClusterProjectId, x.ClusterAuthenticationCredentialsId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ClusterNodeTypeAggregationAccounting))
+        {
+            items = items.Cast<ClusterNodeTypeAggregationAccounting>()
+                .GroupBy(x => (x.ClusterNodeTypeAggregationId, x.AccountingId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+        else if (typeof(T) == typeof(ProjectClusterNodeTypeAggregation))
+        {
+            items = items.Cast<ProjectClusterNodeTypeAggregation>()
+                .GroupBy(x => (x.ProjectId, x.ClusterNodeTypeAggregationId))
+                .Select(g => g.Last())
+                .Cast<T>()
+                .ToList();
+        }
+
+        ChangeTracker.Clear();
         var tableName = Model.FindEntityType(typeof(T)).GetTableName();
         _logger.LogInformation($"Inserting or updating seed data into {tableName} is initiated.");
 
@@ -641,28 +744,32 @@ public class MiddlewareContext : DbContext
 
             if (useSetIdentity)
             {
-                using var transaction = Database.BeginTransaction();
-                try
+                var executionStrategy = Database.CreateExecutionStrategy();
+                executionStrategy.Execute(() =>
                 {
-                    using var command = Database.GetDbConnection().CreateCommand();
-                    command.Transaction = transaction.GetDbTransaction();
-                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
-                    if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
-                    command.ExecuteNonQuery();
+                    using var transaction = Database.BeginTransaction();
+                    try
+                    {
+                        using var command = Database.GetDbConnection().CreateCommand();
+                        command.Transaction = transaction.GetDbTransaction();
+                        command.CommandText = $"SET IDENTITY_INSERT [{tableName}] ON;";
+                        if (command.Connection.State != ConnectionState.Open) command.Connection.Open();
+                        command.ExecuteNonQuery();
 
-                    SaveChanges();
+                        SaveChanges();
 
-                    command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
-                    command.ExecuteNonQuery();
+                        command.CommandText = $"SET IDENTITY_INSERT [{tableName}] OFF;";
+                        command.ExecuteNonQuery();
 
-                    transaction.Commit();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error inserting seed data with IDENTITY_INSERT for {tableName}");
-                    transaction.Rollback();
-                    throw;
-                }
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error inserting seed data with IDENTITY_INSERT for {tableName}");
+                        transaction.Rollback();
+                        throw;
+                    }
+                });
             }
             else
             {
@@ -676,6 +783,7 @@ public class MiddlewareContext : DbContext
         }
         finally
         {
+            ChangeTracker.Clear();
             await Database.CloseConnectionAsync();
             _logger.LogInformation($"Inserting or updating seed into {tableName} is completed.");
         }
@@ -685,8 +793,7 @@ public class MiddlewareContext : DbContext
     {
         if (entity != null)
         {
-            Entry(entity).State = EntityState.Detached;
-            Entry(item).State = EntityState.Modified;
+            Entry(entity).CurrentValues.SetValues(item);
         }
         else
         {
@@ -849,6 +956,19 @@ public class MiddlewareContext : DbContext
     public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
     public virtual DbSet<SessionCode> SessionCodes { get; set; }
     public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
+    public virtual DbSet<QSchedulerSession> QSchedulerSessions { get; set; }
+
+    #endregion
+
+    #region Monitoring Entities
+
+    public virtual DbSet<ExternalServiceHealthLog> ExternalServiceHealthLogs { get; set; }
+
+    #endregion
+
+    #region Management Entities
+
+    public virtual DbSet<SystemRoleAssignment> SystemRoleAssignments { get; set; }
 
     #endregion
 

@@ -1,0 +1,42 @@
+#!/bin/bash
+# Mock qstat for PBS Pro testing
+
+SPOOL_DIR="/var/spool/pbs/jobs"
+mkdir -p "$SPOOL_DIR"
+
+# If querying specific job(s)
+if [ -n "$1" ]; then
+    # Parse flags like -f
+    JOB_ARG=""
+    for arg in "$@"; do
+        if [[ "$arg" != -* ]]; then
+            JOB_ARG="$arg"
+        fi
+    done
+
+    if [ -n "$JOB_ARG" ] && [ -f "$SPOOL_DIR/$JOB_ARG.status" ]; then
+        # Automatically transition state from Q -> R -> F over time if desired
+        cat "$SPOOL_DIR/$JOB_ARG.status"
+        echo ""
+        exit 0
+    elif [ -n "$JOB_ARG" ]; then
+        echo "qstat: Unknown Job Id $JOB_ARG" >&2
+        exit 1
+    fi
+fi
+
+# List all jobs
+FOUND=0
+for status_file in "$SPOOL_DIR"/*.status; do
+    if [ -f "$status_file" ]; then
+        cat "$status_file"
+        echo ""
+        FOUND=1
+    fi
+done
+
+if [ $FOUND -eq 0 ]; then
+    echo "Job id            Name             User              Time Use S Queue"
+    echo "----------------  ---------------- ----------------  -------- - -----"
+fi
+exit 0

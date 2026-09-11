@@ -352,25 +352,37 @@ public class SshConnector : IPoolableAdapter
     private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username,
         string privateKey, string privateKeyPassword, int? port)
     {
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new SshClientArgumentException("UnknownPrivateKeyException");
+        }
+
         try
         {
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+            var pkFile = string.IsNullOrEmpty(privateKeyPassword)
+                ? new PrivateKeyFile(stream)
+                : new PrivateKeyFile(stream, privateKeyPassword);
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     username,
-                    new PrivateKeyFile(stream, privateKeyPassword)),
+                    pkFile),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
                     username,
-                    new PrivateKeyFile(stream, privateKeyPassword))
+                    pkFile)
             };
 
             var client = new SshClient(connectionInfo);
             client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
+        }
+        catch (SshClientArgumentException)
+        {
+            throw;
         }
         catch (Exception e)
         {
@@ -425,11 +437,7 @@ public class SshConnector : IPoolableAdapter
     {
         try
         {
-            string publicKey = credentials.PublicKey;
-            if (string.IsNullOrEmpty(credentials.PublicKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
-            }
+            string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(credentials, _logger);
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
@@ -511,11 +519,7 @@ public class SshConnector : IPoolableAdapter
         ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
         try
         {
-            string publicKey = credentials.PublicKey;
-            if (string.IsNullOrEmpty(credentials.PublicKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
-            }
+            string publicKey = ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa(credentials, _logger);
             var response = await _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName, _logger);
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
             using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
@@ -582,9 +586,17 @@ public class SshConnector : IPoolableAdapter
         ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
         string username, string privateKey, string privateKeyPassword, int? port)
     {
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new SshClientArgumentException("UnknownPrivateKeyException");
+        }
+
         try
         {
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+            var pkFile = string.IsNullOrEmpty(privateKeyPassword)
+                ? new PrivateKeyFile(stream)
+                : new PrivateKeyFile(stream, privateKeyPassword);
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
@@ -595,7 +607,7 @@ public class SshConnector : IPoolableAdapter
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, privateKeyPassword)),
+                    pkFile),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
@@ -605,12 +617,16 @@ public class SshConnector : IPoolableAdapter
                     proxyPort,
                     proxyUsername ?? string.Empty,
                     proxyPassword ?? string.Empty,
-                    new PrivateKeyFile(stream, privateKeyPassword))
+                    pkFile)
             };
 
             var client = new SshClient(connectionInfo);
             client.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
             return client;
+        }
+        catch (SshClientArgumentException)
+        {
+            throw;
         }
         catch (Exception e)
         {

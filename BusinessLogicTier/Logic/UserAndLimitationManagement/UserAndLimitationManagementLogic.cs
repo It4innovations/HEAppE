@@ -8,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -100,14 +101,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+            var cache = LogicFactory.GetService<IMemoryCache>();
             if (cache != null)
             {
-                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                try
                 {
-                    _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
-                    return cachedUser;
+                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                    if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                    {
+                        _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
+                        return cachedUser;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to read user from cache");
                 }
             }
 
@@ -115,8 +123,20 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
             if (cache != null && user != null)
             {
-                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                try
+                {
+                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                    cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to write user to cache");
+                }
+            }
+            if (user != null && user.IsBlocked)
+            {
+                _logger.LogWarning("User {UserId} is blocked and access was rejected.", user.Id);
+                throw new UnauthorizedAccessException("Unauthorized");
             }
             return user;
         }
@@ -126,16 +146,32 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
-        var cache = (IMemoryCache)LogicFactory.ServiceProvider?.GetService(typeof(IMemoryCache));
+        var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null)
         {
-            string sessionCacheKey = $"SessionUser_{sessionCode}";
-            if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
+            try
             {
-                if (cached.ExpirationTime > DateTime.UtcNow)
+                string sessionCacheKey = $"SessionUser_{sessionCode}";
+                if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
                 {
-                    return cached.User;
+                    if (cached.ExpirationTime > DateTime.UtcNow)
+                    {
+                        if (cached.User != null && cached.User.IsBlocked)
+                        {
+                            _logger.LogWarning("User {Username} is blocked and access was rejected.", cached.User.Username);
+                            throw new UnauthorizedAccessException("Unauthorized");
+                        }
+                        return cached.User;
+                    }
                 }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to read session from cache");
             }
         }
 
@@ -156,14 +192,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             bool shouldUpdate = true;
             if (cache != null)
             {
-                string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
-                if (cache.TryGetValue(updateCacheKey, out _))
+                try
                 {
-                    shouldUpdate = false;
+                    string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
+                    if (cache.TryGetValue(updateCacheKey, out _))
+                    {
+                        shouldUpdate = false;
+                    }
+                    else
+                    {
+                        cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                    _logger.LogDebug(ex, "Failed to update session db cache flag");
                 }
             }
 
@@ -176,13 +219,26 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         var user = session.User;
+        if (user != null && user.IsBlocked)
+        {
+            _logger.LogWarning("User {Username} is blocked and access was rejected.", user.Username);
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+
         if (cache != null && user != null)
         {
-            string sessionCacheKey = $"SessionUser_{sessionCode}";
-            var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
-            var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
-            var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
-            cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+            try
+            {
+                string sessionCacheKey = $"SessionUser_{sessionCode}";
+                var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
+                var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
+                var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
+                cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to cache authenticated session");
+            }
         }
 
         return user;
@@ -190,7 +246,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     
     public AdaptorUser GetUserById(long id)
     {
-        return _unitOfWork.AdaptorUserRepository.GetById(id);
+        var user = _unitOfWork.AdaptorUserRepository.GetById(id);
+        if (user != null && user.IsBlocked)
+        {
+            _logger.LogWarning("User {UserId} is blocked and access was rejected.", id);
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+        return user;
     }
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
@@ -310,8 +372,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
-            .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
+        var tasksMaxCores = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Where(j => EF.Property<long>(j, "SubmitterId") == loggedUser.Id && j.State < JobState.Finished)
+            .SelectMany(j => j.Tasks)
+            .Select(t => t.Specification.MaxCores)
+            .ToList();
+        var totalMaxCores = tasksMaxCores.Sum() ?? 0;
+
         var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger)
             .ListClusterNodeTypes();
 
@@ -321,7 +388,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             ResourceUsage usage = new()
             {
                 NodeType = nodeType,
-                CoresUsed = notFinishedJobs.Sum(s => s.Tasks.Sum(taskSum => taskSum.Specification.MaxCores)) ?? 0
+                CoresUsed = totalMaxCores
             };
             result.Add(usage);
         }
@@ -332,7 +399,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        var tasksData = _unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
+            .Where(j => EF.Property<long>(j, "SubmitterId") == loggedUser.Id && j.State < JobState.Finished)
+            .SelectMany(j => j.Tasks)
+            .Select(t => new { NodeTypeId = EF.Property<long?>(t, "NodeTypeId"), AllocatedCores = t.AllocatedCores ?? 0 })
+            .ToList();
         var projectList = projects?.Where(p => p != null).ToList() ?? new List<Project>();
 
         IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
@@ -368,10 +439,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).Where(n => n != null).Distinct().ToList();
                 foreach (var nodeType in nodeTypes)
                 {
-                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType != null && x.NodeType.Id == nodeType.Id);
+                    var coresUsed = tasksData.Where(x => x.NodeTypeId == nodeType.Id).Sum(x => x.AllocatedCores);
                     NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
                     {
-                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        CoresUsed = coresUsed,
                         NodeType = nodeType
                     };
                     ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
@@ -474,7 +545,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             string username = result.UserName;
             if (string.IsNullOrEmpty(username))
             {
-                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Email;
+                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Id.ToString();
             }
             if (string.IsNullOrEmpty(username))
             {
@@ -519,33 +590,57 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
-        AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+
+        var idpSid = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Id.ToString();
+        AdaptorUser user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+        
         string username = lexisUser.UserName;
         if (string.IsNullOrEmpty(username))
         {
-            username = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Email;
+            username = idpSid;
         }
 
-        if (string.IsNullOrEmpty(username))
-        {
-            username = StringUtils.GenerateUsername(lexisUser.Id.ToString());
-        }
-        
         if (user is null)
         {
-            try 
+            // Fallback to match by email (non-breaking transition for existing accounts)
+            user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
+            if (user != null)
             {
-                user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                user.IdpSid = idpSid;
+                user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
-            catch (Exception)
+            else
             {
-                user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
-                if (user is null) throw;
+                try 
+                {
+                    user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                    user.IdpSid = idpSid;
+                    _unitOfWork.AdaptorUserRepository.Update(user);
+                    _unitOfWork.Save();
+                }
+                catch (Exception)
+                {
+                    user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+                    if (user is null)
+                    {
+                        user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
+                        if (user is null) throw;
+                        
+                        user.IdpSid = idpSid;
+                        user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                    }
+                }
             }
         }
         else
         {
-            user = UpdateUser(user, username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+            user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+            if (string.IsNullOrEmpty(user.IdpSid))
+            {
+                user.IdpSid = idpSid;
+                _unitOfWork.AdaptorUserRepository.Update(user);
+                _unitOfWork.Save();
+            }
         }
 
         // Build desired (groupId, roleId) set and resolved role map from UserOrg data
@@ -633,6 +728,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
                 if (user is null) throw;
             }
+        }
+
+        if (user.IsBlocked)
+        {
+            _logger.LogWarning($"OpenId: User \"{user.Username}\" is blocked and access was rejected.");
+            throw new UnauthorizedAccessException($"User '{user.Username}' is blocked.");
         }
 
         var hasUserGroup = false;
@@ -729,9 +830,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         for (var i = 0; i < hashBytes.Length; i++) _ = sb.Append(hashBytes[i].ToString("X2"));
         var hash = sb.ToString();
 
-        return hash != user.Password
-            ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
-            : CreateSessionCode(user).UniqueCode;
+        if (hash != user.Password)
+        {
+            _logger.LogWarning($"Password mismatch for {user.Username}. CreatedAt={user.CreatedAt:yyyy-MM-dd HH:mm:ss}, ExpectedHash={user.Password}, ComputedHash={hash}");
+            throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
+        }
+        return CreateSessionCode(user).UniqueCode;
     }
 
     private string AuthenticateUserWithDigitalSignature(DigitalSignatureCredentials credentials)
@@ -775,8 +879,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private AdaptorUser GetActiveUser(string username)
     {
         _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
-        return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
-               throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(username)
+               ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
+
+        if (user is null || user.IsDeleted)
+        {
+            throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
+        }
+
+        if (user.IsBlocked)
+        {
+            _logger.LogWarning($"User \"{username}\" is blocked and access was rejected.");
+            throw new UnauthorizedAccessException($"User '{username}' is blocked.");
+        }
+
+        return user;
     }
 
     private SessionCode CreateSessionCode(AdaptorUser user)

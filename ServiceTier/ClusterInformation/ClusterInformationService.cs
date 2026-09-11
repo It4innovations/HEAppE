@@ -13,6 +13,7 @@ using Microsoft.Extensions.Caching.Memory;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExtModels.ClusterInformation.Converts;
@@ -156,13 +157,28 @@ public class ClusterInformationService : IClusterInformationService
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
 
+        // Build a lookup of cluster scheduler types to identify QScheduler clusters.
+        // QScheduler clusters do not use command templates — jobs are submitted via dedicated
+        // QScheduler endpoints — so the CommandTemplates filter must be bypassed for them.
+        // However, the project-level role check still applies (project must exist in the user's list).
+        var clusterSchedulerTypes = clusters.ToDictionary(c => c.Id, c => c.SchedulerType);
+
         var clustersExt = clusters
-            .Select(c => c.ConvertIntToExt(projects, true))
+            .Select(c =>
+            {
+                var ext = c.ConvertIntToExt(projects, true);
+                ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(c.CustomConfiguration).EnableCallback;
+                return ext;
+            })
             .ToArray();
 
         clustersExt = clustersExt
             .Select(cl =>
             {
+                bool isQScheduler = cl.Id.HasValue &&
+                                    clusterSchedulerTypes.TryGetValue(cl.Id.Value, out var st) &&
+                                    st == SchedulerType.QScheduler;
+
                 cl.NodeTypes = cl.NodeTypes
                     .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
                     .Select(nt =>
@@ -177,7 +193,9 @@ public class ClusterInformationService : IClusterInformationService
                                     .ToArray();
                                 return p;
                             })
-                            .Where(p => p.CommandTemplates.Length > 0)
+                            // QScheduler clusters don't require command templates — skip template count check,
+                            // but the project must still be present (user has a role in it).
+                            .Where(p => isQScheduler || p.CommandTemplates.Length > 0)
                             .ToArray();
                         return nt;
                     })
@@ -286,6 +304,36 @@ public class ClusterInformationService : IClusterInformationService
             var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsageAsync(clusterNodeId, loggedUser, projectId);
             SetCacheWithGlobalToken(memoryCacheKey, nodeUsage.ConvertIntToExt(), _cacheLimitForGetCurrentClusterUsage);
             return nodeUsage.ConvertIntToExt();
+        }
+    }
+
+    public async Task<string> GetMachineArchitecture(long clusterNodeTypeId, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineArchitecture service tier call. clusterNodeTypeId: {clusterNodeTypeId}, projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineArchitectureAsync(clusterNodeTypeId, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineArchitecture service tier returning result for clusterNodeTypeId: {clusterNodeTypeId}");
+            return result;
+        }
+    }
+
+    public async Task<string> GetMachineCalibration(long clusterNodeTypeId, string calibrationId, string endpoint, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineCalibration service tier call. clusterNodeTypeId: {clusterNodeTypeId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineCalibrationAsync(clusterNodeTypeId, calibrationId, endpoint, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineCalibration service tier returning result for clusterNodeTypeId: {clusterNodeTypeId}");
+            return result;
         }
     }
 

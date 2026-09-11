@@ -83,6 +83,10 @@ public sealed class ClusterRuntimeConfiguration
                 JobLogArchiveSubPath        = HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath,
                 SubScriptsPath              = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubScriptsPath,
                 ScriptsBasePath             = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath,
+                EnableCallback              = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback,
+                EnableGracefulTimeout       = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout,
+                GracefulTimeoutSeconds      = HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds,
+                CallbackUrl                 = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl,
                 EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
                 EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
                 SshCommandPrefix            = HPCConnectionFrameworkConfiguration.ScriptsSettings.SshCommandPrefix,
@@ -93,6 +97,11 @@ public sealed class ClusterRuntimeConfiguration
             _effectiveConfig
                 .GetSection("HPCConnectionFrameworkSettings:ScriptsSettings")
                 .Bind(_resolvedScripts);
+
+            if (string.IsNullOrWhiteSpace(_resolvedScripts.CallbackUrl))
+            {
+                _resolvedScripts.CallbackUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl;
+            }
 
             return _resolvedScripts;
         }
@@ -106,6 +115,9 @@ public sealed class ClusterRuntimeConfiguration
     public CommandScriptPathConfiguration CommandScriptsPathSettings => Scripts.CommandScriptsPathSettings;
     public string? SshCommandPrefix      => Scripts.SshCommandPrefix;
     public bool SyncScriptsViaSftp       => Scripts.SyncScriptsViaSftp;
+    public bool EnableCallback          => Scripts.EnableCallback;
+    public bool EnableGracefulTimeout   => Scripts.EnableGracefulTimeout;
+    public int GracefulTimeoutSeconds   => Scripts.GracefulTimeoutSeconds;
 
     #endregion
 
@@ -187,6 +199,20 @@ public sealed class ClusterRuntimeConfiguration
 
     #region Private
 
+    private static readonly System.Collections.Generic.HashSet<string> KnownBooleanKeys = new(System.StringComparer.OrdinalIgnoreCase)
+    {
+        "EnableCallback",
+        "EnableGracefulTimeout",
+        "SyncScriptsViaSftp"
+    };
+
+    private static bool IsKnownBooleanKey(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        var keyName = key.Contains(':') ? key.Split(':').Last() : key;
+        return KnownBooleanKeys.Contains(keyName);
+    }
+
     /// <summary>
     ///     Builds an <see cref="IConfiguration" /> that stacks the cluster overrides on top of
     ///     the global configuration.  The cluster dictionary is copied verbatim — keys are
@@ -196,13 +222,7 @@ public sealed class ClusterRuntimeConfiguration
     /// </summary>
     private static IConfiguration BuildEffectiveConfiguration(IReadOnlyDictionary<string, string> overrides)
     {
-        if (GlobalConfiguration is null)
-        {
-            // Fallback: no DI config available (e.g. unit tests) — use static settings only.
-            return new ConfigurationBuilder().Build();
-        }
-
-        if (overrides.Count == 0)
+        if (overrides.Count == 0 && GlobalConfiguration is not null)
             return GlobalConfiguration;
 
         // Expand short-form keys to their full path in the config tree.
@@ -210,12 +230,29 @@ public sealed class ClusterRuntimeConfiguration
         var expanded = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in overrides)
         {
-            // If the key already contains ':' it is assumed to be a fully-qualified config path.
-            expanded[key.Contains(':') ? key : scriptsPrefix + key] = value;
+            var finalKey = key.Contains(':') ? key : scriptsPrefix + key;
+            var val = value;
+            if (string.IsNullOrWhiteSpace(val))
+            {
+                if (IsKnownBooleanKey(key))
+                {
+                    expanded[finalKey] = "false";
+                }
+                // Skip empty/whitespace values for string keys so global configuration defaults remain as fallback.
+            }
+            else
+            {
+                expanded[finalKey] = val;
+            }
         }
 
-        return new ConfigurationBuilder()
-            .AddConfiguration(GlobalConfiguration)          // global appsettings (base layer)
+        var builder = new ConfigurationBuilder();
+        if (GlobalConfiguration is not null)
+        {
+            builder.AddConfiguration(GlobalConfiguration);          // global appsettings (base layer)
+        }
+
+        return builder
             .Add(new MemoryConfigurationSource              // cluster overrides (top layer)
             {
                 InitialData = expanded

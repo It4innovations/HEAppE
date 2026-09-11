@@ -5,6 +5,8 @@ using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.IRepository.Monitoring;
+using HEAppE.DataAccessTier.IRepository.Management;
 using HEAppE.DataAccessTier.Service;
 using System;
 using System.Threading.Tasks;
@@ -23,6 +25,10 @@ public interface IUnitOfWork : IDisposable
 
     void Save();
     Task SaveAsync();
+    void ExecuteExecutionStrategy(Action operation);
+    T ExecuteExecutionStrategy<T>(Func<T> operation);
+    Task ExecuteExecutionStrategyAsync(Func<Task> operation);
+    Task<T> ExecuteExecutionStrategyAsync<T>(Func<Task<T>> operation);
 
     #endregion
 
@@ -64,7 +70,10 @@ public interface IUnitOfWork : IDisposable
     IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }
     ISessionCodeRepository SessionCodeRepository { get; }
     IOpenStackSessionRepository OpenStackSessionRepository { get; }
+    IQSchedulerSessionRepository QSchedulerSessionRepository { get; }
     IDatabaseBackupService DatabaseBackupService { get; }
+    IExternalServiceHealthLogRepository ExternalServiceHealthLogRepository { get; }
+    ISystemRoleAssignmentRepository SystemRoleAssignmentRepository { get; }
 
     #endregion
 }

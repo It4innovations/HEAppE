@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
@@ -64,6 +65,18 @@ public class DictionaryController : BaseController<DictionaryController>
     public IActionResult GetJobStates()
     {
         return Ok(GetEnumDictionary<JobStateExt>());
+    }
+
+    /// <summary>
+    ///     Get job state sources mapping (External)
+    /// </summary>
+    /// <returns>List of job state sources</returns>
+    [HttpGet("GetJobStateSources")]
+    [ProducesResponseType(typeof(IEnumerable<DictionaryItemModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetJobStateSources()
+    {
+        return Ok(GetEnumDictionary<JobStateSourceExt>());
     }
 
     /// <summary>
@@ -259,13 +272,19 @@ public class DictionaryController : BaseController<DictionaryController>
                 SchedulerTypeExt.FirecRestSlurm
             };
 
+            var qSchedulerSchedulers = new List<SchedulerTypeExt>
+            {
+                SchedulerTypeExt.QScheduler
+            };
+
             var allSchedulers = new List<SchedulerTypeExt>
             {
                 SchedulerTypeExt.LinuxLocal,
                 SchedulerTypeExt.PbsPro,
                 SchedulerTypeExt.Slurm,
                 SchedulerTypeExt.HyperQueue,
-                SchedulerTypeExt.FirecRestSlurm
+                SchedulerTypeExt.FirecRestSlurm,
+                SchedulerTypeExt.QScheduler
             };
 
             var keysMap = new Dictionary<string, List<SchedulerTypeExt>>(StringComparer.OrdinalIgnoreCase);
@@ -290,6 +309,28 @@ public class DictionaryController : BaseController<DictionaryController>
             keysMap["ClientId"] = firecrestSchedulers;
             keysMap["ClientSecret"] = firecrestSchedulers;
             keysMap["ClusterName"] = firecrestSchedulers;
+            keysMap["QSchedulerPort"] = qSchedulerSchedulers;
+            keysMap["QSchedulerHost"] = qSchedulerSchedulers;
+            keysMap["QSchedulerNotifyToken"] = qSchedulerSchedulers;
+
+            Func<string, string> getDefaultValue = keyName =>
+            {
+                var scriptsProp = typeof(HEAppE.HpcConnectionFramework.Configuration.ScriptsConfiguration)
+                    .GetProperty(keyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (scriptsProp != null)
+                {
+                    var val = scriptsProp.GetValue(HEAppE.HpcConnectionFramework.Configuration.HPCConnectionFrameworkConfiguration.ScriptsSettings);
+                    return val?.ToString() ?? string.Empty;
+                }
+
+                return keyName.ToUpperInvariant() switch
+                {
+                    "QSCHEDULERPORT" => "3000",
+                    "QSCHEDULERHOST" => "localhost",
+                    "IDPURL" => HEAppE.ExternalAuthentication.Configuration.ExternalAuthConfiguration.BaseUrl ?? string.Empty,
+                    _ => string.Empty
+                };
+            };
 
             int id = 1;
             result = keysMap
@@ -298,6 +339,7 @@ public class DictionaryController : BaseController<DictionaryController>
                 {
                     Id = id++,
                     Name = k.Key,
+                    DefaultValue = getDefaultValue(k.Key),
                     SupportedSchedulerTypes = k.Value.Select(s => new DictionaryItemModel
                     {
                         Id = (int)s,

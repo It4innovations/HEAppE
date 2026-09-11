@@ -29,7 +29,7 @@ using HEAppE.Utils;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
-public class FirecRestSchedulerAdapter : ISchedulerAdapter
+public class FirecRestSchedulerAdapter : HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces.ISchedulerAdapter
 {
     #region Instances
 
@@ -239,14 +239,20 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"clone --single-branch -b {branch} \"{repoUrl}\" .",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("clone");
+            startInfo.ArgumentList.Add("--single-branch");
+            startInfo.ArgumentList.Add("-b");
+            startInfo.ArgumentList.Add(branch);
+            startInfo.ArgumentList.Add(repoUrl);
+            startInfo.ArgumentList.Add(".");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null)
             {
                 throw new Exception("Failed to start git clone process.");
@@ -264,14 +270,17 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"pull origin {branch}",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("pull");
+            startInfo.ArgumentList.Add("origin");
+            startInfo.ArgumentList.Add(branch);
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null)
             {
                 throw new Exception("Failed to start git pull process.");
@@ -705,17 +714,11 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-    public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType)
-    {
-        await Task.Delay(1);
+    public Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(object connectorClient, ClusterNodeType nodeType) =>
         throw new NotImplementedException();
-    }
 
-    public async Task<IEnumerable<string>> GetAllocatedNodesAsync(object connectorClient, SubmittedTaskInfo taskInfo)
-    {
-        await Task.Delay(1);
+    public Task<IEnumerable<string>> GetAllocatedNodesAsync(object connectorClient, SubmittedTaskInfo taskInfo) =>
         throw new NotImplementedException();
-    }
 
     public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath) =>
         await _commands.GetParametersFromGenericUserScriptAsync(connectorClient, userScriptPath);
@@ -749,14 +752,16 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = "rev-parse HEAD",
                 WorkingDirectory = localRepoPath,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("rev-parse");
+            startInfo.ArgumentList.Add("HEAD");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null) return string.Empty;
             await process.WaitForExitAsync();
             if (process.ExitCode != 0) return string.Empty;
@@ -951,6 +956,12 @@ public class FirecRestSchedulerAdapter : ISchedulerAdapter
 
     public Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account) =>
         throw new NotSupportedException();
+
+    public Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, string machineId) =>
+        throw new NotSupportedException("GetMachineArchitecture is not supported by FireCrest");
+
+    public Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint) =>
+        throw new NotSupportedException("GetMachineCalibration is not supported by FireCrest");
 }
 
 // fortress of lies
@@ -958,52 +969,13 @@ class FirecRestCommands : ICommands
 {
     public string InterpreterCommand => "";
 
-    public async Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
-    {
-        await Task.Delay(1);
-    }
-
-    public async Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
-    {
-        await Task.Delay(1);
-    }
-
-    public async Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
-    {
-        await Task.Delay(1);
-    }
-
-    public async Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode)
-    {
-        await Task.Delay(1);
-        return true;
-    }
-
-    public async Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
-    {
-        await Task.Delay(1);
-    }
-
-    public async Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
-    {
-        await Task.Delay(1);
-        return true;
-    }
-
-    public async Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath)
-    {
-        await Task.Delay(1);
-        return [];
-    }
-
-    public async Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration)
-    {
-        await Task.Delay(1);
-        return true;
-    }
-
-    public async Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
-    {
-        await Task.Delay(1);
-    }
+    public Task AllowDirectFileTransferAccessForUserToJobAsync(object connectorClient, string publicKey, SubmittedJobInfo jobInfo) => Task.CompletedTask;
+    public Task CopyJobDataFromTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash) => Task.CompletedTask;
+    public Task CopyJobDataToTempAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path) => Task.CompletedTask;
+    public Task<bool> CopyJobFilesAsync(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, bool sharedAccountsPoolMode) => Task.FromResult(true);
+    public Task CreateJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode) => Task.CompletedTask;
+    public Task<bool> DeleteJobDirectoryAsync(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath) => Task.FromResult(true);
+    public Task<IEnumerable<string>> GetParametersFromGenericUserScriptAsync(object connectorClient, string userScriptPath) => Task.FromResult<IEnumerable<string>>([]);
+    public Task<bool> InitializeClusterScriptDirectoryAsync(object schedulerConnectionConnection, string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount, Dictionary<string, string>? customConfiguration) => Task.FromResult(true);
+    public Task RemoveDirectFileTransferAccessForUserAsync(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString) => Task.CompletedTask;
 }

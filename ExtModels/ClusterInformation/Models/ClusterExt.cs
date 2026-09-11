@@ -53,8 +53,15 @@ public class ClusterExt
     [Description("Array of node types")]
     public ClusterNodeTypeExt[] NodeTypes { get; set; }
 
+    /// <summary>
+    /// Use callback
+    /// </summary>
+    [DataMember(Name = "UseCallback")]
+    [Description("Use callback")]
+    public bool UseCallback { get; set; }
+
     public override string ToString()
     {
-        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; MasterNodeName={MasterNodeName}; NodeTypes={NodeTypes})";
+        return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; MasterNodeName={MasterNodeName}; NodeTypes={NodeTypes}; UseCallback={UseCallback})";
     }
 }
