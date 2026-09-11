@@ -22,7 +22,7 @@ cleanup_stuck_runner:
     GIT_STRATEGY: none
   script:
     - echo "Cleaning up any root-owned build remnants on runner host..."
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
   tags:
     - Docker
     - Centos9
@@ -135,7 +135,7 @@ test_e2e:
     - docker --version
     - docker compose version
     - echo "Cleaning up runner disk space and workspace before test run..."
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
     - docker system prune -af --volumes || true
     - df -h
   script:
