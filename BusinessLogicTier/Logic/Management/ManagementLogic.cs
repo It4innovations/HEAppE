@@ -425,8 +425,15 @@ public class ManagementLogic : IManagementLogic
                 // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
                 // Without this, the 10-second UserById cache would return a stale snapshot and the role check
                 // for the brand-new project would fail with a 403 Forbidden.
-                var userCache = LogicFactory.GetService<IMemoryCache>();
-                userCache?.Remove($"UserById_{userToUpdate.Id}");
+                try
+                {
+                    var userCache = LogicFactory.GetService<IMemoryCache>();
+                    userCache?.Remove($"UserById_{userToUpdate.Id}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to evict user from cache");
+                }
                 
                 _logger.LogInformation($"Created project with id {project.Id}.");
                 _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
@@ -4232,10 +4239,17 @@ public class ManagementLogic : IManagementLogic
 
     public async Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus()
     {
-        var cache = LogicFactory.GetService<IMemoryCache>();
-        if (cache != null && cache.TryGetValue(ExternalServicesLiveStatusCacheKey, out List<ExternalServiceLiveStatus>? cachedStatus) && cachedStatus != null)
+        try
         {
-            return cachedStatus;
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            if (cache != null && cache.TryGetValue(ExternalServicesLiveStatusCacheKey, out List<ExternalServiceLiveStatus>? cachedStatus) && cachedStatus != null)
+            {
+                return cachedStatus;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read external services status from cache");
         }
 
         var servicesToProbe = await GetServicesToProbeList();
@@ -4283,7 +4297,15 @@ public class ManagementLogic : IManagementLogic
 
         var results = (await Task.WhenAll(probeTasks)).ToList();
 
-        cache?.Set(ExternalServicesLiveStatusCacheKey, results, LiveStatusCacheDuration);
+        try
+        {
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            cache?.Set(ExternalServicesLiveStatusCacheKey, results, LiveStatusCacheDuration);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to write external services status to cache");
+        }
 
         return results;
     }
@@ -4599,8 +4621,15 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
 
-        var userCache = LogicFactory.GetService<IMemoryCache>();
-        userCache?.Remove($"UserById_{adaptorUser.Id}");
+        try
+        {
+            var userCache = LogicFactory.GetService<IMemoryCache>();
+            userCache?.Remove($"UserById_{adaptorUser.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
+        }
 
         return new SystemRoleAssignment
         {
@@ -4643,8 +4672,15 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.Save();
 
-        var userCache = LogicFactory.GetService<IMemoryCache>();
-        userCache?.Remove($"UserById_{adaptorUser.Id}");
+        try
+        {
+            var userCache = LogicFactory.GetService<IMemoryCache>();
+            userCache?.Remove($"UserById_{adaptorUser.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
+        }
 
         return new SystemRoleAssignment
         {

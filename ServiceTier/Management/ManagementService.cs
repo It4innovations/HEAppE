@@ -222,8 +222,15 @@ public class ManagementService : IManagementService
             // The UserById_ cache is evicted inside ManagementLogic.CreateProject.
             if (!string.IsNullOrEmpty(sessionCode))
             {
-                var cache = LogicFactory.GetService<IMemoryCache>();
-                cache?.Remove($"SessionUser_{sessionCode}");
+                try
+                {
+                    var cache = LogicFactory.GetService<IMemoryCache>();
+                    cache?.Remove($"SessionUser_{sessionCode}");
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to evict SessionUser from cache for session code {SessionCode}", sessionCode);
+                }
             }
             
             return project.ConvertIntToExt();

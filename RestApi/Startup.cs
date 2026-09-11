@@ -283,6 +283,14 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         LogicFactory.ServiceProvider = app.ApplicationServices;
+        var lifetime = app.ApplicationServices.GetService<IHostApplicationLifetime>();
+        lifetime?.ApplicationStopping.Register(() =>
+        {
+            if (ReferenceEquals(LogicFactory.ServiceProvider, app.ApplicationServices))
+            {
+                LogicFactory.ServiceProvider = null;
+            }
+        });
         var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
         GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
         GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;

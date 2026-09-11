@@ -104,11 +104,18 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             var cache = LogicFactory.GetService<IMemoryCache>();
             if (cache != null)
             {
-                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                try
                 {
-                    _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
-                    return cachedUser;
+                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                    if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                    {
+                        _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
+                        return cachedUser;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to read user from cache");
                 }
             }
 
@@ -116,8 +123,15 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
             if (cache != null && user != null)
             {
-                string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                try
+                {
+                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
+                    cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to write user to cache");
+                }
             }
             if (user != null && user.IsBlocked)
             {
@@ -135,18 +149,29 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null)
         {
-            string sessionCacheKey = $"SessionUser_{sessionCode}";
-            if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
+            try
             {
-                if (cached.ExpirationTime > DateTime.UtcNow)
+                string sessionCacheKey = $"SessionUser_{sessionCode}";
+                if (cache.TryGetValue(sessionCacheKey, out (AdaptorUser User, DateTime ExpirationTime) cached))
                 {
-                    if (cached.User != null && cached.User.IsBlocked)
+                    if (cached.ExpirationTime > DateTime.UtcNow)
                     {
-                        _logger.LogWarning("User {Username} is blocked and access was rejected.", cached.User.Username);
-                        throw new UnauthorizedAccessException("Unauthorized");
+                        if (cached.User != null && cached.User.IsBlocked)
+                        {
+                            _logger.LogWarning("User {Username} is blocked and access was rejected.", cached.User.Username);
+                            throw new UnauthorizedAccessException("Unauthorized");
+                        }
+                        return cached.User;
                     }
-                    return cached.User;
                 }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to read session from cache");
             }
         }
 
@@ -167,14 +192,21 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             bool shouldUpdate = true;
             if (cache != null)
             {
-                string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
-                if (cache.TryGetValue(updateCacheKey, out _))
+                try
                 {
-                    shouldUpdate = false;
+                    string updateCacheKey = $"SessionLastDbUpdate_{sessionCode}";
+                    if (cache.TryGetValue(updateCacheKey, out _))
+                    {
+                        shouldUpdate = false;
+                    }
+                    else
+                    {
+                        cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    cache.Set(updateCacheKey, true, TimeSpan.FromSeconds(30));
+                    _logger.LogDebug(ex, "Failed to update session db cache flag");
                 }
             }
 
@@ -195,11 +227,18 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (cache != null && user != null)
         {
-            string sessionCacheKey = $"SessionUser_{sessionCode}";
-            var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
-            var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
-            var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
-            cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+            try
+            {
+                string sessionCacheKey = $"SessionUser_{sessionCode}";
+                var expirationTime = session.LastAccessTime.AddSeconds(_sessionExpirationSeconds);
+                var cacheExpiration = DateTime.UtcNow.AddSeconds(10);
+                var finalExpiration = expirationTime < cacheExpiration ? expirationTime : cacheExpiration;
+                cache.Set(sessionCacheKey, (user, finalExpiration), TimeSpan.FromSeconds(10));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to cache authenticated session");
+            }
         }
 
         return user;
