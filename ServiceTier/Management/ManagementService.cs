@@ -347,8 +347,9 @@ public class ManagementService : IManagementService
             }
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            long? adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             return (await managementLogic.GetSecureShellKeys(projectId,
-                adaptorUserId: loggedUser.Id, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
+                adaptorUserId: adaptorUserId, isAdministrator: isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -496,33 +497,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isAdministrator)
-                {
-                    adaptorUserId = loggedUser.Id;
-                }
-                else if (isManager)
-                {
-                    // Managers can create service accounts if they don't specify adaptorUserId, 
-                    // or they might want to create for themselves. 
-                    // HEAppE usually defaults to null for shared projects if not specified.
-                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
-                }
-                else if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        // Submitters in shared projects can only create service account credentials if allowed by logic
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
 
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -608,29 +587,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isAdministrator)
-                {
-                    adaptorUserId = loggedUser.Id;
-                }
-                else if (isManager)
-                {
-                    adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
-                }
-                else if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -665,21 +626,11 @@ public class ManagementService : IManagementService
             }
             else
             {
-                if (isSubmitter)
-                {
-                    if (project.IsOneToOneMapping)
-                    {
-                        adaptorUserId = loggedUser.Id;
-                    }
-                    else
-                    {
-                        adaptorUserId = null;
-                    }
-                }
-                else
+                if (!isAdministrator && !isManager && !isSubmitter)
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
+                adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
@@ -778,7 +729,8 @@ public class ManagementService : IManagementService
             //get all user projects for conversion
             bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            return (await managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id, isAdministrator))
+            long? adaptorUserId = project.IsOneToOneMapping ? loggedUser.Id : (long?)null;
+            return (await managementLogic.ClusterAccountStatus(projectId, username, adaptorUserId, isAdministrator))
                 .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }

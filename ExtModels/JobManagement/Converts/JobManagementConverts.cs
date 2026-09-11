@@ -204,8 +204,8 @@ public static class JobManagementConverts
             StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StateUpdatedAt, timezone),
             CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
-            StartTime = jobInfo.StartTime,
-            EndTime = jobInfo.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             SubProject = jobInfo.Specification.SubProject?.Identifier,
             Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt(timezone))
@@ -228,8 +228,8 @@ public static class JobManagementConverts
             StateUpdatedAt = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StateUpdatedAt, timezone),
             CreationTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.CreationTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.SubmitTime, timezone),
-            StartTime = jobInfo.StartTime,
-            EndTime = jobInfo.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(jobInfo.EndTime, timezone),
             TotalAllocatedTime = jobInfo.TotalAllocatedTime,
             Submitter = jobInfo.Submitter == null ? null : new AdminSubmitterInfoExt
             {
@@ -268,8 +268,8 @@ public static class JobManagementConverts
             Priority = task.Priority.ConvertIntToExt(),
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct().ToArray(),
-            StartTime = task.StartTime,
-            EndTime = task.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
             NodeType = task.NodeType == null ? null : task.NodeType.ConvertIntToExt(task.Project, spec?.CommandTemplate),
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,
@@ -348,8 +348,8 @@ public static class JobManagementConverts
             AllocatedTime = task.AllocatedTime,
             AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
-            StartTime = task.StartTime,
-            EndTime = task.EndTime,
+            StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.StartTime, timezone),
+            EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(task.EndTime, timezone),
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,
