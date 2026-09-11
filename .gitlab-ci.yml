@@ -33,14 +33,14 @@ release_msg_job:
   image: alpine:latest
   script:
     - TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md)
-    - TAG_MESSAGE=$(awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md)
-    - TAG_MESSAGE_BASE64=$(echo -n "${TAG_MESSAGE}" | base64 -w 0 2>/dev/null || echo -n "${TAG_MESSAGE}" | base64)
+    - awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md > release_notes.md
     - rm -f release_variables.env
     - echo "TAG_NAME=${TAG_NAME}" >> release_variables.env
-    - echo "TAG_MESSAGE=${TAG_MESSAGE_BASE64}" >> release_variables.env
   variables:
     GIT_STRATEGY: clone
   artifacts:
+    paths:
+      - release_notes.md
     reports:
       dotenv: release_variables.env  
   tags:
@@ -238,7 +238,7 @@ release_job:
     - git status
   release:
     name: '${TAG_NAME}'
-    description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
+    description: './release_notes.md'
     tag_name: '${TAG_NAME}'
   variables:
     GIT_STRATEGY: clone
@@ -267,13 +267,14 @@ push_to_github_job:
      - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/It4innovations/HEAppE.git
      - git push github HEAD:$CI_COMMIT_REF_NAME
      - git push github --tags
-     - echo "${TAG_MESSAGE}"
      - |
         python3 -c "
-        import json, os, base64
+        import json, os
         tag_name = os.environ.get('TAG_NAME', '')
-        tag_msg_b64 = os.environ.get('TAG_MESSAGE', '')
-        tag_body = base64.b64decode(tag_msg_b64).decode('utf-8', errors='replace')
+        tag_body = ''
+        if os.path.exists('release_notes.md'):
+            with open('release_notes.md', 'r', encoding='utf-8') as f:
+                tag_body = f.read()
         payload = {
             'tag_name': tag_name,
             'name': tag_name,
