@@ -1266,11 +1266,12 @@ internal class JobManagementLogic : IJobManagementLogic
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
         
-        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        var userOrgToken = _httpContextKeys.Context.UserOrgToken ?? _httpContextKeys.Context.LEXISToken;
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(userOrgToken))
         {
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             CommandTemplatePermissionsModel permissionsModel = await _userOrgService.GetCommandTemplatePermissionsAsync(
-                _httpContextKeys.Context.LEXISToken,
+                userOrgToken,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
                 instanceId, _logger);
 

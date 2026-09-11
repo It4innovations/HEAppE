@@ -29,17 +29,70 @@ public interface IRequestContext
     public string SshCaToken { get; set; } 
     public string IdpToken { get; set; }
     public string LEXISToken { get; set; }
+
+    /// <summary>
+    /// UserOrg token – backed by ExchangedTokens["userorg"].
+    /// </summary>
+    public string? UserOrgToken { get; set; }
+
+    /// <summary>
+    /// Dictionary of all exchanged tokens, keyed by target name.
+    /// Used by the unified token exchange system.
+    /// </summary>
+    Dictionary<string, string> ExchangedTokens { get; }
+
+    /// <summary>
+    /// Get an exchanged token by target name.
+    /// </summary>
+    string? GetExchangedToken(string targetName);
 }
 
 public class RequestContext : IRequestContext
 {
+    private string _sshCaToken;
+    private string _idpToken;
+    private string? _userOrgToken;
+
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
     public string UserInfo { get; set; }
-    public string SshCaToken { get; set; } 
-    public string IdpToken { get; set; }
+
+    /// <summary>
+    /// SSH CA token – backed by ExchangedTokens["sshca"] for backward compatibility.
+    /// </summary>
+    public string SshCaToken
+    {
+        get => GetExchangedToken("sshca") ?? _sshCaToken;
+        set { _sshCaToken = value; if (value != null) ExchangedTokens["sshca"] = value; }
+    }
+
+    /// <summary>
+    /// IdP / FIP token – backed by ExchangedTokens["idp"] or ExchangedTokens["fip"] for backward compatibility.
+    /// </summary>
+    public string IdpToken
+    {
+        get => GetExchangedToken("idp") ?? GetExchangedToken("fip") ?? _idpToken;
+        set { _idpToken = value; if (value != null) ExchangedTokens["idp"] = value; }
+    }
+
+    /// <summary>
+    /// UserOrg token – backed by ExchangedTokens["userorg"] if present.
+    /// </summary>
+    public string? UserOrgToken
+    {
+        get => GetExchangedToken("userorg") ?? _userOrgToken;
+        set { _userOrgToken = value; if (value != null) ExchangedTokens["userorg"] = value; }
+    }
+
     public string LEXISToken { get; set; }
+
+    /// <inheritdoc />
+    public Dictionary<string, string> ExchangedTokens { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public string? GetExchangedToken(string targetName)
+        => ExchangedTokens.TryGetValue(targetName, out var token) ? token : null;
 }
 
 public interface IHttpContextKeys
@@ -71,12 +124,13 @@ public class HttpContextKeys : IHttpContextKeys
         AdaptorUser user = null;
         try
         {
+            var effectiveUserOrgToken = Context.GetExchangedToken("userorg");
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = Context.LEXISToken
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? Context.LEXISToken
                 });
             }
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
@@ -85,7 +139,7 @@ public class HttpContextKeys : IHttpContextKeys
                 _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.IdpToken
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : Context.IdpToken)
                 });
             }
             

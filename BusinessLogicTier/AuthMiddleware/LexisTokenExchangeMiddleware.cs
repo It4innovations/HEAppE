@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.TokenExchange;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,7 @@ public class LexisTokenExchangeMiddleware
     }
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService,
-        IExpirioService expirioService)
+        IExpirioService expirioService, ITokenExchangeService tokenExchangeService)
     {
         ApplyRequestSizeLimit(context);
 
@@ -39,7 +40,30 @@ public class LexisTokenExchangeMiddleware
             var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
             contextKeysService.Context.LEXISToken = incomingToken;
 
-            if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+            // === New unified token exchange: PreAuth phase ===
+            if (tokenExchangeService.HasAutoExchangeTargets("PreAuth"))
+            {
+                _logger.LogInformation("LexisTokenExchangeMiddleware: Using unified token exchange (PreAuth phase).");
+                var results = await tokenExchangeService.ExecuteAutoExchangesAsync(
+                    "PreAuth", incomingToken, contextKeysService.Context.ExchangedTokens);
+
+                // If a PreAuth exchange produced an IdP or FIP token, update the Authorization header
+                var idpToken = contextKeysService.Context.GetExchangedToken("idp") ?? contextKeysService.Context.GetExchangedToken("fip");
+                if (!string.IsNullOrEmpty(idpToken))
+                {
+                    context.Request.Headers["Authorization"] = $"Bearer {idpToken}";
+                    contextKeysService.Context.IdpToken = idpToken;
+                    _logger.LogDebug("LexisTokenExchangeMiddleware: Authorization header updated with exchanged IdP/FIP token.");
+                }
+                else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+                         !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                {
+                    // No IdP exchange configured, use incoming token as-is
+                    contextKeysService.Context.IdpToken = incomingToken;
+                }
+            }
+            // === Legacy fallback (when no TokenExchangeTargets configured) ===
+            else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
                 !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
                 if ((LexisAuthenticationConfiguration.UseBearerAuth && JwtTokenIntrospectionConfiguration.IsEnabled) ||
@@ -60,7 +84,7 @@ public class LexisTokenExchangeMiddleware
             }
             else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
-                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token");
+                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token (legacy)");
                 try
                 {
                     string exchanged;

@@ -29,6 +29,8 @@ using HEAppE.Services.Expirio;
 using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
+using HEAppE.Services.TokenExchange;
+using HEAppE.Services.TokenExchange.Strategies;
 using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
@@ -87,6 +89,11 @@ builder.Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 builder.Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 builder.Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
 
+// Unified Token Exchange: bind targets from configuration
+var tokenExchangeTargets = new List<TokenExchangeTargetConfiguration>();
+builder.Configuration.GetSection("TokenExchangeTargets").Bind(tokenExchangeTargets);
+builder.Services.AddSingleton<IEnumerable<TokenExchangeTargetConfiguration>>(tokenExchangeTargets);
+
 builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
 {
     options.HttpMessageHandlerBuilderActions.Add(builder =>
@@ -126,6 +133,19 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
+
+// Unified Token Exchange: register strategies and service
+builder.Services.AddSingleton<Rfc8693ExchangeStrategy>();
+builder.Services.AddSingleton<ITokenExchangeStrategy>(sp => sp.GetRequiredService<Rfc8693ExchangeStrategy>());
+builder.Services.AddSingleton<ITokenExchangeStrategy, ExpirioExchangeStrategy>();
+builder.Services.AddSingleton<ITokenExchangeStrategy, ClientCredentialsExchangeStrategy>();
+builder.Services.AddSingleton<ITokenExchangeStrategy, KeycloakBrokerExchangeStrategy>();
+builder.Services.AddScoped<ITokenExchangeService, TokenExchangeService>();
+
+builder.Services.AddHttpClient("TokenExchangeClient")
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
+    .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
+
 builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 

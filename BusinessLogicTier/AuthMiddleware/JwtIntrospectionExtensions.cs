@@ -15,6 +15,7 @@ using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.TokenExchange;
 using HEAppE.Exceptions.AbstractTypes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -91,13 +92,60 @@ public static class JwtIntrospectionExtensions
                                 context.Principal?.Identity?.Name,
                                 string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}")));
 
+                            // === PostAuth token exchanges (unified service) ===
+                            var tokenExchangeService = context.HttpContext.RequestServices.GetRequiredService<ITokenExchangeService>();
+                            var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
+
+                            if (tokenExchangeService.HasAutoExchangeTargets("PostAuth"))
+                            {
+                                try
+                                {
+                                    var postAuthResults = await tokenExchangeService.ExecuteAutoExchangesAsync(
+                                        "PostAuth",
+                                        requestContext.Context.IdpToken ?? requestContext.Context.LEXISToken,
+                                        requestContext.Context.ExchangedTokens);
+
+                                    foreach (var result in postAuthResults.Where(r => !r.Value.Success))
+                                    {
+                                        log.LogWarning("[Introspection] PostAuth token exchange failed for target '{Target}': {Error}", result.Key, result.Value.Error);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    log.LogError(ex, "[Introspection] PostAuth token exchange failed: {Message}", ex.Message);
+
+                                    var problem = new ProblemDetails
+                                    {
+                                        Status = StatusCodes.Status502BadGateway,
+                                        Title = "Token Exchange Failed",
+                                        Detail = ex.Message
+                                    };
+
+                                    if (ex is ExternalException externalEx)
+                                    {
+                                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName)
+                                            ? $"Token Exchange External Problem ({externalEx.ServiceName})"
+                                            : "Token Exchange External Problem";
+                                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                                    }
+
+                                    var response = context.HttpContext.Response;
+                                    response.ContentType = "application/json";
+                                    response.StatusCode = problem.Status.Value;
+                                    await response.WriteAsJsonAsync(problem);
+
+                                    context.Fail(ex);
+                                    return;
+                                }
+                            }
+
                             var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
                             var expirioService = context.HttpContext.RequestServices.GetRequiredService<IExpirioService>();
 
                             try
                             {
-                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().Authorize(sshCaService, userOrgService, expirioService);
+                                await requestContext.Authorize(sshCaService, userOrgService, expirioService);
                                 log.LogDebug("[Introspection] Internal Authorization Success");
                             }
                             catch (Exception ex)
@@ -133,18 +181,21 @@ public static class JwtIntrospectionExtensions
                                 return;
                             }
 
-                            if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+                            // === Legacy SSH CA fallback (when no PostAuth targets configured) ===
+                            if (!requestContext.Context.ExchangedTokens.ContainsKey("sshca") &&
+                                JwtTokenIntrospectionConfiguration.IsEnabled &&
+                                SshCaSettings.UseCertificateAuthorityForAuthentication)
                             {
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
                          
                                 string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
                                 string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-                                //add user agent
                                 client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
-                                //get token endpoint from discovery document
+
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
-                                if (disco.IsError)                                {
+                                if (disco.IsError)
+                                {
                                     log.LogError("[Introspection] Discovery document retrieval failed (Keycloak): {Error}", disco.Error);
 
                                     var problem = new ProblemDetails

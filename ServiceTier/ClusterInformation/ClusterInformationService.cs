@@ -146,11 +146,12 @@ public class ClusterInformationService : IClusterInformationService
 
         // Get Lexis permission rules if enabled
         CommandTemplatePermissionsModel lexisPermissions = null;
-        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        var userOrgToken = _httpContextKeys.Context.UserOrgToken ?? _httpContextKeys.Context.LEXISToken;
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(userOrgToken))
         {
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
-                _httpContextKeys.Context.LEXISToken,
+                userOrgToken,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
                 instanceId, _logger);
         }
