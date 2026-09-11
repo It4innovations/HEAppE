@@ -163,8 +163,6 @@ coverage_threshold:
   allow_failure: true
   variables:
     TARGET_COVERAGE: "100"
-  before_script:
-    - apk add --no-cache grep gawk
   script:
     - echo "=========================================================="
     - echo "        Code Coverage Target & Threshold Check"
