@@ -146,6 +146,7 @@ test_e2e:
     - ./scripts/wait-for-healthy.sh 120
     - TEST_EXIT_CODE=0
     - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci || TEST_EXIT_CODE=$?
+    - rm -rf ../TestResults 2>/dev/null || true
     - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
     - exit $TEST_EXIT_CODE
   after_script:
