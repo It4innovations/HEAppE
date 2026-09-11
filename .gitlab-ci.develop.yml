@@ -38,7 +38,7 @@ sshagent_build_development:
     - docker image prune -f
   script:
     - echo "Building Docker SSH-Agent image..."
-    - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_DEV_NAME}" .
+    - docker build --no-cache -f ./SshAgent/Dockerfile -t "${SSHAGENT_IMAGE_DEV_NAME}" .
     - echo "Tagging and Pushing..."
     - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
