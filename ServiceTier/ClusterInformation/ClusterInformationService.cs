@@ -346,7 +346,7 @@ public class ClusterInformationService : IClusterInformationService
     /// <summary>
     ///     Cache limit in minutes for method ListAvailableClusters
     /// </summary>
-    private readonly int _cacheLimitForListAvailableClusters = 150;
+    private readonly int _cacheLimitForListAvailableClusters = 5;
 
     /// <summary>
     ///     Cache limit in minutes for method GetCommandTemplateParametersName
