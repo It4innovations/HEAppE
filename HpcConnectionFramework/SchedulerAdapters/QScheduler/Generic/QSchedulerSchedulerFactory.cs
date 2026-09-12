@@ -30,7 +30,7 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singletons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string MasterNodeName, long projectId, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -62,17 +62,59 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
         ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
-        if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
+        return _schedulerSingletons.GetOrAdd(
+            uniqueIdentifier,
+            key =>
+            {
+                var wrapper = new RexSchedulerWrapper
+                (
+                    GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio, logger),
+                    CreateSchedulerAdapter(logger), logger
+                );
+                wrapper.Project = new Project
+                {
+                    Id = project.Id,
+                    Name = project.Name,
+                    AccountingString = project.AccountingString,
+                    UsageType = project.UsageType,
+                    ProjectClusterNodeTypeAggregations = project.ProjectClusterNodeTypeAggregations != null
+                        ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(project.ProjectClusterNodeTypeAggregations, a => new ProjectClusterNodeTypeAggregation
+                        {
+                            AllocationAmount = a.AllocationAmount,
+                            ClusterNodeTypeAggregation = a.ClusterNodeTypeAggregation != null ? new ClusterNodeTypeAggregation() : null
+                        }))
+                        : null
+                };
+                return wrapper;
+            }
+        );
+    }
+
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
         {
-            var wrapper = new RexSchedulerWrapper
-            (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio, logger),
-                CreateSchedulerAdapter(logger), logger
-            );
-            wrapper.Project = project;
-            _schedulerSingletons[uniqueIdentifier] = wrapper;
+            if (key.projectId == projectId)
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
         }
-        return _schedulerSingletons[uniqueIdentifier];
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _schedulerSingletons.Clear();
     }
 
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)

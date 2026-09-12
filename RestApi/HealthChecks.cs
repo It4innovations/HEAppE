@@ -72,7 +72,8 @@ public class HEAppEHealth
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
         int? timeoutMs = 1000; // let it be constant for now...
-        var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
+        using var cts = new CancellationTokenSource(timeoutMs.Value);
+        var cancellationToken = cts.Token;
         var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(logger, MiddlewareContextSettings.ConnectionString, cancellationToken);
         var taskGetVaultHealth = VaultHealthCheck.GetVaultHealth(logger, VaultConnectorSettings.VaultBaseAddress, timeoutMs.Value);
         await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
@@ -155,8 +156,9 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
         try {
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out cacheEntry))
             {
+                using var cts = new CancellationTokenSource(1000);
                 cacheEntry = new Dictionary<string, object> {
-                    {"canConnect", await DatabaseCanConnectAsync(_logger, MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token) },
+                    {"canConnect", await DatabaseCanConnectAsync(_logger, MiddlewareContextSettings.ConnectionString, cts.Token) },
                     {"timestamp", HEAppEHealth.GetCurrentTimestamp() }
                 };
                 _cacheProvider?.Set(_cacheKey, cacheEntry, TimeSpan.FromMilliseconds(HealthCheckSettings.HealthChecksCacheExpirationMs));
@@ -180,8 +182,8 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
             };
 
             using (var connection = new SqlConnection(builder.ConnectionString))
+            using (var command = new SqlCommand("SELECT 1", connection))
             {
-                var command = new SqlCommand("SELECT 1", connection);
                 await connection.OpenAsync(cancellationToken);
                 try
                 {
@@ -240,25 +242,29 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
         return result;
     }
 
+    private static readonly HttpClient _healthHttpClient = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        ConnectTimeout = TimeSpan.FromSeconds(3)
+    });
+
     public static async Task<object> GetVaultHealth(ILogger logger, string vaultBaseAddress, int timeoutMs)
     {
-        using var httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(vaultBaseAddress),
-            Timeout = TimeSpan.FromMilliseconds(timeoutMs)
-        };
-        var path = $"/v1/sys/health/";
-    
         try
         {
-            var result = await httpClient.GetStringAsync(path);
-            var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
-            logger.LogInformation($"Obtained health information");
-            return response;
+            var baseUri = new Uri(vaultBaseAddress.TrimEnd('/') + "/");
+            var uri = new Uri(baseUri, "v1/sys/health/");
+            using var cts = new CancellationTokenSource(timeoutMs);
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var response = await _healthHttpClient.SendAsync(request, cts.Token);
+            var result = await response.Content.ReadAsStringAsync(cts.Token);
+            var responseObj = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
+            logger.LogInformation("Obtained health information");
+            return responseObj;
         }
         catch (Exception e)
         {
-            logger.LogError(e, $"Vault health check failed.");
+            logger.LogError(e, "Vault health check failed.");
         }
 
         return null;

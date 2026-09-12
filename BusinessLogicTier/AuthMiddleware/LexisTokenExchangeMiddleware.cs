@@ -119,24 +119,43 @@ public class LexisTokenExchangeMiddleware
         await _next(context);
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, (bool isSizeLimit, bool isAllowLargeBody)> _sizeLimitMetadataTypeCache = new();
+    private static volatile System.Reflection.PropertyInfo? _featureIsReadOnlyProp;
+    private static volatile System.Reflection.PropertyInfo? _featureMaxRequestBodySizeProp;
+    private static volatile System.Reflection.PropertyInfo? _sizeLimitMaxRequestBodySizeProp;
+
     private static void ApplyRequestSizeLimit(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
         if (endpoint == null) return;
 
-        var metadata = endpoint.Metadata;
-        var sizeLimitMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IRequestSizeLimitMetadata") != null);
-        var allowLargeBodyMetadata = metadata.FirstOrDefault(m => m.GetType().GetInterface("IAllowLargeRequestBodyMetadata") != null);
+        object? sizeLimitMetadata = null;
+        object? allowLargeBodyMetadata = null;
+
+        foreach (var m in endpoint.Metadata)
+        {
+            var mType = m.GetType();
+            if (!_sizeLimitMetadataTypeCache.TryGetValue(mType, out var flags))
+            {
+                flags = (mType.GetInterface("IRequestSizeLimitMetadata") != null,
+                         mType.GetInterface("IAllowLargeRequestBodyMetadata") != null);
+                _sizeLimitMetadataTypeCache[mType] = flags;
+            }
+
+            if (flags.isAllowLargeBody) allowLargeBodyMetadata = m;
+            if (flags.isSizeLimit) sizeLimitMetadata = m;
+        }
 
         if (sizeLimitMetadata == null && allowLargeBodyMetadata == null) return;
 
         var feature = context.Features.FirstOrDefault(f => f.Key.Name == "IHttpRequestBodySizeFeature").Value;
         if (feature == null) return;
 
-        var isReadOnlyProp = feature.GetType().GetProperty("IsReadOnly");
-        if (isReadOnlyProp != null && (bool)isReadOnlyProp.GetValue(feature)) return;
+        var featureType = feature.GetType();
+        var isReadOnlyProp = _featureIsReadOnlyProp ??= featureType.GetProperty("IsReadOnly");
+        if (isReadOnlyProp != null && (bool)isReadOnlyProp.GetValue(feature)!) return;
 
-        var maxRequestBodySizeProp = feature.GetType().GetProperty("MaxRequestBodySize");
+        var maxRequestBodySizeProp = _featureMaxRequestBodySizeProp ??= featureType.GetProperty("MaxRequestBodySize");
         if (maxRequestBodySizeProp == null) return;
 
         if (allowLargeBodyMetadata != null)
@@ -145,7 +164,7 @@ public class LexisTokenExchangeMiddleware
         }
         else if (sizeLimitMetadata != null)
         {
-            var limitProp = sizeLimitMetadata.GetType().GetProperty("MaxRequestBodySize");
+            var limitProp = _sizeLimitMaxRequestBodySizeProp ??= sizeLimitMetadata.GetType().GetProperty("MaxRequestBodySize");
             if (limitProp != null)
             {
                 maxRequestBodySizeProp.SetValue(feature, limitProp.GetValue(sizeLimitMetadata));

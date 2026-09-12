@@ -41,6 +41,9 @@ internal class LinuxCommands : ICommands
     protected static readonly string _genericCommandKeyParameter =
         HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
 
+    private static readonly Lazy<Regex> _genericParameterRegex = new(() =>
+        new Regex(@$"{Regex.Escape(_genericCommandKeyParameter)}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled));
+
     /// <summary>
     ///     Command
     /// </summary>
@@ -80,9 +83,7 @@ internal class LinuxCommands : ICommands
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
         _logger.LogInformation($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
-        foreach (Match match in Regex.Matches(sshCommand.Result,
-                     @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n",
-                     RegexOptions.IgnoreCase | RegexOptions.Compiled))
+        foreach (Match match in _genericParameterRegex.Value.Matches(sshCommand.Result))
             if (match.Success && match.Groups.Count == 2)
                 genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
 

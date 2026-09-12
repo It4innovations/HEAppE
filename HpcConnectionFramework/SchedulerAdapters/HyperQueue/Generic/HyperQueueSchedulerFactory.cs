@@ -27,7 +27,7 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singeltons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string MasterNodeName, long projectId, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -53,13 +53,41 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
         ILogger logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
-        if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
-            _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
+        return _schedulerSingletons.GetOrAdd(
+            uniqueIdentifier,
+            key => new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio, logger),
                 CreateSchedulerAdapter(logger), logger
-            );
-        return _schedulerSingletons[uniqueIdentifier];
+            )
+        );
+    }
+
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (key.projectId == projectId)
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _schedulerSingletons.Clear();
     }
 
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)

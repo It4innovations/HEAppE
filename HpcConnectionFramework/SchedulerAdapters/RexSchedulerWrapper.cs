@@ -406,17 +406,7 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="taskInfo">Task info</param>
     public async Task RemoveTunnelAsync(SubmittedTaskInfo taskInfo, string sshCaToken, string lexisToken)
     {
-        var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var schedulerConnection = await GetConnectionForUserAsync(
-            taskInfo.Specification.JobSpecification.ClusterUser, taskInfo.Specification.JobSpecification.Cluster, sshCaToken, lexisToken);
-        try
-        {
-            await _adapter.RemoveTunnelAsync(schedulerConnection.Connection, taskInfo);
-        }
-        finally
-        {
-            await ReturnConnectionAsync(schedulerConnection);
-        }
+        await _adapter.RemoveTunnelAsync(null, taskInfo);
     }
 
     /// <summary>

@@ -70,6 +70,33 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         );
     }
 
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (key.projectId == projectId)
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _schedulerSingletons.Clear();
+    }
+
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>

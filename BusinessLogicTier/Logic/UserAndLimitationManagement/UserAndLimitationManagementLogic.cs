@@ -517,7 +517,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         try
         {
-            KeycloakOpenId openIdClient = new();
+            using KeycloakOpenId openIdClient = new();
             var tokenIntrospectResult = await openIdClient.TokenIntrospectionAsync(openIdCredentials.OpenIdAccessToken);
             KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
             var offline_token = (await openIdClient.ExchangeTokenAsync(openIdCredentials.OpenIdAccessToken))
@@ -825,7 +825,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         var saltBytes = Encoding.UTF8.GetBytes(user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
         var cipherBytes = inputBytes.Concat(saltBytes).ToArray();
 
-        var hashBytes = SHA512.Create().ComputeHash(cipherBytes);
+        var hashBytes = SHA512.HashData(cipherBytes);
         StringBuilder sb = new();
         for (var i = 0; i < hashBytes.Length; i++) _ = sb.Append(hashBytes[i].ToString("X2"));
         var hash = sb.ToString();

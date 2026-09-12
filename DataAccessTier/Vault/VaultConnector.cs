@@ -31,8 +31,9 @@ public class VaultConnector : IVaultConnector
         Timeout = TimeSpan.FromSeconds(VaultConnectorSettings.ConnectionTimeoutInSeconds)
     };
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _credentialsCache =
-        new System.Collections.Concurrent.ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
+    private static readonly TimeSpan _credentialsCacheTtl = TimeSpan.FromMinutes(30);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (Task<ClusterProjectCredentialVaultPart> Task, DateTime ExpiresAtUtc)> _credentialsCache =
+        new System.Collections.Concurrent.ConcurrentDictionary<long, (Task<ClusterProjectCredentialVaultPart> Task, DateTime ExpiresAtUtc)>();
 
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
     private readonly ILogger _logger;
@@ -45,15 +46,35 @@ public class VaultConnector : IVaultConnector
     {
         _logger.LogDebug($"Fetching credentials for ID: {id} from Vault.");
         
-        var vaultTask = _credentialsCache.GetOrAdd(id, async key =>
+        if (_credentialsCache.TryGetValue(id, out var entry))
         {
-            _logger.LogDebug($"Cache miss. Fetching vault data from service for ID: {key}");
-            return await GetClusterAuthenticationCredentialsInternal(key);
-        });
+            if (DateTime.UtcNow < entry.ExpiresAtUtc)
+            {
+                try
+                {
+                    return await entry.Task;
+                }
+                catch
+                {
+                    _credentialsCache.TryRemove(id, out _);
+                    throw;
+                }
+            }
+            else
+            {
+                _credentialsCache.TryRemove(id, out _);
+            }
+        }
+
+        var expiresAt = DateTime.UtcNow.Add(_credentialsCacheTtl);
+        var newTask = GetClusterAuthenticationCredentialsInternal(id);
+        var newEntry = _credentialsCache.AddOrUpdate(id,
+            _ => (newTask, expiresAt),
+            (_, existing) => DateTime.UtcNow < existing.ExpiresAtUtc ? existing : (newTask, expiresAt));
 
         try
         {
-            return await vaultTask;
+            return await newEntry.Task;
         }
         catch (Exception ex)
         {
@@ -103,14 +124,13 @@ public class VaultConnector : IVaultConnector
     {
         var path = $"{_clusterAuthenticationCredentialsPath}/{data.Id}";
         var content = data.AsVaultDataJsonObject();
-        var payload = new StringContent(content, Encoding.UTF8, "application/json");
+        using var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
         _logger.LogDebug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        HttpResponseMessage result = null;
         try
         {
-            result = await _httpClient.PostAsync(path, payload);
+            using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
             RecordVaultTelemetry("SetClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path);
@@ -118,7 +138,7 @@ public class VaultConnector : IVaultConnector
             if (success)
             {
                 _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
-                _credentialsCache[data.Id] = Task.FromResult(data);
+                _credentialsCache[data.Id] = (Task.FromResult(data), DateTime.UtcNow.Add(_credentialsCacheTtl));
                 return true;
             }
 
@@ -144,7 +164,7 @@ public class VaultConnector : IVaultConnector
 
         try
         {
-            var result = await _httpClient.DeleteAsync(path);
+            using var result = await _httpClient.DeleteAsync(path);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
             RecordVaultTelemetry("DeleteClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path);
@@ -288,13 +308,13 @@ public class VaultConnector : IVaultConnector
         secrets[secretKey] = secretValue;
 
         var content = JsonSerializer.Serialize(new { data = secrets });
-        var payload = new StringContent(content, Encoding.UTF8, "application/json");
+        using var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
         _logger.LogDebug($"Updating vault ClusterSecret with ID: {clusterId}");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var result = await _httpClient.PostAsync(path, payload);
+            using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
             RecordVaultTelemetry("SetClusterSecret", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);
@@ -314,7 +334,7 @@ public class VaultConnector : IVaultConnector
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var result = await _httpClient.DeleteAsync(path);
+            using var result = await _httpClient.DeleteAsync(path);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
             RecordVaultTelemetry("DeleteClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);
@@ -379,13 +399,13 @@ public class VaultConnector : IVaultConnector
     {
         var path = $"v1/HEAppE/data/ClusterSecrets/{clusterId}";
         var content = JsonSerializer.Serialize(new { data = secrets });
-        var payload = new StringContent(content, Encoding.UTF8, "application/json");
+        using var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
         _logger.LogDebug($"Updating all vault ClusterSecrets with ID: {clusterId}");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var result = await _httpClient.PostAsync(path, payload);
+            using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
             RecordVaultTelemetry("SetClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);

@@ -4348,14 +4348,21 @@ public class ManagementLogic : IManagementLogic
         }
     }
 
+    private static readonly HttpClient _probeHttpClient = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        ConnectTimeout = TimeSpan.FromSeconds(2)
+    })
+    {
+        Timeout = TimeSpan.FromSeconds(3)
+    };
+
     private static async Task<(bool Success, long ResponseTimeMs, string? Error)> TestHttpEndpointAsync(string url, CancellationToken ct)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(2);
-            var response = await httpClient.GetAsync(url, ct);
+            using var response = await _probeHttpClient.GetAsync(url, ct);
             stopwatch.Stop();
             return (response.IsSuccessStatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode ? null : $"http status: {(int)response.StatusCode}");
         }

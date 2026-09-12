@@ -23,8 +23,9 @@ public sealed class SshTunnelUtils
     {
     }
 
-    private SshClient GetSshClient(object connectorClient)
+    private SshClient? GetSshClient(object? connectorClient)
     {
+        if (connectorClient == null) return null;
         if (connectorClient is SshClient directClient) return directClient;
         if (connectorClient is HEAppE.ConnectionPool.ConnectionInfo poolInfo && poolInfo.Connection is SshClient pooledClient) return pooledClient;
         throw new InvalidCastException("connectorClient is not an SshClient or valid ConnectionInfo");
@@ -32,19 +33,19 @@ public sealed class SshTunnelUtils
 
     public async Task CreateTunnelAsync(object connectorClient, long taskId, string nodeHost, int nodePort)
     {
-        var sshClient = GetSshClient(connectorClient);
+        var sshClient = GetSshClient(connectorClient) ?? throw new ArgumentNullException(nameof(connectorClient));
         TunnelInfo sshTunnelInfo;
+        int localPort;
+        ForwardedPortLocal forwPort;
 
         lock (_lock)
         {
-            var localPort = GetFirstFreePort();
-            var forwPort = new ForwardedPortLocal(TunnelConfiguration.LocalhostName, (uint)localPort, nodeHost, (uint)nodePort);
+            localPort = GetFirstFreePort();
+            forwPort = new ForwardedPortLocal(TunnelConfiguration.LocalhostName, (uint)localPort, nodeHost, (uint)nodePort);
             sshClient.AddForwardedPort(forwPort);
-            forwPort.Exception += (sender, e) => {
-                System.Diagnostics.Trace.TraceError($"[SshTunnelUtils] SSH Port Forwarding Exception on local port {localPort} (Task {taskId}, Node {nodeHost}:{nodePort}): {e.Exception}");
-            };
+            forwPort.Exception += OnForwardedPortException;
             
-            sshTunnelInfo = new TunnelInfo(localPort, nodePort, nodeHost, forwPort);
+            sshTunnelInfo = new TunnelInfo(localPort, nodePort, nodeHost, forwPort, sshClient);
             _usedLocalPorts.Add(localPort);
 
             if (!_jobUsedPorts.ContainsKey(taskId))
@@ -66,13 +67,52 @@ public sealed class SshTunnelUtils
         }
 
         // Move the blocking network call outside the lock and into a Task
-        await Task.Run(() => sshTunnelInfo.ForwardedPort.Start());
+        try
+        {
+            await Task.Run(() => sshTunnelInfo.ForwardedPort.Start());
+        }
+        catch
+        {
+            lock (_lock)
+            {
+                try { sshClient.RemoveForwardedPort(forwPort); } catch { }
+                _usedLocalPorts.Remove(localPort);
+                if (_jobUsedPorts.TryGetValue(taskId, out var allocatedAddressWithPorts))
+                {
+                    if (allocatedAddressWithPorts.TryGetValue(nodeHost, out var list))
+                    {
+                        list.Remove(sshTunnelInfo);
+                        if (list.Count == 0) allocatedAddressWithPorts.Remove(nodeHost);
+                    }
+                    if (allocatedAddressWithPorts.Count == 0) _jobUsedPorts.Remove(taskId);
+                }
+            }
+            try { forwPort.Exception -= OnForwardedPortException; } catch { }
+            try { forwPort.Dispose(); } catch { }
+            throw;
+        }
     }
 
-    public async Task RemoveTunnelAsync(object connectorClient, long taskId)
+    private static void OnForwardedPortException(object? sender, Renci.SshNet.Common.ExceptionEventArgs e)
     {
-        List<TunnelInfo> tunnelsToRemove = null;
-        var sshClient = GetSshClient(connectorClient);
+        if (sender is ForwardedPortLocal p)
+        {
+            System.Diagnostics.Trace.TraceError($"[SshTunnelUtils] SSH Port Forwarding Exception on local port {p.Port} (Target {p.Host}:{p.Port}): {e.Exception}");
+        }
+        else
+        {
+            System.Diagnostics.Trace.TraceError($"[SshTunnelUtils] SSH Port Forwarding Exception: {e.Exception}");
+        }
+    }
+
+    public async Task RemoveTunnelAsync(object? connectorClient, long taskId)
+    {
+        List<TunnelInfo>? tunnelsToRemove = null;
+        SshClient? explicitClient = null;
+        if (connectorClient != null)
+        {
+            try { explicitClient = GetSshClient(connectorClient); } catch { }
+        }
 
         lock (_lock)
         {
@@ -90,11 +130,30 @@ public sealed class SshTunnelUtils
                 try
                 {
                     await Task.Run(() => s.ForwardedPort.Stop());
-                    lock (_lock)
-                    {
-                        sshClient.RemoveForwardedPort(s.ForwardedPort);
-                        _usedLocalPorts.Remove(s.LocalPort);
-                    }
+                }
+                catch { }
+
+                try
+                {
+                    s.ForwardedPort.Exception -= OnForwardedPortException;
+                }
+                catch { }
+
+                try
+                {
+                    var client = explicitClient ?? s.SshClient;
+                    client?.RemoveForwardedPort(s.ForwardedPort);
+                }
+                catch { }
+
+                lock (_lock)
+                {
+                    _usedLocalPorts.Remove(s.LocalPort);
+                }
+
+                try
+                {
+                    s.ForwardedPort.Dispose();
                 }
                 catch { }
             }
