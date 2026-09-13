@@ -98,4 +98,19 @@ public class ClusterCacheTests
         Action actAll = () => HEAppE.HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.InvalidateAll();
         actAll.Should().NotThrow();
     }
+
+    [Fact]
+    public void UserByIdCache_Invalidation_RemovesEntry()
+    {
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var key = "UserById_42";
+        memoryCache.Set(key, "cached_user_instance", TimeSpan.FromSeconds(10));
+
+        memoryCache.TryGetValue(key, out string? cached).Should().BeTrue();
+        cached.Should().Be("cached_user_instance");
+
+        memoryCache.Remove(key);
+        memoryCache.TryGetValue(key, out _).Should().BeFalse();
+    }
 }
+

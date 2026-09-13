@@ -425,15 +425,7 @@ public class ManagementLogic : IManagementLogic
                 // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
                 // Without this, the 10-second UserById cache would return a stale snapshot and the role check
                 // for the brand-new project would fail with a 403 Forbidden.
-                try
-                {
-                    var userCache = LogicFactory.GetService<IMemoryCache>();
-                    userCache?.Remove($"UserById_{userToUpdate.Id}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to evict user from cache");
-                }
+                EvictUserCache(userToUpdate.Id);
                 
                 _logger.LogInformation($"Created project with id {project.Id}.");
                 _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
@@ -3412,6 +3404,7 @@ public class ManagementLogic : IManagementLogic
         adaptorUser.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
 
         var adaptorUserCreated = new AdaptorUserCreated
         {
@@ -3431,6 +3424,7 @@ public class ManagementLogic : IManagementLogic
         adaptorUser.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
 
         _logger.LogInformation($"SetAdaptorUserBlockStatus: User '{username}' block status set to {isBlocked}.");
 
@@ -3453,6 +3447,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Delete(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
         return modelUsername;
     }
 
@@ -3498,6 +3493,7 @@ public class ManagementLogic : IManagementLogic
 
                 _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
                 _unitOfWork.Save();
+                EvictUserCache(adaptorUser.Id);
                 return adaptorUser;
             }
 
@@ -3523,6 +3519,7 @@ public class ManagementLogic : IManagementLogic
         
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
 
         return adaptorUser;
     }
@@ -3547,6 +3544,7 @@ public class ManagementLogic : IManagementLogic
         
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
 
         return adaptorUser;
     }
@@ -3661,6 +3659,7 @@ public class ManagementLogic : IManagementLogic
                 existingAssignment.CreatedAt = DateTime.UtcNow;
                 _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
                 _unitOfWork.Save();
+                EvictUserCache(adaptorUser.Id);
                 return adaptorUser;
             }
 
@@ -3678,6 +3677,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
         return adaptorUser;
     }
 
@@ -3705,6 +3705,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
+        EvictUserCache(adaptorUser.Id);
 
         return adaptorUser;
     }
@@ -4628,15 +4629,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
 
-        try
-        {
-            var userCache = LogicFactory.GetService<IMemoryCache>();
-            userCache?.Remove($"UserById_{adaptorUser.Id}");
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
-        }
+        EvictUserCache(adaptorUser.Id);
 
         return new SystemRoleAssignment
         {
@@ -4679,15 +4672,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.Save();
 
-        try
-        {
-            var userCache = LogicFactory.GetService<IMemoryCache>();
-            userCache?.Remove($"UserById_{adaptorUser.Id}");
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Failed to evict UserById from cache for user {UserId}", adaptorUser.Id);
-        }
+        EvictUserCache(adaptorUser.Id);
 
         return new SystemRoleAssignment
         {
@@ -4723,6 +4708,19 @@ public class ManagementLogic : IManagementLogic
         get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
     }
 #pragma warning restore IDE1006
+
+    private void EvictUserCache(long userId)
+    {
+        try
+        {
+            var userCache = LogicFactory.GetService<IMemoryCache>();
+            userCache?.Remove($"UserById_{userId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to evict UserById from cache for user {UserId}", userId);
+        }
+    }
 
     #endregion
 }

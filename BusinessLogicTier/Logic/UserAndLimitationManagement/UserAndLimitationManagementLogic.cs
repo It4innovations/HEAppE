@@ -101,44 +101,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
-            var cache = LogicFactory.GetService<IMemoryCache>();
-            if (cache != null)
-            {
-                try
-                {
-                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                    if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
-                    {
-                        _logger.LogDebug("Returning cached user for ID {UserId}", _httpContextKeys.Context.AdaptorUserId);
-                        return cachedUser;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to read user from cache");
-                }
-            }
-
-            var user = _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
-
-            if (cache != null && user != null)
-            {
-                try
-                {
-                    string userCacheKey = $"UserById_{_httpContextKeys.Context.AdaptorUserId}";
-                    cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to write user to cache");
-                }
-            }
-            if (user != null && user.IsBlocked)
-            {
-                _logger.LogWarning("User {UserId} is blocked and access was rejected.", user.Id);
-                throw new UnauthorizedAccessException("Unauthorized");
-            }
-            return user;
+            return GetUserById(_httpContextKeys.Context.AdaptorUserId);
         }
 
         return AuthenticateLocalSession(sessionCode);
@@ -246,10 +209,51 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     
     public AdaptorUser GetUserById(long id)
     {
+        var cache = LogicFactory.GetService<IMemoryCache>();
+        if (cache != null)
+        {
+            try
+            {
+                string userCacheKey = $"UserById_{id}";
+                if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
+                {
+                    _logger.LogDebug("Returning cached user for ID {UserId}", id);
+                    if (cachedUser != null && cachedUser.IsBlocked)
+                    {
+                        _logger.LogWarning("User {UserId} is blocked and access was rejected.", cachedUser.Id);
+                        throw new UnauthorizedAccessException("Unauthorized");
+                    }
+                    return cachedUser;
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to read user from cache");
+            }
+        }
+
         var user = _unitOfWork.AdaptorUserRepository.GetById(id);
+
+        if (cache != null && user != null)
+        {
+            try
+            {
+                string userCacheKey = $"UserById_{id}";
+                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to write user to cache");
+            }
+        }
+
         if (user != null && user.IsBlocked)
         {
-            _logger.LogWarning("User {UserId} is blocked and access was rejected.", id);
+            _logger.LogWarning("User {UserId} is blocked and access was rejected.", user.Id);
             throw new UnauthorizedAccessException("Unauthorized");
         }
         return user;

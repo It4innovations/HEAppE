@@ -196,7 +196,7 @@ namespace HEAppE.RestApi.Logging
             {
                 try 
                 {
-                    var json = JsonDocument.Parse(body);
+                    using var json = JsonDocument.Parse(body);
                     if (json.RootElement.TryGetProperty("SessionCode", out var prop))
                         return prop.GetString();
                 }
@@ -235,7 +235,7 @@ namespace HEAppE.RestApi.Logging
                 {
                     try
                     {
-                        var json = JsonDocument.Parse(body);
+                        using var json = JsonDocument.Parse(body);
                         foreach (var key in possibleKeys)
                         {
                             if (json.RootElement.TryGetProperty(key, out var prop))
@@ -286,7 +286,7 @@ namespace HEAppE.RestApi.Logging
                 {
                     try
                     {
-                        var json = JsonDocument.Parse(body);
+                        using var json = JsonDocument.Parse(body);
                         // Look for Username in generic credentials structure
                         if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
                         {
