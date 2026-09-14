@@ -37,6 +37,8 @@ using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using SshCaAPI;
 
 
@@ -68,9 +70,21 @@ public class ManagementController : BaseController<ManagementController>
 
     #region Private Methods
 
-    private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger)
+    private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger, long? projectId = null)
     {
         CacheUtils.InvalidateClusterCache(logger, _cacheProvider);
+        if (projectId.HasValue)
+        {
+            SchedulerFactory.InvalidateForProject(projectId.Value);
+            AdaptorUserProjectClusterUserCache.InvalidateForProject(projectId.Value);
+        }
+        else
+        {
+            SchedulerFactory.InvalidateAll();
+            HEAppE.FileTransferFramework.FileSystemFactory.InvalidateAll();
+            AdaptorUserProjectClusterUserCache.InvalidateAll();
+            ClusterUserCache.InvalidateAll();
+        }
     }
 
     #endregion
@@ -714,7 +728,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var user = _managementService.AssignAdaptorUserToProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(user);
     }
     
@@ -737,7 +751,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var user = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(user);
     }
     
@@ -1018,7 +1032,7 @@ public class ManagementController : BaseController<ManagementController>
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
             model.IsOneToOneMapping ?? false, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.Id);
         return Ok(project);
     }
 
@@ -1040,7 +1054,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.Id);
         _managementService.RemoveProject(model.Id, model.SessionCode);
         return Ok("Project was deleted.");
     }
@@ -1089,7 +1103,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(clusterProject);
     }
 
@@ -1113,7 +1127,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(clusterProject);
     }
 
@@ -1136,7 +1150,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok("Removed assignment of the Project to the Cluster.");
     }
     

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
 
@@ -28,6 +28,16 @@ public static class ClusterUserCache
             lastUserId.AddOrUpdate(cluster.Id, clusterUserId, (key, oldValue) => clusterUserId);
         }
     }
+
+    public static void InvalidateForCluster(long clusterId)
+    {
+        lastUserId.TryRemove(clusterId, out _);
+    }
+
+    public static void InvalidateAll()
+    {
+        lastUserId.Clear();
+    }
 }
 
 public static class AdaptorUserProjectClusterUserCache
@@ -52,5 +62,32 @@ public static class AdaptorUserProjectClusterUserCache
             var key = (adaptorUserId, projectId, clusterId);
             lastUserId.AddOrUpdate(key, clusterUserId, (key, oldValue) => clusterUserId);
         }
+    }
+
+    public static void InvalidateForProject(long projectId)
+    {
+        foreach (var key in lastUserId.Keys)
+        {
+            if (key.Item2 == projectId)
+            {
+                lastUserId.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public static void InvalidateForCluster(long clusterId)
+    {
+        foreach (var key in lastUserId.Keys)
+        {
+            if (key.Item3 == clusterId)
+            {
+                lastUserId.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public static void InvalidateAll()
+    {
+        lastUserId.Clear();
     }
 }

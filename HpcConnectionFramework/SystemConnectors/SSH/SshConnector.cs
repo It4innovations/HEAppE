@@ -401,7 +401,7 @@ public class SshConnector : IPoolableAdapter
             case FileTransferCipherType.RSA3072:
             case FileTransferCipherType.RSA4096:
             {
-                var key = RSA.Create();
+                using var key = RSA.Create();
                 var encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
                 key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
                 var pk = key.ExportRSAPrivateKeyPem();
@@ -411,7 +411,7 @@ public class SshConnector : IPoolableAdapter
             case FileTransferCipherType.nistP256:
             case FileTransferCipherType.nistP521:
             {
-                var key = ECDsa.Create();
+                using var key = ECDsa.Create();
                 var encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
                 key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
                 var pk = key.ExportECPrivateKeyPem();

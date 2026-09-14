@@ -52,6 +52,42 @@ public abstract class SchedulerFactory
         }
     }
 
+    public static void InvalidateForProject(long projectId)
+    {
+        lock (_schedulerFactoryPoolSingletons)
+        {
+            foreach (var factory in _schedulerFactoryPoolSingletons.Values)
+            {
+                factory.InvalidateSchedulersForProject(projectId);
+                factory.InvalidateConnectionPoolsForProject(projectId);
+            }
+        }
+    }
+
+    public static void InvalidateForCluster(string masterNodeName)
+    {
+        lock (_schedulerFactoryPoolSingletons)
+        {
+            foreach (var factory in _schedulerFactoryPoolSingletons.Values)
+            {
+                factory.InvalidateSchedulersForCluster(masterNodeName);
+                factory.InvalidateConnectionPoolsForCluster(masterNodeName);
+            }
+        }
+    }
+
+    public static void InvalidateAll()
+    {
+        lock (_schedulerFactoryPoolSingletons)
+        {
+            foreach (var factory in _schedulerFactoryPoolSingletons.Values)
+            {
+                factory.InvalidateAllSchedulers();
+                factory.InvalidateAllConnectionPools();
+            }
+        }
+    }
+
     #endregion
 
     #region Local Methods
@@ -131,6 +167,49 @@ public abstract class SchedulerFactory
     {
         return CreateDataConvertor(logger);
     }
+
+    public void InvalidateConnectionPoolsForProject(long projectId)
+    {
+        foreach (var key in _schedulerConnectionPoolSingletons.Keys)
+        {
+            if (key.ProjectId == projectId)
+            {
+                if (_schedulerConnectionPoolSingletons.TryRemove(key, out var pool))
+                {
+                    pool?.Dispose();
+                }
+            }
+        }
+    }
+
+    public void InvalidateConnectionPoolsForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerConnectionPoolSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_schedulerConnectionPoolSingletons.TryRemove(key, out var pool))
+                {
+                    pool?.Dispose();
+                }
+            }
+        }
+    }
+
+    public void InvalidateAllConnectionPools()
+    {
+        foreach (var key in _schedulerConnectionPoolSingletons.Keys)
+        {
+            if (_schedulerConnectionPoolSingletons.TryRemove(key, out var pool))
+            {
+                pool?.Dispose();
+            }
+        }
+    }
+
+    public virtual void InvalidateSchedulersForProject(long projectId) { }
+    public virtual void InvalidateSchedulersForCluster(string masterNodeName) { }
+    public virtual void InvalidateAllSchedulers() { }
 
     #endregion
 

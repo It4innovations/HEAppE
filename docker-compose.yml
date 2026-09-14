@@ -115,6 +115,28 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  heappe-init:
+    image: busybox:1.37.0
+    container_name: "${INSTANCE_NAME}_heappe-init"
+    restart: "no"
+    command: >
+      sh -c '
+        mkdir -p /opt/heappe/confs
+        if [ -d /opt/heappe/confs/krb5.conf ]; then
+          rmdir /opt/heappe/confs/krb5.conf 2>/dev/null || rm -rf /opt/heappe/confs/krb5.conf
+        fi
+        if [ ! -e /opt/heappe/confs/krb5.conf ]; then
+          touch /opt/heappe/confs/krb5.conf
+        fi
+      '
+    volumes:
+      - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   heappe:
     image: "${DOCKER_REGISTRY-}heappe"
     container_name: "${INSTANCE_NAME}_heappe"
@@ -124,6 +146,8 @@ services:
       dockerfile: RestApi/Dockerfile
     restart: unless-stopped
     depends_on:
+      heappe-init:
+        condition: service_completed_successfully
       mssql:
         condition: service_healthy
         required: false
@@ -132,7 +156,7 @@ services:
       - app_volume:/app/shared
       - vault-volume:/opt/vault-backup-access:ro
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
-      - "${HOST_KRB5_CONF_PATH:-./docker-compose.yml}:/etc/krb5.conf:ro"
+      - "${HOST_KRB5_CONF_PATH:-./confs/krb5.conf}:/etc/krb5.conf:ro"
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:

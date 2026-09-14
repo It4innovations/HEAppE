@@ -1,4 +1,4 @@
-﻿using Renci.SshNet;
+using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 
@@ -9,4 +9,5 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 /// <param name="RemotePort">Remote port</param>
 /// <param name="NodeHost">Node host address</param>
 /// <param name="ForwardedPort">Forwarded port</param>
-public record TunnelInfo(int? LocalPort, int? RemotePort, string NodeHost, ForwardedPort ForwardedPort);
+/// <param name="SshClient">Underlying SSH client to which the forwarded port was added</param>
+public record TunnelInfo(int? LocalPort, int? RemotePort, string NodeHost, ForwardedPort ForwardedPort, SshClient? SshClient = null);

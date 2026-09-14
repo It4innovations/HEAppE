@@ -18,7 +18,7 @@ using HEAppE.Services.FirecRest;
 
 namespace HEAppE.FileTransferFramework;
 
-public abstract class FileSystemFactory
+public abstract class FileSystemFactory : IDisposable
 {
     #region Constructors
 
@@ -111,6 +111,37 @@ public abstract class FileSystemFactory
             }
             return connection;
         }
+    }
+
+    public void InvalidateConnectionPool(long fileTransferMethodId)
+    {
+        if (_schedulerConnPoolSingletons.TryRemove(fileTransferMethodId, out var pool))
+        {
+            pool?.Dispose();
+        }
+    }
+
+    public void InvalidateAllConnectionPools()
+    {
+        foreach (var key in _schedulerConnPoolSingletons.Keys)
+        {
+            if (_schedulerConnPoolSingletons.TryRemove(key, out var pool))
+            {
+                pool?.Dispose();
+            }
+        }
+    }
+
+    public static void InvalidateAll()
+    {
+        _windowsSharedFactorySingleton?.InvalidateAllConnectionPools();
+        _sftpFactorySingleton?.InvalidateAllConnectionPools();
+        _firecrestFactorySingleton?.InvalidateAllConnectionPools();
+    }
+
+    public void Dispose()
+    {
+        InvalidateAllConnectionPools();
     }
 
     #endregion

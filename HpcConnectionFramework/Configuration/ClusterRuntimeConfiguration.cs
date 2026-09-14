@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
@@ -132,7 +133,27 @@ public sealed class ClusterRuntimeConfiguration
     ///         var path = clusterConfig.GetValue("HPCConnectionFrameworkSettings:ScriptsSettings:ScriptsBasePath");
     ///     </code>
     /// </example>
-    public string GetValue(string key) => _effectiveConfig[key];
+    public string GetValue(string key)
+    {
+        var val = _effectiveConfig[key];
+        if (val is not null) return val;
+
+        if (!key.Contains(':'))
+        {
+            val = _effectiveConfig[$"HPCConnectionFrameworkSettings:ScriptsSettings:{key}"];
+            if (val is not null) return val;
+        }
+
+        val = GlobalConfiguration?[key];
+        if (val is not null) return val;
+
+        if (!key.Contains(':') && GlobalConfiguration is not null)
+        {
+            val = GlobalConfiguration[$"HPCConnectionFrameworkSettings:ScriptsSettings:{key}"];
+        }
+
+        return val;
+    }
 
     /// <summary>
     ///     Binds a configuration section to a new instance of <typeparamref name="T" />
@@ -141,6 +162,10 @@ public sealed class ClusterRuntimeConfiguration
     public T GetSection<T>(string sectionKey) where T : new()
     {
         var instance = new T();
+        if (GlobalConfiguration is not null)
+        {
+            GlobalConfiguration.GetSection(sectionKey).Bind(instance);
+        }
         _effectiveConfig.GetSection(sectionKey).Bind(instance);
         return instance;
     }
@@ -185,15 +210,55 @@ public sealed class ClusterRuntimeConfiguration
 
     #endregion
 
-    #region Factory
+    #region Factory and Caching
+
+    private static readonly ConcurrentDictionary<string, ClusterRuntimeConfiguration> Cache = new(StringComparer.Ordinal);
+    private static readonly ClusterRuntimeConfiguration DefaultInstance = new(new Dictionary<string, string>());
 
     /// <summary>
-    ///     Creates a <see cref="ClusterRuntimeConfiguration" /> for the given cluster's
+    ///     Clears the internal cache of <see cref="ClusterRuntimeConfiguration" /> instances.
+    /// </summary>
+    public static void ResetCache()
+    {
+        Cache.Clear();
+    }
+
+    /// <summary>
+    ///     Creates or retrieves a cached <see cref="ClusterRuntimeConfiguration" /> for the given cluster's
     ///     <c>CustomConfiguration</c>.  Returns a config that uses only global appsettings
     ///     when <paramref name="clusterCustomConfig" /> is <c>null</c> or empty.
     /// </summary>
-    public static ClusterRuntimeConfiguration For(Dictionary<string, string> clusterCustomConfig) =>
-        new(clusterCustomConfig);
+    public static ClusterRuntimeConfiguration For(Dictionary<string, string> clusterCustomConfig)
+    {
+        if (clusterCustomConfig is null || clusterCustomConfig.Count == 0)
+        {
+            return DefaultInstance;
+        }
+
+        var key = ComputeCacheKey(clusterCustomConfig);
+        if (Cache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        if (Cache.Count > 1000)
+        {
+            Cache.Clear();
+        }
+
+        return Cache.GetOrAdd(key, _ => new ClusterRuntimeConfiguration(clusterCustomConfig));
+    }
+
+    private static string ComputeCacheKey(Dictionary<string, string> config)
+    {
+        if (config.Count == 1)
+        {
+            var kvp = config.First();
+            return $"{kvp.Key}={kvp.Value}";
+        }
+
+        return string.Join("\n", config.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase).Select(kv => $"{kv.Key}={kv.Value}"));
+    }
 
     #endregion
 
@@ -214,17 +279,13 @@ public sealed class ClusterRuntimeConfiguration
     }
 
     /// <summary>
-    ///     Builds an <see cref="IConfiguration" /> that stacks the cluster overrides on top of
-    ///     the global configuration.  The cluster dictionary is copied verbatim — keys are
-    ///     expected in the standard colon-separated .NET notation, but short-form keys
+    ///     Builds an <see cref="IConfiguration" /> containing the cluster overrides.
+    ///     Keys are expected in the standard colon-separated .NET notation, but short-form keys
     ///     (without the root section) are also supported for backwards compatibility by
     ///     automatically prefixing them with <c>HPCConnectionFrameworkSettings:ScriptsSettings:</c>.
     /// </summary>
     private static IConfiguration BuildEffectiveConfiguration(IReadOnlyDictionary<string, string> overrides)
     {
-        if (overrides.Count == 0 && GlobalConfiguration is not null)
-            return GlobalConfiguration;
-
         // Expand short-form keys to their full path in the config tree.
         const string scriptsPrefix = "HPCConnectionFrameworkSettings:ScriptsSettings:";
         var expanded = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -246,14 +307,8 @@ public sealed class ClusterRuntimeConfiguration
             }
         }
 
-        var builder = new ConfigurationBuilder();
-        if (GlobalConfiguration is not null)
-        {
-            builder.AddConfiguration(GlobalConfiguration);          // global appsettings (base layer)
-        }
-
-        return builder
-            .Add(new MemoryConfigurationSource              // cluster overrides (top layer)
+        return new ConfigurationBuilder()
+            .Add(new MemoryConfigurationSource
             {
                 InitialData = expanded
             })

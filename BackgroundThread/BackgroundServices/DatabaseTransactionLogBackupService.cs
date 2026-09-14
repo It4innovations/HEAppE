@@ -82,7 +82,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db AND d.recovery_model_desc" +
                 " IN ('FULL', 'BULK_LOGGED') AND EXISTS (SELECT 1 FROM msdb.dbo.backupset b WHERE b.database_name = @db " +
                 "AND b.type = 'D')";
@@ -113,7 +113,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             var backupFileName = $"{_configuration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = @path WITH INIT;";
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();

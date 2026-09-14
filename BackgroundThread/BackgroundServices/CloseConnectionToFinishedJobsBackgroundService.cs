@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,8 +45,6 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
-
-        if (SshCaSettings.UseCertificateAuthorityForAuthentication) return;
 
         while (!stoppingToken.IsCancellationRequested)
         {

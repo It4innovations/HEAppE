@@ -35,12 +35,13 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Configuration;
 using SshCaAPI.Configuration;
+using HEAppE.Utils;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
 public class JobManagementService : IJobManagementService
 {
-    #region Instances
+    #region Fields
 
     private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -49,7 +50,7 @@ public class JobManagementService : IJobManagementService
     private readonly IExpirioService _expirioService;
     private readonly IMemoryCache _cache;
     
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _jobSemaphores = new();
+    private static readonly AsyncKeyedLock<long> _jobLocks = new();
 
     #endregion
 
@@ -544,9 +545,7 @@ public class JobManagementService : IJobManagementService
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode, bool forceDirectQuery = false)
     {
         // Serialize concurrent requests for the same job to avoid N parallel DB/SSH calls
-        var semaphore = _jobSemaphores.GetOrAdd(submittedJobInfoId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync();
-        try
+        using (await _jobLocks.LockAsync(submittedJobInfoId))
         {
             SubmittedJobInfo job;
             AdaptorUser loggedUser;
@@ -582,14 +581,6 @@ public class JobManagementService : IJobManagementService
                 {
                     return await ExecuteLegacyCurrentInfoForJobAsync(unitOfWork, job, loggedUser, isAdmin, isJobOwner, submittedJobInfoId, sessionCode, cacheKey);
                 }
-            }
-        }
-        finally
-        {
-            semaphore.Release();
-            if (semaphore.CurrentCount == 1)
-            {
-                _jobSemaphores.TryRemove(submittedJobInfoId, out _);
             }
         }
     }

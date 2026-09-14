@@ -161,6 +161,18 @@ public class KerberosSftpClient : Renci.SshNet.SftpClient
     public void DisconnectSync() 
     {
         _isConnected = false;
-        _sshClient.Dispose();
+        _sftpClient?.Dispose();
+        _sshClient?.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _isConnected = false;
+            _sftpClient?.Dispose();
+            _sshClient?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
