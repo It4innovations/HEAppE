@@ -17,16 +17,16 @@ internal class SystemRoleAssignmentRepository : GenericRepository<SystemRoleAssi
 
     public SystemRoleAssignment GetByUsernameAndRole(string username, AdaptorUserRoleType role)
     {
-        return _dbSet.FirstOrDefault(x => x.Username == username && x.Role == role);
+        return _dbSet.AsNoTracking().FirstOrDefault(x => x.Username == username && x.Role == role);
     }
 
     public async Task<SystemRoleAssignment> GetByUsernameAndRoleAsync(string username, AdaptorUserRoleType role)
     {
-        return await _dbSet.FirstOrDefaultAsync(x => x.Username == username && x.Role == role);
+        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Username == username && x.Role == role);
     }
 
     public List<SystemRoleAssignment> GetAllByUsername(string username)
     {
-        return _dbSet.Where(x => x.Username == username).ToList();
+        return _dbSet.AsNoTracking().Where(x => x.Username == username).ToList();
     }
 }

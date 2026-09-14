@@ -81,7 +81,6 @@ internal class JobManagementLogic : IJobManagementLogic
     internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                 IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
-        using var serviceScope = ServiceActivator.GetScope();
         _unitOfWork = unitOfWork;
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
         _tasksToAddToSpec = new List<TaskSpecification>();

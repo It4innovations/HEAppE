@@ -24,6 +24,7 @@ using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.Logging;
 using RestSharp;
 using SshCaAPI;
+using HEAppE.Utils;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer;
 
@@ -38,7 +39,14 @@ public class DataTransferLogic : IDataTransferLogic
     private readonly IExpirioService _expirioService;
 
     private static readonly ConcurrentDictionary<long, List<ActiveTunnelState>> _activeTunnels = new();
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _taskLocks = new();
+    private static readonly AsyncKeyedLock<long> _taskLocks = new();
+    private static readonly HttpClient _nodeStreamHttpClient = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+    })
+    {
+        Timeout = Timeout.InfiniteTimeSpan
+    };
 
     public DataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
@@ -60,8 +68,6 @@ public class DataTransferLogic : IDataTransferLogic
         public string NodeIP { get; set; }
     }
 
-    private static SemaphoreSlim GetLockForTask(long taskId) => _taskLocks.GetOrAdd(taskId, _ => new SemaphoreSlim(1, 1));
-
     private int GetUserSpecificLocalPort(long taskId, string nodeIP, int nodePort, long userId)
     {
         if (_activeTunnels.TryGetValue(taskId, out var tunnels))
@@ -82,9 +88,7 @@ public class DataTransferLogic : IDataTransferLogic
         if (taskInfo.State != TaskState.Running)
             throw new UnableToCreateConnectionException("NotRunningTask", taskInfo.Id);
 
-        var taskLock = GetLockForTask(submittedTaskInfoId);
-        await taskLock.WaitAsync();
-        try
+        using (await _taskLocks.LockAsync(submittedTaskInfoId))
         {
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
@@ -153,17 +157,11 @@ public class DataTransferLogic : IDataTransferLogic
                 NodePort = tunnelInfo.RemotePort
             };
         }
-        finally
-        {
-            taskLock.Release();
-        }
     }
 
     public async Task EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser)
     {
-        var taskLock = GetLockForTask(transferMethod.SubmittedTaskId);
-        await taskLock.WaitAsync();
-        try
+        using (await _taskLocks.LockAsync(transferMethod.SubmittedTaskId))
         {
             if (!_activeTunnels.TryGetValue(transferMethod.SubmittedTaskId, out var tunnels))
             {
@@ -195,14 +193,9 @@ public class DataTransferLogic : IDataTransferLogic
             if (!tunnels.Any())
             {
                 _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
-                _taskLocks.TryRemove(transferMethod.SubmittedTaskId, out _);
             }
         
             _logger.LogInformation($"Tunnel on port {transferMethod.Port} for task {transferMethod.SubmittedTaskId} successfully closed by owner {loggedUser.Id}.");
-        }
-        finally
-        {
-            taskLock.Release();
         }
     }
 
@@ -214,7 +207,7 @@ public class DataTransferLogic : IDataTransferLogic
             Encoding = Encoding.UTF8,
             Timeout = TimeSpan.FromSeconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds)
         };
-        var client = new RestClient(options);
+        using var client = new RestClient(options);
         var request = new RestRequest(httpRequest);
         foreach (var h in headers) request.AddHeader(h.Name, h.Value);
 
@@ -240,7 +233,7 @@ public class DataTransferLogic : IDataTransferLogic
             Encoding = Encoding.UTF8,
             Timeout = TimeSpan.FromSeconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds)
         };
-        var client = new RestClient(options);
+        using var client = new RestClient(options);
         var request = new RestRequest(httpRequest, Method.Post);
         foreach (var h in headers) request.AddHeader(h.Name, h.Value);
         
@@ -267,7 +260,6 @@ public class DataTransferLogic : IDataTransferLogic
     {
         int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
-        using var httpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
         var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{localPort}{httpRequest}");
         
         foreach (var h in headers) {
@@ -278,7 +270,7 @@ public class DataTransferLogic : IDataTransferLogic
         }
         if (requestMessage.Content == null) requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, "application/json");
 
-        using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await _nodeStreamHttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var buffer = new byte[8192];
         int bytesRead;
@@ -293,19 +285,13 @@ public class DataTransferLogic : IDataTransferLogic
 
     public async Task CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo)
     {
-        var taskLock = GetLockForTask(taskInfo.Id);
-        await taskLock.WaitAsync();
-        try
+        using (await _taskLocks.LockAsync(taskInfo.Id))
         {
+            var submitterId = taskInfo.Specification.JobSpecification.Submitter?.Id ?? 0;
             var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
-                .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id, _expirioService, _expirioToken, _logger);
+                .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: submitterId, _expirioService, _expirioToken, _logger);
             await scheduler.RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
             _activeTunnels.TryRemove(taskInfo.Id, out _);
-        }
-        finally
-        {
-            taskLock.Release();
-            _taskLocks.TryRemove(taskInfo.Id, out _);
         }
     }
 

@@ -109,7 +109,17 @@ public class KerberosSshClient : Renci.SshNet.SshClient
     public void Disconnect()
     {
         _isConnected = false;
-        _client.Dispose();
+        _client?.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _isConnected = false;
+            _client?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 
     #endregion

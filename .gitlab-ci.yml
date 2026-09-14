@@ -16,18 +16,31 @@ stages:
   - release
   - push
 
+cleanup_stuck_runner:
+  stage: .pre
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "Cleaning up any root-owned build remnants on runner host..."
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+
 release_msg_job:
   stage: prepare_release
   image: alpine:latest
   script:
     - TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md)
-    - TAG_MESSAGE=$(awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md)
-    - TAG_MESSAGE_BASE64=$(echo -n "${TAG_MESSAGE}" | base64 -w 0)
+    - awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md > release_notes.md
+    - rm -f release_variables.env
     - echo "TAG_NAME=${TAG_NAME}" >> release_variables.env
-    - echo "TAG_MESSAGE=${TAG_MESSAGE_BASE64}" >> release_variables.env
   variables:
     GIT_STRATEGY: clone
   artifacts:
+    paths:
+      - release_notes.md
     reports:
       dotenv: release_variables.env  
   tags:
@@ -58,7 +71,7 @@ heappe_build:
     - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_NAME_WITH_VERSION}"
   before_script:
     - docker --version
-    - docker image prune
+    - docker image prune -f
   tags:
     - Docker
     - Centos9
@@ -77,7 +90,7 @@ sshagent_build:
   script:
     - echo "Building Docker SSH-Agent image..."
     - SSHAGENT_IMAGE_NAME_WITH_VERSION="${SSHAGENT_IMAGE_NAME}:${TAG_NAME}"
-    - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_NAME_WITH_VERSION}"  .
+    - docker build --no-cache -f ./SshAgent/Dockerfile -t "${SSHAGENT_IMAGE_NAME_WITH_VERSION}"  .
 
     - echo "Tagging the Docker image..."
     - docker tag "${SSHAGENT_IMAGE_NAME_WITH_VERSION}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
@@ -87,7 +100,7 @@ sshagent_build:
     - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
   before_script:
     - docker --version
-    - docker image prune
+    - docker image prune -f
   tags:
     - Docker
     - Centos9
@@ -122,7 +135,7 @@ test_e2e:
     - docker --version
     - docker compose version
     - echo "Cleaning up runner disk space and workspace before test run..."
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget /workspace/TestResults" || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
     - docker system prune -af --volumes || true
     - df -h
   script:
@@ -131,11 +144,14 @@ test_e2e:
     - docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
     - chmod +x scripts/*.sh
     - ./scripts/wait-for-healthy.sh 120
-    - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci
+    - TEST_EXIT_CODE=0
+    - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci || TEST_EXIT_CODE=$?
+    - rm -rf ../TestResults 2>/dev/null || true
     - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
+    - exit $TEST_EXIT_CODE
   after_script:
     - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
-    - docker run --rm -v "$PWD:/workspace" alpine sh -c "rm -rf /workspace/.nuget && chmod -R 777 /workspace/TestResults" || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace/TestResults 2>/dev/null && chmod -R 777 /workspace/TestResults 2>/dev/null || true"
     - docker system prune -f || true
   coverage: '/Line coverage:\s+(\d+(?:\.\d+)?%)/'
   artifacts:
@@ -199,7 +215,10 @@ release_job:
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - job: release_msg_job
-      artifacts: true                     
+      artifacts: true
+    - job: heappe_build
+    - job: sshagent_build
+    - job: test_e2e
   before_script:
     - mkdir -p ~/bin ~/.local/bin
     - curl --location --output ./release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
@@ -219,7 +238,7 @@ release_job:
     - git status
   release:
     name: '${TAG_NAME}'
-    description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
+    description: './release_notes.md'
     tag_name: '${TAG_NAME}'
   variables:
     GIT_STRATEGY: clone
@@ -236,25 +255,41 @@ push_to_github_job:
   needs:
     - job: release_msg_job
       artifacts: true
+    - job: release_job
   image: alpine:latest
+  before_script:
+    - apk add --no-cache git curl python3 2>/dev/null || true
   script:
      - git config --global user.name "HEAppE Pipeline"
      - git config --global user.email "support.heappe@it4i.cz" 
      - git checkout origin/master
+     - git remote remove github 2>/dev/null || true
      - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/It4innovations/HEAppE.git
      - git push github HEAD:$CI_COMMIT_REF_NAME
      - git push github --tags
-     - echo "${TAG_MESSAGE}"
-     - MODIFICATION_TAG_MESSAGE=$(echo "${TAG_MESSAGE}" | base64 -d | sed '/^[[:space:]]*$/s/^.*$/\\n/' | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-     - echo "${MODIFICATION_TAG_MESSAGE}"
      - |
-        curl -L -X POST -H "Authorization: token $GITHUB_TOKEN" -d '{
-          "tag_name": "'"${TAG_NAME}"'",
-          "name": "'"${TAG_NAME}"'",
-          "body": "'"${MODIFICATION_TAG_MESSAGE}"'",
-          "draft": false,
-          "prerelease": false
-        }' https://api.github.com/repos/It4innovations/HEAppE/releases
+        python3 -c "
+        import json, os
+        tag_name = os.environ.get('TAG_NAME', '')
+        tag_body = ''
+        if os.path.exists('release_notes.md'):
+            with open('release_notes.md', 'r', encoding='utf-8') as f:
+                tag_body = f.read()
+        payload = {
+            'tag_name': tag_name,
+            'name': tag_name,
+            'body': tag_body,
+            'draft': False,
+            'prerelease': False
+        }
+        with open('github_release_payload.json', 'w', encoding='utf-8') as f:
+            json.dump(payload, f)
+        "
+        curl -L -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d @github_release_payload.json \
+          https://api.github.com/repos/It4innovations/HEAppE/releases
   variables:
     GIT_STRATEGY: clone
   tags:

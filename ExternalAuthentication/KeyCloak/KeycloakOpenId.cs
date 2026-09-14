@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -13,7 +13,7 @@ using RestSharp.Authenticators;
 
 namespace HEAppE.ExternalAuthentication.KeyCloak;
 
-public sealed class KeycloakOpenId
+public sealed class KeycloakOpenId : IDisposable
 {
     #region Instances
 
@@ -210,6 +210,11 @@ public sealed class KeycloakOpenId
             if (!ExternalAuthConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId))
                 throw new AuthenticationTypeException("OpenId-NotInAllowedClientIds");
         }
+    }
+
+    public void Dispose()
+    {
+        _basicRestClient?.Dispose();
     }
 
     #endregion

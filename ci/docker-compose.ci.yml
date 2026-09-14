@@ -110,7 +110,6 @@ services:
       dockerfile: ci/docker/testrunner/Dockerfile
     container_name: heappe_testrunner_ci
     volumes:
-      - ../:/workspace
       - shared_keys_vol:/shared_keys
     environment:
       CI: "true"

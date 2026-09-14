@@ -56,10 +56,9 @@ namespace HEAppE.ConnectionPool
         private int _currentTotalPhysicalConnectionsCount;
         
         private readonly ConcurrentDictionary<(long, long?), SharedUserContext> _userContexts;
-        private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
-            = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
         private readonly int _connectionRetryAttempts = 3;
         private readonly int _connectionTimeoutMs = 30000;
+        private volatile bool _disposed;
         
         /// <summary>
         /// Maximum time (ms) to wait for a connection slot before throwing.
@@ -122,6 +121,9 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(ConnectionPool), "Cannot acquire connection from a disposed ConnectionPool.");
+
             _logger.LogDebug($"[User:{credentials.Username} (ID:{credentials.Id})] [Target:{GetProtocolName()}://{TargetNodeStr}] Requesting connection.");
             var poolKey = (credentials.Id, credentials.SessionUserId);
             var userContext = _userContexts.GetOrAdd(poolKey, key => {
@@ -358,8 +360,11 @@ namespace HEAppE.ConnectionPool
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            if (_disposed) return;
+
             _ = Task.Run(async () =>
             {
+                if (_disposed) return;
                 _logger.LogDebug($"Cleanup cycle started for target {GetProtocolName()}://{TargetNodeStr}. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
                 int closedCount = 0;
                 
@@ -367,9 +372,11 @@ namespace HEAppE.ConnectionPool
                 {
                     foreach (var userEntry in _userContexts)
                     {
+                        if (_disposed) return;
                         var userContext = userEntry.Value;
                         foreach (var slot in userContext.Slots)
                         {
+                            if (_disposed) return;
                             ConnectionInfo connToRemove = null;
                             await slot.SlotSemaphore.WaitAsync();
                             try
@@ -406,13 +413,65 @@ namespace HEAppE.ConnectionPool
                                 closedCount++;
                             }
                         }
+
+                        // Check if all slots are empty and idle, prune userContext from dictionary
+                        bool allEmpty = true;
+                        foreach (var slot in userContext.Slots)
+                        {
+                            if (slot.ConnectionInfo != null || slot.ReferenceCount > 0)
+                            {
+                                allEmpty = false;
+                                break;
+                            }
+                        }
+
+                        if (allEmpty)
+                        {
+                            int acquiredSlots = 0;
+                            try
+                            {
+                                for (int i = 0; i < userContext.Slots.Length; i++)
+                                {
+                                    if (userContext.Slots[i].SlotSemaphore.Wait(0))
+                                    {
+                                        acquiredSlots++;
+                                        if (userContext.Slots[i].ConnectionInfo != null || userContext.Slots[i].ReferenceCount > 0)
+                                        {
+                                            allEmpty = false;
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        allEmpty = false;
+                                        break;
+                                    }
+                                }
+
+                                if (allEmpty)
+                                {
+                                    if (((System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<(long, long?), SharedUserContext>>)_userContexts).Remove(
+                                        new System.Collections.Generic.KeyValuePair<(long, long?), SharedUserContext>(userEntry.Key, userContext)))
+                                    {
+                                        _logger.LogDebug($"[User:ID:{userEntry.Key.Item1}] [SessionUser:{userEntry.Key.Item2}] [Target:{GetProtocolName()}://{TargetNodeStr}] Removed idle empty SharedUserContext from pool.");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                for (int i = 0; i < acquiredSlots; i++)
+                                {
+                                    userContext.Slots[i].SlotSemaphore.Release();
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception ex) { _logger.LogError(ex, $"Pool cleanup error for target {GetProtocolName()}://{TargetNodeStr}"); }
                 finally
                 {
                     if (closedCount > 0) _logger.LogDebug($"Cleanup finished for {GetProtocolName()}://{TargetNodeStr}. Closed {closedCount} connections.");
-                    if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
+                    if (!_disposed && poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > _minSize)
                     {
                         poolCleanTimer.Start();
                     }
@@ -429,22 +488,15 @@ namespace HEAppE.ConnectionPool
             if (cred.IsVaultDataLoaded) return;
             
             _logger.LogDebug($"[User:{cred.Username} (ID:{cred.Id})] Loading vault data...");
-            var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
-            {
-                _logger.LogDebug($"[User:ID:{id}] Fetching vault data from service (Shared Task).");
-                var connector = new VaultConnector(_logger);
-                return await connector.GetClusterAuthenticationCredentials(id);
-            });
-            
+            var connector = new VaultConnector(_logger);
             try 
             {
-                var vaultData = await vaultTask;
+                var vaultData = await connector.GetClusterAuthenticationCredentials(cred.Id);
                 cred.ImportVaultData(vaultData);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"[User:{cred.Username} (ID:{cred.Id})] Failed to load vault data");
-                _vaultCache.TryRemove(cred.Id, out _);
                 throw;
             }
         }
@@ -461,6 +513,17 @@ namespace HEAppE.ConnectionPool
             }
             finally
             {
+                if (connection.Connection is IDisposable disposable)
+                {
+                    try
+                    {
+                        disposable.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Error while disposing connection for user {connection.AuthCredentials.Username} (ID:{connection.AuthCredentials.Id}) [Target:{GetProtocolName(connection.Connection)}://{TargetNodeStr}]");
+                    }
+                }
                 Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
                 context.UserSemaphore.Release();
                 _logger.LogDebug($"[User:{connection.AuthCredentials.Username} (ID:{connection.AuthCredentials.Id})] [Target:{GetProtocolName(connection.Connection)}://{TargetNodeStr}] Physical connection removed. Semaphore released.");
@@ -594,6 +657,55 @@ namespace HEAppE.ConnectionPool
             }
 
             return connection;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            try
+            {
+                if (poolCleanTimer != null)
+                {
+                    poolCleanTimer.Elapsed -= poolCleanTimer_Elapsed;
+                    poolCleanTimer.Stop();
+                    poolCleanTimer.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, $"[Target:{GetProtocolName()}://{TargetNodeStr}] Error disposing poolCleanTimer");
+            }
+
+            foreach (var userEntry in _userContexts)
+            {
+                var userContext = userEntry.Value;
+                foreach (var slot in userContext.Slots)
+                {
+                    try
+                    {
+                        slot.SlotSemaphore?.Wait(100);
+                        try
+                        {
+                            if (slot.ConnectionInfo?.Connection is IDisposable disposable)
+                            {
+                                disposable.Dispose();
+                            }
+                            slot.ConnectionInfo = null;
+                        }
+                        finally
+                        {
+                            slot.SlotSemaphore?.Release();
+                            slot.SlotSemaphore?.Dispose();
+                        }
+                    }
+                    catch { /* ignore */ }
+                }
+                try { userContext.UserSemaphore?.Dispose(); } catch { }
+                try { userContext.ActiveSessionsSemaphore?.Dispose(); } catch { }
+            }
+            _userContexts.Clear();
         }
     }
 }

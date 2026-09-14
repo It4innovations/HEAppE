@@ -69,10 +69,10 @@ internal class ExternalServiceHealthMonitoringBackgroundService : BackgroundServ
                             _expirioService, _logger);
 
                     // Perform all service probes
-                    var report = await managementLogic.GetExternalServicesReport(null, null);
+                    var liveStatuses = await managementLogic.GetExternalServicesLiveStatus();
 
                     // Persist each probe result as a telemetry log
-                    foreach (var status in report.LiveStatus)
+                    foreach (var status in liveStatuses)
                     {
                         var log = new ExternalServiceHealthLog
                         {

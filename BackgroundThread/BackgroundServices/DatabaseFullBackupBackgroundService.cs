@@ -157,7 +157,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             await conn.OpenAsync();
             _logger.LogDebug($"Opened database connection successfully. Database: '{conn.Database}'");
 
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db";
             cmd.Parameters.AddWithValue("@db", conn.Database);
 
@@ -192,7 +192,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             string backupFileName = $"{_configuration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
             string backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = @path WITH INIT;";
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
@@ -265,7 +265,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                     await loggingConn.OpenAsync();
 
                     var dbName = loggingConn.Database;
-                    var cmdBuilder = new SqlCommandBuilder();
+                    using var cmdBuilder = new SqlCommandBuilder();
                     var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
 
                     bool tableExists;

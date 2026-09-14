@@ -38,12 +38,12 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler instances mapped by cluster and project details
     /// </summary>
-    private readonly Dictionary<(string, long projectId, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string uniqueKey, long projectId, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Scheduler instances mapped by cluster and project details
     /// </summary>
-    private readonly Dictionary<(string, long projectId, long?), FirecRestSchedulerAdapter> _schedulerAdapters = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string uniqueKey, long projectId, long? AdaptorUserId), FirecRestSchedulerAdapter> _schedulerAdapters = new();
 
     /// <summary>
     ///     Data convertor singleton for translating between HEAppE and FirecRest formats
@@ -153,6 +153,36 @@ internal class FirecRestSchedulerFactory : SchedulerFactory
         schedulerAdapter.CustomConfiguration = cluster.CustomConfiguration;
 
         return _schedulerSingletons[uniqueIdentifier];
+    }
+
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (key.projectId == projectId)
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+                _schedulerAdapters.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (key.uniqueKey.Contains(masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+                _schedulerAdapters.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _schedulerSingletons.Clear();
+        _schedulerAdapters.Clear();
     }
 
     /// <summary>

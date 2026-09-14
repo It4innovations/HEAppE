@@ -46,7 +46,7 @@ public static class KerberosConfigHelper
         bool needsBootstrap = false;
         try
         {
-            if (!File.Exists(DestPath))
+            if (!File.Exists(DestPath) || Directory.Exists(DestPath))
             {
                 needsBootstrap = true;
             }
@@ -93,6 +93,11 @@ public static class KerberosConfigHelper
                     if (dir != null && !Directory.Exists(dir))
                     {
                         Directory.CreateDirectory(dir);
+                    }
+
+                    if (Directory.Exists(DestPath))
+                    {
+                        try { Directory.Delete(DestPath, recursive: true); } catch { }
                     }
 
                     string existingContent = "";

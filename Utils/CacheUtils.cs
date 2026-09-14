@@ -7,6 +7,12 @@ namespace HEAppE.Utils;
 
 public static class CacheUtils
 {
+    // Atomic cache version (epoch) for cluster and command template cache entries.
+    // Incrementing this version instantly and cleanly invalidates cached items without wiping the entire memory cache.
+    private static long _clusterCacheVersion = 1;
+
+    public static long ClusterCacheVersion => Volatile.Read(ref _clusterCacheVersion);
+
     // Global token for general invalidation
     private static CancellationTokenSource _globalResetToken = new();
 
@@ -30,18 +36,13 @@ public static class CacheUtils
     }
 
     /// <summary>
-    /// Invalidates cluster & command template cache entries via cluster reset token and memory cache clearing.
+    /// Invalidates cluster & command template cache entries by incrementing the cache epoch version.
+    /// Existing cache entries for the old version become unreachable and expire naturally.
     /// </summary>
     public static void InvalidateClusterCache(ILogger logger, IMemoryCache cache = null)
     {
-        logger.LogDebug("Invalidating Cluster and CommandTemplate cache entries via cluster reset token.");
-        if (cache is MemoryCache memCache)
-        {
-            memCache.Clear();
-        }
-        var oldTokenSource = Interlocked.Exchange(ref _clusterInfoResetToken, new CancellationTokenSource());
-        oldTokenSource.Cancel();
-        oldTokenSource.Dispose();
+        var newVersion = Interlocked.Increment(ref _clusterCacheVersion);
+        logger.LogDebug("Cluster and CommandTemplate cache invalidated via epoch increment. New cache version: {Version}", newVersion);
     }
 
     /// <summary>
@@ -51,22 +52,34 @@ public static class CacheUtils
     {
         logger.LogDebug("Invalidating User permissions and project assignment cache entries.");
         var oldTokenSource = Interlocked.Exchange(ref _userPermissionsResetToken, new CancellationTokenSource());
-        oldTokenSource.Cancel();
-        oldTokenSource.Dispose();
+        try
+        {
+            oldTokenSource.Cancel();
+        }
+        finally
+        {
+            oldTokenSource.Dispose();
+        }
     }
 
     /// <summary>
-    /// Invalidates all cache entries by cancelling all reset tokens.
+    /// Invalidates all cache entries by incrementing cache versions and cancelling reset tokens.
     /// </summary>
     public static void InvalidateAllCache(ILogger logger)
     {
-        logger.LogDebug("Invalidating ALL cache entries via reset tokens.");
+        logger.LogDebug("Invalidating ALL cache entries.");
         InvalidateClusterCache(logger);
         InvalidateUserCache(logger);
 
         var oldTokenSource = Interlocked.Exchange(ref _globalResetToken, new CancellationTokenSource());
-        oldTokenSource.Cancel();
-        oldTokenSource.Dispose();
+        try
+        {
+            oldTokenSource.Cancel();
+        }
+        finally
+        {
+            oldTokenSource.Dispose();
+        }
     }
 
     /// <summary>
@@ -79,17 +92,21 @@ public static class CacheUtils
 
     /// <summary>
     /// Adds a cluster-scoped invalidation token to the cache entry.
+    /// Obsolete: use CacheUtils.ClusterCacheVersion in cache keys instead to avoid CancellationTokenRegistration leaks.
     /// </summary>
+    [System.Obsolete("Use CacheUtils.ClusterCacheVersion in cache keys instead of cancellation change tokens.")]
     public static void AddClusterInvalidation(ICacheEntry entry)
     {
-        entry.AddExpirationToken(new CancellationChangeToken(_clusterInfoResetToken.Token));
+        // No-op to prevent CancellationTokenSource CallbackNode memory leak
     }
 
     /// <summary>
     /// Adds a cluster-scoped invalidation token to the cache entry options.
+    /// Obsolete: use CacheUtils.ClusterCacheVersion in cache keys instead to avoid CancellationTokenRegistration leaks.
     /// </summary>
+    [System.Obsolete("Use CacheUtils.ClusterCacheVersion in cache keys instead of cancellation change tokens.")]
     public static void AddClusterInvalidation(MemoryCacheEntryOptions options)
     {
-        options.AddExpirationToken(new CancellationChangeToken(_clusterInfoResetToken.Token));
+        // No-op to prevent CancellationTokenSource CallbackNode memory leak
     }
 }

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.1
+
+### Fixed
+- **Critical Memory Leak & Resource Retention Fixes:**
+  - Fixed unbounded Gen 2 heap growth in `ClusterRuntimeConfiguration` caused by static reload-token subscriptions; added instance caching based on configuration fingerprints.
+  - Eliminated high-frequency database query spikes and entity graph allocations during project imports by introducing a short-lived cache for `GetUserById` with immediate eviction on user, role, and project changes.
+  - Disposed `JsonDocument` buffers in request logging middleware and reduced `ListAvailableClusters` cache TTL from 150m to 5m to prevent accumulation of stale cluster versions.
+  - Resolved socket exhaustion and unmanaged handle leaks by hardening SSH tunnel, connection pool, and HTTP client disposal lifecycles.
+  - Added `AsyncKeyedLock` to protect against concurrent cache stampedes during cluster and user resolution.
+
 ## V6.5.0
 
 ### Added
