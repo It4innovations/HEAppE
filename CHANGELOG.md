@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.2
+
+### Fixed
+- **Job Submission Script Resolution & 1:1 Mapping Fixes:**
+  - Fixed an issue where `ClusterRuntimeConfiguration` failed to copy nested `CommandScriptsPathSettings` and `LinuxLocalCommandScriptPathSettings` when cloning `ScriptsConfiguration`, causing `ExecuteCmdScriptName` to resolve to an empty string and resulting in `bash: .../.key_scripts/: Is a directory` (exit code 126) on SSH job submission.
+  - Added sensible default script names in `CommandScriptPathConfiguration` (`run_command.sh`, `add_key.sh`, `remove_key.sh`, `create_job_directory.sh`, `copy_data_from_temp.sh`, `copy_data_to_temp.sh`) and `LinuxLocalCommandScriptPathConfiguration`.
+  - Added deep copying via `ScriptsConfiguration.Clone()` to safely preserve nested script settings across cluster runtime configuration instances.
+  - Added defensive fallback to `"run_command.sh"` in `ClusterRuntimeConfiguration.GetExecuteCmdScriptPath` when the configured script name is null or whitespace.
+  - Fixed `NoOneToOneCredentials` exception during `SubmitJob` for projects with 1:1 user mapping (`IsOneToOneMapping = true`) by including `Project.ClusterProjects.ClusterProjectCredentials` in `SubmittedJobInfoRepository.GetByIdForSubmitAsync`.
+
 ## V6.5.1
 
 ### Fixed

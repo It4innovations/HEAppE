@@ -137,4 +137,56 @@ public sealed class ScriptsConfiguration
     public bool SyncScriptsViaSftp { get; set; } = false;
 
     #endregion
+
+    #region Methods
+
+    /// <summary>
+    ///     Creates a deep copy of the configuration, including nested command script settings.
+    /// </summary>
+    public ScriptsConfiguration Clone()
+    {
+        var clone = new ScriptsConfiguration
+        {
+            ClusterScriptsRepository = ClusterScriptsRepository,
+            ClusterScriptsRepositoryBranch = ClusterScriptsRepositoryBranch,
+            KeyScriptsDirectoryInRepository = KeyScriptsDirectoryInRepository,
+            InstanceIdentifierPath = InstanceIdentifierPath,
+            SubExecutionsPath = SubExecutionsPath,
+            JobLogArchiveSubPath = JobLogArchiveSubPath,
+            SubScriptsPath = SubScriptsPath,
+            ScriptsBasePath = ScriptsBasePath,
+            EventualConsistencyRetryCount = EventualConsistencyRetryCount,
+            EventualConsistencyRetryDelayMs = EventualConsistencyRetryDelayMs,
+            EnableCallback = EnableCallback,
+            EnableGracefulTimeout = EnableGracefulTimeout,
+            GracefulTimeoutSeconds = GracefulTimeoutSeconds,
+            CallbackUrl = CallbackUrl,
+            SshCommandPrefix = SshCommandPrefix,
+            SyncScriptsViaSftp = SyncScriptsViaSftp
+        };
+
+        if (CommandScriptsPathSettings != null)
+        {
+            clone.CommandScriptsPathSettings.AddFiletransferKeyCmdScriptName = CommandScriptsPathSettings.AddFiletransferKeyCmdScriptName;
+            clone.CommandScriptsPathSettings.RemoveFiletransferKeyCmdScriptName = CommandScriptsPathSettings.RemoveFiletransferKeyCmdScriptName;
+            clone.CommandScriptsPathSettings.CreateJobDirectoryCmdScriptName = CommandScriptsPathSettings.CreateJobDirectoryCmdScriptName;
+            clone.CommandScriptsPathSettings.ExecuteCmdScriptName = CommandScriptsPathSettings.ExecuteCmdScriptName;
+            clone.CommandScriptsPathSettings.CopyDataFromTempCmdScriptName = CommandScriptsPathSettings.CopyDataFromTempCmdScriptName;
+            clone.CommandScriptsPathSettings.CopyDataToTempCmdScriptName = CommandScriptsPathSettings.CopyDataToTempCmdScriptName;
+        }
+
+        if (LinuxLocalCommandScriptPathSettings != null)
+        {
+            clone.LinuxLocalCommandScriptPathSettings.ScriptsBasePath = LinuxLocalCommandScriptPathSettings.ScriptsBasePath;
+            clone.LinuxLocalCommandScriptPathSettings.PrepareJobDirCmdScriptName = LinuxLocalCommandScriptPathSettings.PrepareJobDirCmdScriptName;
+            clone.LinuxLocalCommandScriptPathSettings.RunLocalCmdScriptName = LinuxLocalCommandScriptPathSettings.RunLocalCmdScriptName;
+            clone.LinuxLocalCommandScriptPathSettings.GetJobInfoCmdScriptName = LinuxLocalCommandScriptPathSettings.GetJobInfoCmdScriptName;
+            clone.LinuxLocalCommandScriptPathSettings.CountJobsCmdScriptName = LinuxLocalCommandScriptPathSettings.CountJobsCmdScriptName;
+            clone.LinuxLocalCommandScriptPathSettings.CancelJobCmdScriptName = LinuxLocalCommandScriptPathSettings.CancelJobCmdScriptName;
+        }
+
+        return clone;
+    }
+
+    #endregion
 }

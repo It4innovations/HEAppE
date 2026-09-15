@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
 
 /// <summary>
 ///     Cluster scripts used in LINUX local
@@ -28,27 +28,27 @@ public sealed class LinuxLocalCommandScriptPathConfiguration
     /// <summary>
     ///     Path to Prepare LocalHPC job directory
     /// </summary>
-    public string PrepareJobDirCmdScriptName { get; set; }
+    public string PrepareJobDirCmdScriptName { get; set; } = "prepare_job_dir.sh";
 
     /// <summary>
     ///     Run local job execution simulation
     /// </summary>
-    public string RunLocalCmdScriptName { get; set; }
+    public string RunLocalCmdScriptName { get; set; } = "run_local.sh";
 
     /// <summary>
     ///     Path to execute job info get cmd
     /// </summary>
-    public string GetJobInfoCmdScriptName { get; set; }
+    public string GetJobInfoCmdScriptName { get; set; } = "get_job_info.sh";
 
     /// <summary>
     ///     Path to execute count jobs
     /// </summary>
-    public string CountJobsCmdScriptName { get; set; }
+    public string CountJobsCmdScriptName { get; set; } = "count_jobs.sh";
 
     /// <summary>
     ///     Path to execute cancel simulated job
     /// </summary>
-    public string CancelJobCmdScriptName { get; set; }
+    public string CancelJobCmdScriptName { get; set; } = "cancel_job.sh";
 
     #endregion
 }

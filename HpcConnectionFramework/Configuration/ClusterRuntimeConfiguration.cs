@@ -74,25 +74,7 @@ public sealed class ClusterRuntimeConfiguration
             if (_resolvedScripts is not null) return _resolvedScripts;
 
             // Start from a clone of the global defaults so unchanged values are preserved.
-            _resolvedScripts = new ScriptsConfiguration
-            {
-                ClusterScriptsRepository    = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository,
-                ClusterScriptsRepositoryBranch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch,
-                KeyScriptsDirectoryInRepository = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository,
-                InstanceIdentifierPath      = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
-                SubExecutionsPath           = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
-                JobLogArchiveSubPath        = HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath,
-                SubScriptsPath              = HPCConnectionFrameworkConfiguration.ScriptsSettings.SubScriptsPath,
-                ScriptsBasePath             = HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath,
-                EnableCallback              = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableCallback,
-                EnableGracefulTimeout       = HPCConnectionFrameworkConfiguration.ScriptsSettings.EnableGracefulTimeout,
-                GracefulTimeoutSeconds      = HPCConnectionFrameworkConfiguration.ScriptsSettings.GracefulTimeoutSeconds,
-                CallbackUrl                 = HPCConnectionFrameworkConfiguration.ScriptsSettings.CallbackUrl,
-                EventualConsistencyRetryCount = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryCount,
-                EventualConsistencyRetryDelayMs = HPCConnectionFrameworkConfiguration.ScriptsSettings.EventualConsistencyRetryDelayMs,
-                SshCommandPrefix            = HPCConnectionFrameworkConfiguration.ScriptsSettings.SshCommandPrefix,
-                SyncScriptsViaSftp          = HPCConnectionFrameworkConfiguration.ScriptsSettings.SyncScriptsViaSftp,
-            };
+            _resolvedScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.Clone();
 
             // Bind override section on top — only keys present in overrides will overwrite.
             _effectiveConfig
@@ -205,8 +187,15 @@ public sealed class ClusterRuntimeConfiguration
     ///         placeholders in <c>ScriptsBasePath</c> are expanded.
     ///     </para>
     /// </summary>
-    public string GetExecuteCmdScriptPath(string projectAccountingString, string username = null) =>
-        $"{ExpandUser(ScriptsBasePath, username)}/.{projectAccountingString}/{InstanceIdentifierPath}/.key_scripts/{CommandScriptsPathSettings.ExecuteCmdScriptName}";
+    public string GetExecuteCmdScriptPath(string projectAccountingString, string username = null)
+    {
+        var scriptName = CommandScriptsPathSettings.ExecuteCmdScriptName;
+        if (string.IsNullOrWhiteSpace(scriptName))
+        {
+            scriptName = "run_command.sh";
+        }
+        return $"{ExpandUser(ScriptsBasePath, username)}/.{projectAccountingString}/{InstanceIdentifierPath}/.key_scripts/{scriptName}";
+    }
 
     #endregion
 
