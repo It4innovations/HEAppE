@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "HEAppE Web API",
-    "version": "v6.5.1"
+    "version": "v6.5.2"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {

@@ -159,4 +159,46 @@ public class ClusterRuntimeConfigurationTests
         Assert.Equal("GlobalVal", config.GetValue("SomeGlobalSetting"));
         Assert.Equal("ClusterVal", config.GetValue("OverriddenSetting"));
     }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_CommandScriptsPathSettings_PreservesExecuteCmdScriptNameAndPath()
+    {
+        var config = ClusterRuntimeConfiguration.For(new Dictionary<string, string>());
+
+        Assert.Equal("run_command.sh", config.CommandScriptsPathSettings.ExecuteCmdScriptName);
+        Assert.Equal("add_key.sh", config.CommandScriptsPathSettings.AddFiletransferKeyCmdScriptName);
+        Assert.Equal("create_job_directory.sh", config.CommandScriptsPathSettings.CreateJobDirectoryCmdScriptName);
+
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84", "testuser");
+        Assert.EndsWith("/.eu-26-84/Identifier/.key_scripts/run_command.sh", executePath);
+        Assert.False(executePath.EndsWith("/.key_scripts/"));
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_GetExecuteCmdScriptPath_WhenScriptNameWhitespace_FallsBackToRunCommandSh()
+    {
+        var customConfig = new Dictionary<string, string>
+        {
+            { "HPCConnectionFrameworkSettings:ScriptsSettings:CommandScriptsPathSettings:ExecuteCmdScriptName", "   " }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84");
+
+        Assert.EndsWith("/.key_scripts/run_command.sh", executePath);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_CanOverrideCommandScriptName()
+    {
+        var customConfig = new Dictionary<string, string>
+        {
+            { "HPCConnectionFrameworkSettings:ScriptsSettings:CommandScriptsPathSettings:ExecuteCmdScriptName", "custom_run.sh" }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84");
+
+        Assert.EndsWith("/.key_scripts/custom_run.sh", executePath);
+    }
 }
