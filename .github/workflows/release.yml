@@ -190,9 +190,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine Push Mode
-        id: flags
+      - name: Determine Release Metadata
+        id: meta
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "push=false" >> $GITHUB_OUTPUT
             echo "==> Dry run mode active: Container images will be built and verified without pushing to registry."
@@ -205,19 +207,9 @@ jobs:
         with:
           context: .
           file: ./RestApi/Dockerfile
-          push: ${{ steps.flags.outputs.push }}
+          push: ${{ steps.meta.outputs.push }}
           tags: |
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:latest
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.tag_name }}
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.version }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:latest
-
-      - name: Build & Publish SSH Agent Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./SshAgent/Dockerfile
-          push: ${{ steps.flags.outputs.push }}
-          tags: |
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:${{ needs.prepare-release.outputs.tag_name }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:${{ needs.prepare-release.outputs.version }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:latest
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.version }}-${{ steps.meta.outputs.short_sha }}

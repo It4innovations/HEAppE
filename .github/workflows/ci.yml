@@ -137,11 +137,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine Image Owner
+      - name: Determine Image Metadata
         id: meta
         run: |
           IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          VERSION=$(awk '/^## /{sub(/^## [Vv]?/, ""); print; exit}' CHANGELOG.md | tr -d ' \r\n')
+          if [ -z "$VERSION" ]; then
+            VERSION="dev"
+          fi
+          
           echo "image_owner=${IMAGE_OWNER}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Build & Publish HEAppE Development Image
         uses: docker/build-push-action@v6
@@ -151,14 +161,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:dev-latest
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:dev-${{ github.sha }}
-
-      - name: Build & Publish SSH Agent Development Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./SshAgent/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/sshagent:dev-latest
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/sshagent:dev-${{ github.sha }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.version }}-dev
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
