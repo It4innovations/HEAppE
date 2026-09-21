@@ -1,0 +1,223 @@
+name: HEAppE Production Release & Container Publish
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry Run mode (verify build and release notes without creating GitHub release or pushing Docker images)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prepare-release:
+    name: Parse Changelog & Extract Release Notes
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.changelog.outputs.tag_name }}
+      version: ${{ steps.changelog.outputs.version }}
+      image_owner: ${{ steps.changelog.outputs.image_owner }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Parse CHANGELOG.md
+        id: changelog
+        run: |
+          # Extract first header version (e.g. ## V6.5.2 -> V6.5.2)
+          TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md | tr -d ' \r\n')
+          if [ -z "$TAG_NAME" ]; then
+            echo "ERROR: Could not parse release tag from CHANGELOG.md!"
+            exit 1
+          fi
+          
+          # Pure semver without V prefix (e.g. 6.5.2)
+          VERSION=$(echo "$TAG_NAME" | sed -E 's/^[Vv]//')
+          
+          # Extract top changelog section for release body
+          python3 -c "
+          import re
+          with open('CHANGELOG.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+          # Match from the first ## header to the second ## header or end of file
+          m = re.search(r'##\s+[^\n]+\n(.*?)(?=\n##\s+|\Z)', content, re.DOTALL)
+          if m:
+              body = m.group(1).strip()
+          else:
+              body = 'HEAppE Middleware Release ' + '$TAG_NAME'
+          with open('release_notes.md', 'w', encoding='utf-8') as out:
+              out.write(body + '\n')
+          "
+          
+          # Normalize repository owner to lowercase for GHCR naming compliance
+          IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "image_owner=${IMAGE_OWNER}" >> $GITHUB_OUTPUT
+          
+          echo "### Release Preparation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Tag:** \`${TAG_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Semantic Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **GHCR Namespace:** \`ghcr.io/${IMAGE_OWNER}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** \`${{ inputs.dry_run || 'false' }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Release Notes Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release_notes.md
+          retention-days: 1
+
+  test-suite:
+    name: Execute Full E2E Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Multi-Container Test Infrastructure
+        run: |
+          cd ci
+          docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
+
+      - name: Wait for Services to become Healthy
+        run: |
+          cd ci
+          chmod +x scripts/wait-for-healthy.sh
+          ./scripts/wait-for-healthy.sh 120
+
+      - name: Restore NuGet Packages
+        run: |
+          dotnet restore "HEAppE Core.sln"
+
+      - name: Build HEAppE Solution
+        run: |
+          dotnet build "HEAppE Core.sln" -c Release -p:CI=true --no-restore
+
+      - name: Execute Test Suites with Code Coverage
+        id: test
+        run: |
+          dotnet test "HEAppE Core.sln" \
+            -c Release \
+            --no-build \
+            --collect:"XPlat Code Coverage" \
+            --settings ci/coverage.runsettings \
+            --logger "trx;LogFileName=test_results.trx" \
+            --logger "GitHubActions" \
+            --results-directory ./TestResults
+
+      - name: Teardown Docker Infrastructure
+        if: always()
+        run: |
+          cd ci
+          docker compose -f docker-compose.ci.yml down -v
+
+  create-github-release:
+    name: Create GitHub Release & Git Tag
+    needs: [prepare-release, test-suite]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Release Notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: .
+
+      - name: Publish Official GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.tag_name }}
+          name: ${{ needs.prepare-release.outputs.tag_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-docker-images:
+    name: Build & Publish Container Images to GHCR
+    needs: [prepare-release, test-suite]
+    runs-on: ubuntu-latest
+    if: always() && needs.test-suite.result == 'success'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry (GHCR)
+        if: inputs.dry_run != true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Push Mode
+        id: flags
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "push=false" >> $GITHUB_OUTPUT
+            echo "==> Dry run mode active: Container images will be built and verified without pushing to registry."
+          else
+            echo "push=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build & Publish HEAppE Core API Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./RestApi/Dockerfile
+          push: ${{ steps.flags.outputs.push }}
+          tags: |
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.tag_name }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.version }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:latest
+
+      - name: Build & Publish SSH Agent Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./SshAgent/Dockerfile
+          push: ${{ steps.flags.outputs.push }}
+          tags: |
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:${{ needs.prepare-release.outputs.tag_name }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:${{ needs.prepare-release.outputs.version }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/sshagent:latest
