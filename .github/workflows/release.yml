@@ -132,7 +132,7 @@ jobs:
             --collect:"XPlat Code Coverage" \
             --settings ci/coverage.runsettings \
             --logger "trx;LogFileName=test_results.trx" \
-            --logger "GitHubActions" \
+            --logger "console;verbosity=normal" \
             --results-directory ./TestResults
 
       - name: Teardown Docker Infrastructure
