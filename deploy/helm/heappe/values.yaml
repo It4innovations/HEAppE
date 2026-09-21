@@ -20,7 +20,7 @@ api:
   replicaCount: 1
 
   image:
-    repository: heappe
+    repository: ghcr.io/it4innovations/heappe
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
 
