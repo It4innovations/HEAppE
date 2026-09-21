@@ -35,12 +35,13 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Configuration;
 using SshCaAPI.Configuration;
+using HEAppE.Utils;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
 public class JobManagementService : IJobManagementService
 {
-    #region Instances
+    #region Fields
 
     private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -49,7 +50,7 @@ public class JobManagementService : IJobManagementService
     private readonly IExpirioService _expirioService;
     private readonly IMemoryCache _cache;
     
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _jobSemaphores = new();
+    private static readonly AsyncKeyedLock<long> _jobLocks = new();
 
     #endregion
 
@@ -391,6 +392,151 @@ public class JobManagementService : IJobManagementService
             .ToArray();
     }
 
+    public async Task<AdminJobPagedResultExt> ListDetailedJobsForAdmin(
+        string sessionCode,
+        string jobStates = null,
+        int? limit = null,
+        int? offset = null,
+        long? userId = null,
+        long? clusterId = null,
+        long? subProjectId = null,
+        long? projectId = null,
+        string search = null)
+    {
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
+
+        var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
+            sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Submitter, _expirioService);
+
+        var adminProjectIds = loggedUser.AdaptorUserUserGroupRoles
+            .Where(r => !r.IsDeleted &&
+                        r.AdaptorUserRole != null &&
+                        r.AdaptorUserRole.ContainedRoleTypes != null &&
+                        (r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Administrator) ||
+                         r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Manager)) &&
+                        r.AdaptorUserGroup != null &&
+                        r.AdaptorUserGroup.Project != null &&
+                        !r.AdaptorUserGroup.Project.IsDeleted)
+            .Select(r => r.AdaptorUserGroup.ProjectId)
+            .Where(id => id.HasValue)
+            .Select(id => id.Value)
+            .Distinct()
+            .ToList();
+
+        bool isGlobalAdmin = loggedUser.AdaptorUserUserGroupRoles.Any(r =>
+            !r.IsDeleted &&
+            r.AdaptorUserRole != null &&
+            r.AdaptorUserRole.ContainedRoleTypes != null &&
+            (r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Administrator) ||
+             r.AdaptorUserRole.ContainedRoleTypes.Contains(AdaptorUserRoleType.Manager)) &&
+            (r.AdaptorUserGroup == null || r.AdaptorUserGroup.ProjectId == 0));
+
+        if (!isGlobalAdmin && !adminProjectIds.Any())
+        {
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob", loggedUser.GetLogIdentification(), 0);
+        }
+
+        IQueryable<SubmittedJobInfo> query = unitOfWork.SubmittedJobInfoRepository.GetJobsQuery();
+
+        if (!isGlobalAdmin)
+        {
+            query = query.Where(x => adminProjectIds.Contains(x.Project.Id));
+        }
+
+        if (userId.HasValue)
+        {
+            query = query.Where(x => x.Submitter.Id == userId.Value);
+        }
+
+        if (clusterId.HasValue)
+        {
+            query = query.Where(x => x.Specification.ClusterId == clusterId.Value);
+        }
+
+        if (subProjectId.HasValue)
+        {
+            query = query.Where(x => x.Specification.SubProjectId == subProjectId.Value);
+        }
+
+        if (projectId.HasValue)
+        {
+            query = query.Where(x => x.Project.Id == projectId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(jobStates))
+        {
+            var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.Parse(s.Trim()))
+                .ToList();
+
+            query = query.Where(x => stateInts.Contains((int)x.State));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(x => x.Name.ToLower().Contains(term) || x.Tasks.Any(t => t.Name.ToLower().Contains(term)));
+        }
+
+        int totalCount = await query.CountAsync();
+
+        query = query.AsNoTracking()
+            .Include(x => x.Submitter)
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.SubProject)
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.Cluster)
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.ClusterUser)
+            .Include(x => x.Specification)
+                .ThenInclude(s => s.SubmitterGroup)
+            .Include(x => x.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.Cluster)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.NodeType)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Project)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.TaskAllocationNodes)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandTemplate)
+                        .ThenInclude(ct => ct.TemplateParameters)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.CommandParameterValues)
+                        .ThenInclude(cpv => cpv.TemplateParameter)
+            .Include(x => x.Tasks)
+                .ThenInclude(t => t.Specification)
+                    .ThenInclude(ts => ts.EnvironmentVariables);
+
+        query = query.OrderByDescending(x => x.Id);
+
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
+        }
+
+        var results = await query.ToListAsync();
+        await unitOfWork.SubmittedJobInfoRepository.AttachCommandTemplatesIncludingDeletedAsync(results.SelectMany(r => r.Tasks));
+
+        var items = results.Select(x => x.ConvertToAdminSubmittedJobInfoExt()).ToArray();
+
+        return new AdminJobPagedResultExt
+        {
+            TotalCount = totalCount,
+            Limit = limit,
+            Offset = offset,
+            Items = items
+        };
+    }
+
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
         return await CurrentInfoForJob(submittedJobInfoId, sessionCode, forceDirectQuery: false);
@@ -399,9 +545,7 @@ public class JobManagementService : IJobManagementService
     public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode, bool forceDirectQuery = false)
     {
         // Serialize concurrent requests for the same job to avoid N parallel DB/SSH calls
-        var semaphore = _jobSemaphores.GetOrAdd(submittedJobInfoId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync();
-        try
+        using (await _jobLocks.LockAsync(submittedJobInfoId))
         {
             SubmittedJobInfo job;
             AdaptorUser loggedUser;
@@ -437,14 +581,6 @@ public class JobManagementService : IJobManagementService
                 {
                     return await ExecuteLegacyCurrentInfoForJobAsync(unitOfWork, job, loggedUser, isAdmin, isJobOwner, submittedJobInfoId, sessionCode, cacheKey);
                 }
-            }
-        }
-        finally
-        {
-            semaphore.Release();
-            if (semaphore.CurrentCount == 1)
-            {
-                _jobSemaphores.TryRemove(submittedJobInfoId, out _);
             }
         }
     }

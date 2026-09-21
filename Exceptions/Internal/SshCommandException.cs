@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using HEAppE.Exceptions.AbstractTypes;
@@ -31,6 +31,6 @@ public class SshCommandException : InternalException
     /// <returns></returns>
     public bool Contains(string value)
     {
-        return Args.Any(m => Regex.Match(m.ToString(), value, RegexOptions.Compiled).Success);
+        return Args.Any(m => Regex.IsMatch(m.ToString(), value));
     }
 }

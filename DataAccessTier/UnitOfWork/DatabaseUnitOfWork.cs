@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
@@ -18,6 +19,8 @@ using HEAppE.DataAccessTier.Repository.OpenStack;
 using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.IRepository.Monitoring;
 using HEAppE.DataAccessTier.Repository.Monitoring;
+using HEAppE.DataAccessTier.IRepository.Management;
+using HEAppE.DataAccessTier.Repository.Management;
 using HEAppE.DataAccessTier.Service;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -63,6 +66,30 @@ public class DatabaseUnitOfWork : IUnitOfWork
     public async Task SaveAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public void ExecuteExecutionStrategy(Action operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        strategy.Execute(operation);
+    }
+
+    public T ExecuteExecutionStrategy<T>(Func<T> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return strategy.Execute(operation);
+    }
+
+    public async Task ExecuteExecutionStrategyAsync(Func<Task> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(operation);
+    }
+
+    public async Task<T> ExecuteExecutionStrategyAsync<T>(Func<Task<T>> operation)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(operation);
     }
 
     #endregion
@@ -112,6 +139,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     private IQSchedulerSessionRepository _qSchedulerSessionRepository;
     private IDatabaseBackupService _databaseBackupService;
     private IExternalServiceHealthLogRepository _externalServiceHealthLogRepository;
+    private ISystemRoleAssignmentRepository _systemRoleAssignmentRepository;
 
     #endregion
 
@@ -434,6 +462,15 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _externalServiceHealthLogRepository =
                 _externalServiceHealthLogRepository ?? new ExternalServiceHealthLogRepository(_context);
+        }
+    }
+
+    public ISystemRoleAssignmentRepository SystemRoleAssignmentRepository
+    {
+        get
+        {
+            return _systemRoleAssignmentRepository =
+                _systemRoleAssignmentRepository ?? new SystemRoleAssignmentRepository(_context);
         }
     }
 

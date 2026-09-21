@@ -3,6 +3,10 @@
 
 # macOS
 .DS_Store
+Library/
+scratch/
+.dotnet/
+.local/
 
 # QScheduler temp files
 qscheduler-temp/
@@ -188,6 +192,7 @@ PublishScripts/
 # NuGet v3's project.json files produces more ignoreable files
 *.nuget.props
 *.nuget.targets
+.nuget_packages/
 
 # Microsoft Azure Build Output
 csx/

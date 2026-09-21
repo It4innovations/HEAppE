@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
@@ -26,6 +26,22 @@ public abstract class LogicFactory
     ///  Service provider for dependency injection
     /// </summary>
     public static IServiceProvider ServiceProvider { get; set; }
+
+    public static T GetService<T>() where T : class
+    {
+        try
+        {
+            return ServiceProvider?.GetService(typeof(T)) as T;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 
     #region Instantiation
 

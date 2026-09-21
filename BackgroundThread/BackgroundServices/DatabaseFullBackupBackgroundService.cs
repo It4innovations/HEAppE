@@ -157,7 +157,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             await conn.OpenAsync();
             _logger.LogDebug($"Opened database connection successfully. Database: '{conn.Database}'");
 
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db";
             cmd.Parameters.AddWithValue("@db", conn.Database);
 
@@ -184,10 +184,15 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
+            if (!string.IsNullOrEmpty(_configuration.LocalPath))
+            {
+                Directory.CreateDirectory(_configuration.LocalPath);
+            }
+
             string backupFileName = $"{_configuration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
             string backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP DATABASE [{conn.Database}] TO DISK = @path WITH INIT;";
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
@@ -196,6 +201,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
+                Directory.CreateDirectory(_configuration.NASPath);
                 string nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _logger.LogInformation($"Database backup file was copied to NAS: {nasFile}");
@@ -259,7 +265,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                     await loggingConn.OpenAsync();
 
                     var dbName = loggingConn.Database;
-                    var cmdBuilder = new SqlCommandBuilder();
+                    using var cmdBuilder = new SqlCommandBuilder();
                     var safeDbName = cmdBuilder.QuoteIdentifier(dbName);
 
                     bool tableExists;
@@ -314,6 +320,11 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
             var grouped = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_FULL_*.bak")
                              .Select(f => new FileInfo(f))
                              .Select(f => new { File = (FileSystemInfo)f, IsDirectory = false })

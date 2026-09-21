@@ -296,13 +296,13 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (isGpuAllocation)
         {
             int? gpuCount = null;
-            if (maxCores.HasValue)
-            {
-                gpuCount = maxCores.Value;
-            }
-            else if (gpuCores.HasValue && gpuCores.Value > 0)
+            if (gpuCores.HasValue && gpuCores.Value > 0)
             {
                 gpuCount = gpuCores.Value;
+            }
+            else if (maxCores.HasValue)
+            {
+                gpuCount = maxCores.Value;
             }
 
             if (gpuCount.HasValue)
@@ -311,13 +311,13 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 {
                     doAppend($" --gres=gpu:{gpuCount}");
                 }
-                else if (string.Equals(SlurmGpuRequestStyle, "Gpu", StringComparison.OrdinalIgnoreCase) || string.Equals(SlurmGpuRequestStyle, "Gpus", StringComparison.OrdinalIgnoreCase))
+                else if (string.Equals(SlurmGpuRequestStyle, "Both", StringComparison.OrdinalIgnoreCase) || string.Equals(SlurmGpuRequestStyle, "Gres,Gpu", StringComparison.OrdinalIgnoreCase))
                 {
+                    doAppend($" --gres=gpu:{gpuCount}");
                     doAppend($" --gpus={gpuCount}");
                 }
                 else
                 {
-                    doAppend($" --gres=gpu:{gpuCount}");
                     doAppend($" --gpus={gpuCount}");
                 }
             }
@@ -426,6 +426,8 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         }
     }
 
+    public static string NormalizeShellPath(string path) => SchedulerDataConvertor.NormalizeShellPath(path);
+
     /// <summary>
     ///     Set preparation command for task
     /// </summary>
@@ -437,6 +439,11 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
     {
+        var normWorkDir = NormalizeShellPath(workDir);
+        var normStdOut = NormalizeShellPath(stdOutFile);
+        var normStdErr = NormalizeShellPath(stdErrFile);
+        var normWrapper = NormalizeShellPath(WrapperScriptPath);
+
         if (UseCallback)
         {
             var signalArg = GracefulTimeoutSeconds > 0 ? $" --signal=B:TERM@{GracefulTimeoutSeconds}" : string.Empty;
@@ -444,7 +451,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             {
                 _taskAppender.Append("#SBATCH");
                 _taskAppender.Append(signalArg);
-                _taskAppender.Append($" --wrap \'cd {workDir};");
+                _taskAppender.Append($" --wrap \'cd \"{normWorkDir}\";");
                 _taskAppender.Append("mkdir -p .heappe; ");
                 _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
                 if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
@@ -466,19 +473,19 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 }
                 _taskAppender.Append("EOF\n");
                 _taskAppender.Append("chmod +x .heappe/heappe_user_task.sh;");
-                _taskAppender.Append($"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};");
-                _taskAppender.Append($"exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> {stdOutFile} 2>> {stdErrFile};\'");
+                _taskAppender.Append($"rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\";");
+                _taskAppender.Append($"exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"slurm\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\";\'");
                 _taskAppender.AppendLine();
             }
             else
             {
                 var sbatchPart = _taskAppender.ToString();
                 var sb = new StringBuilder();
-                sb.Append($"mkdir -p \"{workDir}/.heappe\" && ");
-                sb.Append($"echo \"{CallbackSecret}\" > \"{workDir}/.heappe/callback_token\" && ");
-                sb.Append($"chmod 600 \"{workDir}/.heappe/callback_token\" && ");
+                sb.Append($"mkdir -p \"{normWorkDir}/.heappe\" && ");
+                sb.Append($"echo \"{CallbackSecret}\" > \"{normWorkDir}/.heappe/callback_token\" && ");
+                sb.Append($"chmod 600 \"{normWorkDir}/.heappe/callback_token\" && ");
                 
-                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{workDir}/.heappe/heappe_user_task.sh\"\n");
+                sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{normWorkDir}/.heappe/heappe_user_task.sh\"\n");
                 if (!string.IsNullOrEmpty(preparationScript))
                 {
                     sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
@@ -489,10 +496,10 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 }
                 sb.Append("EOF_HEAPPE_USER_TASK\n");
                 
-                sb.Append($"chmod +x \"{workDir}/.heappe/heappe_user_task.sh\" && ");
+                sb.Append($"chmod +x \"{normWorkDir}/.heappe/heappe_user_task.sh\" && ");
                 sb.Append(sbatchPart);
                 sb.Append(signalArg);
-                sb.Append($" --wrap \'cd \"{workDir}\"; rm -f \"{stdOutFile}\" \"{stdErrFile}\"; touch \"{stdOutFile}\" \"{stdErrFile}\"; exec bash {WrapperScriptPath} \"{CallbackUrl}\" \"slurm\" 1>> \"{stdOutFile}\" 2>> \"{stdErrFile}\"'");
+                sb.Append($" --wrap \'cd \"{normWorkDir}\"; rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\"; exec bash \"{normWrapper}\" \"{CallbackUrl}\" \"slurm\" 1>> \"{normStdOut}\" 2>> \"{normStdErr}\"'");
                 
                 _taskAppender.Clear();
                 _taskAppender.Append(sb.ToString());
@@ -504,15 +511,15 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         if (_sbatch)
             _taskAppender.Append("#SBATCH");
 
-        _taskAppender.Append($" --wrap \'cd {workDir};");
+        _taskAppender.Append($" --wrap \'cd \"{normWorkDir}\";");
         _taskAppender.Append(
             string.IsNullOrEmpty(recursiveSymlinkCommand)
                 ? string.Empty
                 : recursiveSymlinkCommand.Last().Equals(';')
                     ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
+                    : $"{recursiveSymlinkCommand};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
 
-        _taskAppender.Append($"1>> {stdOutFile} 2>> {stdErrFile} ");
+        _taskAppender.Append($"1>> \"{normStdOut}\" 2>> \"{normStdErr}\" ");
         _taskAppender.Append(
             string.IsNullOrEmpty(preparationScript)
                 ? string.Empty

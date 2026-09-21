@@ -215,6 +215,7 @@ public interface IManagementLogic
     Task<dynamic> CheckClusterProjectCredentialsStatus();
     AdaptorUserCreated CreateAdaptorUser(string username);
     AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername);
+    AdaptorUserCreated SetAdaptorUserBlockStatus(string username, bool isBlocked);
     string DeleteAdaptorUser(string modelUsername);
     AdaptorUser GetAdaptorUserByUsername(string username);
     AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
@@ -228,6 +229,12 @@ public interface IManagementLogic
     List<AdaptorUser> ListAdaptorUsers();
     Task<JobMonitoringPage> GetJobsMonitoring(int pageSize, long? lastJobId);
     Task<ExternalServicesReport> GetExternalServicesReport(DateTime? from, DateTime? to);
+    Task<List<ExternalServiceHealthLog>> GetJobExternalServiceLogs(long jobId);
+    Task<List<ExternalServiceStatistics>> GetExternalServicesStatistics(DateTime? from, DateTime? to, string serviceName = null, long? clusterId = null);
+    Task<List<ExternalServiceLiveStatus>> GetExternalServicesLiveStatus();
     Task LogExternalServiceHealth(ExternalServiceHealthLog log);
     Task PurgeOldExternalServiceHealthLogs();
+    SystemRoleAssignment AssignSystemRoleToUser(string username, AdaptorUserRoleType role);
+    SystemRoleAssignment RemoveSystemRoleFromUser(string username, AdaptorUserRoleType role);
+    List<SystemRoleAssignment> ListSystemRoleAssignments();
 }

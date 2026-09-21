@@ -1473,6 +1473,33 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("TaskSpecificationRequiredNode");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.Management.SystemRoleAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Username", "Role")
+                        .IsUnique();
+
+                    b.ToTable("SystemRoleAssignment", (string)null);
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.Monitoring.ExternalServiceHealthLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1481,29 +1508,36 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("ClusterId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("CommandOrPath")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
                     b.Property<string>("EndpointOrHost")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("ErrorMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("bit");
+
+                    b.Property<long?>("JobId")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("Port")
                         .HasColumnType("int");
 
                     b.Property<string>("Protocol")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<long>("ResponseTimeMs")
                         .HasColumnType("bigint");
@@ -1518,10 +1552,27 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("Source")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StatusCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("TaskId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClusterId");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("Timestamp", "ServiceName");
 
                     b.ToTable("ExternalServiceHealthLog");
                 });
@@ -1711,6 +1762,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("IdpSid")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");

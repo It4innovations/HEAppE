@@ -204,15 +204,22 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
         }
     }
 
+    public static string NormalizeShellPath(string path) => SchedulerDataConvertor.NormalizeShellPath(path);
+
     public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine,
         string stdOutFile,
         string stdErrFile, string recursiveSymlinkCommand)
     {
+        var normWorkDir = NormalizeShellPath(workDir);
+        var normStdOut = NormalizeShellPath(stdOutFile);
+        var normStdErr = NormalizeShellPath(stdErrFile);
+        var normWrapper = NormalizeShellPath(WrapperScriptPath);
+
         if (UseCallback)
         {
-            _taskBuilder.Append($" bash {WrapperScriptPath} \"{CallbackUrl}\" \"hq\"");
+            _taskBuilder.Append($" bash \"{normWrapper}\" \"{CallbackUrl}\" \"hq\"");
             
-            _callbackPrepCommands = $"cd {workDir}; " +
+            _callbackPrepCommands = $"cd \"{normWorkDir}\"; " +
                                     "mkdir -p .heappe; " +
                                     $"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token; " +
                                     (string.IsNullOrEmpty(recursiveSymlinkCommand) ? "" : (recursiveSymlinkCommand.Last() == ';' ? recursiveSymlinkCommand : recursiveSymlinkCommand + ";")) +
@@ -221,7 +228,7 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
                                     (string.IsNullOrEmpty(commandLine) ? "" : (commandLine.Last() == '\n' ? commandLine.Replace("'", "'\\''") : commandLine.Replace("'", "'\\''") + "\n")) +
                                     "EOF\n" +
                                     "chmod +x .heappe/heappe_user_task.sh; " +
-                                    $"rm -f {stdOutFile} {stdErrFile}; touch {stdOutFile} {stdErrFile};";
+                                    $"rm -f \"{normStdOut}\" \"{normStdErr}\"; touch \"{normStdOut}\" \"{normStdErr}\";";
             return;
         }
 

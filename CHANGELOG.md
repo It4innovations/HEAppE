@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.5.2
+
+### Fixed
+- **Job Submission Script Resolution & 1:1 Mapping Fixes:**
+  - Fixed an issue where `ClusterRuntimeConfiguration` failed to copy nested `CommandScriptsPathSettings` and `LinuxLocalCommandScriptPathSettings` when cloning `ScriptsConfiguration`, causing `ExecuteCmdScriptName` to resolve to an empty string and resulting in `bash: .../.key_scripts/: Is a directory` (exit code 126) on SSH job submission.
+  - Added sensible default script names in `CommandScriptPathConfiguration` (`run_command.sh`, `add_key.sh`, `remove_key.sh`, `create_job_directory.sh`, `copy_data_from_temp.sh`, `copy_data_to_temp.sh`) and `LinuxLocalCommandScriptPathConfiguration`.
+  - Added deep copying via `ScriptsConfiguration.Clone()` to safely preserve nested script settings across cluster runtime configuration instances.
+  - Added defensive fallback to `"run_command.sh"` in `ClusterRuntimeConfiguration.GetExecuteCmdScriptPath` when the configured script name is null or whitespace.
+  - Fixed `NoOneToOneCredentials` exception during `SubmitJob` for projects with 1:1 user mapping (`IsOneToOneMapping = true`) by including `Project.ClusterProjects.ClusterProjectCredentials` in `SubmittedJobInfoRepository.GetByIdForSubmitAsync`.
+
+## V6.5.1
+
+### Fixed
+- **Critical Memory Leak & Resource Retention Fixes:**
+  - Fixed unbounded Gen 2 heap growth in `ClusterRuntimeConfiguration` caused by static reload-token subscriptions; added instance caching based on configuration fingerprints.
+  - Eliminated high-frequency database query spikes and entity graph allocations during project imports by introducing a short-lived cache for `GetUserById` with immediate eviction on user, role, and project changes.
+  - Disposed `JsonDocument` buffers in request logging middleware and reduced `ListAvailableClusters` cache TTL from 150m to 5m to prevent accumulation of stale cluster versions.
+  - Resolved socket exhaustion and unmanaged handle leaks by hardening SSH tunnel, connection pool, and HTTP client disposal lifecycles.
+  - Added `AsyncKeyedLock` to protect against concurrent cache stampedes during cluster and user resolution.
+
 ## V6.5.0
 
 ### Added
@@ -41,16 +61,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ForceDirectQuery` parameter to `GET /heappe/JobManagement/CurrentInfoForJob` for forcing physical scheduler queries with automatic terminal state locking.
 - Added `EnableGracefulTimeout` and `GracefulTimeoutSeconds` for Slurm (`--signal=B:TERM@30`) and PBS Pro (`-W signal=SIGTERM@30`).
 - Added domain-scoped cancellation tokens (`ClusterInfoResetToken`, `UserPermissionsResetToken`) in `CacheUtils` for granular cache invalidation.
-- Converted endpoints in `ManagementController` and `UserAndLimitationManagementController` to `async Task<IActionResult>` to prevent ASP.NET Core ThreadPool worker thread starvation under high concurrent load.
-- Added endpoint-specific rate limiting rules for `/heappe/Management/*` (120 req/min) and `/heappe/UserAndLimitationManagement/*` (300 req/min) in `appsettings.example.json`.
+- Added support for UserOrg API v2 endpoints (`/api/v2/...`) with configurable switching strategy (`ApiVersion` in `LexisAuthenticationConfiguration`, defaulting to `"v2"`, supporting `"v1"`, `"v2"`, and `"auto"` fallback). Introduced `UserOrgV1Service`, `UserOrgV2Service`, and RFC 9457 `ProblemDetails` error handling while maintaining backwards compatibility for legacy v1 endpoints.
+- Added comprehensive non-blocking external services and database telemetry monitoring:
+  - High-throughput asynchronous telemetry capture for all external interactions (HashiCorp Vault, Keycloak/UserOrg, Expirio, SSH Certificate Authority, Slurm/PBS Pro/FirecREST SSH & REST scheduler executions, and EF Core Database queries).
+  - Ambient execution context (`JobExecutionContext`) using `AsyncLocal<JobContextData>` automatically correlates telemetry records with active `JobId`, `TaskId`, `ClusterId`, and `RequestId` (matching `log4net` trace ID for log searchability).
+  - Background asynchronous batch writer (`ExternalServiceTelemetryWriterBackgroundService`) flushing records every 2s (or upon reaching 100 records) to minimize DB write overhead and prevent latency impact on main HEAppE operations.
+  - Automatic scheduled purging of telemetry records older than retention threshold (default 30 days).
+  - EF Core database telemetry interceptor (`DatabaseCommandTelemetryInterceptor`) recording SQL latency, error codes, and slow queries while avoiding self-logging recursion.
+  - New REST API telemetry endpoints:
+    - `POST /heappe/Management/GetJobExternalServiceLogs` — returns all external service, SSH, and DB telemetry entries linked to a specific job with user authorization check.
+    - `POST /heappe/Management/GetExternalServicesStatistics` — returns aggregated statistics (total calls, failures, availability %, avg/min/max/P95 response times) over a configurable time window with optional service name and cluster filters.
+    - `POST /heappe/Management/GetExternalServicesLiveStatus` — triggers live reachability and latency health probes across all configured services.
+
+### Fixed
+- Fixed `ModifyCommandTemplate` in `ManagementLogic` failing with `InputValidationException: NotPermitted` (HTTP 400) by adding eager loading of `Project` relation in `CommandTemplateRepository.GetById` and adding defensive repository lookup.
+- Fixed `GetActiveUser` in `UserAndLimitationManagementLogic` failing authentication when EF Core query filter evaluated related entities to null during split queries by adding a fallback lookup ignoring query filters.
+- Fixed database seed failure during test and startup initialization where `MiddlewareContextSettings` static collections accumulated duplicate entries across configuration bindings, causing EF Core tracking conflicts (`The instance of entity type ... cannot be tracked because another instance with the same key value for {'Id'} is already being tracked`). Added `Clear()` method to `MiddlewareContextSettings` and entity deduplication in `InsertOrUpdateSeedDataAsync`.
+- Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
+  - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
+  - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+- Fixed cluster script directory initialization failures in `LinuxCommands`:
+  - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
+  - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.
+- Fixed memory leak in REST API (`Program.cs`): disabled `reloadOnChange: true` configuration file watcher for `appsettings.json`, preventing accumulation of hundreds of thousands of `ConfigurationReloadToken`, `CancellationTokenSource`, and `ChangeTokenRegistration` callback nodes under Linux/Docker environments.
+- Updated `CreateJob` endpoint in `JobManagementController`: removed `[LogBehavior(LoggingBehavior.HeadersOnly)]` to enable full request payload logging (including `JobSpecification` models).
+- Added EF Core transient fault resiliency in `MiddlewareContext`: configured `EnableRetryOnFailure()` on `UseSqlServer` to automatically retry database connections upon transient failures and SQL Server database restarts (Error 4060).
+- Fixed path sanitization and whitespace trimming in `JobManagementLogic`, `ManagementLogic`, `LinuxCommands`, and `FileSystemUtils`: added `.Trim()` handling for scratch and project base paths, preventing execution errors caused by whitespace in remote cluster paths.
+- Propagated root-cause SSH connection errors and added automatic re-obtaining/refreshing of expired SSH CA tokens on connection retries in `ConnectionPool`.
+
+## V6.4.16
 
 ### Fixed
 - Fixed internal server error (HTTP 500) during file uploads to job execution directories when job or task validation fails — the REST API now throws specialized exceptions translating to `400 Bad Request` or `403 Forbidden`.
 - Added strict scheduler type validation to `FileSystemFactory`. Non-FirecRest clusters attempting to resolve HTTP/HTTPS file transfer protocols now throw a clean `NotSupportedException` immediately, preventing invalid Expirio token exchange calls before invoking the file manager.
+- Fixed memory leak in `ClusterInformationService`: removed `CancellationChangeToken` registration on long-lived `CacheUtils.GlobalResetToken` during `SetCacheWithGlobalToken`, preventing accumulation of `CancellationTokenRegistration` and `CallbackNode` callback nodes under high API load.
+- Updated `ListAvailableClustersClearCache` to clear `MemoryCache` directly via `memCache.Clear()`.
+- Fixed error masking and retry strategy in `ConnectionPool`: preserved initial root-cause connection exceptions (e.g. SSH socket timeout), implemented exponential backoff (1s, 2s, 4s, 8s max) for connection retries, and added support for automatic SSH CA token re-obtaining/refreshing during retries if the token expires.
+- Added JWT token expiration pre-validation in `SshCertificateAuthorityService.SignAsync` to catch expired OTT tokens prior to making HTTP requests to `signJSON`, preventing 500 errors, useless retries, and Polly circuit breaker trips.
+
+## V6.4.15
+
+### Fixed
+- Added defensive `Directory.Exists` checks and `Directory.CreateDirectory` handling in `DatabaseTransactionLogBackupService`, `DatabaseFullBackupBackgroundService`, and `DatabaseBackupService` to prevent `System.IO.DirectoryNotFoundException` during retention policy execution when backup directories do not exist on the local filesystem.
+
+## V6.4.14
+
+### Changed
+- Unified `ResolveUsernameFromContextAsync` logic across `ClusterInformationLogic`, `CredentialProvisioningLogic`, and `ManagementLogic` into a single shared helper `UsernameResolutionHelper`.
+
+### Fixed
+- Fixed bug in `ClusterInformationLogic` where `null` was passed instead of `publicKey` during POSIX username resolution, ensuring `publicKey` is correctly passed to SSH CA service to resolve usernames via the `signJSON` endpoint.
+
+## V6.4.13
+
+### Changed
+- Updated NuGet packages to latest patch/minor versions: `log4net` (3.4.0), `Newtonsoft.Json` (13.0.4), `BouncyCastle.Cryptography` (2.7.0), `SSH.NET` (2026.0.0), `RestSharp` (114.0.0), and `FluentValidation` (12.1.1).
+
+### Fixed
+- Fixed `EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey` throwing `ArgumentException: Not an OpenSSH private key` when processing encrypted Ed25519 private keys or Base64-encoded Vault credentials: integrated BouncyCastle `PemReader` for robust parsing of encrypted PKCS#8 / PEM keys and added automatic Base64 decoding.
+
+## V6.4.12
+
+### Changed
+- Rewrote `LogRequestModelFilter` for high-throughput zero-allocation request logging: replaced per-request reflection, `DefaultJsonTypeInfoResolver`, and LINQ `.ToDictionary()` allocations with a static cached `JsonSerializerOptions` instance and direct UTF-8 streaming via `Utf8JsonWriter` and `ArrayBufferWriter<byte>`, dramatically reducing request latency and GC pressure under load.
+- Switched log4net `FileAppender` locking model from `MinimalLock` to `ExclusiveLock` in `RestApi` and `DataStagingAPI` logging configurations (`log4net.config`, `log4netDocker.config`), eliminating OS-level file lock contention and request serialization during high-concurrency stress testing.
+
+### Fixed
+- Fixed job log archiving failure during `DeleteJob` (`archiveLogs = true`) when stdout/stderr log files do not exist.
 
 ## V6.4.11
 
 ### Fixed
+- Fixed SSH authentication failure (`Permission denied (publickey)`) on clusters requiring SSH CA certificates: `SshConnector` and `SftpFileSystemConnector` now automatically upgrade private key authentication to `SshCertificate` / `SshCertificateViaProxy` when an `sshCaToken` is available in context or `UseCertificateAuthorityForAuthentication` is enabled, without requiring manual database modification of `PreferredAuthType`.
+- Added `SshCertificate` and `SshCertificateViaProxy` support to `ManagementLogic.CreateClusterAuthenticationCredentials` and `CreateCredential`, and updated `CredentialValidator` to support key generation for SSH certificate credentials.
+- Fixed `Execution Timeout Expired` SQL error (error 258) in `ClusterRepository` (`GetAllWithActiveProjectFilter`, `GetById`, `AsQueryable`, `GetClustersFilteredAsync`) by adding `.AsSplitQuery()` to avoid Cartesian product explosion across multiple collection `.Include()` joins in environments with large numbers of active projects.
 - Expanded `SubmittedTaskInfo.Reason` database column length to `nvarchar(max)` via migration `ExpandSubmittedTaskInfoReasonLength` to prevent SQL truncation errors when Slurm returns verbose pending reasons (e.g. extensive unavailable node lists).
 - Fixed SSH port forwarding data transfer tunnels unexpectedly closing during long-running or cold-start inference jobs by preventing `ConnectionPool` cleanup timer from disconnecting physical SSH connections that host active forwarded ports (`HasActiveForwardedPorts`), maintaining tunnel liveness, and auto-detecting and recovering stale tunnels in `DataTransferLogic`.
 - Transparently return the exact HTTP status code and response payload from compute job nodes in `DataTransferController.HttpGetToJobNode` and `HttpPostToJobNode` instead of wrapping non-200 responses into generic `ProblemDetails` `400 Bad Request` exceptions.

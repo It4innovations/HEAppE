@@ -87,9 +87,10 @@ public class Startup
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
         Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
+        MiddlewareContextSettings.Clear();
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
-        Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
+        DatabaseMigrationSettings.AutoMigrateDatabase = Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
         ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
@@ -135,6 +136,11 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
+        var telemetrySettings = new HEAppE.Services.Monitoring.ExternalServiceTelemetrySettings();
+        Configuration.GetSection("ExternalServiceTelemetrySettings").Bind(telemetrySettings);
+        services.AddSingleton(telemetrySettings);
+        services.AddSingleton<HEAppE.Services.Monitoring.IExternalServiceTelemetryService, HEAppE.Services.Monitoring.ExternalServiceTelemetryService>();
+
         services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -145,6 +151,7 @@ public class Startup
                 conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         })
+        .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("userorg", "identity"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddSingleton<IExpirioService, ExpirioService>();
@@ -156,12 +163,15 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
+        .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("expirio", "accounting"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("SshCaClient")
+            .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("ssh ca", "certificateauthority"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("FirecREST")
+            .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("firecrest", "cluster"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
         services.AddScoped<IRequestContext, RequestContext>();
@@ -174,9 +184,18 @@ public class Startup
         {
             options.AddPolicy(_allowSpecificOrigins, builder =>
             {
-                builder.WithOrigins(ApplicationAPIConfiguration.AllowedHosts)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
+                if (ApplicationAPIConfiguration.AllowedHosts != null && ApplicationAPIConfiguration.AllowedHosts.Length > 0)
+                {
+                    builder.WithOrigins(ApplicationAPIConfiguration.AllowedHosts)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
+                else
+                {
+                    builder.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
             });
         });
         
@@ -264,6 +283,14 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         LogicFactory.ServiceProvider = app.ApplicationServices;
+        var lifetime = app.ApplicationServices.GetService<IHostApplicationLifetime>();
+        lifetime?.ApplicationStopping.Register(() =>
+        {
+            if (ReferenceEquals(LogicFactory.ServiceProvider, app.ApplicationServices))
+            {
+                LogicFactory.ServiceProvider = null;
+            }
+        });
         var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
         GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
         GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;

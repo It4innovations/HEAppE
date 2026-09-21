@@ -41,6 +41,9 @@ internal class LinuxCommands : ICommands
     protected static readonly string _genericCommandKeyParameter =
         HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
 
+    private static readonly Lazy<Regex> _genericParameterRegex = new(() =>
+        new Regex(@$"{Regex.Escape(_genericCommandKeyParameter)}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled));
+
     /// <summary>
     ///     Command
     /// </summary>
@@ -80,9 +83,7 @@ internal class LinuxCommands : ICommands
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), shellCommand, _logger);
         _logger.LogInformation($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
-        foreach (Match match in Regex.Matches(sshCommand.Result,
-                     @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n",
-                     RegexOptions.IgnoreCase | RegexOptions.Compiled))
+        foreach (Match match in _genericParameterRegex.Value.Matches(sshCommand.Result))
             if (match.Success && match.Groups.Count == 2)
                 genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
 
@@ -338,7 +339,7 @@ internal class LinuxCommands : ICommands
                 if [ -z ""$SOURCE_PATH"" ]; then echo ""ERROR: .key_scripts not found""; exit 1; fi;
                 mkdir -p .key_scripts &&
                 cp -rf ""$SOURCE_PATH""/* .key_scripts/ &&
-                chmod -R 755 .key_scripts &&
+                chmod -R 755 .key_scripts 2>/dev/null || true;
                 sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh &&
                 echo ""INSTALLED_UPDATED"";
             else
@@ -404,20 +405,24 @@ internal class LinuxCommands : ICommands
             }
 
             // 3. Ensure remote directory exists
-            var mkdirCmd = $"mkdir -p {bashSafeRootDir}/.key_scripts";
+            var keyScriptsRootDir = Path.Combine(rootDir, ".key_scripts").Replace('\\', '/');
+            string bashSafeKeyScriptsDir = keyScriptsRootDir.StartsWith("~/")
+                ? "~/" + "\"" + keyScriptsRootDir.Substring(2) + "\""
+                : "\"" + keyScriptsRootDir + "\"";
+
+            var mkdirCmd = $"mkdir -p {bashSafeKeyScriptsDir}";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), mkdirCmd, _logger);
 
-            // 4. Upload files via SFTP
-            _logger.LogInformation($"Uploading script files to remote cluster via SFTP (commit {localCommitHash})...");
-            using var sftpClient = new SftpClient(sshClient.ConnectionInfo);
-            sftpClient.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
-            sftpClient.Connect();
+            // 4. Upload files via SFTP (or SSH fallback if SFTP fails/unsupported)
+            _logger.LogInformation($"Uploading script files to remote cluster (commit {localCommitHash})...");
 
             string relativeKeyScriptsDir = rootDir.StartsWith("~/")
                 ? rootDir.Substring(2) + "/.key_scripts"
                 : rootDir.TrimStart('/') + "/.key_scripts";
 
             var files = Directory.GetFiles(localKeyScriptsPath);
+            var preparedFiles = new Dictionary<string, byte[]>();
+
             foreach (var filePath in files)
             {
                 var fileName = Path.GetFileName(filePath);
@@ -433,32 +438,78 @@ internal class LinuxCommands : ICommands
                 {
                     fileContent = await File.ReadAllBytesAsync(filePath);
                 }
-
-                using var memStream = new MemoryStream(fileContent);
-                var remoteFilePath = $"{relativeKeyScriptsDir}/{fileName}";
-                sftpClient.UploadFile(memStream, remoteFilePath, true);
+                preparedFiles[fileName] = fileContent;
             }
 
-            // 5. Write .commit_hash file via SFTP
-            if (!string.IsNullOrEmpty(localCommitHash))
+            bool uploadedSuccessfully = false;
+            try
             {
-                using var hashStream = new MemoryStream(Encoding.UTF8.GetBytes(localCommitHash));
-                var remoteHashPath = $"{relativeKeyScriptsDir}/.commit_hash";
-                sftpClient.UploadFile(hashStream, remoteHashPath, true);
+                using var sftpClient = new SftpClient(sshClient.ConnectionInfo);
+                sftpClient.HostKeyReceived += (sender, e) => { e.CanTrust = true; };
+                sftpClient.Connect();
+
+                foreach (var kvp in preparedFiles)
+                {
+                    using var memStream = new MemoryStream(kvp.Value);
+                    var remoteFilePath = $"{relativeKeyScriptsDir}/{kvp.Key}";
+                    sftpClient.UploadFile(memStream, remoteFilePath, true);
+                }
+
+                if (!string.IsNullOrEmpty(localCommitHash))
+                {
+                    using var hashStream = new MemoryStream(Encoding.UTF8.GetBytes(localCommitHash));
+                    var remoteHashPath = $"{relativeKeyScriptsDir}/.commit_hash";
+                    sftpClient.UploadFile(hashStream, remoteHashPath, true);
+                }
+
+                sftpClient.Disconnect();
+                uploadedSuccessfully = true;
+                _logger.LogInformation("Script directory initialized/updated successfully via SFTP.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"SFTP upload failed ({ex.Message}). Falling back to SSH base64 upload...");
             }
 
-            sftpClient.Disconnect();
+            if (!uploadedSuccessfully)
+            {
+                try
+                {
+                    foreach (var kvp in preparedFiles)
+                    {
+                        var base64 = Convert.ToBase64String(kvp.Value);
+                        var remoteFilePath = $"{bashSafeKeyScriptsDir}/{kvp.Key}";
+                        var uploadCmd = $"echo '{base64}' | base64 -d > {remoteFilePath}";
+                        await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadCmd, _logger);
+                    }
 
-            // 6. Set executable permissions via SSH
-            var chmodCmd = $"mkdir -p {bashSafeRootDir} && chmod -R 755 {bashSafeRootDir}/.key_scripts";
+                    if (!string.IsNullOrEmpty(localCommitHash))
+                    {
+                        var hashBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(localCommitHash));
+                        var remoteHashPath = $"{bashSafeKeyScriptsDir}/.commit_hash";
+                        var uploadHashCmd = $"echo '{hashBase64}' | base64 -d > {remoteHashPath}";
+                        await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), uploadHashCmd, _logger);
+                    }
+
+                    uploadedSuccessfully = true;
+                    _logger.LogInformation("Script directory initialized/updated successfully via SSH base64 fallback.");
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.LogError($"SSH base64 script upload fallback failed: {fallbackEx.Message}");
+                    return false;
+                }
+            }
+
+            // 5. Set executable permissions via SSH
+            var chmodCmd = $"mkdir -p {bashSafeKeyScriptsDir} && (chmod -R 755 {bashSafeKeyScriptsDir} 2>/dev/null || true)";
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
 
-            _logger.LogInformation("Script directory initialized/updated successfully via SFTP.");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"SFTP script directory initialization failed: {ex.Message}");
+            _logger.LogError($"Script directory initialization failed: {ex.Message}");
             return false;
         }
     }
@@ -485,14 +536,20 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"clone --single-branch -b {branch} \"{repoUrl}\" .",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("clone");
+            startInfo.ArgumentList.Add("--single-branch");
+            startInfo.ArgumentList.Add("-b");
+            startInfo.ArgumentList.Add(branch);
+            startInfo.ArgumentList.Add(repoUrl);
+            startInfo.ArgumentList.Add(".");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null) throw new Exception("Failed to start git clone process.");
             await process.WaitForExitAsync();
             if (process.ExitCode != 0)
@@ -507,14 +564,17 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = $"pull origin {branch}",
                 WorkingDirectory = tempCacheDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("pull");
+            startInfo.ArgumentList.Add("origin");
+            startInfo.ArgumentList.Add(branch);
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process == null) throw new Exception("Failed to start git pull process.");
             await process.WaitForExitAsync();
             if (process.ExitCode != 0)
@@ -542,14 +602,16 @@ internal class LinuxCommands : ICommands
             var startInfo = new ProcessStartInfo
             {
                 FileName = "git",
-                Arguments = "rev-parse HEAD",
                 WorkingDirectory = localRepoPath,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("rev-parse");
+            startInfo.ArgumentList.Add("HEAD");
+            // nosemgrep: security_code_scan.SCS0001-1 - ArgumentList is used safely
+            using var process = Process.Start(startInfo); // nosemgrep
             if (process != null)
             {
                 var output = await process.StandardOutput.ReadToEndAsync();
@@ -592,7 +654,7 @@ internal class LinuxCommands : ICommands
                 : clusterProject.ProjectStoragePath;
             
             string account = jobInfo.Specification.ClusterUser.Username;
-            projectBasePath = ExpandPath(projectBasePath, jobInfo, account);
+            projectBasePath = ExpandPath(projectBasePath, jobInfo, account).Trim();
 
             var copyFilesClusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
             var heappeJobsDir = $"{copyFilesClusterConfig.InstanceIdentifierPath.TrimStart('/')}/{copyFilesClusterConfig.JobLogArchiveSubPath.TrimStart('/')}";
@@ -613,7 +675,9 @@ internal class LinuxCommands : ICommands
 
         foreach (var sourceDestination in sourceDestinations)
         {
-            cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
+            var src = sourceDestination.Item1?.Trim();
+            var dst = sourceDestination.Item2?.Trim();
+            cmdBuilder.Append($"if [ -f \"{src}\" ]; then cp \"{src}\" \"{dst}\"; fi;");
         }
 
         try

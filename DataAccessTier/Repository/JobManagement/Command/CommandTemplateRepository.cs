@@ -21,6 +21,7 @@ internal class CommandTemplateRepository : GenericRepository<CommandTemplate>, I
     public override CommandTemplate GetById(long id)
     {
         return _dbSet
+            .Include(i => i.Project)
             .Include(i => i.TemplateParameters)
             .Include(i => i.ClusterNodeType)
                 .ThenInclude(cnt => cnt.Cluster)

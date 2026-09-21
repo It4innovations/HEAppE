@@ -80,23 +80,16 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         var initializedCredentials = new List<ClusterAuthenticationCredentials>();
         List<ClusterAuthenticationCredentials> notInitializedCredentials = new List<ClusterAuthenticationCredentials>();
         
-        if (onlyServiceAccounts)
+        var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, false, adaptorUserId, _logger)).ToList();
+        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger);
+        
+        if (credentials.Any())
         {
-            var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger)
-                                 ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
-            notInitializedCredentials.Add(serviceAccount);
-        }
-        else
-        {
-            var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger);
-            var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, false, adaptorUserId, _logger)).ToList();
-            
             notInitializedCredentials.AddRange(credentials);
-            
-            if (serviceAccount != null && notInitializedCredentials.All(c => c.Id != serviceAccount.Id))
-            {
-                notInitializedCredentials.Add(serviceAccount);
-            }
+        }
+        else if (serviceAccount != null)
+        {
+            notInitializedCredentials.Add(serviceAccount);
         }
 
         string? resolvedUsername = null;
@@ -182,198 +175,17 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
         return initializedCredentials;
     }
 
-    private async Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
+    private Task<string?> ResolveUsernameFromContextAsync(long? adaptorUserId, Project? project = null, string? publicKey = null)
     {
-        string? username = null;
-        _logger.LogWarning($"ResolveUsernameFromContextAsync: Start username resolution. AdaptorUserId: {adaptorUserId}, ProjectId: {project?.Id}");
-        
-        var firecrestClusterProject = project != null ? _unitOfWork.ClusterProjectRepository.AsQueryable()
-            .Include(x => x.Cluster)
-            .Where(x => x.ProjectId == project.Id && !x.IsDeleted && x.Cluster != null)
-            .FirstOrDefault(x => (x.Cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm) : null;
-
-        if (firecrestClusterProject != null)
-        {
-            _logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
-            var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
-            if (!string.IsNullOrEmpty(token))
-            {
-                try
-                {
-                    var cluster = firecrestClusterProject.Cluster;
-                    var customConfig = cluster.CustomConfiguration ?? new Dictionary<string, string>();
-                    var credentials = await _expirioService.ExchangeFirecrestCredentialsAsync(token, customConfig, _logger);
-                    if (credentials != null && 
-                        credentials.TryGetValue("clientId", out var clientIdObj) && 
-                        credentials.TryGetValue("clientSecret", out var clientSecretObj))
-                    {
-                        string clientId = clientIdObj.ToString();
-                        string clientSecret = clientSecretObj.ToString();
-
-                        string idpUrl = "";
-                        if (cluster.CustomConfiguration != null && cluster.CustomConfiguration.TryGetValue("IdpUrl", out var customIdpUrl))
-                        {
-                            idpUrl = customIdpUrl;
-                        }
-
-                        using var serviceScope = HEAppE.FileTransferFramework.ServiceActivator.GetScope();
-                        var tokenService = (HEAppE.Services.FirecRest.IFirecRestTokenService)serviceScope.ServiceProvider.GetService(typeof(HEAppE.Services.FirecRest.IFirecRestTokenService));
-                        var httpClientFactory = (System.Net.Http.IHttpClientFactory)serviceScope.ServiceProvider.GetService(typeof(System.Net.Http.IHttpClientFactory));
-
-                        if (tokenService != null && httpClientFactory != null)
-                        {
-                            var fcToken = await tokenService.GetTokenAsync(clientId, clientSecret, idpUrl);
-                            var userinfoUrl = FirecRestUtils.GetUserinfoUrl(cluster);
-
-                            using var userinfoRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, userinfoUrl);
-                            userinfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fcToken);
-
-                            var httpClient = httpClientFactory.CreateClient("");
-                            using var userinfoResponse = await httpClient.SendAsync(userinfoRequest);
-                            if (userinfoResponse.IsSuccessStatusCode)
-                            {
-                                var userinfoContent = await userinfoResponse.Content.ReadAsStringAsync();
-                                _logger.LogDebug($"[Firecrest userinfo Response] Success. Content: {userinfoContent}");
-                                username = FirecRestUtils.ParseUsernameFromUserinfo(userinfoContent);
-                                if (!string.IsNullOrEmpty(username))
-                                {
-                                    _logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest resolved username: {username}");
-                                }
-                            }
-                            else
-                            {
-                                var err = await userinfoResponse.Content.ReadAsStringAsync();
-                                _logger.LogWarning($"[Firecrest userinfo] Failed with status {userinfoResponse.StatusCode}: {err}");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "FirecREST whoami username resolution failed.");
-                }
-            }
-        }
-        else
-        {
-            // 1. SSH CA resolution
-            if (SshCaSettings.UsePosixAccountFromCertificate && !string.IsNullOrEmpty(_httpContextKeys.Context.SshCaToken))
-            {
-                _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting SSH CA resolution.");
-                try {
-                    string? resourceName = null;
-                    if (project != null)
-                    {
-                        var cp = _unitOfWork.ClusterProjectRepository.AsQueryable()
-                            .Include(x => x.Cluster)
-                            .ThenInclude(c => c.FileTransferMethods)
-                            .FirstOrDefault(x => x.ProjectId == project.Id && !x.IsDeleted);
-
-                        if (cp?.Cluster != null)
-                        {
-                            resourceName = !string.IsNullOrEmpty(cp.Cluster.MasterNodeName)
-                                ? cp.Cluster.MasterNodeName
-                                : (cp.Cluster.FileTransferMethods?.FirstOrDefault()?.ServerHostname ?? cp.Cluster.Name);
-                        }
-                    }
-
-                    username = await _sshCertificateAuthorityService.GetPosixUsernameAsync(_httpContextKeys.Context.SshCaToken, _logger, publicKey, resourceName);
-                    _logger.LogWarning($"ResolveUsernameFromContextAsync: SSH CA resolved username: {username}");
-                } catch (Exception ex) {
-                    _logger.LogWarning(ex, "SSH CA username resolution failed.");
-                }
-            }
-            
-            // 2. Kerberos enriched username resolution
-            if (string.IsNullOrEmpty(username))
-            {
-                bool attemptKerberos = false;
-                if (project != null)
-                {
-                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
-                        .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
-                        .Any(x => x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
-                }
-                else if (adaptorUserId != null)
-                {
-                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
-                        .Where(cp => !cp.IsDeleted && cp.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-                        .Any(cp => _unitOfWork.AdaptorUserGroupRepository.GetQueryableWithoutFilters()
-                            .Where(g => g.ProjectId == cp.ProjectId)
-                            .Any(g => g.AdaptorUserUserGroupRoles.Any(r => !r.IsDeleted && r.AdaptorUserId == adaptorUserId)));
-                }
-                else
-                {
-                    attemptKerberos = _unitOfWork.ClusterProjectRepository.AsQueryable()
-                        .Any(x => !x.IsDeleted && x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
-                }
-
-                if (attemptKerberos)
-                {
-                    _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                    var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        try
-                        {
-                            username = await _expirioService.GetEnrichedUsernameAsync(token, _logger);
-                            _logger.LogWarning($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Token preferred_username resolution
-        if (string.IsNullOrEmpty(username))
-        {
-            bool allowJwtResolution = false;
-            if (project != null)
-            {
-                if (project.IsOneToOneMapping)
-                {
-                    allowJwtResolution = true;
-                }
-                else
-                {
-                    allowJwtResolution = _unitOfWork.ClusterProjectRepository.AsQueryable()
-                        .Where(x => x.ProjectId == project.Id && !x.IsDeleted)
-                        .Any(x => x.PreferredAuthType == ClusterAuthenticationCredentialsAuthType.Kerberos);
-                }
-            }
-
-            if (allowJwtResolution)
-            {
-                _logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
-                var token = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) ? _httpContextKeys.Context.IdpToken : _httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
-                {
-                    try 
-                    {
-                        var decoded = JwtTokenDecoder.Decode(token);
-                        if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                            username = decoded.PreferedUsername;
-                            _logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
-                        } else if (project != null) {
-                            username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                            _logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
-                    }
-                }
-            }
-        }
-
-        
-        _logger.LogWarning($"ResolveUsernameFromContextAsync: End username resolution. Resolved username: {username}");
-        return username;
+        return UsernameResolutionHelper.ResolveUsernameFromContextAsync(
+            _unitOfWork,
+            _sshCertificateAuthorityService,
+            _httpContextKeys,
+            _expirioService,
+            _logger,
+            adaptorUserId,
+            project,
+            publicKey);
     }
 
 #pragma warning disable IDE1006

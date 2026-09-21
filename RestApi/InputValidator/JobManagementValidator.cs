@@ -29,6 +29,7 @@ public class JobManagementValidator : AbstractValidator
             CancelJobModel model => ValidateCancelJobModel(model),
             DeleteJobModel model => ValidateDeleteJobModel(model),
             ListJobsForCurrentUserModel model => ValidateListJobsForCurrentUserModel(model),
+            ListDetailedJobsForAdminModel model => ValidateListDetailedJobsForAdminModel(model),
             CurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
             CopyJobDataToTempModel model => ValidateCopyJobDataToTempModel(model),
             CopyJobDataFromTempModel model => ValidateCopyJobDataFromTempModel(model),
@@ -93,6 +94,16 @@ public class JobManagementValidator : AbstractValidator
     private string ValidateListJobsForCurrentUserModel(ListJobsForCurrentUserModel model)
     {
         ValidateSessionCode(model.SessionCode);
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateListDetailedJobsForAdminModel(ListDetailedJobsForAdminModel model)
+    {
+        ValidateSessionCode(model.SessionCode);
+        if (model.Limit.HasValue && model.Limit.Value < 0)
+            _messageBuilder.AppendLine("Limit must be a non-negative integer.");
+        if (model.Offset.HasValue && model.Offset.Value < 0)
+            _messageBuilder.AppendLine("Offset must be a non-negative integer.");
         return _messageBuilder.ToString();
     }
 

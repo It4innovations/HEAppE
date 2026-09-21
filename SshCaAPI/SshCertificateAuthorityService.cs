@@ -98,6 +98,37 @@ namespace SshCaAPI
         {
             logger?.LogInformation("[SignService] Method: SignAsync");
 
+            if (!string.IsNullOrEmpty(ott))
+            {
+                try
+                {
+                    var tokenHandler = new JwtSecurityTokenHandler();
+                    if (tokenHandler.CanReadToken(ott))
+                    {
+                        var jwtToken = tokenHandler.ReadJwtToken(ott);
+                        if (jwtToken.ValidTo != DateTime.MinValue && jwtToken.ValidTo <= DateTime.UtcNow)
+                        {
+                            logger?.LogWarning($"[SignService] Provided SSH CA token (OTT) has expired at {jwtToken.ValidTo} UTC (Current: {DateTime.UtcNow} UTC).");
+                            throw new SshCAServiceTypeException("SignTokenExpired") { Details = $"The provided SSH CA token (OTT) has expired at {jwtToken.ValidTo} UTC." };
+                        }
+                    }
+                }
+                catch (SshCAServiceTypeException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogDebug(ex, "[SignService] Could not parse OTT token as JWT for expiration pre-check.");
+                }
+            }
+
+            if (!IsValidSshPublicKey(publicKey))
+            {
+                logger?.LogError($"[SignService Error] Invalid or destroyed SSH public key provided: '{publicKey}'. Request aborted before contacting SSH CA.");
+                throw new SshCAServiceTypeException("InvalidPublicKey") { Details = $"Provided public key '{publicKey}' is invalid or destroyed." };
+            }
+
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
@@ -192,6 +223,16 @@ namespace SshCaAPI
             }
 
             return null;
+        }
+
+        private static bool IsValidSshPublicKey(string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key) || key == "Unable to convert")
+                return false;
+
+            var trimmed = key.Trim();
+            // SSH CA API strictly requires Ed25519 keys ("ssh-ed25519")
+            return trimmed.StartsWith("ssh-ed25519");
         }
     }
     

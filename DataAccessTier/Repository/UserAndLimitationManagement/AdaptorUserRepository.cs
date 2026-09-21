@@ -141,6 +141,7 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public List<AdaptorUser> GetAllUsersInGroup(long groupId)
     {
         return _dbSet
+            .AsNoTracking()
             .Include(u => u.AdaptorUserUserGroupRoles)
                 .ThenInclude(ugr => ugr.AdaptorUserGroup)
                     .ThenInclude(g => g.Project)
@@ -154,6 +155,7 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public async Task<List<AdaptorUser>> GetAllUsersInGroupAsync(long groupId)
     {
         return await _dbSet
+            .AsNoTracking()
             .Include(u => u.AdaptorUserUserGroupRoles)
             .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .Where(u => u.AdaptorUserUserGroupRoles

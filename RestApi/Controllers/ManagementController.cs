@@ -29,6 +29,7 @@ using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
+using HEAppE.RestApiModels.AbstractModels;
 using HEAppE.RestApiModels.Management;
 using HEAppE.RestApi.Logging;
 using HEAppE.Services.Expirio;
@@ -36,6 +37,8 @@ using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using SshCaAPI;
 
 
@@ -67,9 +70,21 @@ public class ManagementController : BaseController<ManagementController>
 
     #region Private Methods
 
-    private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger)
+    private void ClearListAvailableClusterMethodCache(string sessionCode, ILogger logger, long? projectId = null)
     {
-        CacheUtils.InvalidateClusterCache(logger);
+        CacheUtils.InvalidateClusterCache(logger, _cacheProvider);
+        if (projectId.HasValue)
+        {
+            SchedulerFactory.InvalidateForProject(projectId.Value);
+            AdaptorUserProjectClusterUserCache.InvalidateForProject(projectId.Value);
+        }
+        else
+        {
+            SchedulerFactory.InvalidateAll();
+            HEAppE.FileTransferFramework.FileSystemFactory.InvalidateAll();
+            AdaptorUserProjectClusterUserCache.InvalidateAll();
+            ClusterUserCache.InvalidateAll();
+        }
     }
 
     #endregion
@@ -589,6 +604,29 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
         return Ok(adaptorUser);
     }
+
+    /// <summary>
+    /// Set Adaptor User Block Status
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("SetAdaptorUserBlockStatus")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult SetAdaptorUserBlockStatus(SetAdaptorUserBlockStatusModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"SetAdaptorUserBlockStatus\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUser = _managementService.SetAdaptorUserBlockStatus(model.Username, model.IsBlocked, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(adaptorUser);
+    }
     
     /// <summary>
     /// Delete Adaptor User
@@ -690,7 +728,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var user = _managementService.AssignAdaptorUserToProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(user);
     }
     
@@ -713,7 +751,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var user = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(user);
     }
     
@@ -791,6 +829,74 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(user);
     }
     
+    /// <summary>
+    /// Assign System Role to User across all projects
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("AssignSystemRoleToUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(SystemRoleAssignmentExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult AssignSystemRoleToUser(AssignSystemRoleToUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"AssignSystemRoleToUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignment = _managementService.AssignSystemRoleToUser(model.Username, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(assignment);
+    }
+
+    /// <summary>
+    /// Remove System Role from User across all projects
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RemoveSystemRoleFromUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(SystemRoleAssignmentExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult RemoveSystemRoleFromUser(RemoveSystemRoleFromUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveSystemRoleFromUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignment = _managementService.RemoveSystemRoleFromUser(model.Username, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        return Ok(assignment);
+    }
+
+    /// <summary>
+    /// List all System Role Assignments
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("SystemRoleAssignments")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<SystemRoleAssignmentExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListSystemRoleAssignments(string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListSystemRoleAssignments\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var assignments = _managementService.ListSystemRoleAssignments(sessionCode);
+        return Ok(assignments);
+    }
+    
     #endregion
 
     #region Project
@@ -805,11 +911,21 @@ public class ManagementController : BaseController<ManagementController>
     [RequestSizeLimit(3000)]
     [ProducesResponseType(typeof(List<ProjectExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetProjectsByAccountingStrings([FromQuery] string[] accountingString, string sessionCode)
     {
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        if (accountingString == null || accountingString.Length == 0)
+        {
+            return Ok(new List<ProjectExt>());
+        }
+
         List<ProjectExt> projects = new();
         foreach (var element in accountingString)
             try
@@ -818,7 +934,7 @@ public class ManagementController : BaseController<ManagementController>
                 projects.Add(project);
                 _logger.LogDebug($"Project with accounting string \"{element}\" found.");
             }
-            catch (Exception e)
+            catch (RequestedObjectDoesNotExistException e)
             {
                 _logger.LogWarning($"Project with accounting string \"{element}\" not found. {e.Message}");
             }
@@ -916,7 +1032,7 @@ public class ManagementController : BaseController<ManagementController>
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
             model.IsOneToOneMapping ?? false, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.Id);
         return Ok(project);
     }
 
@@ -938,7 +1054,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.Id);
         _managementService.RemoveProject(model.Id, model.SessionCode);
         return Ok("Project was deleted.");
     }
@@ -987,7 +1103,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(clusterProject);
     }
 
@@ -1011,7 +1127,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.ScratchStoragePath, model.ProjectStoragePath, model.PreferredAuthType, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok(clusterProject);
     }
 
@@ -1034,7 +1150,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
-        ClearListAvailableClusterMethodCache(model.SessionCode, _logger);
+        ClearListAvailableClusterMethodCache(model.SessionCode, _logger, model.ProjectId);
         return Ok("Removed assignment of the Project to the Cluster.");
     }
     
@@ -2598,6 +2714,69 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var result = await _managementService.GetExternalServicesReport(model.From, model.To, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get external service and database telemetry logs for a specific job.
+    /// </summary>
+    /// <param name="model">Request parameters containing job ID and session code</param>
+    /// <returns>List of telemetry records for the specified job</returns>
+    [HttpPost("GetJobExternalServiceLogs")]
+    [ProducesResponseType(typeof(List<JobExternalServiceLogExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetJobExternalServiceLogs([FromBody] GetJobExternalServiceLogsModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetJobExternalServiceLogs(model.SubmittedJobInfoId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get aggregated external service and database telemetry statistics for a time window (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing time window and optional filters</param>
+    /// <returns>List of aggregated statistics including avg, min, max, P95, total and failed counts</returns>
+    [HttpPost("GetExternalServicesStatistics")]
+    [ProducesResponseType(typeof(List<ExternalServiceStatisticsExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetExternalServicesStatistics([FromBody] GetExternalServicesStatisticsModel model)
+    {
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetExternalServicesStatistics(model.From, model.To, model.ServiceName, model.ClusterId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
+    ///     Get live availability and latency status for all registered external services (admin only).
+    /// </summary>
+    /// <param name="model">Request parameters containing session code</param>
+    /// <returns>List of live status probes for all external services</returns>
+    [HttpPost("GetExternalServicesLiveStatus")]
+    [ProducesResponseType(typeof(List<ExternalServiceLiveStatusExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetExternalServicesLiveStatus([FromBody] ExternalServicesLiveStatusModel model)
+    {
+        var validationResult = new SessionCodeValidator(model?.SessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetExternalServicesLiveStatus(model.SessionCode);
         return Ok(result);
     }
 

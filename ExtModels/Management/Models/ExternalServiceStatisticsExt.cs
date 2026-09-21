@@ -8,6 +8,9 @@ public class ExternalServiceStatisticsExt
     /// <summary>Human-readable name of the service.</summary>
     public string ServiceName { get; set; }
 
+    /// <summary>Category of the service (lowercase).</summary>
+    public string ServiceType { get; set; }
+
     /// <summary>
     /// Specific command or HTTP path these statistics apply to (lowercase).
     /// Examples: "sbatch", "squeue", "/v1/sys/health", "token-introspection".
@@ -27,6 +30,12 @@ public class ExternalServiceStatisticsExt
     /// <summary>Maximum observed response time in milliseconds.</summary>
     public long MaxResponseTimeMs { get; set; }
 
+    /// <summary>95th percentile response time in milliseconds.</summary>
+    public long P95ResponseTimeMs { get; set; }
+
     /// <summary>Total number of check records in the requested time window.</summary>
     public long TotalChecks { get; set; }
+
+    /// <summary>Total number of failed checks in the requested time window.</summary>
+    public long FailedChecks { get; set; }
 }

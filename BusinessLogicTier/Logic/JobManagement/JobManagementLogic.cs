@@ -81,7 +81,6 @@ internal class JobManagementLogic : IJobManagementLogic
     internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
                                 IHttpContextKeys httpContextKeys, IExpirioService expirioService, ILogger logger)
     {
-        using var serviceScope = ServiceActivator.GetScope();
         _unitOfWork = unitOfWork;
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
         _tasksToAddToSpec = new List<TaskSpecification>();
@@ -475,11 +474,18 @@ internal class JobManagementLogic : IJobManagementLogic
                 var key = (job.Specification.ClusterId, job.Specification.ProjectId);
                 if (!serviceAccountsCache.ContainsKey(key))
                 {
-                    var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                        key.ClusterId, key.ProjectId, requireIsInitialized: true, adaptorUserId: null, logger: _logger);
-                    if (account != null)
+                    try
                     {
-                        serviceAccountsCache[key] = account;
+                        var account = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            key.ClusterId, key.ProjectId, requireIsInitialized: true, adaptorUserId: null, logger: _logger);
+                        if (account != null)
+                        {
+                            serviceAccountsCache[key] = account;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "No service account credentials initialized for cluster {ClusterId} project {ProjectId}. Background polling will fall back to cluster user.", key.ClusterId, key.ProjectId);
                     }
                 }
             }
@@ -498,9 +504,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GroupBy(j => new
             {
                 ClusterId = j.Job.Specification.ClusterId,
-                ClusterUsername = j.Job.Specification.Cluster.UpdateJobStateByServiceAccount.Value 
-                    ? string.Empty 
-                    : j.Job.Specification.ClusterUser.Username
+                ClusterUsername = j.Job.Specification.ClusterUser?.Username ?? string.Empty
             })
             .ToList();
 
@@ -510,9 +514,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var firstItem = itemsInGroup.First();
 
             var cluster = firstItem.Job.Specification.Cluster;
-            var clusterUser = cluster.UpdateJobStateByServiceAccount.Value 
-                ? null 
-                : firstItem.Job.Specification.ClusterUser;
+            var clusterUser = firstItem.Job.Specification.ClusterUser;
 
             var groupTasksResult = new List<SubmittedTaskInfo>();
             var tasksList = itemsInGroup.SelectMany(s => s.UnfinishedTasks).ToList();
@@ -1323,54 +1325,37 @@ internal class JobManagementLogic : IJobManagementLogic
         if (!jobValidation.IsValid)
             throw new InputValidationException("NotValidJobSpecification", jobValidation.Message);
         
-        {
-            SubmittedJobInfo jobInfo;
-            jobInfo = CreateSubmittedJobInfo(specification);
-            using (var transactionScope = new TransactionScope(
-                       TransactionScopeOption.Required,
-                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                       TransactionScopeAsyncFlowOption.Enabled))
-            {
-                _unitOfWork.JobSpecificationRepository.Insert(specification);
-                _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
+        SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
+        _unitOfWork.JobSpecificationRepository.Insert(specification);
+        _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
 
-                await _unitOfWork.SaveAsync();
-                transactionScope.Complete();
-            }
+        await _unitOfWork.SaveAsync();
 
-            return jobInfo;
-        }
+        return jobInfo;
     }
 
     public async Task DeleteJobDbRecord(long jobInfoId, long specificationId)
     {
-        using (var cleanupTransaction = new TransactionScope(
-                   TransactionScopeOption.Required,
-                   new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                   TransactionScopeAsyncFlowOption.Enabled))
+        var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(jobInfoId);
+        if (jobInfo != null)
         {
-            var jobInfo = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(jobInfoId);
-            if (jobInfo != null)
+            if (jobInfo.Tasks != null)
             {
-                if (jobInfo.Tasks != null)
+                foreach (var task in jobInfo.Tasks.ToList())
                 {
-                    foreach (var task in jobInfo.Tasks.ToList())
-                    {
-                        _unitOfWork.SubmittedTaskInfoRepository.Delete(task);
-                    }
+                    _unitOfWork.SubmittedTaskInfoRepository.Delete(task);
                 }
-                _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
             }
-            
-            var specification = await _unitOfWork.JobSpecificationRepository.GetByIdAsync(specificationId);
-            if (specification != null)
-            {
-                _unitOfWork.JobSpecificationRepository.Delete(specification);
-            }
-            
-            await _unitOfWork.SaveAsync();
-            cleanupTransaction.Complete();
+            _unitOfWork.SubmittedJobInfoRepository.Delete(jobInfo);
         }
+        
+        var specification = await _unitOfWork.JobSpecificationRepository.GetByIdAsync(specificationId);
+        if (specification != null)
+        {
+            _unitOfWork.JobSpecificationRepository.Delete(specification);
+        }
+        
+        await _unitOfWork.SaveAsync();
     }
 
     public async Task<(SubmittedJobInfo JobInfo, bool IsWaitingForServiceAccount)> PrepareJobForSubmitAsync(long createdJobInfoId, AdaptorUser loggedUser)
@@ -1533,15 +1518,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
-        // Kerberos clusters (e.g. Metacentrum) have no persistent service account.
-        // The per-user ClusterUser is the correct credential; Kerberos ticket is obtained
-        // from the user's active SSH/PBS session context, not from a stored secret.
-        if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
-        {
-            return (jobInfo, jobInfo.Specification.ClusterUser);
-        }
-
-        var credentials = await
+        var credentials = jobInfo.Specification.ClusterUser ?? await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
         return (jobInfo, credentials);
@@ -1672,6 +1649,9 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             projectBasePath = basePath;
         }
+
+        basePath = FileSystemUtils.ExpandRemotePath(basePath, jobInfo.Specification.ClusterUser.Username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
+        projectBasePath = FileSystemUtils.ExpandRemotePath(projectBasePath, jobInfo.Specification.ClusterUser.Username, null, jobInfo.Specification.Cluster?.CustomConfiguration);
         
         var clusterConfig = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var localBasePath = Path.Combine(
@@ -1808,6 +1788,12 @@ internal class JobManagementLogic : IJobManagementLogic
 
             var job = await _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasksAsync(candidate.Specification.JobSpecification.Id);
             if (job == null) continue;
+
+            if ((job.Submitter != null && job.Submitter.IsBlocked) || (job.Specification?.Submitter != null && job.Specification.Submitter.IsBlocked))
+            {
+                _logger.LogWarning($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job owner '{job.Submitter?.Username ?? job.Specification?.Submitter?.Username}' is blocked.");
+                continue;
+            }
 
             if (dbSession != null && (job.SubmitTime == null || job.SubmitTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10)))
             {
@@ -2041,7 +2027,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         try
         {
-            var eventHub = (IHEAppEEventHub)LogicFactory.ServiceProvider?.GetService(typeof(IHEAppEEventHub));
+            var eventHub = LogicFactory.GetService<IHEAppEEventHub>();
             if (eventHub != null)
             {
                 await eventHub.PublishEventAsync(userId, eventType, source, data);

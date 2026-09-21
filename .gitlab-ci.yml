@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  GIT_CLEAN_FLAGS: "none"
   
 
 
@@ -15,19 +16,31 @@ stages:
   - release
   - push
 
+cleanup_stuck_runner:
+  stage: .pre
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "Cleaning up any root-owned build remnants on runner host..."
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
 
 release_msg_job:
   stage: prepare_release
   image: alpine:latest
   script:
     - TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md)
-    - TAG_MESSAGE=$(awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md)
-    - TAG_MESSAGE_BASE64=$(echo -n "${TAG_MESSAGE}" | base64 -w 0)
+    - awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md > release_notes.md
+    - rm -f release_variables.env
     - echo "TAG_NAME=${TAG_NAME}" >> release_variables.env
-    - echo "TAG_MESSAGE=${TAG_MESSAGE_BASE64}" >> release_variables.env
   variables:
     GIT_STRATEGY: clone
   artifacts:
+    paths:
+      - release_notes.md
     reports:
       dotenv: release_variables.env  
   tags:
@@ -58,7 +71,7 @@ heappe_build:
     - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_NAME_WITH_VERSION}"
   before_script:
     - docker --version
-    - docker image prune
+    - docker image prune -f
   tags:
     - Docker
     - Centos9
@@ -77,7 +90,7 @@ sshagent_build:
   script:
     - echo "Building Docker SSH-Agent image..."
     - SSHAGENT_IMAGE_NAME_WITH_VERSION="${SSHAGENT_IMAGE_NAME}:${TAG_NAME}"
-    - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_NAME_WITH_VERSION}"  .
+    - docker build --no-cache -f ./SshAgent/Dockerfile -t "${SSHAGENT_IMAGE_NAME_WITH_VERSION}"  .
 
     - echo "Tagging the Docker image..."
     - docker tag "${SSHAGENT_IMAGE_NAME_WITH_VERSION}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
@@ -87,7 +100,7 @@ sshagent_build:
     - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
   before_script:
     - docker --version
-    - docker image prune
+    - docker image prune -f
   tags:
     - Docker
     - Centos9
@@ -114,42 +127,108 @@ semgrep-sast:
     paths:
       - gl-sast-report.json
 
-python_rest_api_tests:
+test_e2e:
   stage: test
-  image: python:3.12-slim
+  variables:
+    GIT_CLEAN_FLAGS: "none"
   before_script:
-    - apt-get update && apt-get install -y docker-compose-plugin docker-cli
-    - pip install --upgrade pip
-    - pip install -r Tests/RestApiTests/requirements.txt
+    - docker --version
+    - docker compose version
+    - echo "Cleaning up runner disk space and workspace before test run..."
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace 2>/dev/null && chmod -R u+rwX /workspace 2>/dev/null && find /workspace -name '*.version.stamp' -delete 2>/dev/null && find /workspace -type d \( -name 'bin' -o -name 'obj' -o -name 'TestResults' -o -name '.nuget' \) -exec rm -rf {} + 2>/dev/null || true"
+    - docker system prune -af --volumes || true
+    - df -h
   script:
-    - echo "Deploying ephemeral HEAppE Core + Slurm test environment..."
-    - docker compose -f docker-compose.ci-test.yml up -d
-    - echo "Waiting for HEAppE Core and Slurm containers to initialize..."
-    - sleep 15
-    - echo "Running Python REST API Tests & Schemathesis 100% py4heappe Coverage..."
-    - pytest Tests/RestApiTests --junitxml=TestResults.xml
+    - echo "Starting Docker infrastructure and executing test suites..."
+    - cd ci
+    - docker compose -f docker-compose.ci.yml up -d --build mssql-ci slurm-ci sshnode-ci pbs-mock-ci qscheduler-ci
+    - chmod +x scripts/*.sh
+    - ./scripts/wait-for-healthy.sh 120
+    - TEST_EXIT_CODE=0
+    - docker compose -f docker-compose.ci.yml up --build --exit-code-from testrunner-ci testrunner-ci || TEST_EXIT_CODE=$?
+    - rm -rf ../TestResults 2>/dev/null || true
+    - docker cp heappe_testrunner_ci:/workspace/TestResults ../TestResults || true
+    - exit $TEST_EXIT_CODE
   after_script:
-    - docker compose -f docker-compose.ci-test.yml down -v
+    - cd ci && docker compose -f docker-compose.ci.yml down -v --rmi local || true
+    - docker run --rm -v "$PWD:/workspace" alpine sh -c "chown -R $(id -u):$(id -g) /workspace/TestResults 2>/dev/null && chmod -R 777 /workspace/TestResults 2>/dev/null || true"
+    - docker system prune -f || true
+  coverage: '/Line coverage:\s+(\d+(?:\.\d+)?%)/'
   artifacts:
     when: always
-    reports:
-      junit: TestResults.xml
     paths:
-      - TestResults.xml
+      - TestResults/CoverageReport/
+      - TestResults/*junit*.xml
+      - TestResults/*.trx
+    reports:
+      junit: TestResults/*junit*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: TestResults/CoverageReport/Cobertura.xml
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+
+coverage_threshold:
+  stage: test
+  needs:
+    - job: test_e2e
+      artifacts: true
+  image: alpine:latest
+  allow_failure: true
+  variables:
+    TARGET_COVERAGE: "100"
+  script:
+    - echo "=========================================================="
+    - echo "        Code Coverage Target & Threshold Check"
+    - echo "=========================================================="
+    - |
+      if [ ! -f TestResults/CoverageReport/Summary.txt ]; then
+        echo "⚠️ Coverage report TestResults/CoverageReport/Summary.txt not found!"
+        exit 1
+      fi
+      cat TestResults/CoverageReport/Summary.txt
+      echo "----------------------------------------------------------"
+      COVERAGE=$(awk -F': ' '/Line coverage:/ {gsub(/%/,"",$2); print $2}' TestResults/CoverageReport/Summary.txt | tr -d ' \r\n')
+      if [ -z "$COVERAGE" ]; then
+        echo "⚠️ Could not parse Line coverage percentage from Summary.txt"
+        exit 1
+      fi
+      echo "Current Line Coverage: ${COVERAGE}%"
+      echo "Target Line Coverage:  ${TARGET_COVERAGE}%"
+      echo "----------------------------------------------------------"
+      IS_BELOW=$(awk -v cov="$COVERAGE" -v target="$TARGET_COVERAGE" 'BEGIN {print (cov < target) ? 1 : 0}')
+      if [ "$IS_BELOW" -eq 1 ]; then
+        echo "⚠️  [WARNING] Total line coverage is ${COVERAGE}%, which is below target ${TARGET_COVERAGE}%!"
+        echo "⚠️  Review TestResults/CoverageReport/index.html to inspect uncovered lines."
+        exit 1
+      fi
+      echo "🎉 [SUCCESS] Line coverage target met: ${COVERAGE}% >= ${TARGET_COVERAGE}%"
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
 
 release_job:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - job: release_msg_job
-      artifacts: true                     
+      artifacts: true
+    - job: heappe_build
+    - job: sshagent_build
+    - job: test_e2e
   before_script:
     - mkdir -p ~/bin ~/.local/bin
-    - curl --location --output ~/bin/release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
-    - chmod +x ~/bin/release-cli
-    - cp ~/bin/release-cli ~/.local/bin/release-cli 2>/dev/null || true
-    - cp ~/bin/release-cli /tmp/release-cli 2>/dev/null || true
-    - echo 'export PATH="$HOME/bin:$HOME/.local/bin:$PATH"' >> ~/.bashrc
+    - curl --location --output ./release-cli "https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64"
+    - chmod +x ./release-cli
+    - cp ./release-cli ~/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli ~/.local/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli /tmp/release-cli 2>/dev/null || true
+    - cp ./release-cli /usr/local/bin/release-cli 2>/dev/null || true
+    - cp ./release-cli /usr/bin/release-cli 2>/dev/null || true
+    - echo 'export PATH="$HOME/bin:$HOME/.local/bin:$CI_PROJECT_DIR:$PATH"' >> ~/.bashrc
     - export PATH="$HOME/bin:$HOME/.local/bin:$CI_PROJECT_DIR:$PATH"
   script:
     - echo "Creating RELEASE \"$TAG_NAME"\"
@@ -159,10 +238,11 @@ release_job:
     - git status
   release:
     name: '${TAG_NAME}'
-    description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
+    description: './release_notes.md'
     tag_name: '${TAG_NAME}'
   variables:
     GIT_STRATEGY: clone
+    PATH: "$CI_PROJECT_DIR:$HOME/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
   tags:
     - Docker
     - Centos9
@@ -175,25 +255,41 @@ push_to_github_job:
   needs:
     - job: release_msg_job
       artifacts: true
+    - job: release_job
   image: alpine:latest
+  before_script:
+    - apk add --no-cache git curl python3 2>/dev/null || true
   script:
      - git config --global user.name "HEAppE Pipeline"
      - git config --global user.email "support.heappe@it4i.cz" 
      - git checkout origin/master
+     - git remote remove github 2>/dev/null || true
      - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/It4innovations/HEAppE.git
      - git push github HEAD:$CI_COMMIT_REF_NAME
      - git push github --tags
-     - echo "${TAG_MESSAGE}"
-     - MODIFICATION_TAG_MESSAGE=$(echo "${TAG_MESSAGE}" | base64 -d | sed '/^[[:space:]]*$/s/^.*$/\\n/' | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-     - echo "${MODIFICATION_TAG_MESSAGE}"
      - |
-        curl -L -X POST -H "Authorization: token $GITHUB_TOKEN" -d '{
-          "tag_name": "'"${TAG_NAME}"'",
-          "name": "'"${TAG_NAME}"'",
-          "body": "'"${MODIFICATION_TAG_MESSAGE}"'",
-          "draft": false,
-          "prerelease": false
-        }' https://api.github.com/repos/It4innovations/HEAppE/releases
+        python3 -c "
+        import json, os
+        tag_name = os.environ.get('TAG_NAME', '')
+        tag_body = ''
+        if os.path.exists('release_notes.md'):
+            with open('release_notes.md', 'r', encoding='utf-8') as f:
+                tag_body = f.read()
+        payload = {
+            'tag_name': tag_name,
+            'name': tag_name,
+            'body': tag_body,
+            'draft': False,
+            'prerelease': False
+        }
+        with open('github_release_payload.json', 'w', encoding='utf-8') as f:
+            json.dump(payload, f)
+        "
+        curl -L -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d @github_release_payload.json \
+          https://api.github.com/repos/It4innovations/HEAppE/releases
   variables:
     GIT_STRATEGY: clone
   tags:

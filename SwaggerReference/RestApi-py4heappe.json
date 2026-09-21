@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.5.0"
+    "version": "v6.5.2"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -3140,6 +3140,156 @@
         }
       }
     },
+    "/heappe/JobManagement/ListDetailedJobsForAdmin": {
+      "get": {
+        "tags": [
+          "JobManagement"
+        ],
+        "summary": "List detailed jobs for project admin or manager with pagination and filters",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "JobStates",
+            "in": "query",
+            "description": "Comma separated string of job state IDs (e.g. \"1,2,4,8,128\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Max number of jobs to return",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Offset",
+            "in": "query",
+            "description": "Number of jobs to skip",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "UserId",
+            "in": "query",
+            "description": "Filter by user ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ClusterId",
+            "in": "query",
+            "description": "Filter by cluster ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SubProjectId",
+            "in": "query",
+            "description": "Filter by subproject ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Search term (job or task name)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobPagedResultExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/JobManagement/CurrentInfoForJob": {
       "get": {
         "tags": [
@@ -6104,6 +6254,86 @@
         }
       }
     },
+    "/heappe/Management/SetAdaptorUserBlockStatus": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Set Adaptor User Block Status",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdaptorUserBlockStatusModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdaptorUserBlockStatusModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdaptorUserBlockStatusModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptorUserCreatedExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/Management/AdaptorUsers": {
       "get": {
         "tags": [
@@ -6661,6 +6891,239 @@
         }
       }
     },
+    "/heappe/Management/AssignSystemRoleToUser": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Assign System Role to User across all projects",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSystemRoleToUserModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/RemoveSystemRoleFromUser": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Remove System Role from User across all projects",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveSystemRoleFromUserModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/SystemRoleAssignments": {
+      "get": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "List all System Role Assignments",
+        "parameters": [
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemRoleAssignmentExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/heappe/Management/ProjectsByAccountingStrings": {
       "get": {
         "tags": [
@@ -6708,6 +7171,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -13216,28 +13699,28 @@
         }
       }
     },
-    "/heappe/QScheduler/OpenSession": {
+    "/heappe/Management/GetJobExternalServiceLogs": {
       "post": {
         "tags": [
-          "QScheduler"
+          "Management"
         ],
-        "summary": "Open QScheduler session explicitly",
+        "summary": "Get external service and database telemetry logs for a specific job.",
         "requestBody": {
-          "description": "Session specification",
+          "description": "Request parameters containing job ID and session code",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/OpenQSchedulerSessionModel"
+                "$ref": "#/components/schemas/GetJobExternalServiceLogsModel"
               }
             }
           }
@@ -13248,14 +13731,56 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int64"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobExternalServiceLogExt"
+                  }
                 }
               }
             }
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -13267,7 +13792,193 @@
         }
       }
     },
-    "/heappe/JobManagement/OpenQSchedulerSession": {
+    "/heappe/Management/GetExternalServicesStatistics": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get aggregated external service and database telemetry statistics for a time window (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing time window and optional filters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExternalServicesStatisticsModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalServiceStatisticsExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/Management/GetExternalServicesLiveStatus": {
+      "post": {
+        "tags": [
+          "Management"
+        ],
+        "summary": "Get live availability and latency status for all registered external services (admin only).",
+        "requestBody": {
+          "description": "Request parameters containing session code",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalServicesLiveStatusModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalServiceLiveStatusExt"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/OpenSession": {
       "post": {
         "tags": [
           "QScheduler"
@@ -13361,188 +14072,7 @@
         }
       }
     },
-    "/heappe/JobManagement/CloseQSchedulerSession": {
-      "delete": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Close QScheduler session explicitly",
-        "requestBody": {
-          "description": "Session identification",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseQSchedulerSessionModel"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/heappe/QScheduler/GetSessionInfo": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler session info and state",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SessionId",
-            "in": "query",
-            "description": "QScheduler session ID (returned by OpenSession)",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQSchedulerSessionInfo": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler session info and state",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SessionId",
-            "in": "query",
-            "description": "QScheduler session ID (returned by OpenSession)",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/QSchedulerSessionInfo": {
       "get": {
         "tags": [
           "QScheduler"
@@ -13700,101 +14230,13 @@
         }
       }
     },
-    "/heappe/JobManagement/ListQSchedulerSessions": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "List QScheduler sessions with optional state, cluster, and project filters.",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "State",
-            "in": "query",
-            "description": "Optional state filter (\"Open\" or \"Closed\")",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ClusterId",
-            "in": "query",
-            "description": "Optional cluster ID filter",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "description": "Optional project ID filter",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/QSchedulerSessionInfoExt"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/heappe/QScheduler/CreateAndSubmitJob": {
       "post": {
         "tags": [
           "QScheduler"
         ],
         "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
+        "description": "Sample JSON structure to enter into the 'model' form field:\n\n    {\n      \"SessionCode\": \"your-heappe-session-code\",\n      \"JobSpecification\": {\n        \"Name\": \"QuantumJob\",\n        \"ClusterId\": 1,\n        \"ProjectId\": 1,\n        \"Tasks\": [\n          {\n            \"Name\": \"GroverTask\",\n            \"MachineId\": \"iqm_simulator\",\n            \"WalltimeLimitSecs\": 3600,\n            \"PayloadPartName\": \"circuit1\",\n            \"UseSessions\": false\n          }\n        ]\n      }\n    }\n\nNote: Attach your circuit payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -13803,77 +14245,7 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
-                  }
-                }
-              },
-              "encoding": {
-                "model": {
-                  "style": "form"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmittedJobInfoExt"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/CreateAndSubmitQSchedulerJob": {
-      "post": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "model": {
-                    "type": "string",
-                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel"
+                    "description": "JSON string of CreateAndSubmitQSchedulerJobModel (see remarks for example JSON format)"
                   }
                 }
               },
@@ -13991,271 +14363,7 @@
         }
       }
     },
-    "/heappe/JobManagement/GetQSchedulerTaskResult": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler task result (IQM metadata, timeline, etc.)",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQuantumTaskResult": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler task result (IQM metadata, timeline, etc.)",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/heappe/QScheduler/GetTaskArtifact": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler task artifact by name.",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ArtifactName",
-            "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQSchedulerTaskArtifact": {
-      "get": {
-        "tags": [
-          "QScheduler"
-        ],
-        "summary": "Get QScheduler task artifact by name.",
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "description": "HEAppE session code",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "SubmittedTaskId",
-            "in": "query",
-            "description": "HEAppE Task ID",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ArtifactName",
-            "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/heappe/JobManagement/GetQuantumTaskArtifact": {
       "get": {
         "tags": [
           "QScheduler"
@@ -15587,6 +15695,10 @@
           "UserType": {
             "$ref": "#/components/schemas/AdaptorUserTypeExt"
           },
+          "IsBlocked": {
+            "type": "boolean",
+            "description": "Is blocked"
+          },
           "AdaptorUserGroups": {
             "type": "array",
             "items": {
@@ -15675,6 +15787,371 @@
         "type": "integer",
         "format": "int32"
       },
+      "AdminJobPagedResultExt": {
+        "type": "object",
+        "properties": {
+          "TotalCount": {
+            "type": "integer",
+            "description": "Total count of matching jobs for pagination calculation",
+            "format": "int32"
+          },
+          "Limit": {
+            "type": "integer",
+            "description": "Max items requested per page",
+            "format": "int32",
+            "nullable": true
+          },
+          "Offset": {
+            "type": "integer",
+            "description": "Items skipped for pagination",
+            "format": "int32",
+            "nullable": true
+          },
+          "Items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmittedJobInfoExt"
+            },
+            "description": "Array of enriched jobs",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminSubmittedJobInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/JobStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CreationTime": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "SubmitTime": {
+            "type": "string",
+            "description": "Submit time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "TotalAllocatedTime": {
+            "type": "number",
+            "description": "Total allocation time",
+            "format": "double",
+            "nullable": true
+          },
+          "Submitter": {
+            "$ref": "#/components/schemas/AdminSubmitterInfoExt"
+          },
+          "SubmitterGroup": {
+            "type": "string",
+            "description": "Submitter group name",
+            "nullable": true
+          },
+          "ClusterUsername": {
+            "type": "string",
+            "description": "Cluster username used internally on HPC cluster",
+            "nullable": true
+          },
+          "ClusterAuthenticationType": {
+            "$ref": "#/components/schemas/ClusterAuthenticationCredentialsAuthTypeExt"
+          },
+          "ProjectId": {
+            "type": "integer",
+            "description": "Project ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "ProjectName": {
+            "type": "string",
+            "description": "Project name",
+            "nullable": true
+          },
+          "SubProjectId": {
+            "type": "integer",
+            "description": "SubProject ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "SubProjectIdentifier": {
+            "type": "string",
+            "description": "SubProject identifier",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster ID",
+            "format": "int64",
+            "nullable": true
+          },
+          "ClusterName": {
+            "type": "string",
+            "description": "Cluster name",
+            "nullable": true
+          },
+          "Reservation": {
+            "type": "string",
+            "description": "HPC reservation string",
+            "nullable": true
+          },
+          "Tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTaskInfoExt"
+            },
+            "description": "Array of tasks",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminSubmitterInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "User Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Username": {
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Email": {
+            "type": "string",
+            "description": "Email",
+            "nullable": true
+          },
+          "IdpSid": {
+            "type": "string",
+            "description": "Identity Provider Subject ID (e.g. Keycloak / OIDC SID)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminTaskInfoExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "description": "Id",
+            "format": "int64",
+            "nullable": true
+          },
+          "Name": {
+            "type": "string",
+            "description": "Name",
+            "nullable": true
+          },
+          "State": {
+            "$ref": "#/components/schemas/TaskStateExt"
+          },
+          "StateSource": {
+            "$ref": "#/components/schemas/JobStateSourceExt"
+          },
+          "StateUpdatedAt": {
+            "type": "string",
+            "description": "Timestamp of last state update",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Priority": {
+            "$ref": "#/components/schemas/TaskPriorityExt"
+          },
+          "AllocatedTime": {
+            "type": "number",
+            "description": "Allocated time",
+            "format": "double",
+            "nullable": true
+          },
+          "AllocatedCoreIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of allocated core ids",
+            "nullable": true
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Start time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "End time",
+            "format": "date-time",
+            "nullable": true
+          },
+          "NodeType": {
+            "$ref": "#/components/schemas/ClusterNodeTypeForTaskExt"
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "description": "Error message",
+            "nullable": true
+          },
+          "CpuHyperThreading": {
+            "type": "boolean",
+            "description": "Cpu hyper threading",
+            "nullable": true
+          },
+          "Reason": {
+            "type": "string",
+            "description": "Reason (parsed from scheduler, e.g. SLURM)",
+            "nullable": true
+          },
+          "MinCores": {
+            "type": "integer",
+            "description": "Minimum CPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaxCores": {
+            "type": "integer",
+            "description": "Maximum CPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "GpuCores": {
+            "type": "integer",
+            "description": "GPU cores",
+            "format": "int32",
+            "nullable": true
+          },
+          "GpuNodes": {
+            "type": "integer",
+            "description": "GPU nodes",
+            "format": "int32",
+            "nullable": true
+          },
+          "WalltimeLimit": {
+            "type": "integer",
+            "description": "Walltime limit",
+            "format": "int32",
+            "nullable": true
+          },
+          "Memory": {
+            "type": "integer",
+            "description": "Memory",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerCPU": {
+            "type": "integer",
+            "description": "Memory per CPU",
+            "format": "int64",
+            "nullable": true
+          },
+          "MemoryPerGPU": {
+            "type": "integer",
+            "description": "Memory per GPU",
+            "format": "int64",
+            "nullable": true
+          },
+          "PlacementPolicy": {
+            "type": "string",
+            "description": "Placement policy",
+            "nullable": true
+          },
+          "IsExclusive": {
+            "type": "boolean",
+            "description": "Is exclusive",
+            "nullable": true
+          },
+          "IsRerunnable": {
+            "type": "boolean",
+            "description": "Is rerunnable",
+            "nullable": true
+          },
+          "JobArrays": {
+            "type": "string",
+            "description": "Job arrays",
+            "nullable": true
+          },
+          "StandardInputFile": {
+            "type": "string",
+            "description": "Standard input file",
+            "nullable": true
+          },
+          "StandardOutputFile": {
+            "type": "string",
+            "description": "Standard output file",
+            "nullable": true
+          },
+          "StandardErrorFile": {
+            "type": "string",
+            "description": "Standard error file",
+            "nullable": true
+          },
+          "ClusterTaskSubdirectory": {
+            "type": "string",
+            "description": "Cluster task subdirectory",
+            "nullable": true
+          },
+          "CommandTemplateId": {
+            "type": "integer",
+            "description": "Command template id",
+            "format": "int64",
+            "nullable": true
+          },
+          "TemplateParameterValues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandTemplateParameterValueExt"
+            },
+            "description": "Command template parameter values submitted by user",
+            "nullable": true
+          },
+          "EnvironmentVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentVariableExt"
+            },
+            "description": "Environment variables",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AssignAdaptorUserToProjectModel": {
         "type": "object",
         "properties": {
@@ -15724,6 +16201,29 @@
             "type": "integer",
             "description": "UserGroupId",
             "format": "int64"
+          },
+          "Role": {
+            "$ref": "#/components/schemas/AdaptorUserRoleType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssignSystemRoleToUserModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Username",
+            "nullable": true
           },
           "Role": {
             "$ref": "#/components/schemas/AdaptorUserRoleType"
@@ -18599,6 +19099,10 @@
             "type": "string",
             "nullable": true
           },
+          "ServiceType": {
+            "type": "string",
+            "nullable": true
+          },
           "CommandOrPath": {
             "type": "string",
             "nullable": true
@@ -18619,9 +19123,30 @@
             "type": "integer",
             "format": "int64"
           },
+          "P95ResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
           "TotalChecks": {
             "type": "integer",
             "format": "int64"
+          },
+          "FailedChecks": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExternalServicesLiveStatusModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18921,6 +19446,42 @@
         },
         "additionalProperties": false
       },
+      "GetExternalServicesStatisticsModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "From": {
+            "type": "string",
+            "description": "Start of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "To": {
+            "type": "string",
+            "description": "End of the statistics time window (UTC)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ServiceName": {
+            "type": "string",
+            "description": "Optional filter by service name",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Optional filter by cluster ID",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GetFileTransferMethodModel": {
         "type": "object",
         "properties": {
@@ -18934,6 +19495,27 @@
           "SubmittedJobInfoId": {
             "type": "integer",
             "description": "Subbmited job info id",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetJobExternalServiceLogsModel": {
+        "required": [
+          "SubmittedJobInfoId"
+        ],
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "SubmittedJobInfoId": {
+            "type": "integer",
+            "description": "Submitted job info identifier",
             "format": "int64"
           }
         },
@@ -19286,6 +19868,83 @@
               "$ref": "#/components/schemas/TaskExtendedReportExt"
             },
             "description": "List of task extended reports",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobExternalServiceLogExt": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ServiceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ServiceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "Protocol": {
+            "type": "string",
+            "nullable": true
+          },
+          "EndpointOrHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "Port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Operation": {
+            "type": "string",
+            "nullable": true
+          },
+          "Timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "IsSuccess": {
+            "type": "boolean"
+          },
+          "ResponseTimeMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "StatusCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "JobId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "TaskId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ClusterId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "RequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "Source": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -21539,6 +22198,29 @@
         },
         "additionalProperties": false
       },
+      "RemoveSystemRoleFromUserModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Role": {
+            "$ref": "#/components/schemas/AdaptorUserRoleType"
+          }
+        },
+        "additionalProperties": false
+      },
       "ResourceAllocationTypeExt": {
         "enum": [
           1,
@@ -21581,6 +22263,30 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "SetAdaptorUserBlockStatusModel": {
+        "type": "object",
+        "properties": {
+          "SessionCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Session code",
+            "nullable": true
+          },
+          "Username": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "IsBlocked": {
+            "type": "boolean",
+            "description": "IsBlocked"
+          }
+        },
+        "additionalProperties": false
       },
       "SshKeyUserCredentialsModel": {
         "type": "object",
@@ -21912,6 +22618,27 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "SystemRoleAssignmentExt": {
+        "type": "object",
+        "properties": {
+          "Username": {
+            "type": "string",
+            "description": "Username",
+            "nullable": true
+          },
+          "Role": {
+            "type": "string",
+            "description": "Role name",
+            "nullable": true
+          },
+          "Source": {
+            "type": "string",
+            "description": "Assignment source (Appsettings, Dynamic, or Both)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "TaskCallbackModel": {
         "required": [

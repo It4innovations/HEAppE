@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
@@ -26,7 +26,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singletons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _linuxSchedulerSingletons = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string MasterNodeName, long projectId, long? AdaptorUserId), IRexScheduler> _linuxSchedulerSingletons = new();
 
     /// <summary>
     ///     Convertor singletons
@@ -57,14 +57,42 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
-        if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))
-            _linuxSchedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
+        return _linuxSchedulerSingletons.GetOrAdd(
+            uniqueIdentifier,
+            key => new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio, logger),
                 CreateSchedulerAdapter(logger), logger
-            );
-        return _linuxSchedulerSingletons[uniqueIdentifier];
+            )
+        );
+    }
+
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _linuxSchedulerSingletons.Keys)
+        {
+            if (key.projectId == projectId)
+            {
+                _linuxSchedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _linuxSchedulerSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _linuxSchedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _linuxSchedulerSingletons.Clear();
     }
 
     /// <summary>

@@ -49,6 +49,16 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
         return await _dbSet.ToListAsync();
     }
 
+    public virtual IList<T> GetAllReadOnly()
+    {
+        return _dbSet.AsNoTracking().ToList();
+    }
+
+    public virtual async Task<IList<T>> GetAllReadOnlyAsync()
+    {
+        return await _dbSet.AsNoTracking().ToListAsync();
+    }
+
     public virtual void Insert(T entity)
     {
         _dbSet.Add(entity);

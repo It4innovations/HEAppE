@@ -30,12 +30,12 @@ public sealed class CommandScriptPathConfiguration
     /// <summary>
     ///     Path to copy data from temp script
     /// </summary>
-    public string CopyDataFromTempCmdScriptName { get; set; }
+    public string CopyDataFromTempCmdScriptName { get; set; } = "copy_data_from_temp.sh";
 
     /// <summary>
     ///     Path to copy data to temp script
     /// </summary>
-    public string CopyDataToTempCmdScriptName { get; set; }
+    public string CopyDataToTempCmdScriptName { get; set; } = "copy_data_to_temp.sh";
 
     #endregion
 }

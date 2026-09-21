@@ -83,7 +83,6 @@ internal struct SchedulerEndpoint
         return obj is SchedulerEndpoint endpoint &&
                MasterNodeName.Equals(endpoint.MasterNodeName) &&
                ProjectId.Equals(endpoint.ProjectId) &&
-               ProjectModifiedAt.Equals(endpoint.ProjectModifiedAt) &&
                SchedulerType.Equals(endpoint.SchedulerType) &&
                Nullable.Equals(AdaptorUserId, endpoint.AdaptorUserId) &&
                Nullable.Equals(ProxyConnectionId, endpoint.ProxyConnectionId) &&
@@ -99,7 +98,6 @@ internal struct SchedulerEndpoint
         var hash = new HashCode();
         hash.Add(MasterNodeName);
         hash.Add(ProjectId);
-        hash.Add(ProjectModifiedAt);
         hash.Add(SchedulerType);
         hash.Add(AdaptorUserId);
         hash.Add(ProxyConnectionId);

@@ -32,6 +32,9 @@ public class SshClientAdapter
 
     #endregion
 
+    public string Host => _sshClient?.ConnectionInfo?.Host;
+    public int? Port => _sshClient?.ConnectionInfo?.Port;
+
     public static void RegisterCommandPrefix(object sshClient, string prefix)
     {
         if (sshClient != null && !string.IsNullOrEmpty(prefix))

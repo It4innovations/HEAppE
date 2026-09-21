@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
 using Xunit;
 using HEAppE.HpcConnectionFramework.Configuration;
 
@@ -85,5 +87,118 @@ public class ClusterRuntimeConfigurationTests
         var config = ClusterRuntimeConfiguration.For(customConfig);
 
         Assert.Equal("https://cluster-specific.heappe.eu/callback", config.Scripts.CallbackUrl);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_ForNullOrEmpty_ReturnsSameDefaultInstance()
+    {
+        var config1 = ClusterRuntimeConfiguration.For(null);
+        var config2 = ClusterRuntimeConfiguration.For(new Dictionary<string, string>());
+
+        Assert.Same(config1, config2);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_ForIdenticalDictionaries_ReturnsCachedInstance()
+    {
+        var dict1 = new Dictionary<string, string>
+        {
+            { "EnableCallback", "true" },
+            { "CallbackUrl", "https://test.eu" }
+        };
+        var dict2 = new Dictionary<string, string>
+        {
+            { "CallbackUrl", "https://test.eu" },
+            { "EnableCallback", "true" }
+        };
+
+        var config1 = ClusterRuntimeConfiguration.For(dict1);
+        var config2 = ClusterRuntimeConfiguration.For(dict2);
+
+        Assert.Same(config1, config2);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_ResetCache_ClearsCache()
+    {
+        var dict = new Dictionary<string, string>
+        {
+            { "EnableCallback", "true" }
+        };
+
+        var config1 = ClusterRuntimeConfiguration.For(dict);
+        ClusterRuntimeConfiguration.ResetCache();
+        var config2 = ClusterRuntimeConfiguration.For(dict);
+
+        Assert.NotSame(config1, config2);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_GetValue_FallsBackToGlobalConfiguration()
+    {
+        var globalConfig = new ConfigurationBuilder()
+            .Add(new MemoryConfigurationSource
+            {
+                InitialData = new Dictionary<string, string>
+                {
+                    { "SomeGlobalSetting", "GlobalVal" },
+                    { "OverriddenSetting", "GlobalVal2" }
+                }
+            })
+            .Build();
+
+        ClusterRuntimeConfiguration.GlobalConfiguration = globalConfig;
+
+        var customConfig = new Dictionary<string, string>
+        {
+            { "OverriddenSetting", "ClusterVal" }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+
+        Assert.Equal("GlobalVal", config.GetValue("SomeGlobalSetting"));
+        Assert.Equal("ClusterVal", config.GetValue("OverriddenSetting"));
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_CommandScriptsPathSettings_PreservesExecuteCmdScriptNameAndPath()
+    {
+        var config = ClusterRuntimeConfiguration.For(new Dictionary<string, string>());
+
+        Assert.Equal("run_command.sh", config.CommandScriptsPathSettings.ExecuteCmdScriptName);
+        Assert.Equal("add_key.sh", config.CommandScriptsPathSettings.AddFiletransferKeyCmdScriptName);
+        Assert.Equal("create_job_directory.sh", config.CommandScriptsPathSettings.CreateJobDirectoryCmdScriptName);
+
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84", "testuser");
+        Assert.EndsWith("/.eu-26-84/Identifier/.key_scripts/run_command.sh", executePath);
+        Assert.False(executePath.EndsWith("/.key_scripts/"));
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_GetExecuteCmdScriptPath_WhenScriptNameWhitespace_FallsBackToRunCommandSh()
+    {
+        var customConfig = new Dictionary<string, string>
+        {
+            { "HPCConnectionFrameworkSettings:ScriptsSettings:CommandScriptsPathSettings:ExecuteCmdScriptName", "   " }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84");
+
+        Assert.EndsWith("/.key_scripts/run_command.sh", executePath);
+    }
+
+    [Fact]
+    public void ClusterRuntimeConfiguration_CanOverrideCommandScriptName()
+    {
+        var customConfig = new Dictionary<string, string>
+        {
+            { "HPCConnectionFrameworkSettings:ScriptsSettings:CommandScriptsPathSettings:ExecuteCmdScriptName", "custom_run.sh" }
+        };
+
+        var config = ClusterRuntimeConfiguration.For(customConfig);
+        var executePath = config.GetExecuteCmdScriptPath("eu-26-84");
+
+        Assert.EndsWith("/.key_scripts/custom_run.sh", executePath);
     }
 }

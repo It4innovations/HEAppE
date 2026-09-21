@@ -76,6 +76,33 @@ public static class SshCommandUtils
 
         logger.LogInformation("SSH command executed async. Command: {Command}, Duration: {Duration}ms, Exit Code: {ExitCode}", command, duration.TotalMilliseconds, sshCommand.ExitStatus);
         
+        try
+        {
+            HEAppE.Services.Monitoring.ExternalServiceTelemetryService.Instance.Record(new HEAppE.DomainObjects.Monitoring.ExternalServiceHealthLog
+            {
+                ServiceName = client.Host ?? "cluster",
+                ServiceType = "cluster",
+                Protocol = "ssh",
+                EndpointOrHost = client.Host,
+                Port = client.Port,
+                CommandOrPath = command.Length > 200 ? command.Substring(0, 197) + "..." : command,
+                ResponseTimeMs = (long)duration.TotalMilliseconds,
+                IsAvailable = sshCommand.ExitStatus == 0,
+                StatusCode = sshCommand.ExitStatus.ToString(),
+                ErrorMessage = sshCommand.ExitStatus != 0 ? (!string.IsNullOrEmpty(sshCommand.Error) ? sshCommand.Error : sshCommand.Result) : null,
+                JobId = HEAppE.Utils.JobExecutionContext.CurrentJobId,
+                TaskId = HEAppE.Utils.JobExecutionContext.CurrentTaskId,
+                ClusterId = HEAppE.Utils.JobExecutionContext.CurrentClusterId,
+                RequestId = HEAppE.Utils.JobExecutionContext.CurrentRequestId,
+                Source = "Execution",
+                Timestamp = DateTime.UtcNow
+            });
+        }
+        catch
+        {
+            // Ignore telemetry recording failures
+        }
+
         return ProcessResult(sshCommand, logger);
     }
 

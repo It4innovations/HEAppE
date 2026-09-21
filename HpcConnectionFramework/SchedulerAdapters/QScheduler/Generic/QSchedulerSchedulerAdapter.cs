@@ -356,6 +356,14 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
         var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
         var limitMs = totalAllocation * 1000;
+
+        var cacheKey = $"{cluster.Id}:{projectName}";
+        if (_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) && cachedLimitMs == limitMs)
+        {
+            _logger.LogDebug($"Project '{projectName}' limit unchanged ({limitMs} ms) and already registered. Skipping redundant project registration HTTP requests.");
+            return;
+        }
+
         _logger.LogInformation($"Registering/ensuring project '{projectName}' with limit {limitMs} ms (converted from {totalAllocation} {usageTypeName} summed from {aggregations.Count} aggregation(s)).");
 
         var projectPayload = $"{{\"name\":\"{projectName}\",\"limit_ms\":{limitMs},\"active\":true}}";
@@ -363,29 +371,21 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
         if (response != null && response.StartsWith("CONFLICT:", StringComparison.OrdinalIgnoreCase))
         {
-            var cacheKey = $"{cluster.Id}:{projectName}";
-            if (!_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) || cachedLimitMs != limitMs)
+            _logger.LogInformation($"Project '{projectName}' limit changed ({cachedLimitMs} → {limitMs} ms) or not yet cached. Sending PATCH to update.");
+            var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
+            try
             {
-                _logger.LogInformation($"Project '{projectName}' limit changed ({cachedLimitMs} → {limitMs} ms) or not yet cached. Sending PATCH to update.");
-                var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
-                try
-                {
-                    await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
-                    _projectLimitCache[cacheKey] = limitMs;
-                }
-                catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
-                {
-                    _logger.LogWarning($"QScheduler does not support project PATCH (status {ex.StatusCode}). Skipping.");
-                }
+                await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                _projectLimitCache[cacheKey] = limitMs;
             }
-            else
+            catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
             {
-                _logger.LogDebug($"Project '{projectName}' limit unchanged ({limitMs} ms). Skipping redundant PATCH.");
+                _logger.LogWarning($"QScheduler does not support project PATCH (status {ex.StatusCode}). Skipping.");
+                _projectLimitCache[cacheKey] = limitMs;
             }
         }
         else
         {
-            var cacheKey = $"{cluster.Id}:{projectName}";
             _projectLimitCache[cacheKey] = limitMs;
         }
     }

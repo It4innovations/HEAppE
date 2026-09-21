@@ -91,13 +91,6 @@ public class Program
                                     }
                                 }
                             }
-
-                            using (var cmd = conn.CreateCommand())
-                            {
-                                cmd.CommandTimeout = 0; // Infinite timeout
-                                cmd.CommandText = $"DBCC SHRINKDATABASE ({safeDbName}, 10) WITH NO_INFOMSGS;";
-                                cmd.ExecuteNonQuery();
-                            }
                         }
                         logger.LogInformation("Startup logging database maintenance completed successfully.");
                     }
@@ -132,7 +125,7 @@ public class Program
                 .UseUrls("http://*:80")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, true);
+                    config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
                     config.AddNotJson("/opt/heappe/confs/seed.njson");
                 })
                 .UseKestrel(options =>
@@ -157,7 +150,7 @@ public class Program
                             ("appsettings.json", true),
                             ("seed.njson", true)
                         ],
-                        addJsonFile: confPath => config.AddJsonFile(confPath, false, true),
+                        addJsonFile: confPath => config.AddJsonFile(confPath, false, false),
                         addNotJson: confPath => config.AddNotJson(confPath))
                     )
                         throw new Exception("Configuration files not found!");

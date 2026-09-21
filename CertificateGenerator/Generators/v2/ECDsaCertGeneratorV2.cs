@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using Org.BouncyCastle.Crypto;
@@ -159,29 +159,63 @@ public class ECDsaCertGeneratorV2 : GenericCertGeneratorV2
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(privateKey))
+                return "Unable to convert";
+
+            if (!privateKey.Contains("-----BEGIN"))
+            {
+                try
+                {
+                    var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(privateKey));
+                    if (decoded.Contains("-----BEGIN"))
+                        privateKey = decoded;
+                }
+                catch
+                {
+                    // Keep original privateKey if base64 decoding fails
+                }
+            }
+
             using var fileStream = new StringReader(privateKey);
             var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
-            var publicKey = keyPair.Public;
-            var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
-            var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+            var obj = pemReader.ReadObject();
 
-            //get key size from private key
-            var privateKeyFromPair = keyPair.Private;
-            var privateKeyParams = privateKeyFromPair as ECPrivateKeyParameters;
-            var keySize = privateKeyParams.Parameters.Curve.FieldSize;
+            AsymmetricKeyParameter publicKey = null;
+            int keySize = 256;
 
-            var formattedPublicKey = new StringBuilder();
-            formattedPublicKey.Append($"ecdsa-sha2-nistp{keySize} ");
-            formattedPublicKey.Append(base64PublicKey);
+            if (obj is AsymmetricCipherKeyPair keyPair)
+            {
+                publicKey = keyPair.Public;
+                if (keyPair.Private is ECPrivateKeyParameters ecPriv)
+                    keySize = ecPriv.Parameters.Curve.FieldSize;
+            }
+            else if (obj is ECPrivateKeyParameters ecPrivDirect)
+            {
+                var q = ecPrivDirect.Parameters.G.Multiply(ecPrivDirect.D);
+                publicKey = new ECPublicKeyParameters(ecPrivDirect.AlgorithmName, q, ecPrivDirect.Parameters);
+                keySize = ecPrivDirect.Parameters.Curve.FieldSize;
+            }
 
-            if (!string.IsNullOrEmpty(comment))
-                formattedPublicKey.Append($" {comment}");
-            else
-                formattedPublicKey.Append($" {_publicComment}");
+            if (publicKey != null)
+            {
+                var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+                var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
 
-            return formattedPublicKey.ToString();
-        }catch (Exception )
+                var formattedPublicKey = new StringBuilder();
+                formattedPublicKey.Append($"ecdsa-sha2-nistp{keySize} ");
+                formattedPublicKey.Append(base64PublicKey);
+
+                if (!string.IsNullOrEmpty(comment))
+                    formattedPublicKey.Append($" {comment}");
+                else
+                    formattedPublicKey.Append($" {_publicComment}");
+
+                return formattedPublicKey.ToString();
+            }
+
+            return "Unable to convert";
+        }
+        catch (Exception )
         {
             return "Unable to convert";
         }

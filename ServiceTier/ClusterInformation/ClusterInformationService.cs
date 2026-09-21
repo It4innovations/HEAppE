@@ -52,9 +52,8 @@ public class ClusterInformationService : IClusterInformationService
     private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
     {
         var options = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes))
-            .AddExpirationToken(new CancellationChangeToken(CacheUtils.ClusterInfoResetToken));
-    
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes));
+
         _cacheProvider.Set(key, value, options);
     }
 
@@ -78,7 +77,7 @@ public class ClusterInformationService : IClusterInformationService
 
             userId = loggedUser.Id;
             projects = userProjects.ToList();
-            memoryCacheKey = $"{nameof(ListAvailableClusters)}_{userId}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
+            memoryCacheKey = $"v{CacheUtils.ClusterCacheVersion}_{nameof(ListAvailableClusters)}_{userId}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
 
             // Fast cache path (no forceRefresh)
             if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
@@ -88,7 +87,7 @@ public class ClusterInformationService : IClusterInformationService
         } // DB connection released
 
         // Retrieve raw clusters list globally (coalesced database queries)
-        string globalCacheKey = $"GlobalRawClusters_{clusterName ?? "All"}";
+        string globalCacheKey = $"v{CacheUtils.ClusterCacheVersion}_GlobalRawClusters_{clusterName ?? "All"}";
         List<HEAppE.DomainObjects.ClusterInformation.Cluster> clusters;
 
         if (forceRefresh)
@@ -223,19 +222,14 @@ public class ClusterInformationService : IClusterInformationService
         if (loggedUser is null || !projectIds.Any())
             throw new Exception("Operation permission denied.");
 
-        var clearedKeysCount = 0;
-        if (_cacheProvider is MemoryCache memCache)
-        {
-            clearedKeysCount = memCache.Count;
-        }
-
-        CacheUtils.InvalidateAllCache(_logger);
+        var clearedKeysCount = _cacheProvider is MemoryCache memCache ? memCache.Count : 0;
+        CacheUtils.InvalidateClusterCache(_logger);
         
         return new ClusterClearCacheInfoExt
         {
             ClearedKeysCount = clearedKeysCount,
             Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
-            Description = "Cache cleared for current user using global reset token"
+            Description = "Cluster cache invalidated"
         };
     }
 
@@ -251,6 +245,7 @@ public class ClusterInformationService : IClusterInformationService
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
                 new List<string>
                 {
+                    $"v{CacheUtils.ClusterCacheVersion}",
                     commandTemplateId.ToString(),
                     projectId.ToString(),
                     userScriptPath,
@@ -285,6 +280,7 @@ public class ClusterInformationService : IClusterInformationService
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
                 new List<string>
                 {
+                    $"v{CacheUtils.ClusterCacheVersion}",
                     clusterNodeId.ToString(),
                     sessionCode,
                     nameof(GetCurrentClusterNodeUsage)
@@ -350,7 +346,7 @@ public class ClusterInformationService : IClusterInformationService
     /// <summary>
     ///     Cache limit in minutes for method ListAvailableClusters
     /// </summary>
-    private readonly int _cacheLimitForListAvailableClusters = 150;
+    private readonly int _cacheLimitForListAvailableClusters = 5;
 
     /// <summary>
     ///     Cache limit in minutes for method GetCommandTemplateParametersName

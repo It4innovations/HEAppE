@@ -82,7 +82,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT 1 FROM sys.databases d WHERE d.name = @db AND d.recovery_model_desc" +
                 " IN ('FULL', 'BULK_LOGGED') AND EXISTS (SELECT 1 FROM msdb.dbo.backupset b WHERE b.database_name = @db " +
                 "AND b.type = 'D')";
@@ -105,10 +105,15 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
+            if (!string.IsNullOrEmpty(_configuration.LocalPath))
+            {
+                Directory.CreateDirectory(_configuration.LocalPath);
+            }
+
             var backupFileName = $"{_configuration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(_configuration.LocalPath, backupFileName);
             
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = @path WITH INIT;";
             cmd.Parameters.AddWithValue("@path", backupPath);
             await cmd.ExecuteNonQueryAsync();
@@ -131,6 +136,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             if (!string.IsNullOrEmpty(_configuration.NASPath))
             {
+                Directory.CreateDirectory(_configuration.NASPath);
                 var nasFile = Path.Combine(_configuration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _logger.LogInformation($"Transaction logs backup file was copied to NAS: {nasFile}");
@@ -146,6 +152,11 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
     {
         try
         {
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
             var files = Directory.GetFiles(folder, $"{_configuration.BackupFileNamePrefix}_LOGS_*.trn")
                              .Select(f => new FileInfo(f))
                              .ToList();

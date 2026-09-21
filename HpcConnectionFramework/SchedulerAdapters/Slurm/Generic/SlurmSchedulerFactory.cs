@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -30,7 +30,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singeltons
     /// </summary>
-    private readonly ConcurrentDictionary<(string MasterNodeName, long projectId, DateTime? ProjectModifiedAt, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
+    private readonly ConcurrentDictionary<(string MasterNodeName, long projectId, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -58,7 +58,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
         
         return _schedulerSingletons.GetOrAdd(
             uniqueIdentifier, 
@@ -68,6 +68,33 @@ internal class SlurmSchedulerFactory : SchedulerFactory
                 CreateSchedulerAdapter(logger), logger
             )
         );
+    }
+
+    public override void InvalidateSchedulersForProject(long projectId)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (key.projectId == projectId)
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateSchedulersForCluster(string masterNodeName)
+    {
+        foreach (var key in _schedulerSingletons.Keys)
+        {
+            if (string.Equals(key.MasterNodeName, masterNodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                _schedulerSingletons.TryRemove(key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllSchedulers()
+    {
+        _schedulerSingletons.Clear();
     }
 
     /// <summary>

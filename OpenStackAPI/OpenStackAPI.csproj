@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <AssemblyName>OpenStackAPI</AssemblyName>
         <RootNamespace>HEAppE.OpenStackAPI</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.3.1" />
+        <PackageReference Include="log4net" Version="3.4.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="RestSharp" Version="112.1.0" />
