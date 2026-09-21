@@ -60,7 +60,7 @@ public sealed class HPCConnectionFrameworkConfiguration
     public static string GetExecuteCmdScriptPath(string projectAccountingString, Dictionary<string, string>? customConfiguration)
     {
         var config = ClusterRuntimeConfiguration.For(customConfiguration);
-        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{config.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+        return config.GetExecuteCmdScriptPath(projectAccountingString);
     }
 
     /// <summary>
@@ -84,6 +84,6 @@ public sealed class HPCConnectionFrameworkConfiguration
     public static string GetPathToScript(string projectAccountingString, string scriptName, Dictionary<string, string>? customConfiguration)
     {
         var config = ClusterRuntimeConfiguration.For(customConfiguration);
-        return $"{config.ScriptsBasePath}/.{projectAccountingString}/{config.InstanceIdentifierPath}/.key_scripts/{scriptName}";
+        return config.GetPathToScript(projectAccountingString, scriptName);
     }
 }
