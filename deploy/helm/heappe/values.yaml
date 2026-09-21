@@ -60,10 +60,8 @@ api:
 
   resources:
     requests:
-      cpu: 250m
       memory: 512Mi
     limits:
-      cpu: "2"
       memory: 2Gi
 
   nodeSelector: {}
@@ -406,10 +404,8 @@ sshAgent:
 
   resources:
     requests:
-      cpu: 50m
       memory: 32Mi
     limits:
-      cpu: 200m
       memory: 128Mi
 
 # =============================================================================
@@ -434,10 +430,8 @@ datastaging:
 
   resources:
     requests:
-      cpu: 100m
       memory: 256Mi
     limits:
-      cpu: "1"
       memory: 1Gi
 
   nodeSelector: {}
@@ -563,10 +557,8 @@ mssql:
 
   resources:
     requests:
-      cpu: 500m
       memory: 2Gi
     limits:
-      cpu: "4"
       memory: 6Gi
 
   nodeSelector: {}
@@ -604,7 +596,6 @@ vault:
       cpu: 100m
       memory: 128Mi
     limits:
-      cpu: 500m
       memory: 512Mi
 
   nodeSelector: {}
@@ -619,7 +610,6 @@ vault:
         cpu: 50m
         memory: 64Mi
       limits:
-        cpu: 200m
         memory: 256Mi
 
   # -- Use an external Vault instance instead
@@ -645,10 +635,8 @@ telemetry:
 
     resources:
       requests:
-        cpu: 100m
         memory: 256Mi
       limits:
-        cpu: 500m
         memory: 1Gi
 
     # -- Custom OTEL collector config (if empty, uses built-in)
@@ -665,10 +653,8 @@ telemetry:
 
     resources:
       requests:
-        cpu: 100m
         memory: 256Mi
       limits:
-        cpu: 500m
         memory: 1Gi
 
     service:
