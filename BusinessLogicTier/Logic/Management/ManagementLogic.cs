@@ -3712,7 +3712,7 @@ public class ManagementLogic : IManagementLogic
 
     public List<AdaptorUser> ListAdaptorUsers()
     {
-        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAll().ToList();
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllWithGroupsAndRoles();
         return adaptorUsers;
     }
 

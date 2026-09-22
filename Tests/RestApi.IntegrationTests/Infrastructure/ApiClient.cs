@@ -45,7 +45,7 @@ public class ApiClient
         var response = await _client.GetAsync(url);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<T>(content, _jsonOptions);
+        return JsonSerializer.Deserialize<T>(content, _jsonOptions)!;
     }
 
     public async Task<HttpResponseMessage> PostAsync(string url)
@@ -65,7 +65,7 @@ public class ApiClient
         var response = await PostJsonAsync(url, data);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
+        return JsonSerializer.Deserialize<TResult>(content, _jsonOptions)!;
     }
 
     public async Task<HttpResponseMessage> PutJsonAsync<T>(string url, T data)
@@ -80,7 +80,7 @@ public class ApiClient
         var response = await PutJsonAsync(url, data);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
+        return JsonSerializer.Deserialize<TResult>(content, _jsonOptions)!;
     }
 
     public async Task<HttpResponseMessage> DeleteAsync(string url)

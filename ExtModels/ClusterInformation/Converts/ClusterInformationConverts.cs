@@ -352,7 +352,7 @@ public static class ClusterInformationConverts
             ClusterNodeTypeId =
                 commandTemplate.ClusterNodeTypeId.HasValue ? commandTemplate.ClusterNodeTypeId.Value : 0,
             CreatedFromGenericTemplateId = commandTemplate.CreatedFromId,
-            TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
+            TemplateParameters = commandTemplate.TemplateParameters?.Where(w => w.IsVisible)
                 .Select(s => s.ConvertIntToExtendedExt())
                 .ToArray()
         };

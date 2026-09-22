@@ -21,7 +21,7 @@ public class DataTransferTests : IClassFixture<HEAppEWebApplicationFactory>
     [Fact]
     public async Task RequestDataTransfer_InvalidJob_ReturnsError()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/DataTransfer/RequestDataTransfer?submittedJobInfoId=-1", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/DataTransfer/RequestDataTransfer?submittedJobInfoId=-1", null!);
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

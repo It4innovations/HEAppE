@@ -97,9 +97,11 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.ClusterProjectCredentials)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(p => p.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .FirstOrDefault(p => p.Id == projectId);
     }
 
@@ -109,9 +111,11 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .AsNoTracking()
             .AsSplitQuery()
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.Cluster)
+                .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
-            .ThenInclude(cp => cp.ClusterProjectCredentials)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(p => p.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .FirstOrDefaultAsync(p => p.Id == projectId);
     }
 
@@ -124,6 +128,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
                 .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(p => p.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .ToList();
     }
 
@@ -136,6 +142,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
                 .ThenInclude(cp => cp.Cluster)
             .Include(p => p.ClusterProjects)
                 .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(p => p.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
             .ToListAsync();
     }
 

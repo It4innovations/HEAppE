@@ -25,7 +25,7 @@ public class QSchedulerSessionTests : IClassFixture<HEAppEWebApplicationFactory>
     [Fact]
     public async Task OpenSession_EmptyModel_ReturnsBadRequest()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/QScheduler/OpenSession", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/QScheduler/OpenSession", null!);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 

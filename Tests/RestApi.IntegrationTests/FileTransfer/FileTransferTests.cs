@@ -21,7 +21,7 @@ public class FileTransferTests : IClassFixture<HEAppEWebApplicationFactory>
     [Fact]
     public async Task RequestFileTransfer_InvalidJob_ReturnsBadRequestOrNotFound()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/FileTransfer/RequestFileTransfer?submittedJobInfoId=-1", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/FileTransfer/RequestFileTransfer?submittedJobInfoId=-1", null!);
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

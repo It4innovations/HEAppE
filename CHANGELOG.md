@@ -14,10 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
   - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
   - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
+- **EF Core Navigation Property Validation Tests:**
+  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
 
 ### Fixed
 - **Kerberos SSH and SFTP connection host resolution:**
   - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
+- **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
+  - Fixed missing `CommandTemplates` and `TemplateParameters` includes in `ProjectRepository` (`GetByIdWithClusterProjects`, `GetAllWithClusterProjects`, and their async variants) causing `null` command templates in `Management/Projects` responses.
+  - Fixed missing `SubProject` include in `SubmittedJobInfoRepository.GetByIdWithTasks` and `GetByIdWithTasksAsync`, and added missing `FileTransferMethod` include to `GetByIdWithTasksAsync`.
+  - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
+  - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
+  - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
 
 ## V6.5.2
 

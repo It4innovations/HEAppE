@@ -21,14 +21,14 @@ public class JobLifecycleTests : IClassFixture<HEAppEWebApplicationFactory>
     [Fact]
     public async Task CreateJob_EmptyModel_ReturnsBadRequest()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CreateJob", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CreateJob", null!);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task SubmitJob_InvalidJobId_ReturnsBadRequestOrNotFound()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/SubmitJob?submittedJobInfoId=-1", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/SubmitJob?submittedJobInfoId=-1", null!);
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

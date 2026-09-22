@@ -21,7 +21,7 @@ public class JobCancellationTests : IClassFixture<HEAppEWebApplicationFactory>
     [Fact]
     public async Task CancelJob_NonExistentJob_ReturnsNotFoundOrBadRequest()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CancelJob?submittedJobInfoId=999999", null);
+        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CancelJob?submittedJobInfoId=999999", null!);
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

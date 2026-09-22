@@ -110,7 +110,7 @@ public static class JobReportingConverts
             StartTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.StartTime, timezone),
             SubmitTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.SubmitTime, timezone),
             EndTime = HEAppE.Utils.DateTimeZoneExtension.ConvertUtcToLocal(report.SubmittedJobInfo.EndTime, timezone),
-            Submitter = report.SubmittedJobInfo.Submitter.Username
+            Submitter = report.SubmittedJobInfo.Submitter?.Username
         };
 
         return convert;
