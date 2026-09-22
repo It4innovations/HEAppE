@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
   - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
   - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
+- **QScheduler Credentials Bypass for HTTP/HTTPS:**
+  - Bypassed service account and cluster authentication credentials initialization requirement when using `SchedulerType.QScheduler` over HTTP/HTTPS protocols in:
+    - [`ClusterInformationLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/ClusterInformation/ClusterInformationLogic.cs) (`GetMachineArchitectureAsync`, `GetMachineCalibrationAsync`, `GetCurrentClusterNodeUsageAsync`, and `GetNextAvailableUserCredentials`),
+    - [`JobManagementLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/JobManagementLogic.cs) (`PrepareGetActualTasksInfoAsync`, `PrepareCancelJobAsync`, `CheckAndCloseQSchedulerSessionsAsync`, and background polling),
+    - [`QSchedulerCallbackHandler`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/QSchedulerCallbackHandler.cs) (`ProcessEventAsync`),
+    preventing HTTP 403 `ClusterAccountNotInitialized` errors across all QScheduler operations that do not require SSH credentials.
 
 ## V6.5.2
 

@@ -82,11 +82,18 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         if (availableProjectIds.Count == 0)
             throw new InvalidRequestException("UserNoAccessToClusterNode", loggedUser, clusterNodeId);
 
-        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
-            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+        var isQSchedulerHttp = cluster.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
 
-        if (serviceAccount is null)
-            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        ClusterAuthenticationCredentials serviceAccount = null;
+        if (!isQSchedulerHttp)
+        {
+            serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+            if (serviceAccount is null)
+                throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        }
 
         var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
             ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
@@ -130,11 +137,18 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         if (availableProjectIds.Count == 0)
             throw new InvalidRequestException("UserNoAccessToCluster", loggedUser, cluster.Id);
 
-        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
-            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+        var isQSchedulerHttp = cluster.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
 
-        if (serviceAccount is null)
-            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        ClusterAuthenticationCredentials serviceAccount = null;
+        if (!isQSchedulerHttp)
+        {
+            serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+            if (serviceAccount is null)
+                throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        }
 
         var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
             ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
@@ -180,11 +194,18 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         if (availableProjectIds.Count == 0)
             throw new InvalidRequestException("UserNoAccessToCluster", loggedUser, cluster.Id);
 
-        var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
-            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+        var isQSchedulerHttp = cluster.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
 
-        if (serviceAccount is null)
-            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        ClusterAuthenticationCredentials serviceAccount = null;
+        if (!isQSchedulerHttp)
+        {
+            serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+            if (serviceAccount is null)
+                throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        }
 
         var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
             ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
@@ -261,6 +282,19 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        if (cluster.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https))
+        {
+            var firstCred = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(1)
+                ?? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().FirstOrDefault();
+            return firstCred ?? new ClusterAuthenticationCredentials
+            {
+                Id = 0,
+                Username = "http-service",
+                CipherType = DomainObjects.FileTransfer.FileTransferCipherType.Unknown
+            };
+        }
 
         if (project.IsOneToOneMapping)
         {
@@ -463,6 +497,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)
     {
+        if (user == null || user.Id == 0) return true;
         return !_unitOfWork.SubmittedJobInfoRepository.GetJobsQuery()
             .Any(w => w.Specification.ClusterUser.Id == user.Id 
                       && w.State > JobState.Configuring 

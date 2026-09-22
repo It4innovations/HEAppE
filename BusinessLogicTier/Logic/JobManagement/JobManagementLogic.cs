@@ -469,7 +469,9 @@ internal class JobManagementLogic : IJobManagementLogic
         foreach (var job in jobsToPoll)
         {
             var cluster = job.Specification.Cluster;
-            if (cluster.UpdateJobStateByServiceAccount.Value)
+            if (cluster.UpdateJobStateByServiceAccount.Value && 
+                !(cluster.SchedulerType == SchedulerType.QScheduler && 
+                  (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)))
             {
                 var key = (job.Specification.ClusterId, job.Specification.ProjectId);
                 if (!serviceAccountsCache.ContainsKey(key))
@@ -1518,9 +1520,21 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
-        var credentials = jobInfo.Specification.ClusterUser ?? await
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
+        var cluster = jobInfo.Specification.Cluster;
+        var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+        ClusterAuthenticationCredentials credentials = null;
+        if (isQSchedulerHttp)
+        {
+            credentials = jobInfo.Specification.ClusterUser;
+        }
+        else
+        {
+            credentials = jobInfo.Specification.ClusterUser ?? await
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
+        }
         return (jobInfo, credentials);
     }
 
@@ -1561,9 +1575,17 @@ internal class JobManagementLogic : IJobManagementLogic
         VerifyOwner(jobInfo, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
         {
-            var credentials = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+            var cluster = jobInfo.Specification.Cluster;
+            var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+                (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+            ClusterAuthenticationCredentials credentials = null;
+            if (!isQSchedulerHttp)
+            {
+                credentials = await
+                    _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+            }
             return (jobInfo, credentials, false);
         }
         else if (jobInfo.State is JobState.WaitingForServiceAccount || jobInfo.State is JobState.Configuring)
@@ -1929,16 +1951,23 @@ internal class JobManagementLogic : IJobManagementLogic
                 _logger.LogInformation($"All tasks in QScheduler session '{sessionId}' have completed. Closing session.");
                 try
                 {
-                    ClusterAuthenticationCredentials credentials;
-                    if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                    ClusterAuthenticationCredentials credentials = null;
+                    var cluster = jobInfo.Specification.Cluster;
+                    var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+                        (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+                    if (!isQSchedulerHttp)
                     {
-                        credentials = jobInfo.Specification.ClusterUser;
-                    }
-                    else
-                    {
-                        credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                            jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
-                            adaptorUserId: jobInfo.Submitter.Id, _logger);
+                        if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                        {
+                            credentials = jobInfo.Specification.ClusterUser;
+                        }
+                        else
+                        {
+                            credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                                jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
+                                adaptorUserId: jobInfo.Submitter.Id, _logger);
+                        }
                     }
 
                     var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
