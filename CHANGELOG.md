@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.6.0
+
+### Added
+- **Task-level Quality of Service (QoS) support:**
+  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
+  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
+  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
+  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
+  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
+
+### Fixed
+- **Kerberos SSH and SFTP connection host resolution:**
+  - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
+
 ## V6.5.2
 
 ### Fixed

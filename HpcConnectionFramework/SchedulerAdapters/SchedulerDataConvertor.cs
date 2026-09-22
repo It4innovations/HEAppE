@@ -133,7 +133,9 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         taskAdapter.IsRerunnable = !string.IsNullOrEmpty(taskSpecification.JobArrays) || taskSpecification.IsRerunnable;
 
         taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
-        taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
+        taskAdapter.QualityOfService = !string.IsNullOrEmpty(taskSpecification.QualityOfService)
+            ? taskSpecification.QualityOfService
+            : taskSpecification.ClusterNodeType.QualityOfService;
         taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
         taskAdapter.Reservation = jobSpecification.Reservation;
         taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;

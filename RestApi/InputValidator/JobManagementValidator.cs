@@ -356,6 +356,9 @@ public class JobManagementValidator : AbstractValidator
         // Placement Policy
         ValidateStringAttribute(task.PlacementPolicy, "Placement policy specification", task.Name, 40, checkPathChars: false, isMandatory: false);
 
+        // Quality of Service
+        ValidateStringAttribute(task.QualityOfService, "Quality of service specification", task.Name, 1000, checkPathChars: false, isMandatory: false);
+
         // Standard Files Validation
         ValidateStringAttribute(task.StandardInputFile, "Standard input file", task.Name, 30, checkPathChars: false, isMandatory: false);
         ValidateStringAttribute(task.StandardOutputFile, "Standard output file", task.Name, 30, checkPathChars: false, isMandatory: false);

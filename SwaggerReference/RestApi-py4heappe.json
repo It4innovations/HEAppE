@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.5.2"
+    "version": "v6.6.0"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -16092,6 +16092,11 @@
             "description": "Placement policy",
             "nullable": true
           },
+          "QualityOfService": {
+            "type": "string",
+            "description": "Quality of service",
+            "nullable": true
+          },
           "IsExclusive": {
             "type": "boolean",
             "description": "Is exclusive",
@@ -22605,6 +22610,11 @@
             "type": "string",
             "description": "Reason (parsed from scheduler, e.g. SLURM)",
             "nullable": true
+          },
+          "QualityOfService": {
+            "type": "string",
+            "description": "Quality of service",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -22904,6 +22914,13 @@
             "minLength": 0,
             "type": "string",
             "description": "Placement policy",
+            "nullable": true
+          },
+          "QualityOfService": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Quality of service",
             "nullable": true
           },
           "Priority": {
