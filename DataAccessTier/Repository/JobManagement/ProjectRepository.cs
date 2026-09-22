@@ -185,10 +185,30 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefault(p => p.Id == id);
     }
 
+    public override async Task<Project> GetByIdAsync(long id)
+    {
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(x => x.ProjectContacts)
+                .ThenInclude(x => x.Contact)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(x => x.Cluster)
+            .Include(x => x.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .Include(x => x.CommandTemplates)
+                .ThenInclude(ct => ct.TemplateParameters)
+            .Include(x => x.AdaptorUserGroups)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     public async Task<Project> GetByIdWithAggregationsAsync(long id)
     {
         return await _dbSet
             .AsSplitQuery()
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.Cluster)
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(p => p.ProjectClusterNodeTypeAggregations)
                 .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .FirstOrDefaultAsync(p => p.Id == id);

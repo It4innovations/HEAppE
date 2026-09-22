@@ -2115,7 +2115,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingCluster");
-        var project = await _unitOfWork.ProjectRepository.GetByIdAsync(projectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithAggregationsAsync(projectId)
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingProject");
 
         if (cluster.SchedulerType != SchedulerType.QScheduler)
@@ -2259,6 +2259,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 
@@ -2305,6 +2307,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 
