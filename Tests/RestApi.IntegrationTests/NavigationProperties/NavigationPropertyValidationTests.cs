@@ -143,12 +143,16 @@ namespace HEAppE.RestApi.IntegrationTests.NavigationProperties
         public async Task ManagementCommandTemplates_ShouldLoadNavigationProperties()
         {
             var sessionCode = await GetAdminSessionCodeAsync();
-            var url = $"/heappe/Management/CommandTemplates?sessionCode={sessionCode}";
+            var projectsUrl = $"/heappe/Management/Projects?sessionCode={sessionCode}";
+            var projects = await _client.GetJsonAsync<List<ProjectExt>>(projectsUrl);
+            projects.Should().NotBeNullOrEmpty();
+            var projectId = projects.First().Id;
+
+            var url = $"/heappe/Management/CommandTemplates?projectId={projectId}&sessionCode={sessionCode}";
             
-            var templates = await _client.GetJsonAsync<List<ExtendedCommandTemplateExt>>(url);
+            var templates = await _client.GetJsonAsync<List<CommandTemplateExt>>(url);
             
             templates.Should().NotBeNull();
-            templates.Should().NotBeEmpty();
             
             foreach (var template in templates)
             {

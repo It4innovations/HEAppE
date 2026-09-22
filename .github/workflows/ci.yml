@@ -75,7 +75,7 @@ jobs:
             --no-build \
             --collect:"XPlat Code Coverage" \
             --settings ci/coverage.runsettings \
-            --logger "trx;LogFileName=test_results.trx" \
+            --logger "trx" \
             --logger "console;verbosity=normal" \
             --results-directory ./TestResults
 
@@ -87,6 +87,41 @@ jobs:
           targetdir: 'TestResults/CoverageReport'
           reporttypes: 'Html;Cobertura;MarkdownSummary;Badges'
           assemblyfilters: '+RestApi;+BusinessLogicTier;+DataAccessTier;+ServiceTier;+CertificateGenerator;+DomainObjects;+ExtModels;+RestApiModels;+HpcConnectionFramework;+FileTransferFramework;+BackgroundThread;-*Test*;-*Tests*;-*.Migrations'
+
+      - name: Publish Test Failures Summary to GitHub Step Summary
+        if: always() && steps.test.outcome == 'failure'
+        run: |
+          echo "### ❌ Failed Test Cases" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python3 -c "
+          import xml.etree.ElementTree as ET
+          import glob
+
+          ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
+          found_failures = False
+
+          for f in sorted(glob.glob('TestResults/**/*.trx', recursive=True)):
+              try:
+                  tree = ET.parse(f)
+                  root = tree.getroot()
+                  for res in root.findall('.//t:UnitTestResult[@outcome=\"Failed\"]', ns):
+                      found_failures = True
+                      test_name = res.get('testName', 'Unknown')
+                      msg_elem = res.find('.//t:Message', ns)
+                      trace_elem = res.find('.//t:StackTrace', ns)
+                      msg = msg_elem.text.strip() if msg_elem is not None and msg_elem.text else ''
+                      trace = trace_elem.text.strip() if trace_elem is not None and trace_elem.text else ''
+                      print(f'#### 🔴 `{test_name}`\n')
+                      if msg:
+                          print(f'**Error:**\n\`\`\`\n{msg}\n\`\`\`\n')
+                      if trace:
+                          print(f'<details><summary>Stack Trace</summary>\n\n\`\`\`\n{trace}\n\`\`\`\n</details>\n')
+              except Exception as e:
+                  pass
+
+          if not found_failures:
+              print('_No individual test failures recorded in TRX files._\n')
+          " >> $GITHUB_STEP_SUMMARY
 
       - name: Publish Code Coverage Summary to PR / Job Summary
         if: always() && steps.test.outcome != 'skipped'
