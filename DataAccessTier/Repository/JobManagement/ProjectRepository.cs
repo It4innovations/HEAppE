@@ -197,6 +197,8 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
     {
         return await _dbSet
             .AsSplitQuery()
+            .Include(p => p.ClusterProjects)
+                .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Include(p => p.ProjectClusterNodeTypeAggregations)
                 .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
             .FirstOrDefaultAsync(p => p.Id == id);
