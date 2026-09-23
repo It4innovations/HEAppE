@@ -481,20 +481,28 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 }
 
                 bool isSessionOpen = false;
-                try
+                if (existingSessionId.HasValue)
                 {
-                    _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
-                    var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
-                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
-                    _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
-                    if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
-                    {
-                        isSessionOpen = true;
-                    }
+                    // Existing session provided by caller is already active; skip redundant HTTP GET round-trip
+                    isSessionOpen = true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    try
+                    {
+                        _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
+                        var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
+                        var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                        _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
+                        if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
+                        {
+                            isSessionOpen = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    }
                 }
 
                 foreach (var taskSpec in group)
