@@ -77,6 +77,7 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
                     Name = project.Name,
                     AccountingString = project.AccountingString,
                     UsageType = project.UsageType,
+                    ClusterProjects = project.ClusterProjects,
                     ProjectClusterNodeTypeAggregations = project.ProjectClusterNodeTypeAggregations != null
                         ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(project.ProjectClusterNodeTypeAggregations, a => new ProjectClusterNodeTypeAggregation
                         {

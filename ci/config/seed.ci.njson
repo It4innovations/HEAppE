@@ -226,7 +226,7 @@
             "IsDeleted": false,
             "UseAccountingStringForScheduler": true,
             "IsOneToOneMapping": false,
-            "UsageType": 3
+            "UsageType": 4
          }
       ],
       "Contacts": [
