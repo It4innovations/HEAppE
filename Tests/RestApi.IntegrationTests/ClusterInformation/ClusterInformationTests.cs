@@ -33,13 +33,13 @@ public class ClusterInformationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task ListClusterNodeTypes_WithValidClusterId_ReturnsNodeTypes()
+    public async Task ListClusterNodeTypes_WithValidSessionCode_ReturnsNodeTypes()
     {
         var sessionCode = await GetAdminSessionCodeAsync();
-        var response = await _client.GetAsync($"/heappe/ClusterInformation/ListClusterNodeTypes?clusterId=1&sessionCode={sessionCode}");
+        var response = await _client.GetAsync($"/heappe/Management/ClusterNodeTypes?sessionCode={sessionCode}");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var nodeTypes = await _client.GetJsonAsync<List<ClusterNodeTypeExt>>($"/heappe/ClusterInformation/ListClusterNodeTypes?clusterId=1&sessionCode={sessionCode}");
+        var nodeTypes = await _client.GetJsonAsync<List<ClusterNodeTypeExt>>($"/heappe/Management/ClusterNodeTypes?sessionCode={sessionCode}");
         nodeTypes.Should().NotBeNullOrEmpty();
     }
 

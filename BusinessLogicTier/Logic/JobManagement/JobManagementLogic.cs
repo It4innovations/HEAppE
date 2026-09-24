@@ -1305,8 +1305,25 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
         
-        var credentials = await clusterLogic.GetNextAvailableUserCredentials(
-            specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        var targetCluster = clusterLogic.GetClusterById(specification.ClusterId);
+        if (targetCluster != null && targetCluster.ConnectionProtocol != ClusterConnectionProtocol.Http && targetCluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            credentials = await clusterLogic.GetNextAvailableUserCredentials(
+                specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
+        else
+        {
+            try
+            {
+                credentials = await clusterLogic.GetNextAvailableUserCredentials(
+                    specification.ClusterId, specification.ProjectId, requireIsInitialized: false, adaptorUserId: loggedUser.Id);
+            }
+            catch
+            {
+                // HTTP/HTTPS clusters do not require SSH credentials
+            }
+        }
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job: {specification.ToLogSafeJsonString()}");
 

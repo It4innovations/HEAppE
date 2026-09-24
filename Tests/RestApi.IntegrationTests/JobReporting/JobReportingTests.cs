@@ -33,7 +33,7 @@ public class JobReportingTests : IntegrationTestBase
     public async Task UserResourceUsageReport_WithValidSession_ReturnsOk()
     {
         var sessionCode = await GetAdminSessionCodeAsync();
-        var response = await _client.GetAsync($"/heappe/JobReporting/UserResourceUsageReport?sessionCode={sessionCode}");
+        var response = await _client.GetAsync($"/heappe/JobReporting/UserResourceUsageReport?sessionCode={sessionCode}&userId=1");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
