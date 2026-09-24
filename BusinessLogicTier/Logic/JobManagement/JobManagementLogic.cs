@@ -2288,6 +2288,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 
@@ -2334,6 +2336,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 

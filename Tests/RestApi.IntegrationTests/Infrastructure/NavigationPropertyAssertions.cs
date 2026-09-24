@@ -83,6 +83,11 @@ namespace HEAppE.RestApi.IntegrationTests.Infrastructure
             }
         }
 
+        public static void ShouldHaveLoadedClusterProjectStoragePaths(this ProjectExt project)
+        {
+            project.ClusterProjectStoragePaths.Should().NotBeNull("because ProjectExt.ClusterProjectStoragePaths should be loaded via .Include()");
+        }
+
         public static void ShouldHaveLoadedTemplateParameters(this CommandTemplateExt ct)
         {
             ct.TemplateParameters.Should().NotBeNull("because CommandTemplateExt.TemplateParameters should be loaded via .Include()");

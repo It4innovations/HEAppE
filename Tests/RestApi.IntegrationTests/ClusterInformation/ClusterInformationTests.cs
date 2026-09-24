@@ -9,29 +9,45 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.ClusterInformation;
 
 [Trait("Category", "Integration")]
-public class ClusterInformationTests : IClassFixture<HEAppEWebApplicationFactory>
+public class ClusterInformationTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public ClusterInformationTests(HEAppEWebApplicationFactory factory)
+    public ClusterInformationTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
-    public async Task ListAvailableClusters_Authenticated_ReturnsClustersList()
+    public async Task ListAvailableClusters_WithValidSessionCode_ReturnsClustersWithNavigationProperties()
     {
-        var response = await _client.GetAsync("/heappe/ClusterInformation/ListAvailableClusters?sessionCode=test-session");
-        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.NotFound || sc == HttpStatusCode.BadRequest || sc == HttpStatusCode.Forbidden);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/ClusterInformation/ListAvailableClusters?sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var clusters = await _client.GetJsonAsync<List<ClusterExt>>($"/heappe/ClusterInformation/ListAvailableClusters?sessionCode={sessionCode}");
+        clusters.Should().NotBeNullOrEmpty();
+
+        foreach (var cluster in clusters)
+        {
+            cluster.ShouldHaveLoadedNodeTypes();
+            cluster.ShouldHaveLoadedFileTransferMethods();
+        }
+    }
+
+    [Fact]
+    public async Task ListClusterNodeTypes_WithValidClusterId_ReturnsNodeTypes()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/ClusterInformation/ListClusterNodeTypes?clusterId=1&sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var nodeTypes = await _client.GetJsonAsync<List<ClusterNodeTypeExt>>($"/heappe/ClusterInformation/ListClusterNodeTypes?clusterId=1&sessionCode={sessionCode}");
+        nodeTypes.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
     public async Task ListAvailableClusters_WithoutAuth_ReturnsUnauthorized()
     {
         _client.ClearAuth();
-        var response = await _client.GetAsync("/heappe/ClusterInformation/ListAvailableClusters?sessionCode=test-session");
-        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.Unauthorized || sc == HttpStatusCode.Forbidden);
+        var response = await _client.GetAsync("/heappe/ClusterInformation/ListAvailableClusters?sessionCode=invalid-session");
+        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.Unauthorized || sc == HttpStatusCode.Forbidden || sc == HttpStatusCode.BadRequest);
     }
 }

@@ -7,21 +7,21 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.JobManagement;
 
 [Trait("Category", "Integration")]
-public class JobCancellationTests : IClassFixture<HEAppEWebApplicationFactory>
+public class JobCancellationTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public JobCancellationTests(HEAppEWebApplicationFactory factory)
+    public JobCancellationTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
     public async Task CancelJob_NonExistentJob_ReturnsNotFoundOrBadRequest()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CancelJob?submittedJobInfoId=999999", null!);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.PostJsonAsync<object>("/heappe/JobManagement/CancelJob", new
+        {
+            SubmittedJobInfoId = 999999L,
+            SessionCode = sessionCode
+        });
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

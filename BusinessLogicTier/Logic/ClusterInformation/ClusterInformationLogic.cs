@@ -56,7 +56,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var nodeType = GetClusterNodeTypeById(clusterNodeId)
             ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeId);
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
         var cluster = nodeType.Cluster
@@ -117,7 +117,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var machineId = nodeType.Queue
             ?? throw new InvalidRequestException("ClusterNodeTypeHasNoQueue", clusterNodeTypeId);
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
         if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
@@ -174,7 +174,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var machineId = nodeType.Queue
             ?? throw new InvalidRequestException("ClusterNodeTypeHasNoQueue", clusterNodeTypeId);
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(projectId)
             ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
         if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
@@ -223,7 +223,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     {
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
                               throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         if (commandTemplate.IsGeneric)

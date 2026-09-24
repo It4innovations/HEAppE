@@ -7,21 +7,33 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.JobReporting;
 
 [Trait("Category", "Integration")]
-public class JobReportingTests : IClassFixture<HEAppEWebApplicationFactory>
+public class JobReportingTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public JobReportingTests(HEAppEWebApplicationFactory factory)
+    public JobReportingTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
-    public async Task SummaryReport_Authenticated_ReturnsOk()
+    public async Task ListAdaptorUserGroups_WithValidSession_ReturnsOk()
     {
-        var response = await _client.GetAsync("/heappe/JobReporting/ListAdaptorUserGroups?sessionCode=test-session");
-        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.NotFound || sc == HttpStatusCode.BadRequest || sc == HttpStatusCode.Forbidden);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/JobReporting/ListAdaptorUserGroups?sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task JobsDetailedReport_WithValidSession_ReturnsOk()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/JobReporting/JobsDetailedReport?sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task UserResourceUsageReport_WithValidSession_ReturnsOk()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/JobReporting/UserResourceUsageReport?sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

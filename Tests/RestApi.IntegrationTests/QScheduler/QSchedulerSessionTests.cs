@@ -11,15 +11,10 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.QScheduler;
 
 [Trait("Category", "Integration")]
-public class QSchedulerSessionTests : IClassFixture<HEAppEWebApplicationFactory>
+public class QSchedulerSessionTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public QSchedulerSessionTests(HEAppEWebApplicationFactory factory)
+    public QSchedulerSessionTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
@@ -27,6 +22,29 @@ public class QSchedulerSessionTests : IClassFixture<HEAppEWebApplicationFactory>
     {
         var response = await _client.PostJsonAsync<object>("/heappe/QScheduler/OpenSession", null!);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task OpenSession_ValidModel_LoadsNavigationPropertiesSuccessfully()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var model = new HEAppE.RestApiModels.JobManagement.OpenQSchedulerSessionModel
+        {
+            SessionCode = sessionCode,
+            ClusterId = 3, // QSchedulerTestCluster
+            ProjectId = 2, // QuantumProject (linked to Cluster 3 in seed.ci.njson)
+            MachineId = "TestMachine",
+            WalltimeLimit = 3600
+        };
+
+        var response = await _client.PostJsonAsync("/heappe/QScheduler/OpenSession", model);
+
+        // Verification: If the bug was present, EF Core threw ArgumentException 400: "Project with ID '2' is not referenced to the cluster with ID '3'"
+        // With navigation properties properly loaded, it either succeeds (200 OK) or attempts connection to QScheduler service
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().NotContain("is not referenced to the cluster",
+            "because ClusterProjects navigation property must be loaded by GetByIdWithAggregationsAsync");
+        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.InternalServerError || sc == HttpStatusCode.BadGateway);
     }
 
     [Fact]
@@ -44,9 +62,21 @@ public class QSchedulerSessionTests : IClassFixture<HEAppEWebApplicationFactory>
     }
 
     [Fact]
-    public async Task ListSessions_Authenticated_ReturnsOkOrEmptyList()
+    public async Task GetSessionInfo_NonExistingSession_ReturnsNotFound()
     {
-        var response = await _client.GetAsync("/heappe/QScheduler/ListSessions?sessionCode=test-session");
-        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.NotFound || sc == HttpStatusCode.BadRequest || sc == HttpStatusCode.Forbidden);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/GetSessionInfo?sessionId=999999&sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ListSessions_Authenticated_ReturnsOkList()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/ListSessions?sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var sessions = await _client.GetJsonAsync<List<QSchedulerSessionInfoExt>>($"/heappe/QScheduler/ListSessions?sessionCode={sessionCode}");
+        sessions.Should().NotBeNull();
     }
 }

@@ -91,7 +91,7 @@ public class ManagementLogic : IManagementLogic
         long projectId, string description, string extendedAllocationCommand, string executableFile,
         string preparationScript, long? adaptorUserId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId) ??
@@ -257,7 +257,7 @@ public class ManagementLogic : IManagementLogic
 
         if (commandTemplate.CreatedFrom is null) throw new InvalidRequestException("CommandTemplateNotFromGeneric");
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         if (commandTemplate.IsGeneric) throw new InputValidationException("CommandTemplateIsGeneric");
@@ -1426,7 +1426,7 @@ public class ManagementLogic : IManagementLogic
     public async Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username, bool isAdministrator = false)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
         if (project == null) 
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
         

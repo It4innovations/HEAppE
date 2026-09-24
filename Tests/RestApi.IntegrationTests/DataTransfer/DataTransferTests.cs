@@ -7,21 +7,39 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.DataTransfer;
 
 [Trait("Category", "Integration")]
-public class DataTransferTests : IClassFixture<HEAppEWebApplicationFactory>
+public class DataTransferTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public DataTransferTests(HEAppEWebApplicationFactory factory)
+    public DataTransferTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
-    public async Task RequestDataTransfer_InvalidJob_ReturnsError()
+    public async Task RequestDataTransfer_InvalidTask_ReturnsError()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/DataTransfer/RequestDataTransfer?submittedJobInfoId=-1", null!);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.PostJsonAsync<object>("/heappe/DataTransfer/RequestDataTransfer", new
+        {
+            IpAddress = "127.0.0.1",
+            Port = 8080,
+            SubmittedTaskInfoId = 999999L,
+            SessionCode = sessionCode
+        });
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task HttpGetToJobNode_InvalidTask_ReturnsError()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.PostJsonAsync<object>("/heappe/DataTransfer/HttpGetToJobNode", new
+        {
+            HttpRequest = "/status",
+            HttpHeaders = new string[0],
+            SubmittedTaskInfoId = 999999L,
+            NodeIPAddress = "127.0.0.1",
+            NodePort = 8080,
+            SessionCode = sessionCode
+        });
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }

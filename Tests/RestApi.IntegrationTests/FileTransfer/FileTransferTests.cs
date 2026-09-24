@@ -7,21 +7,42 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.FileTransfer;
 
 [Trait("Category", "Integration")]
-public class FileTransferTests : IClassFixture<HEAppEWebApplicationFactory>
+public class FileTransferTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public FileTransferTests(HEAppEWebApplicationFactory factory)
+    public FileTransferTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
     public async Task RequestFileTransfer_InvalidJob_ReturnsBadRequestOrNotFound()
     {
-        var response = await _client.PostJsonAsync<object>("/heappe/FileTransfer/RequestFileTransfer?submittedJobInfoId=-1", null!);
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.PostJsonAsync<object>("/heappe/FileTransfer/RequestFileTransfer", new
+        {
+            SubmittedJobInfoId = 999999L,
+            SessionCode = sessionCode
+        });
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ListChangedFilesForJob_NonExistentJob_ReturnsNotFoundOrBadRequest()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/FileTransfer/ListChangedFilesForJob?sessionCode={sessionCode}&submittedJobInfoId=999999");
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task CloseFileTransfer_NonExistentJob_ReturnsNotFoundOrBadRequest()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.PostJsonAsync<object>("/heappe/FileTransfer/CloseFileTransfer", new
+        {
+            SubmittedJobInfoId = 999999L,
+            SessionCode = sessionCode,
+            PublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
+        });
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }
