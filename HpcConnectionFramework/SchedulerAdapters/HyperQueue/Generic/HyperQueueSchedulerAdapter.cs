@@ -384,6 +384,9 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         throw new NotSupportedException("GetMachineArchitecture is not supported by HyperQueue");
     }
 
+    public Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId) =>
+        throw new NotSupportedException("GetMachineArchitecture is not supported by HyperQueue");
+
     public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
         throw new NotSupportedException("GetMachineCalibration is not supported by HyperQueue");

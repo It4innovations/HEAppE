@@ -316,6 +316,21 @@ public class ClusterInformationService : IClusterInformationService
         }
     }
 
+    public async Task<string> GetMachineInfo(long clusterNodeTypeId, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineArchitecture service tier call. clusterNodeTypeId: {clusterNodeTypeId}, projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineArchitectureAsync(clusterNodeTypeId, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineArchitecture service tier returning result for clusterNodeTypeId: {clusterNodeTypeId}");
+            return result;
+        }
+    }
+
     public async Task<string> GetMachineCalibration(long clusterNodeTypeId, string calibrationId, string endpoint, long projectId, string sessionCode)
     {
         _logger.LogInformation($"GetMachineCalibration service tier call. clusterNodeTypeId: {clusterNodeTypeId}, calibrationId: '{calibrationId}', endpoint: '{endpoint}', projectId: {projectId}");

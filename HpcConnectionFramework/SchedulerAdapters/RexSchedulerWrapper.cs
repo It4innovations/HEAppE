@@ -618,6 +618,19 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<string> GetMachineInfoAsync(Cluster cluster, string machineId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        try
+        {
+            return await _adapter.GetMachineInfoAsync(schedulerConnection.Connection, cluster, machineId);
+        }
+        finally
+        {
+            await ReturnConnectionAsync(schedulerConnection);
+        }
+    }
+
     public async Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);

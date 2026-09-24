@@ -60,6 +60,8 @@ public interface ISchedulerAdapter
     Task<IEnumerable<SubmittedTaskInfo>> GetHistoricalTasksInfoAsync(object schedulerConnectionConnection, List<SubmittedTaskInfo> missingTasks, ClusterAuthenticationCredentials account);
 
     Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, string machineId);
+    
+    Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId);
 
     Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint);
 }
