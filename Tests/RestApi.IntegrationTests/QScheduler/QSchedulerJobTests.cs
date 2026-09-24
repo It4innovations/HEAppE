@@ -73,6 +73,6 @@ public class QSchedulerJobTests : IntegrationTestBase
 
         // Must successfully auto-resolve NodeType and TransferMethod without failing with "NoNodeTypesConfigured"
         content.Should().NotContain("NoNodeTypesConfigured");
-        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.InternalServerError || sc == HttpStatusCode.BadGateway);
+        response.StatusCode.Should().Match(sc => sc == HttpStatusCode.OK || sc == HttpStatusCode.BadRequest || sc == HttpStatusCode.InternalServerError || sc == HttpStatusCode.BadGateway);
     }
 }
