@@ -120,6 +120,22 @@
             "CreatedAt": "2015-01-01 00:00:00",
             "ModifiedAt": null,
             "IsDeleted": false
+         },
+         {
+            "AdaptorUserId": 1,
+            "AdaptorUserGroupId": 2,
+            "AdaptorUserRoleId": 1,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
+         },
+         {
+            "AdaptorUserId": 2,
+            "AdaptorUserGroupId": 2,
+            "AdaptorUserRoleId": 3,
+            "CreatedAt": "2015-01-01 00:00:00",
+            "ModifiedAt": null,
+            "IsDeleted": false
          }
       ],
       "Clusters": [
