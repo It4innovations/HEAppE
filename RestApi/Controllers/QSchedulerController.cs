@@ -410,9 +410,7 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// </summary>
     /// <returns>JSON string with machine info</returns>
     [HttpGet("MachineInfo")]
-    [HttpGet("GetMachineInfo")]
     [HttpGet("/heappe/ClusterInformation/MachineInfo")]
-    [HttpGet("/heappe/ClusterInformation/GetMachineInfo")]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

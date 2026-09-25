@@ -20,7 +20,6 @@ public class ClusterInformationValidator : AbstractValidator
             GetMachineArchitectureModel ext => ValidateGetMachineArchitectureModel(ext),
             GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             GetMachineCalibrationModel ext => ValidateGetMachineCalibrationModel(ext),
-            GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             _ => string.Empty
         };
 
