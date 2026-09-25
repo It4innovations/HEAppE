@@ -405,5 +405,31 @@ public class QSchedulerController : BaseController<QSchedulerController>
         return Content(result, "application/json");
     }
 
+    /// <summary>
+    ///     Get QScheduler machine info
+    /// </summary>
+    /// <returns>JSON string with machine info</returns>
+    [HttpGet("MachineInfo")]
+    [HttpGet("/heappe/ClusterInformation/MachineInfo")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MachineInfo([FromQuery] GetMachineInfoModel model)
+    {
+        _logger.LogInformation($"MachineInfo API request received. ClusterNodeTypeId: {model?.ClusterNodeTypeId}, ProjectId: {model?.ProjectId}");
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning($"MachineInfo validation failed: {validationResult.Message}");
+            throw new InputValidationException(validationResult.Message);
+        }
+
+        var result = await _clusterService.GetMachineInfo(model.ClusterNodeTypeId, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineInfo API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}");
+        return Content(result, "application/json");
+    }
+
     #endregion
 }
