@@ -18,6 +18,7 @@ public class ClusterInformationValidator : AbstractValidator
             GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
             ListAvailableClustersModel ext => ValidateListAvailableClustersModel(ext),
             GetMachineArchitectureModel ext => ValidateGetMachineArchitectureModel(ext),
+            GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             GetMachineCalibrationModel ext => ValidateGetMachineCalibrationModel(ext),
             GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             _ => string.Empty

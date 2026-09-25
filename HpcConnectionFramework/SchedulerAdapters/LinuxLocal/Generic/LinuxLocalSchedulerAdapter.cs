@@ -538,7 +538,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     }
 
     public Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId) =>
-        throw new NotSupportedException("GetMachineArchitecture is not supported by LinuxLocal");
+        throw new NotSupportedException("GetMachineInfo is not supported by LinuxLocal");
 
     public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
