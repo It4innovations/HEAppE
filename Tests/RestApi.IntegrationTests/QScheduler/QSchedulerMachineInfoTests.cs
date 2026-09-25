@@ -18,10 +18,10 @@ public class QSchedulerMachineInfoTests : IClassFixture<HEAppEWebApplicationFact
     }
 
     [Fact]
-    public async Task GetMachineInfo_MissingSessionCode_ReturnsForbiddenOrBadRequest()
+    public async Task MachineInfo_MissingSessionCode_ReturnsForbiddenOrBadRequest()
     {
         _client.ClearAuth();
-        var response = await _client.GetAsync("/heappe/QScheduler/GetMachineInfo?clusterNodeTypeId=1&projectId=1");
+        var response = await _client.GetAsync("/heappe/QScheduler/MachineInfo?clusterNodeTypeId=1&projectId=1");
         response.StatusCode.Should().Match(sc => sc == HttpStatusCode.Forbidden || sc == HttpStatusCode.BadRequest || sc == HttpStatusCode.Unauthorized);
     }
 

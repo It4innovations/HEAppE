@@ -50,7 +50,6 @@ public class SwaggerSpecificationTests : IClassFixture<HEAppEWebApplicationFacto
         pathsStr.Should().Contain("MachineArchitecture");
         pathsStr.Should().Contain("MachineCalibration");
         pathsStr.Should().Contain("MachineInfo");
-        pathsStr.Should().Contain("GetMachineInfo");
     }
 
     [Theory]
