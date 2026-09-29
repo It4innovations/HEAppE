@@ -821,6 +821,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return result;
     }
 
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster)
+    {
+        _logger.LogInformation($"GetQSchedulerVersionAsync started for cluster ID: {cluster.Id}");
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", "/version");
+        _logger.LogDebug($"GetQSchedulerVersionAsync response for cluster ID {cluster.Id}: '{result}'");
+        _logger.LogInformation($"GetQSchedulerVersionAsync completed for cluster ID {cluster.Id}. Response length: {result?.Length ?? 0} chars.");
+        return result;
+    }
+
     public async Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
         _logger.LogInformation($"GetMachineCalibrationAsync started for machine ID: {machineId}, calibration ID: {calibrationId}, endpoint: {endpoint}, cluster ID: {cluster.Id}");

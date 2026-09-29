@@ -23,6 +23,8 @@ using HEAppE.Utils;
 using HEAppE.ExternalAuthentication;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 
@@ -213,9 +215,80 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        var result = await scheduler.GetMachineInfoAsync(cluster, machineId, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-        _logger.LogInformation($"GetMachineInfoAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, machineId: {machineId}, response size: {result?.Length ?? 0} characters.");
-        return result;
+        try
+        {
+            var machineInfoResponse = await scheduler.GetMachineInfoAsync(
+                cluster,
+                machineId,
+                serviceAccount,
+                _httpContextKeys.Context.SshCaToken,
+                _httpContextKeys.Context.LEXISToken);
+
+            var qschedulerVersionResponse = await scheduler.GetQSchedulerVersionAsync(
+                cluster,
+                serviceAccount,
+                _httpContextKeys.Context.SshCaToken,
+                _httpContextKeys.Context.LEXISToken);
+
+            if (string.IsNullOrWhiteSpace(machineInfoResponse))
+            {
+                throw new InvalidOperationException(
+                    "Machine info response was empty.");
+            }
+            else
+            {
+                _logger.LogInformation($"GetMachineInfoAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, machineId: {machineId}, response size: {machineInfoResponse?.Length ?? 0} characters.");
+            }
+
+            if (qschedulerVersionResponse is null)
+            {
+                throw new InvalidOperationException(
+                    "QScheduler version response was null.");
+            }
+            else
+            {
+                _logger.LogInformation($"GetQSchedulerVersionAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, response size: {qschedulerVersionResponse?.Length ?? 0} characters.");
+            }
+
+            JsonObject machineInfo;
+
+            try
+            {
+                var parsed = JsonNode.Parse(machineInfoResponse);
+
+                machineInfo = parsed as JsonObject
+                    ?? throw new JsonException(
+                        "Machine info response is not a JSON object.");
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(
+                    "Machine info response contains invalid JSON.", ex);
+            }
+
+            if (machineInfo["version"] is not JsonObject version)
+            {
+                throw new InvalidOperationException(
+                    "Machine info JSON does not contain a 'version' object.");
+            }
+
+            // The second response is a plain string.
+            version["qscheduler_version"] = qschedulerVersionResponse;
+
+            return machineInfo.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = false
+            });
+        }
+        catch (Exception ex)
+        {
+            // Log the exception here if required.
+            // _logger.LogError(ex, "Failed to get machine information.");
+
+            throw new InvalidOperationException(
+                "Failed to load machine information and add the QScheduler version.",
+                ex);
+        }
     }
 
     public async Task<string> GetMachineCalibrationAsync(long clusterNodeTypeId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId)
