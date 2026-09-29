@@ -138,10 +138,12 @@ public static class JwtIntrospectionExtensions
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
                          
-                                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                                string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                                string rawVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                                string sanitizedVersion = string.IsNullOrWhiteSpace(rawVersion) ? "unknown" : rawVersion.Replace('/', '-');
+                                string rawInstanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                                string sanitizedInstanceId = string.IsNullOrWhiteSpace(rawInstanceId) ? "unknown" : rawInstanceId.Replace('/', '-');
                                 //add user agent
-                                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+                                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                                 //get token endpoint from discovery document
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
                                 if (disco.IsError)                                {
@@ -206,9 +208,11 @@ public static class JwtIntrospectionExtensions
                 .AddHttpMessageHandler<LoggingHandler>()
                 .ConfigureHttpClient(client =>
                 {
-                    var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-                    var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+                    var rawVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                    var sanitizedVersion = string.IsNullOrWhiteSpace(rawVersion) ? "unknown" : rawVersion.Replace('/', '-');
+                    var rawInstanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                    var sanitizedInstanceId = string.IsNullOrWhiteSpace(rawInstanceId) ? "unknown" : rawInstanceId.Replace('/', '-');
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                 });
 
             services.AddHttpClient<IJwtTokenIntrospectionService, HEAppE.Authentication.JwtTokenIntrospectionService>(client =>
@@ -217,9 +221,11 @@ public static class JwtIntrospectionExtensions
                 {
                     client.BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority);
                 }
-                var version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-                var instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+                var rawVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                var sanitizedVersion = string.IsNullOrWhiteSpace(rawVersion) ? "unknown" : rawVersion.Replace('/', '-');
+                var rawInstanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                var sanitizedInstanceId = string.IsNullOrWhiteSpace(rawInstanceId) ? "unknown" : rawInstanceId.Replace('/', '-');
+                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
