@@ -273,7 +273,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             }
 
             // The second response is a plain string.
-            version["qscheduler_version"] = qschedulerVersionResponse;
+            version["qscheduler_version"] = qschedulerVersionResponse.AsSpan(11, qschedulerVersionResponse.Length - 11).ToString();
 
             return machineInfo.ToJsonString(new JsonSerializerOptions
             {
