@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
 - **User-Agent Header Sanitization:**
   - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
+- **SSH CA credential synchronization, Vault resilience, and auto-provisioning:**
+  - In `ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa`, derive and synchronize `PublicKey` directly from `PrivateKey` when `PrivateKey` is present, ensuring SSH certificates match the private key used for authentication and eliminating `The supplied certificate does not certify the supplied key` errors.
+  - Added guards in `EnsureValidPublicKeyForSshCa` to keep existing `PublicKey` and avoid regenerating keys for existing credentials when Vault data was not loaded (`!IsVaultDataLoaded`).
+  - Added guard in `ClusterAuthenticationCredentialsRepository.UpdateAsync` to only write to Vault when `IsVaultDataLoaded` is true, preventing overwriting existing Vault secrets with empty data during transient Vault read errors.
+  - Handled auto-resolved `authType` in `ManagementLogic.CreateCredential` to return existing user credentials regardless of type mismatch instead of throwing `HPCIdentityAlreadyExistsWithDifferentType` during auto-provisioning workflows.
 
 ## V6.6.0
 
