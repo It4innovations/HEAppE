@@ -91,7 +91,7 @@ public class ManagementLogic : IManagementLogic
         long projectId, string description, string extendedAllocationCommand, string executableFile,
         string preparationScript, long? adaptorUserId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId) ??
@@ -257,7 +257,7 @@ public class ManagementLogic : IManagementLogic
 
         if (commandTemplate.CreatedFrom is null) throw new InvalidRequestException("CommandTemplateNotFromGeneric");
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         if (commandTemplate.IsGeneric) throw new InputValidationException("CommandTemplateIsGeneric");
@@ -456,6 +456,9 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(id)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
+        var oldStartDate = project.StartDate;
+        var oldEndDate = project.EndDate;
+
         project.UsageType = usageType;
         project.Name = modelName ?? project.Name;
         project.Description = description ?? project.Description;
@@ -466,8 +469,41 @@ public class ManagementLogic : IManagementLogic
             useAccountingStringForScheduler ?? project.UseAccountingStringForScheduler;
         project.IsOneToOneMapping = isOneToOneMapping;
 
-
         _unitOfWork.ProjectRepository.Update(project);
+
+        var subProjects = _unitOfWork.SubProjectRepository.GetSubProjectsForProject(id);
+        foreach (var subProject in subProjects)
+        {
+            var isModified = false;
+
+            if (subProject.EndDate.HasValue)
+            {
+                if (subProject.EndDate == oldEndDate || subProject.EndDate > endDate)
+                {
+                    subProject.EndDate = endDate;
+                    isModified = true;
+                }
+                else if (subProject.EndDate < endDate && subProject.EndDate <= DateTime.UtcNow && endDate > DateTime.UtcNow)
+                {
+                    subProject.EndDate = endDate;
+                    isModified = true;
+                }
+            }
+
+            if (subProject.StartDate == oldStartDate || subProject.StartDate < startDate)
+            {
+                subProject.StartDate = startDate;
+                isModified = true;
+            }
+
+            if (isModified)
+            {
+                subProject.ModifiedAt = DateTime.UtcNow;
+                _unitOfWork.SubProjectRepository.Update(subProject);
+                _logger.LogInformation($"SubProject ID '{subProject.Id}' (Identifier: '{subProject.Identifier}') has been automatically updated due to Project ID '{project.Id}' modification.");
+            }
+        }
+
         _unitOfWork.Save();
         _logger.LogInformation($"Project ID '{project.Id}' has been modified.");
 
@@ -493,6 +529,14 @@ public class ManagementLogic : IManagementLogic
             x.ModifiedAt = modified;
             x.IsDeleted = true;
         });
+
+        var subProjects = _unitOfWork.SubProjectRepository.GetSubProjectsForProject(id);
+        foreach (var subProject in subProjects)
+        {
+            subProject.IsDeleted = true;
+            subProject.ModifiedAt = modified;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+        }
 
         _unitOfWork.ProjectRepository.Update(project);
         _logger.LogInformation($"Project id '{project.Id}' has been deleted.");
@@ -1426,7 +1470,7 @@ public class ManagementLogic : IManagementLogic
     public async Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username, bool isAdministrator = false)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
         if (project == null) 
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
         
@@ -2980,12 +3024,25 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
-        if (subProject is not null &&
-            (subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
-            throw new InputValidationException("SubProjectDeletedOrEnded");
-
         if (subProject is not null)
         {
+            if (subProject.IsDeleted)
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+
+            // If the subproject has expired but the parent project is active, auto-extend the subproject
+            if (subProject.EndDate.HasValue && subProject.EndDate <= DateTime.UtcNow &&
+                project.EndDate > DateTime.UtcNow && project.StartDate <= DateTime.UtcNow)
+            {
+                subProject.EndDate = project.EndDate;
+                subProject.ModifiedAt = DateTime.UtcNow;
+                _unitOfWork.SubProjectRepository.Update(subProject);
+                _unitOfWork.Save();
+                _logger.LogInformation($"SubProject ID '{subProject.Id}' (Identifier: '{subProject.Identifier}') was expired but auto-extended to project EndDate '{project.EndDate}' because Project ID '{project.Id}' is active.");
+            }
+
+            if ((subProject.EndDate.HasValue && subProject.EndDate <= DateTime.UtcNow) || subProject.StartDate >= DateTime.UtcNow)
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+
             //already exists, reuse it
             return subProject;
         }
@@ -3712,7 +3769,7 @@ public class ManagementLogic : IManagementLogic
 
     public List<AdaptorUser> ListAdaptorUsers()
     {
-        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAll().ToList();
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllWithGroupsAndRoles();
         return adaptorUsers;
     }
 

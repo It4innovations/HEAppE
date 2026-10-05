@@ -469,7 +469,9 @@ internal class JobManagementLogic : IJobManagementLogic
         foreach (var job in jobsToPoll)
         {
             var cluster = job.Specification.Cluster;
-            if (cluster.UpdateJobStateByServiceAccount.Value)
+            if (cluster.UpdateJobStateByServiceAccount.Value && 
+                !(cluster.SchedulerType == SchedulerType.QScheduler && 
+                  (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https)))
             {
                 var key = (job.Specification.ClusterId, job.Specification.ProjectId);
                 if (!serviceAccountsCache.ContainsKey(key))
@@ -1303,8 +1305,25 @@ internal class JobManagementLogic : IJobManagementLogic
             }
         }
         
-        var credentials = await clusterLogic.GetNextAvailableUserCredentials(
-            specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        ClusterAuthenticationCredentials credentials = null;
+        var targetCluster = clusterLogic.GetClusterById(specification.ClusterId);
+        if (targetCluster != null && targetCluster.ConnectionProtocol != ClusterConnectionProtocol.Http && targetCluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
+        {
+            credentials = await clusterLogic.GetNextAvailableUserCredentials(
+                specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        }
+        else
+        {
+            try
+            {
+                credentials = await clusterLogic.GetNextAvailableUserCredentials(
+                    specification.ClusterId, specification.ProjectId, requireIsInitialized: false, adaptorUserId: loggedUser.Id);
+            }
+            catch
+            {
+                // HTTP/HTTPS clusters do not require SSH credentials
+            }
+        }
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
         _logger.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job: {specification.ToLogSafeJsonString()}");
 
@@ -1518,9 +1537,21 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = await GetSubmittedJobInfoByIdAsync(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
-        var credentials = jobInfo.Specification.ClusterUser ?? await
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
+        var cluster = jobInfo.Specification.Cluster;
+        var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+        ClusterAuthenticationCredentials credentials = null;
+        if (isQSchedulerHttp)
+        {
+            credentials = jobInfo.Specification.ClusterUser;
+        }
+        else
+        {
+            credentials = jobInfo.Specification.ClusterUser ?? await
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
+        }
         return (jobInfo, credentials);
     }
 
@@ -1561,9 +1592,17 @@ internal class JobManagementLogic : IJobManagementLogic
         VerifyOwner(jobInfo, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
         {
-            var credentials = await
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+            var cluster = jobInfo.Specification.Cluster;
+            var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+                (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+            ClusterAuthenticationCredentials credentials = null;
+            if (!isQSchedulerHttp)
+            {
+                credentials = await
+                    _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+            }
             return (jobInfo, credentials, false);
         }
         else if (jobInfo.State is JobState.WaitingForServiceAccount || jobInfo.State is JobState.Configuring)
@@ -1929,16 +1968,23 @@ internal class JobManagementLogic : IJobManagementLogic
                 _logger.LogInformation($"All tasks in QScheduler session '{sessionId}' have completed. Closing session.");
                 try
                 {
-                    ClusterAuthenticationCredentials credentials;
-                    if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                    ClusterAuthenticationCredentials credentials = null;
+                    var cluster = jobInfo.Specification.Cluster;
+                    var isQSchedulerHttp = cluster?.SchedulerType == SchedulerType.QScheduler && 
+                        (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+                    if (!isQSchedulerHttp)
                     {
-                        credentials = jobInfo.Specification.ClusterUser;
-                    }
-                    else
-                    {
-                        credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                            jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
-                            adaptorUserId: jobInfo.Submitter.Id, _logger);
+                        if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                        {
+                            credentials = jobInfo.Specification.ClusterUser;
+                        }
+                        else
+                        {
+                            credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                                jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true,
+                                adaptorUserId: jobInfo.Submitter.Id, _logger);
+                        }
                     }
 
                     var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
@@ -2115,7 +2161,7 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterId) 
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingCluster");
-        var project = await _unitOfWork.ProjectRepository.GetByIdAsync(projectId)
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(projectId)
             ?? throw new Exceptions.External.InvalidRequestException("NotExistingProject");
 
         if (cluster.SchedulerType != SchedulerType.QScheduler)
@@ -2259,6 +2305,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 
@@ -2305,6 +2353,8 @@ internal class JobManagementLogic : IJobManagementLogic
             .Include(j => j.Specification)
                 .ThenInclude(s => s.Cluster)
             .Include(j => j.Project)
+                .ThenInclude(p => p.ClusterProjects)
+                    .ThenInclude(cp => cp.ClusterProjectCredentials)
             .FirstOrDefaultAsync(j => j.Tasks.Any(t => t.Id == submittedTaskId))
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedTaskId);
 

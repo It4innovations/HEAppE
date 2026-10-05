@@ -481,20 +481,28 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 }
 
                 bool isSessionOpen = false;
-                try
+                if (existingSessionId.HasValue)
                 {
-                    _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
-                    var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
-                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
-                    _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
-                    if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
-                    {
-                        isSessionOpen = true;
-                    }
+                    // Existing session provided by caller is already active; skip redundant HTTP GET round-trip
+                    isSessionOpen = true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    try
+                    {
+                        _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
+                        var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
+                        var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                        _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
+                        if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
+                        {
+                            isSessionOpen = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    }
                 }
 
                 foreach (var taskSpec in group)
@@ -801,6 +809,24 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/arch");
         _logger.LogDebug($"GetMachineArchitectureAsync response for machine ID {machineId}: '{result}'");
         _logger.LogInformation($"GetMachineArchitectureAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
+    }
+
+    public async Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId)
+    {
+        _logger.LogInformation($"GetMachineInfoAsync started for machine ID: {machineId}, cluster ID: {cluster.Id}");
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/about");
+        _logger.LogDebug($"GetMachineInfoAsync response for machine ID {machineId}: '{result}'");
+        _logger.LogInformation($"GetMachineInfoAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
+    }
+
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster)
+    {
+        _logger.LogInformation($"GetQSchedulerVersionAsync started for cluster ID: {cluster.Id}");
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", "/version");
+        _logger.LogDebug($"GetQSchedulerVersionAsync response for cluster ID {cluster.Id}: '{result}'");
+        _logger.LogInformation($"GetQSchedulerVersionAsync completed for cluster ID {cluster.Id}. Response length: {result?.Length ?? 0} chars.");
         return result;
     }
 

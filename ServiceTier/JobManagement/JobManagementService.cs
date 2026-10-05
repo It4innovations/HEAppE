@@ -879,14 +879,13 @@ public class JobManagementService : IJobManagementService
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
 
             // Auto-resolve NodeType for the specified cluster
-            var nodeTypes = await unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommandsAsync();
-            var nodeType = nodeTypes.FirstOrDefault(n => n.ClusterId == specification.ClusterId)
+            var nodeType = await unitOfWork.ClusterNodeTypeRepository.GetFirstByClusterIdAsync(specification.ClusterId)
                 ?? throw new Exceptions.External.InvalidRequestException("NoNodeTypesConfigured");
 
             long? transferMethodId = nodeType.FileTransferMethodId;
             if (!transferMethodId.HasValue)
             {
-                var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllAsync();
+                var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllReadOnlyAsync();
                 var transferMethod = transferMethods.FirstOrDefault()
                     ?? throw new Exceptions.External.InvalidRequestException("NoTransferMethodsConfigured");
                 transferMethodId = transferMethod.Id;

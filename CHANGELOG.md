@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **QScheduler Machine Information endpoint:**
+  - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
+  - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
+  - Added automatic parsing and extraction of QScheduler version in machine info responses.
+- **SubProject repository queries:**
+  - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
+- **SubProject Lifecycle Unit Tests:**
+  - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
+
+### Fixed
+- **SubProject lifecycle synchronization with Project:**
+  - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
+    - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.
+    - Subprojects whose end date would exceed a shortened project end date are clamped to the new project end date.
+    - Subprojects whose start date is earlier than the new project start date (or were aligned with the old start date) are adjusted to the new project start date.
+  - **Auto-extension of expired SubProjects during job creation:** In `CreateSubProject(identifier, projectId)` (invoked during `CreateJob`), if an existing subproject has expired but its parent project is active, the subproject is automatically extended to `project.EndDate` and reused instead of rejecting job creation with `400 Bad Request: Specified SubProject is deleted or not valid`.
+  - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
+- **User-Agent Header Sanitization:**
+  - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
+
+## V6.6.0
+
+### Added
+- **Task-level Quality of Service (QoS) support:**
+  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
+  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
+  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
+  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
+  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
+- **EF Core Navigation Property Validation Tests:**
+  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
+
+### Fixed
+- **Kerberos SSH and SFTP connection host resolution:**
+  - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
+- **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
+  - Fixed missing `CommandTemplates` and `TemplateParameters` includes in `ProjectRepository` (`GetByIdWithClusterProjects`, `GetAllWithClusterProjects`, and their async variants) causing `null` command templates in `Management/Projects` responses.
+  - Fixed missing `SubProject` include in `SubmittedJobInfoRepository.GetByIdWithTasks` and `GetByIdWithTasksAsync`, and added missing `FileTransferMethod` include to `GetByIdWithTasksAsync`.
+  - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
+  - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
+  - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
+- **QScheduler Credentials Bypass for HTTP/HTTPS:**
+  - Bypassed service account and cluster authentication credentials initialization requirement when using `SchedulerType.QScheduler` over HTTP/HTTPS protocols in:
+    - [`ClusterInformationLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/ClusterInformation/ClusterInformationLogic.cs) (`GetMachineArchitectureAsync`, `GetMachineCalibrationAsync`, `GetCurrentClusterNodeUsageAsync`, and `GetNextAvailableUserCredentials`),
+    - [`JobManagementLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/JobManagementLogic.cs) (`PrepareGetActualTasksInfoAsync`, `PrepareCancelJobAsync`, `CheckAndCloseQSchedulerSessionsAsync`, and background polling),
+    - [`QSchedulerCallbackHandler`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/QSchedulerCallbackHandler.cs) (`ProcessEventAsync`),
+    preventing HTTP 403 `ClusterAccountNotInitialized` errors across all QScheduler operations that do not require SSH credentials.
+
 ## V6.5.2
 
 ### Fixed

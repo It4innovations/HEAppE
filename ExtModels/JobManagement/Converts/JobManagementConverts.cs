@@ -101,6 +101,7 @@ public static class JobManagementConverts
             GpuNodes = taskSpecificationExt.GpuNodes,
             WalltimeLimit = taskSpecificationExt.WalltimeLimit,
             PlacementPolicy = taskSpecificationExt.PlacementPolicy,
+            QualityOfService = taskSpecificationExt.QualityOfService,
             RequiredNodes = taskSpecificationExt.RequiredNodes?
                 .Select(s => new TaskSpecificationRequiredNode
                 {
@@ -283,6 +284,7 @@ public static class JobManagementConverts
             MemoryPerCPU = spec?.MemoryPerCPU,
             MemoryPerGPU = spec?.MemoryPerGPU,
             PlacementPolicy = spec?.PlacementPolicy,
+            QualityOfService = spec?.QualityOfService ?? task.NodeType?.QualityOfService,
             IsExclusive = spec?.IsExclusive,
             IsRerunnable = spec?.IsRerunnable,
             JobArrays = spec?.JobArrays,
@@ -353,6 +355,7 @@ public static class JobManagementConverts
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
             Reason = task.Reason,
+            QualityOfService = task.Specification?.QualityOfService ?? task.NodeType?.QualityOfService,
             NodeType = task.NodeType == null
                 ? null
                 : task.NodeType?.ConvertIntToExt(task.Project, task.Specification.CommandTemplate)

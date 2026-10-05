@@ -7,28 +7,33 @@ using FluentAssertions;
 namespace HEAppE.RestApi.IntegrationTests.QScheduler;
 
 [Trait("Category", "Integration")]
-public class QSchedulerResultTests : IClassFixture<HEAppEWebApplicationFactory>
+public class QSchedulerResultTests : IntegrationTestBase
 {
-    private readonly ApiClient _client;
-
-    public QSchedulerResultTests(HEAppEWebApplicationFactory factory)
+    public QSchedulerResultTests(HEAppEWebApplicationFactory factory) : base(factory)
     {
-        var httpClient = factory.CreateClient();
-        _client = new ApiClient(httpClient);
-        _client.SetApiKey("admin");
     }
 
     [Fact]
-    public async Task GetTaskArtifact_MissingArtifactName_ReturnsBadRequestOrValidationException()
+    public async Task GetTaskArtifact_NonExistentTask_ReturnsNotFoundOrBadRequest()
     {
-        var response = await _client.GetAsync("/heappe/QScheduler/GetTaskArtifact?submittedTaskId=1&artifactName=");
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/GetTaskArtifact?submittedTaskId=999999&artifactName=result.json&sessionCode={sessionCode}");
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetTaskResult_NonExistentTask_ReturnsNotFoundOrBadRequest()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/GetTaskResult?submittedTaskId=999999&sessionCode={sessionCode}");
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 
     [Fact]
     public async Task MachineArchitecture_MissingNodeType_ReturnsBadRequestOrValidationException()
     {
-        var response = await _client.GetAsync("/heappe/QScheduler/MachineArchitecture");
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/MachineArchitecture?sessionCode={sessionCode}");
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 }
