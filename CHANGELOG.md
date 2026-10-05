@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **QScheduler Machine Information endpoint:**
+  - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
+  - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
+  - Added automatic parsing and extraction of QScheduler version in machine info responses.
+- **SubProject repository queries:**
+  - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
+- **SubProject Lifecycle Unit Tests:**
+  - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
+
+### Fixed
+- **SubProject lifecycle synchronization with Project:**
+  - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
+    - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.
+    - Subprojects whose end date would exceed a shortened project end date are clamped to the new project end date.
+    - Subprojects whose start date is earlier than the new project start date (or were aligned with the old start date) are adjusted to the new project start date.
+  - **Auto-extension of expired SubProjects during job creation:** In `CreateSubProject(identifier, projectId)` (invoked during `CreateJob`), if an existing subproject has expired but its parent project is active, the subproject is automatically extended to `project.EndDate` and reused instead of rejecting job creation with `400 Bad Request: Specified SubProject is deleted or not valid`.
+  - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
+- **User-Agent Header Sanitization:**
+  - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
+
 ## V6.6.0
 
 ### Added
