@@ -127,7 +127,6 @@ public class SshConnector : IPoolableAdapter
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
                 await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, 
-                    !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName, 
                     lexisToken, cluster, cluster.Port ?? port),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
@@ -733,7 +732,7 @@ public class SshConnector : IPoolableAdapter
         return client;
     }
 
-    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string addressHost, string lexisToken, Cluster cluster, int? port)
+    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string lexisToken, Cluster cluster, int? port)
     {
         KerberosConfigHelper.VerifyKrb5ConfigExists();
 
@@ -743,8 +742,10 @@ public class SshConnector : IPoolableAdapter
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
 
-        string address = port.HasValue ? $"{addressHost}:{port.Value}" : addressHost;
-        return new KerberosSshClient(masterNodeName, address, username);
+        string host = !string.IsNullOrEmpty(masterNodeName) ? masterNodeName : cluster.DomainName;
+        int? connectionPort = cluster.Port ?? port;
+        string address = connectionPort.HasValue ? $"{host}:{connectionPort.Value}" : host;
+        return new KerberosSshClient(masterNodeName, address, username, _logger);
     }
 
     private static string GetDomainFromHostname(string hostname)
