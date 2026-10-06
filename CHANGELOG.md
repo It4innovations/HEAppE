@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Token & Certificate In-Memory Caching with Adaptive TTL:**
+  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers ($\min(60\text{s}, \max(5\text{s}, \text{totalDuration} \times 0.15))$) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
+  - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
+  - Added in-memory caching for SSH CA OTT token exchange in `HttpContextKeys.ExchangeSshCaToken` keyed by SHA-256 hash of IdP tokens and audience.
+  - Added in-memory caching for signed OpenSSH user certificates in `SshCertificateAuthorityService.SignAsync` with 5-minute cluster validity and `InvalidateCache` support.
+  - Added in-memory caching for FirecREST OAuth2 client credentials tokens in `FirecRestTokenService` with `InvalidateToken` support.
+  - Added in-memory caching for Expirio token exchange (`ExchangeTokenAsync`) and FirecREST credentials exchange (`ExchangeFirecrestCredentialsAsync`) in `ExpirioService`.
 - **QScheduler Machine Information endpoint:**
   - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
   - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
@@ -18,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
 
 ### Fixed
+- **Kerberos ticket expiration validation in `KrbLibSim`:**
+  - Fixed ticket validation logic where `Now.AddSeconds(-300) < cacheEntry.EndTime` treated expired tickets as valid; corrected to `DateTime.UtcNow.AddSeconds(s_ticketValidityBufferSeconds) < cacheEntry.EndTime` and added `InvalidateTicket`.
 - **SubProject lifecycle synchronization with Project:**
   - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
     - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.

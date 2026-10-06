@@ -12,6 +12,10 @@ using Microsoft.Extensions.Logging;
 using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.Expirio.Models;
 
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public class LexisTokenExchangeMiddleware
@@ -26,7 +30,7 @@ public class LexisTokenExchangeMiddleware
     }
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService,
-        IExpirioService expirioService)
+        IExpirioService expirioService, IMemoryCache? memoryCache = null)
     {
         ApplyRequestSizeLimit(context);
 
@@ -63,23 +67,60 @@ public class LexisTokenExchangeMiddleware
                 _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token");
                 try
                 {
+                    string providerKey = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange
+                        ? $"expirio:{ExpirioSettings.ProviderName}"
+                        : $"keycloak:{JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.Broker}";
+                    string tokenHash = ComputeSha256(incomingToken);
+                    string cacheKey = $"fip_token_exchange:{providerKey}:{tokenHash}";
+
                     string exchanged;
-                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration
-                        .UseExpirioServiceForTokenExchange)
+                    if (memoryCache != null && memoryCache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrEmpty(cached))
                     {
-                        _logger.LogInformation(
-                            $"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
-                        var request = new ExchangeRequest()
-                        {
-                            ProviderName = ExpirioSettings.ProviderName,
-                            ClientName = JwtTokenIntrospectionConfiguration.ClientId
-                        };
-                        exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, _logger);
+                        _logger.LogDebug("LexisTokenExchangeMiddleware: Token exchange cache hit.");
+                        exchanged = cached;
                     }
                     else
                     {
-                        _logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService");
-                        exchanged = await lexisTokenService.ExchangeLexisTokenForIdpAsync(incomingToken);
+                        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration
+                            .UseExpirioServiceForTokenExchange)
+                        {
+                            _logger.LogInformation(
+                                $"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
+                            var request = new ExchangeRequest()
+                            {
+                                ProviderName = ExpirioSettings.ProviderName,
+                                ClientName = JwtTokenIntrospectionConfiguration.ClientId
+                            };
+                            exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, _logger);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService");
+                            exchanged = await lexisTokenService.ExchangeLexisTokenForIdpAsync(incomingToken);
+                        }
+
+                        if (memoryCache != null && !string.IsNullOrEmpty(exchanged))
+                        {
+                            var incomingExp = GetTokenExpiration(incomingToken);
+                            var exchangedExp = GetTokenExpiration(exchanged);
+
+                            DateTime expirationTime;
+                            if (incomingExp.HasValue && exchangedExp.HasValue)
+                                expirationTime = incomingExp.Value < exchangedExp.Value ? incomingExp.Value : exchangedExp.Value;
+                            else if (incomingExp.HasValue)
+                                expirationTime = incomingExp.Value;
+                            else if (exchangedExp.HasValue)
+                                expirationTime = exchangedExp.Value;
+                            else
+                                expirationTime = DateTime.UtcNow.AddMinutes(10);
+
+                            var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expirationTime);
+                            if (ttl > TimeSpan.FromSeconds(5))
+                            {
+                                memoryCache.Set(cacheKey, exchanged, ttl);
+                                _logger.LogDebug("LexisTokenExchangeMiddleware: Cached exchanged token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                            }
+                        }
                     }
 
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
@@ -117,6 +158,34 @@ public class LexisTokenExchangeMiddleware
             }
         }
         await _next(context);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static DateTime? GetTokenExpiration(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (jwt.ValidTo != DateTime.MinValue && jwt.ValidTo != DateTime.MaxValue)
+                {
+                    return jwt.ValidTo;
+                }
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+        return null;
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, (bool isSizeLimit, bool isAllowLargeBody)> _sizeLimitMetadataTypeCache = new();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using HEAppE.Exceptions.Internal;
 
@@ -12,16 +13,26 @@ public class FirecRestTokenService : IFirecRestTokenService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FirecRestTokenService> _logger;
+    private readonly IMemoryCache? _memoryCache;
 
-    public FirecRestTokenService(IHttpClientFactory httpClientFactory, ILogger<FirecRestTokenService> logger)
+    public FirecRestTokenService(IHttpClientFactory httpClientFactory, ILogger<FirecRestTokenService> logger, IMemoryCache? memoryCache = null)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _memoryCache = memoryCache;
     }
 
     public async Task<string> GetTokenAsync(string clientId, string clientSecret, string firecRestIdpUrl)
     {
         _logger.LogInformation("[FirecRestTokenService] Method: GetToken");
+
+        string cacheKey = $"firecrest_token:{clientId}:{firecRestIdpUrl}";
+        if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out string? cachedToken) && !string.IsNullOrEmpty(cachedToken))
+        {
+            _logger.LogDebug("[FirecRestTokenService] Cache hit for FirecREST token (ClientId: {ClientId}).", clientId);
+            return cachedToken;
+        }
+
         _logger.LogDebug($"[FirecRestTokenService Request] POST {firecRestIdpUrl} | Body: grant_type=client_credentials, client_id={clientId}, client_secret=***");
 
         try
@@ -54,6 +65,23 @@ public class FirecRestTokenService : IFirecRestTokenService
             if (tokenData.TryGetProperty("access_token", out var accessTokenElement) && accessTokenElement.GetString() is { } token)
             {
                 _logger.LogDebug($"[FirecRestTokenService Response] Success ({tokenResponse.StatusCode}). Token: {HEAppE.Utils.StringUtils.MaskToken(token)}");
+
+                int expiresIn = 3600;
+                if (tokenData.TryGetProperty("expires_in", out var expiresInElement) && expiresInElement.TryGetInt32(out var parsedExpiresIn))
+                {
+                    expiresIn = parsedExpiresIn;
+                }
+
+                if (_memoryCache != null)
+                {
+                    var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expiresIn);
+                    if (ttl > TimeSpan.FromSeconds(5))
+                    {
+                        _memoryCache.Set(cacheKey, token, ttl);
+                        _logger.LogDebug("[FirecRestTokenService] Cached FirecREST token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                    }
+                }
+
                 return token;
             }
 
@@ -70,5 +98,12 @@ public class FirecRestTokenService : IFirecRestTokenService
                 CommandError = "Token retrieval exception"
             };
         }
+    }
+
+    public void InvalidateToken(string clientId, string firecRestIdpUrl)
+    {
+        string cacheKey = $"firecrest_token:{clientId}:{firecRestIdpUrl}";
+        _memoryCache?.Remove(cacheKey);
+        _logger.LogInformation("[FirecRestTokenService] Invalidated cached token for ClientId: {ClientId}.", clientId);
     }
 }
