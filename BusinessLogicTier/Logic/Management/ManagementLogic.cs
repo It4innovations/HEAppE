@@ -400,6 +400,8 @@ public class ManagementLogic : IManagementLogic
                     throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
                 }
                 
+                var dynamicAssignments = _unitOfWork.SystemRoleAssignmentRepository.GetAll();
+                RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
                 RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
 
                 var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
