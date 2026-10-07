@@ -1095,6 +1095,9 @@ public class ManagementLogic : IManagementLogic
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
+        // Track whether authType was explicitly provided or auto-resolved
+        bool authTypeWasAutoResolved = authType == null;
+
         // Resolve AuthType if not provided
         if (authType == null)
         {
@@ -1197,10 +1200,20 @@ public class ManagementLogic : IManagementLogic
                 .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
         if (existingCredentials.Any())
         {
-            //return existing credential with same type of throw exception
+            //return existing credential with same type or throw exception
             var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType.Value);
             if (existingWithSameType != null)
                 return CreateCredentialResponse(existingWithSameType, adaptorUserId);
+
+            // When authType was auto-resolved (not explicitly provided), return existing credential
+            // regardless of type mismatch to avoid blocking auto-provisioning flows
+            if (authTypeWasAutoResolved)
+            {
+                var existingCredential = existingCredentials.First();
+                _logger.LogWarning($"AuthType was auto-resolved to '{authType}' but existing credential for user '{username}' " +
+                    $"has type '{existingCredential.AuthenticationType}'. Returning existing credential (ID: {existingCredential.Id}).");
+                return CreateCredentialResponse(existingCredential, adaptorUserId);
+            }
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
