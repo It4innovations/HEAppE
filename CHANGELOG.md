@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Token & Certificate In-Memory Caching with Adaptive TTL:**
-  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers ($\min(60\text{s}, \max(5\text{s}, \text{totalDuration} \times 0.15))$) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
+  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers (min 5s, max 60s, 15% of total duration) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
   - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
   - Added in-memory caching for SSH CA OTT token exchange in `HttpContextKeys.ExchangeSshCaToken` keyed by SHA-256 hash of IdP tokens and audience.
   - Added in-memory caching for signed OpenSSH user certificates in `SshCertificateAuthorityService.SignAsync` with 5-minute cluster validity and `InvalidateCache` support.
@@ -145,7 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
-  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` ↔ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
 - Fixed cluster script directory initialization failures in `LinuxCommands`:
   - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
   - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.
