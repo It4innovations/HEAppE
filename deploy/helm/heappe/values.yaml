@@ -547,8 +547,6 @@ mssql:
     rootPassword: "foo-bar-baz-1234567890"    
   
   primary:
-    hostUsers:
-      enabled: false
     podSecurityContext:
       enabled: true
       fsGroup: 1001
