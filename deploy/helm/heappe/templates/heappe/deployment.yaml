@@ -99,7 +99,6 @@ spec:
 
         {{- if .Values.sshAgent.enabled }}
         # ---- SSH Agent sidecar ----
-        {{- if .Values.sshAgent.enabled }}
         - name: sshagent
           image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.sshAgent.image.repository }}:{{ .Values.sshAgent.image.tag }}"
           imagePullPolicy: {{ .Values.sshAgent.image.pullPolicy }}
