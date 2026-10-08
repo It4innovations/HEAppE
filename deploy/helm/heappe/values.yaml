@@ -118,7 +118,7 @@ api:
       DeploymentSettings:
         Name: "HEAppE instance"
         Description: "HEAppE Kubernetes deployment"
-        Version: "v6.5.0"
+        Version: "v6.5.2"
         DeployedIPAddress: "0.0.0.0"
         Port: "8080"
         Host: "http://localhost:5000"
