@@ -121,7 +121,7 @@ api:
         Version: "v6.5.2"
         DeployedIPAddress: "0.0.0.0"
         Port: "8080"
-        Host: "http://localhost:5000"
+        Host: "http://localhost:8080"
         HostPostfix: ""
         DeploymentEnvironmentType: "Docker"
         ResourceAllocationInfrastructureTypes:
