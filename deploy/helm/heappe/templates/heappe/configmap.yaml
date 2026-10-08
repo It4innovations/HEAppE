@@ -8,7 +8,9 @@ metadata:
 data:
   appsettings.json: |
     {{- $settings := deepCopy .Values.api.appSettings }}
+    {{ if .Values.vault.enabled }}
     {{- $_ := set $settings "VaultConnectorSettings" (dict "VaultBaseAddress" (include "heappe.vaultagent.address" .) "ClusterVaultAuthenticationCredentialsPath" "v1/HEAppE/data/ClusterAuthenticationCredentials" "ConnectionTimeoutInSeconds" 15) }}
+    {{- end }}
     {{- $settings | toPrettyJson | nindent 4 }}
 ---
 {{/*
