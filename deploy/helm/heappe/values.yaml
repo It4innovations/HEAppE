@@ -76,15 +76,21 @@ api:
   # -- Additional volume mounts for the HEAppE API container
   extraVolumeMounts: []
 
-  # -- Additional volumes for the HEAppE pod
-  extraVolumes: []
+  # -- Startup, liveness and readiness probes
+  startupProbe:
+    httpGet:
+      path: /heappe/Health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
 
-  # -- Liveness and readiness probes
   livenessProbe:
     httpGet:
       path: /heappe/Health
       port: http
-    initialDelaySeconds: 30
+    initialDelaySeconds: 15
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3
@@ -93,7 +99,7 @@ api:
     httpGet:
       path: /heappe/Health
       port: http
-    initialDelaySeconds: 15
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
@@ -390,6 +396,9 @@ api:
 # SSH Agent (sidecar container in HEAppE pod)
 # =============================================================================
 sshAgent:
+  # -- Enable SSH Agent sidecar (default: false)
+  enabled: false
+
   image:
     repository: sshagent
     tag: "latest"
@@ -439,11 +448,21 @@ datastaging:
   extraVolumeMounts: []
   extraVolumes: []
 
+  # -- Startup, liveness and readiness probes
+  startupProbe:
+    httpGet:
+      path: /swagger/index.html
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
   livenessProbe:
     httpGet:
       path: /swagger/index.html
       port: http
-    initialDelaySeconds: 30
+    initialDelaySeconds: 15
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3
@@ -452,7 +471,7 @@ datastaging:
     httpGet:
       path: /swagger/index.html
       port: http
-    initialDelaySeconds: 15
+    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3

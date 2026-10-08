@@ -47,6 +47,8 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           volumeMounts:
+            - name: logs
+              mountPath: /opt/heappe/logs
             - name: sftp-temp
               mountPath: /sftp
             - name: config
@@ -58,6 +60,10 @@ spec:
             {{- with .Values.datastaging.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.datastaging.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.datastaging.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -70,6 +76,8 @@ spec:
             {{- toYaml .Values.datastaging.resources | nindent 12 }}
 
       volumes:
+        - name: logs
+          emptyDir: {}
         - name: sftp-temp
           emptyDir: {}
         - name: config

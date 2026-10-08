@@ -2,6 +2,8 @@
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
+RUN mkdir -p /sftp /opt/heappe/logs /opt/heappe/confs \
+    && chmod -R 777 /sftp /opt/heappe
 
 EXPOSE 8080
 EXPOSE 8081

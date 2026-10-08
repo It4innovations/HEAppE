@@ -23,14 +23,11 @@ eval $(minikube docker-env)
 # 3. Build Docker images inside Minikube
 cd "$REPO_ROOT"
 echo "--> Building Docker images..."
-echo "    1/3 Building heappe:6.5.0..."
+echo "    1/2 Building heappe:6.5.0..."
 docker build -t heappe:6.5.0 -f RestApi/Dockerfile .
 
-echo "    2/3 Building datastagingapi:6.5.0..."
+echo "    2/2 Building datastagingapi:6.5.0..."
 docker build -t datastagingapi:6.5.0 -f DataStagingAPI/Dockerfile .
-
-echo "    3/3 Building sshagent:latest..."
-docker build -t sshagent:latest -f SshAgent/Dockerfile .
 
 # 4. Create Kubernetes namespace
 echo "--> Creating namespace 'heappe'..."
@@ -43,7 +40,7 @@ helm upgrade --install heappe "$SCRIPT_DIR/heappe" \
   --set mssql.saPassword="Passw0rd123!" \
   --set api.image.pullPolicy=Never \
   --set datastaging.image.pullPolicy=Never \
-  --set sshAgent.image.pullPolicy=Never \
+  --set sshAgent.enabled=false \
   --set-file api.seedData="$SCRIPT_DIR/heappe/seed.njson"
 
 # 6. Wait for pods to be ready

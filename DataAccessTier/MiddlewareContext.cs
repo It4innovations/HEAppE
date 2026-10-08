@@ -608,8 +608,15 @@ public class MiddlewareContext : DbContext
         var _vaultConnector = new VaultConnector(_logger);
         foreach (var item in materialized)
         {
-            var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
-            item.ImportVaultData(vaultData);
+            try
+            {
+                var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
+                item.ImportVaultData(vaultData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not retrieve Vault data for credential Id {Id} during database seeding: {Message}", item.Id, ex.Message);
+            }
         }
 
         return materialized;

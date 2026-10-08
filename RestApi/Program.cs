@@ -126,7 +126,10 @@ public class Program
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
-                    config.AddNotJson("/opt/heappe/confs/seed.njson");
+                    if (File.Exists("/opt/heappe/confs/seed.njson"))
+                    {
+                        config.AddNotJson("/opt/heappe/confs/seed.njson");
+                    }
                 })
                 .UseKestrel(options =>
                 {
