@@ -142,7 +142,7 @@ MSSQL connection string
 {{- if .Values.mssql.external.enabled }}
 {{- .Values.mssql.external.connectionString }}
 {{- else }}
-{{- printf "Server=%s;Database=HEAppEDb;User Id=sa;Password=%s;TrustServerCertificate=True;Encrypt=Yes" (include "heappe.mssql.fullname" .) .Values.mssql.saPassword }}
+{{- printf "Server=%s,1433;Database=HEAppEDb;User Id=sa;Password=%s;TrustServerCertificate=True;Encrypt=Yes" (include "heappe.mssql.fullname" .) .Values.mssql.auth.password }}
 {{- end }}
 {{- end }}
 

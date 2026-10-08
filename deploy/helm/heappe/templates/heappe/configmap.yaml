@@ -8,7 +8,6 @@ metadata:
 data:
   appsettings.json: |
     {{- $settings := deepCopy .Values.api.appSettings }}
-    {{- $_ := set $settings "ConnectionStrings" (dict "MiddlewareContext" (include "heappe.mssql.connectionString" .) "Logging" (include "heappe.mssql.connectionString" .)) }}
     {{- $_ := set $settings "VaultConnectorSettings" (dict "VaultBaseAddress" (include "heappe.vaultagent.address" .) "ClusterVaultAuthenticationCredentialsPath" "v1/HEAppE/data/ClusterAuthenticationCredentials" "ConnectionTimeoutInSeconds" 15) }}
     {{- $settings | toPrettyJson | nindent 4 }}
 ---

@@ -17,3 +17,7 @@ keywords:
   - middleware
   - hpc-as-a-service
   - supercomputing
+dependencies:
+  - name: mssql
+    version: 0.0.0
+    repository: file://../../../../helm-mssql/chart

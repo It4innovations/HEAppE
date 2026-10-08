@@ -114,7 +114,7 @@ api:
       AutoMigrateDatabase: true
     ApplicationAPISettings:
       AllowedHosts:
-        - "http://localhost:5000"
+        - "http://localhost:8080"
       DeploymentSettings:
         Name: "HEAppE instance"
         Description: "HEAppE Kubernetes deployment"
@@ -302,7 +302,7 @@ api:
       ProviderName: ""
       TokenName: ""
     DatabaseFullBackupSettings:
-      ScheduledBackupEnabled: true
+      ScheduledBackupEnabled: false
       ScheduledRuntime: "02:00:00"
       LocalPath: "/opt/heappe/backups/database"
       NASPath: null
@@ -312,7 +312,7 @@ api:
         Weekly: 14
         Monthly: 12
     DatabaseTransactionLogBackupSettings:
-      ScheduledBackupEnabled: true
+      ScheduledBackupEnabled: false
       BackupScheduleIntervalInMinutes: 60
       LocalPath: "/opt/heappe/backups/database/logs"
       NASPath: null
@@ -326,69 +326,76 @@ api:
   # Three options (mutually exclusive, priority: existingSeedConfigMap > seedDataObject > seedData):
   #
   # Option 1: Raw njson string
-  seedData: ""
-  #
+  #seedData: ""
+  #seedDataObject:
+  #  MiddlewareContextSettings:
+  #    AdaptorUsers:
+  #      - Id: 1
+  #        Username: "default_username"
+  #        Password: "hashed_password_here"
+  #        CreatedAt: "2020-01-01 00:00:00"
+  #        ModifiedAt: null
   # Option 2: Structured YAML object (rendered to JSON automatically)
-  # seedDataObject:
-  #   MiddlewareContextSettings:
-  #     AdaptorUsers:
-  #       - Id: 1
-  #         Username: "default_username"
-  #         Password: "hashed_password_here"
-  #         CreatedAt: "2020-01-01 00:00:00"
-  #         ModifiedAt: null
-  #     AdaptorUserGroups:
-  #       - Id: 1
-  #         Name: "default_group"
-  #         Description: "Default Group"
-  #         ProjectId: 1
-  #     AdaptorUserRoles: []
-  #     AdaptorUserUserGroupRoles:
-  #       - AdaptorUserId: 1
-  #         AdaptorUserGroupId: 1
-  #         AdaptorUserRoleId: 1
-  #         CreatedAt: "2020-01-01 00:00:00"
-  #         ModifiedAt: null
-  #         IsDeleted: false
-  #     Projects:
-  #       - Id: 1
-  #         Name: "TestProject"
-  #         Description: "Test Project"
-  #         AccountingString: "default_acc"
-  #         StartDate: "2020-01-01 00:00:00"
-  #         EndDate: "2030-01-01 00:00:00"
-  #         CreatedAt: "2020-01-01 00:00:00"
-  #         ModifiedAt: null
-  #         IsDeleted: false
-  #         UseAccountingStringForScheduler: true
-  #         IsOneToOneMapping: false
-  #     FileTransferMethods: []
-  #     ClusterProxyConnections: []
-  #     Clusters: []
-  #     ClusterAuthenticationCredentials: []
-  #     Contacts: []
-  #     ProjectContacts: []
-  #     ClusterProjects: []
-  #     ClusterProjectCredentials: []
-  #     SubProjects: []
-  #     ClusterNodeTypes: []
-  #     Accountings: []
-  #     ClusterNodeTypeAggregations: []
-  #     ClusterNodeTypeAggregationAccounting: []
-  #     ProjectClusterNodeTypeAggregations: []
-  #     AccountingStates: []
-  #     CommandTemplates: []
-  #     CommandTemplateParameters: []
-  #     OpenStackInstances: []
-  #     OpenStackDomains: []
-  #     OpenStackProjectDomains: []
-  #     OpenStackProjects: []
-  #     OpenStackAuthenticationCredentials: []
-  #     OpenStackAuthenticationCredentialDomains: []
-  #     OpenStackAuthenticationCredentialProjects: []
+  seedDataObject:
+    MiddlewareContextSettings:
+      AdaptorUsers:
+        - Id: 1
+          Username: "default_username"
+          Password: "hashed_password_here"
+          CreatedAt: "2020-01-01 00:00:00"
+          ModifiedAt: null
+      AdaptorUserGroups:
+        - Id: 1
+          Name: "default_group"
+          Description: "Default Group"
+          ProjectId: 1
+      AdaptorUserRoles: []
+      AdaptorUserUserGroupRoles:
+        - AdaptorUserId: 1
+          AdaptorUserGroupId: 1
+          AdaptorUserRoleId: 1
+          CreatedAt: "2020-01-01 00:00:00"
+          ModifiedAt: null
+          IsDeleted: false
+      Projects:
+        - Id: 1
+          Name: "TestProject"
+          Description: "Test Project"
+          AccountingString: "default_acc"
+          StartDate: "2020-01-01 00:00:00"
+          EndDate: "2030-01-01 00:00:00"
+          CreatedAt: "2020-01-01 00:00:00"
+          ModifiedAt: null
+          IsDeleted: false
+          UseAccountingStringForScheduler: true
+          IsOneToOneMapping: false
+      FileTransferMethods: []
+      ClusterProxyConnections: []
+      Clusters: []
+      ClusterAuthenticationCredentials: []
+      Contacts: []
+      ProjectContacts: []
+      ClusterProjects: []
+      ClusterProjectCredentials: []
+      SubProjects: []
+      ClusterNodeTypes: []
+      Accountings: []
+      ClusterNodeTypeAggregations: []
+      ClusterNodeTypeAggregationAccounting: []
+      ProjectClusterNodeTypeAggregations: []
+      AccountingStates: []
+      CommandTemplates: []
+      CommandTemplateParameters: []
+      OpenStackInstances: []
+      OpenStackDomains: []
+      OpenStackProjectDomains: []
+      OpenStackProjects: []
+      OpenStackAuthenticationCredentials: []
+      OpenStackAuthenticationCredentialDomains: []
+      OpenStackAuthenticationCredentialProjects: []
   #
   # Option 3: Use an existing ConfigMap (must contain key "seed.njson")
-  # existingSeedConfigMap: "my-seed-configmap"
+  #existingSeedConfigMap: "my-seed-configmap"
 
 # =============================================================================
 # SSH Agent (sidecar container in HEAppE pod)
@@ -528,54 +535,79 @@ datastaging:
 # Microsoft SQL Server
 # =============================================================================
 mssql:
-  # -- Enable built-in MSSQL. Set to false to use an external database.
-  enabled: true
+  rbac:
+    create: false
+    
+  volumePermissions:
+    enabled: false
 
-  image:
-    repository: mcr.microsoft.com/mssql/server
-    tag: "2022-latest"
-    pullPolicy: IfNotPresent
+  auth:
+    database: "HEAppEDb"
+    password: "foo-bar-baz-1234567890"
+    rootPassword: "foo-bar-baz-1234567890"    
+  
+  primary:
+    hostUsers:
+      enabled: false
+    podSecurityContext:
+      enabled: true
+      fsGroup: 1001
+    containerSecurityContext:
+      runAsUser: 1001
+      enabled: true
+      runAsNonRoot: true
 
-  # -- SA password (required!)
-  saPassword: "CHANGE_ME_Passw0rd!"
+      # https://github.com/microsoft/mssql-docker/issues/769#issuecomment-1370324908
+      capabilities:
+        add:
+        - NET_BIND_SERVICE
 
-  # -- MSSQL product edition
-  pid: "Developer"
-
-  # -- Memory limit in MB for MSSQL
-  memoryLimitMb: 4096
-
-  service:
-    type: ClusterIP
-    port: 1433
-
-  persistence:
-    enabled: true
-    storageClass: ""
-    accessMode: ReadWriteOnce
-    size: 20Gi
-
-  resources:
-    requests:
-      memory: 2Gi
-    limits:
-      memory: 6Gi
-
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  # -- Use an external MSSQL database instead of the built-in one
+#  # -- Enable built-in MSSQL. Set to false to use an external database.
+#  enabled: true
+#
+#  image:
+#    repository: mcr.microsoft.com/mssql/server
+#    tag: "2022-latest"
+#    pullPolicy: IfNotPresent
+#
+#
+#  # -- MSSQL product edition
+#  pid: "Developer"
+#
+#  # -- Memory limit in MB for MSSQL
+#  memoryLimitMb: 4096
+#
+#  service:
+#    type: ClusterIP
+#    port: 1433
+#
+#  persistence:
+#    enabled: true
+#    storageClass: ""
+#    accessMode: ReadWriteOnce
+#    size: 20Gi
+#
+#  resources:
+#    requests:
+#      memory: 2Gi
+#    limits:
+#      memory: 6Gi
+#
+#  nodeSelector: {}
+#  tolerations: []
+#  affinity: {}
+#
+#  # -- Use an external MSSQL database instead of the built-in one
   external:
     enabled: false
-    connectionString: ""
+#    connectionString: ""
 
 # =============================================================================
 # HashiCorp Vault
 # =============================================================================
 vault:
   # -- Enable built-in Vault deployment
-  enabled: true
+  enabled: false
 
   image:
     repository: hashicorp/vault
@@ -607,7 +639,6 @@ vault:
     port: 8100
     resources:
       requests:
-        cpu: 50m
         memory: 64Mi
       limits:
         memory: 256Mi
