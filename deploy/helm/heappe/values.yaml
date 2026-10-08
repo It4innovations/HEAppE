@@ -25,7 +25,7 @@ api:
     pullPolicy: IfNotPresent
 
   # -- Container port
-  containerPort: 80
+  containerPort: 8080
 
   # -- Environment type passed to ASPNETCORE_RUNTYPE_ENVIRONMENT
   environmentType: "Docker"
@@ -122,7 +122,7 @@ api:
         Description: "HEAppE Kubernetes deployment"
         Version: "v6.5.0"
         DeployedIPAddress: "0.0.0.0"
-        Port: "80"
+        Port: "8080"
         Host: "http://localhost:5000"
         HostPostfix: ""
         DeploymentEnvironmentType: "Docker"

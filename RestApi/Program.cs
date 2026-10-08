@@ -129,8 +129,14 @@ public class Program
         IWebHostBuilder builder;
         var localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
         if (localRunEnv == "Docker")
+        {
+            var port = Environment.GetEnvironmentVariable("PORT")
+                       ?? Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS")
+                       ?? "8080";
+            var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+                       ?? $"http://*:{port}";
             builder = WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:80")
+                .UseUrls(urls)
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
@@ -146,6 +152,7 @@ public class Program
                     options.Limits.MinResponseDataRate = null;
                 })
                 .UseStartup<Startup>();
+        }
         else
             builder = WebHost.CreateDefaultBuilder()
                 .UseUrls("http://*:5005")
