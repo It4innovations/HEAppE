@@ -107,8 +107,15 @@ public class SubmittedTaskInfoExt
     [Description("Reason (parsed from scheduler, e.g. SLURM)")]
     public string Reason { get; set; }
 
+    /// <summary>
+    /// Quality of service
+    /// </summary>
+    [DataMember(Name = "QualityOfService")]
+    [Description("Quality of service")]
+    public string QualityOfService { get; set; }
+
     public override string ToString()
     {
-        return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage}; Reason={Reason})";
+        return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage}; Reason={Reason}; qualityOfService={QualityOfService})";
     }
 }

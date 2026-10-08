@@ -165,15 +165,21 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 var previousTaskStates = jobInfo.Tasks.ToDictionary(t => t.Id, t => t.State);
                 var previousJobState = jobInfo.State;
 
-                ClusterAuthenticationCredentials credentials;
-                if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                ClusterAuthenticationCredentials credentials = null;
+                var isQSchedulerHttp = cluster.SchedulerType == SchedulerType.QScheduler && 
+                    (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+                if (!isQSchedulerHttp)
                 {
-                    credentials = jobInfo.Specification.ClusterUser;
-                }
-                else
-                {
-                    credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                        jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
+                    if (jobInfo.Specification.ClusterUser?.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Kerberos)
+                    {
+                        credentials = jobInfo.Specification.ClusterUser;
+                    }
+                    else
+                    {
+                        credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: dbTask.Specification.JobSpecification.Submitter.Id, _logger);
+                    }
                 }
 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)

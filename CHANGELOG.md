@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.0
+
+### Added
+- **Token & Certificate In-Memory Caching with Adaptive TTL:**
+  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers (min 5s, max 60s, 15% of total duration) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
+  - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
+  - Added in-memory caching for SSH CA OTT token exchange in `HttpContextKeys.ExchangeSshCaToken` keyed by SHA-256 hash of IdP tokens and audience.
+  - Added in-memory caching for signed OpenSSH user certificates in `SshCertificateAuthorityService.SignAsync` with 5-minute cluster validity and `InvalidateCache` support.
+  - Added in-memory caching for FirecREST OAuth2 client credentials tokens in `FirecRestTokenService` with `InvalidateToken` support.
+  - Added in-memory caching for Expirio token exchange (`ExchangeTokenAsync`) and FirecREST credentials exchange (`ExchangeFirecrestCredentialsAsync`) in `ExpirioService`.
+- **QScheduler Machine Information endpoint:**
+  - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
+  - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
+  - Added automatic parsing and extraction of QScheduler version in machine info responses.
+- **SubProject repository queries:**
+  - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
+- **SubProject Lifecycle Unit Tests:**
+  - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
+
+### Fixed
+- **Kerberos ticket expiration validation in `KrbLibSim`:**
+  - Fixed ticket validation logic where `Now.AddSeconds(-300) < cacheEntry.EndTime` treated expired tickets as valid; corrected to `DateTime.UtcNow.AddSeconds(s_ticketValidityBufferSeconds) < cacheEntry.EndTime` and added `InvalidateTicket`.
+- **SubProject lifecycle synchronization with Project:**
+  - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
+    - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.
+    - Subprojects whose end date would exceed a shortened project end date are clamped to the new project end date.
+    - Subprojects whose start date is earlier than the new project start date (or were aligned with the old start date) are adjusted to the new project start date.
+  - **Auto-extension of expired SubProjects during job creation:** In `CreateSubProject(identifier, projectId)` (invoked during `CreateJob`), if an existing subproject has expired but its parent project is active, the subproject is automatically extended to `project.EndDate` and reused instead of rejecting job creation with `400 Bad Request: Specified SubProject is deleted or not valid`.
+  - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
+- **User-Agent Header Sanitization:**
+  - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
+- **SSH CA credential synchronization, Vault resilience, and auto-provisioning:**
+  - In `ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa`, derive and synchronize `PublicKey` directly from `PrivateKey` when `PrivateKey` is present, ensuring SSH certificates match the private key used for authentication and eliminating `The supplied certificate does not certify the supplied key` errors.
+  - Added guards in `EnsureValidPublicKeyForSshCa` to keep existing `PublicKey` and avoid regenerating keys for existing credentials when Vault data was not loaded (`!IsVaultDataLoaded`).
+  - Added guard in `ClusterAuthenticationCredentialsRepository.UpdateAsync` to only write to Vault when `IsVaultDataLoaded` is true, preventing overwriting existing Vault secrets with empty data during transient Vault read errors.
+  - Handled auto-resolved `authType` in `ManagementLogic.CreateCredential` to return existing user credentials regardless of type mismatch instead of throwing `HPCIdentityAlreadyExistsWithDifferentType` during auto-provisioning workflows.
+
+## V6.6.0
+
+### Added
+- **Task-level Quality of Service (QoS) support:**
+  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
+  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
+  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
+  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
+  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
+- **EF Core Navigation Property Validation Tests:**
+  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
+
+### Fixed
+- **Kerberos SSH and SFTP connection host resolution:**
+  - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
+- **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
+  - Fixed missing `CommandTemplates` and `TemplateParameters` includes in `ProjectRepository` (`GetByIdWithClusterProjects`, `GetAllWithClusterProjects`, and their async variants) causing `null` command templates in `Management/Projects` responses.
+  - Fixed missing `SubProject` include in `SubmittedJobInfoRepository.GetByIdWithTasks` and `GetByIdWithTasksAsync`, and added missing `FileTransferMethod` include to `GetByIdWithTasksAsync`.
+  - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
+  - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
+  - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
+- **QScheduler Credentials Bypass for HTTP/HTTPS:**
+  - Bypassed service account and cluster authentication credentials initialization requirement when using `SchedulerType.QScheduler` over HTTP/HTTPS protocols in:
+    - [`ClusterInformationLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/ClusterInformation/ClusterInformationLogic.cs) (`GetMachineArchitectureAsync`, `GetMachineCalibrationAsync`, `GetCurrentClusterNodeUsageAsync`, and `GetNextAvailableUserCredentials`),
+    - [`JobManagementLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/JobManagementLogic.cs) (`PrepareGetActualTasksInfoAsync`, `PrepareCancelJobAsync`, `CheckAndCloseQSchedulerSessionsAsync`, and background polling),
+    - [`QSchedulerCallbackHandler`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/QSchedulerCallbackHandler.cs) (`ProcessEventAsync`),
+    preventing HTTP 403 `ClusterAccountNotInitialized` errors across all QScheduler operations that do not require SSH credentials.
+
 ## V6.5.2
 
 ### Fixed
@@ -80,7 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
-  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` ↔ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
 - Fixed cluster script directory initialization failures in `LinuxCommands`:
   - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
   - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.

@@ -174,6 +174,13 @@ public class AdminTaskInfoExt
     public string PlacementPolicy { get; set; }
 
     /// <summary>
+    /// Quality of service
+    /// </summary>
+    [DataMember(Name = "QualityOfService")]
+    [Description("Quality of service")]
+    public string QualityOfService { get; set; }
+
+    /// <summary>
     /// Is exclusive
     /// </summary>
     [DataMember(Name = "IsExclusive")]
@@ -245,6 +252,6 @@ public class AdminTaskInfoExt
 
     public override string ToString()
     {
-        return $"AdminTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit})";
+        return $"AdminTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; qualityOfService={QualityOfService})";
     }
 }

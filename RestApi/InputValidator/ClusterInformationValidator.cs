@@ -18,11 +18,21 @@ public class ClusterInformationValidator : AbstractValidator
             GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
             ListAvailableClustersModel ext => ValidateListAvailableClustersModel(ext),
             GetMachineArchitectureModel ext => ValidateGetMachineArchitectureModel(ext),
+            GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             GetMachineCalibrationModel ext => ValidateGetMachineCalibrationModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateGetMachineInfoModel(GetMachineInfoModel model)
+    {
+        ValidateId(model.ClusterNodeTypeId, "ClusterNodeTypeId");
+        ValidateId(model.ProjectId, "ProjectId");
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
     }
 
     private string ValidateGetMachineArchitectureModel(GetMachineArchitectureModel model)

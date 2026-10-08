@@ -194,16 +194,26 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && string.IsNullOrEmpty(sessionCode))
         {
-            if (httpContextKeys.Context.AdaptorUserId < 0)
+            if (httpContextKeys.Context.AdaptorUserId <= 0)
                 throw new UnauthorizedAccessException("Unauthorized");
 
-            return authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+            var userFromContext = authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+            if (userFromContext == null)
+                throw new UnauthorizedAccessException("Unauthorized");
+
+            return userFromContext;
         }
 
         if (string.IsNullOrEmpty(sessionCode))
         {
             if (httpContextKeys.Context.AdaptorUserId > 0)
-                return authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+            {
+                var userFromContext = authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+                if (userFromContext == null)
+                    throw new UnauthorizedAccessException("Unauthorized");
+
+                return userFromContext;
+            }
             
             throw new UnauthorizedAccessException("Unauthorized");
         }
@@ -222,12 +232,12 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
-
-        CheckUserRoleForProject(logger, loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
         if (loggedUser == null)
         {
             throw new UnauthorizedAccessException("Unauthorized");
         }
+
+        CheckUserRoleForProject(logger, loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
         return loggedUser;
     }
 

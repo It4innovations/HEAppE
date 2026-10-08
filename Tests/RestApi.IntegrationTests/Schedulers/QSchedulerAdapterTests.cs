@@ -84,7 +84,7 @@ public class QSchedulerAdapterTests
         _mockHandler.Protected().Verify(
             "SendAsync",
             Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete && req.RequestUri.ToString().Contains("/tasks/42")),
+            ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete && req.RequestUri!.ToString().Contains("/tasks/42")),
             ItExpr.IsAny<CancellationToken>()
         );
     }
@@ -113,7 +113,7 @@ public class QSchedulerAdapterTests
         _mockHandler.Protected().Verify(
             "SendAsync",
             Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete && req.RequestUri.ToString().Contains("/sessions/99")),
+            ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete && req.RequestUri!.ToString().Contains("/sessions/99")),
             ItExpr.IsAny<CancellationToken>()
         );
     }

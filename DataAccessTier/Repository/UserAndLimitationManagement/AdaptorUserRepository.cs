@@ -157,7 +157,10 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
         return await _dbSet
             .AsNoTracking()
             .Include(u => u.AdaptorUserUserGroupRoles)
-            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                    .ThenInclude(g => g.Project)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
             .Where(u => u.AdaptorUserUserGroupRoles
                 .Any(ugr => ugr.AdaptorUserGroup.Id == groupId))
             .ToListAsync();
@@ -199,6 +202,32 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
                 .ThenInclude(ugr => ugr.AdaptorUserGroup)
             .IgnoreQueryFilters() 
             .FirstOrDefaultAsync(w => w.IdpSid == idpSid);
+    }
+
+    public List<AdaptorUser> GetAllWithGroupsAndRoles()
+    {
+        return _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                    .ThenInclude(g => g.Project)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .ToList();
+    }
+
+    public async Task<List<AdaptorUser>> GetAllWithGroupsAndRolesAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserGroup)
+                    .ThenInclude(g => g.Project)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+                .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .ToListAsync();
     }
 
     #endregion

@@ -29,5 +29,15 @@ internal class SubProjectRepository : GenericRepository<SubProject>, ISubProject
         return await _context.SubProjects.FirstOrDefaultAsync(p => p.Identifier == accountingString && p.ProjectId == projectId);
     }
 
+    public System.Collections.Generic.List<SubProject> GetSubProjectsForProject(long projectId)
+    {
+        return _context.SubProjects.Where(p => p.ProjectId == projectId && !p.IsDeleted).ToList();
+    }
+
+    public async Task<System.Collections.Generic.List<SubProject>> GetSubProjectsForProjectAsync(long projectId)
+    {
+        return await _context.SubProjects.Where(p => p.ProjectId == projectId && !p.IsDeleted).ToListAsync();
+    }
+
     #endregion
 }

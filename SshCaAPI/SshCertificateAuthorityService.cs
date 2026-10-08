@@ -12,6 +12,9 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 
+using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace SshCaAPI
 {
     public class SshCertificateAuthorityService : ISshCertificateAuthorityService
@@ -22,15 +25,22 @@ namespace SshCaAPI
         /// <returns>Configured rest client.</returns>
         private readonly RestClient _basicRestClient;
         private readonly string? _caName;
+        private readonly IMemoryCache? _memoryCache;
 
         public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
-            : this(null, baseUri, caName, connectionTimeoutInSeconds)
+            : this(null, baseUri, caName, connectionTimeoutInSeconds, null)
         {
         }
 
         public SshCertificateAuthorityService(System.Net.Http.IHttpClientFactory? httpClientFactory, string baseUri, string caName, double connectionTimeoutInSeconds)
+            : this(httpClientFactory, baseUri, caName, connectionTimeoutInSeconds, null)
+        {
+        }
+
+        public SshCertificateAuthorityService(System.Net.Http.IHttpClientFactory? httpClientFactory, string baseUri, string caName, double connectionTimeoutInSeconds, IMemoryCache? memoryCache)
         {
             _caName = caName;
+            _memoryCache = memoryCache;
             //caName can be empty, but baseUri cannot be empty. If baseUri is empty, the client will not be initialized and all API calls will fail, which is expected.
             string url = string.Empty;
             if (string.IsNullOrEmpty(caName))
@@ -98,6 +108,21 @@ namespace SshCaAPI
         {
             logger?.LogInformation("[SignService] Method: SignAsync");
 
+            if (!IsValidSshPublicKey(publicKey))
+            {
+                logger?.LogError($"[SignService Error] Invalid or destroyed SSH public key provided: '{publicKey}'. Request aborted before contacting SSH CA.");
+                throw new SshCAServiceTypeException("InvalidPublicKey") { Details = $"Provided public key '{publicKey}' is invalid or destroyed." };
+            }
+
+            var pubKeyHash = ComputeSha256(publicKey);
+            var cacheKey = $"ssh_ca_sign:{pubKeyHash}:{resource}";
+
+            if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out SignResponse? cachedResponse) && cachedResponse != null)
+            {
+                logger?.LogDebug($"[SignService] Returning cached SSH certificate for resource '{resource}'.");
+                return cachedResponse;
+            }
+
             if (!string.IsNullOrEmpty(ott))
             {
                 try
@@ -121,12 +146,6 @@ namespace SshCaAPI
                 {
                     logger?.LogDebug(ex, "[SignService] Could not parse OTT token as JWT for expiration pre-check.");
                 }
-            }
-
-            if (!IsValidSshPublicKey(publicKey))
-            {
-                logger?.LogError($"[SignService Error] Invalid or destroyed SSH public key provided: '{publicKey}'. Request aborted before contacting SSH CA.");
-                throw new SshCAServiceTypeException("InvalidPublicKey") { Details = $"Provided public key '{publicKey}' is invalid or destroyed." };
             }
 
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
@@ -160,7 +179,30 @@ namespace SshCaAPI
                 json.SshCert = json.SshCert.TrimEnd('\n');
             }
 
+            if (_memoryCache != null && json != null && !string.IsNullOrEmpty(json.SshCert))
+            {
+                // The issued SSH certificate is valid on the cluster (typically 5 to 60 minutes).
+                // Cache the resulting certificate for 5 minutes (or until explicitly invalidated).
+                var ttl = TimeSpan.FromMinutes(5);
+                _memoryCache.Set(cacheKey, json, ttl);
+                logger?.LogDebug($"[SignService] Cached SSH certificate for {(int)ttl.TotalSeconds}s.");
+            }
+
             return json;
+        }
+
+        public void InvalidateCache(string publicKey, string resource, string? ott = null)
+        {
+            if (_memoryCache == null) return;
+            var pubKeyHash = ComputeSha256(publicKey);
+            var cacheKey = $"ssh_ca_sign:{pubKeyHash}:{resource}";
+            _memoryCache.Remove(cacheKey);
+        }
+
+        private static string ComputeSha256(string input)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+            return Convert.ToHexString(bytes);
         }
 
         /// <summary>

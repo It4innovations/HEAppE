@@ -43,7 +43,9 @@ public class ClusterCacheTests
         var options = new MemoryCacheEntryOptions();
         
         // Obsolete method should not throw and should not attach tokens
+#pragma warning disable CS0618
         CacheUtils.AddClusterInvalidation(options);
+#pragma warning restore CS0618
         options.ExpirationTokens.Should().BeEmpty();
     }
 

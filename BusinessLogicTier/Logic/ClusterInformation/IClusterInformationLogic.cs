@@ -13,6 +13,8 @@ public interface IClusterInformationLogic
 
     Task<string> GetMachineArchitectureAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId);
 
+    Task<string> GetMachineInfoAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId);
+
     Task<string> GetMachineCalibrationAsync(long clusterNodeTypeId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
 
     Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,

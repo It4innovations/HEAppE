@@ -109,5 +109,12 @@ internal class ClusterNodeTypeRepository : GenericRepository<ClusterNodeType>, I
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
+    public async Task<ClusterNodeType> GetFirstByClusterIdAsync(long clusterId)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.ClusterId == clusterId);
+    }
+
     #endregion
 }

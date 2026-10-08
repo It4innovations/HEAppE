@@ -960,6 +960,11 @@ public class FirecRestSchedulerAdapter : HEAppE.HpcConnectionFramework.Scheduler
     public Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, string machineId) =>
         throw new NotSupportedException("GetMachineArchitecture is not supported by FireCrest");
 
+    public Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId) =>
+        throw new NotSupportedException("GetMachineInfo is not supported by FireCrest");
+        
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster) =>
+        throw new NotSupportedException("GetQSchedulerVersionAsync is not supported by FireCrest");
     public Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint) =>
         throw new NotSupportedException("GetMachineCalibration is not supported by FireCrest");
 }

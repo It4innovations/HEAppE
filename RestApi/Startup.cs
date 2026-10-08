@@ -62,6 +62,7 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi;
 
@@ -112,7 +113,8 @@ public class Startup
             sp.GetRequiredService<IHttpClientFactory>(),
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
-            SshCaSettings.ConnectionTimeoutInSeconds
+            SshCaSettings.ConnectionTimeoutInSeconds,
+            sp.GetService<IMemoryCache>()
         ));
         
         services.AddSingleton<SqlServerHealthCheck>();

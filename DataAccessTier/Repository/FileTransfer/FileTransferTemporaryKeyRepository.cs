@@ -35,6 +35,8 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
             .Include(x => x.SubmittedJob)
                 .ThenInclude(j => j.Specification)
                     .ThenInclude(s => s.Project)
+                        .ThenInclude(p => p.ClusterProjects)
+                            .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Where(x => !x.IsDeleted && x.AddedAt <= threshold)
             .ToList();
     }
@@ -53,6 +55,8 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
             .Include(x => x.SubmittedJob)
                 .ThenInclude(j => j.Specification)
                     .ThenInclude(s => s.Project)
+                        .ThenInclude(p => p.ClusterProjects)
+                            .ThenInclude(cp => cp.ClusterProjectCredentials)
             .Where(x => !x.IsDeleted && x.AddedAt <= threshold)
             .ToListAsync();
     }
