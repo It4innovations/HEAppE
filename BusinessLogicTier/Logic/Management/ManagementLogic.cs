@@ -1831,9 +1831,9 @@ public class ManagementLogic : IManagementLogic
     /// <param name="id"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster GetClusterById(long id)
+    public Cluster GetClusterById(long id, ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        var cluster = _unitOfWork.ClusterRepository.GetById(id);
+        var cluster = _unitOfWork.ClusterRepository.GetById(id, detailLevel);
 
         return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
     }

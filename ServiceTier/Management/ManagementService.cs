@@ -968,7 +968,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ExtendedClusterExt GetClusterById(long clusterId, string sessionCode)
+    public ExtendedClusterExt GetClusterById(long clusterId, string sessionCode, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
@@ -976,26 +976,25 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var cluster = managementLogic.GetClusterById(clusterId);
-            var ext = cluster.ConvertIntToExtendedExt(projects, false);
+            var cluster = managementLogic.GetClusterById(clusterId, detailLevel.ConvertExtToInt());
+            var ext = cluster.ConvertIntToExtendedExt(projects, false, detailLevel);
             ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(cluster.CustomConfiguration).EnableCallback;
             return ext;
         }
     }
     
-    public List<ExtendedClusterExt> GetClusters(string sessionCode)
+    public List<ExtendedClusterExt> GetClusters(string sessionCode, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     _logger, AdaptorUserRoleType.ManagementAdmin, _expirioService, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var clusters = clusterLogic.ListAvailableClusters()
+            var clusters = clusterLogic.ListAvailableClusters(detailLevel.ConvertExtToInt())
                 .Select(s =>
                 {
-                    var ext = s.ConvertIntToExtendedExt(projects, false);
+                    var ext = s.ConvertIntToExtendedExt(projects, false, detailLevel);
                     ext.UseCallback = HEAppE.HpcConnectionFramework.Configuration.ClusterRuntimeConfiguration.For(s.CustomConfiguration).EnableCallback;
                     return ext;
                 })

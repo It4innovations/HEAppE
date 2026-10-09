@@ -47,9 +47,9 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         _credentialProvisioningLogic = LogicFactory.GetLogicFactory().CreateCredentialProvisioningLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
     
-    public IEnumerable<Cluster> ListAvailableClusters()
+    public IEnumerable<Cluster> ListAvailableClusters(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
+        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter(detailLevel);
     }
 
     public async Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser,
@@ -612,9 +612,9 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return nodeType;
     }
 
-    public Cluster GetClusterById(long clusterId)
+    public Cluster GetClusterById(long clusterId, ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+        var cluster = _unitOfWork.ClusterRepository.GetById(clusterId, detailLevel);
         return cluster == null
             ? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId)
             : cluster;
