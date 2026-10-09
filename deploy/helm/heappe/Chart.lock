@@ -1,0 +1,6 @@
+dependencies:
+- name: mssql
+  repository: file://../../../../helm-mssql/chart
+  version: 0.0.0
+digest: sha256:06b435d528957f234c25812236b61733770147397866eaf365f08b67c3d516f9
+generated: "2026-09-23T09:38:11.582552957+02:00"
