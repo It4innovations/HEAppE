@@ -541,11 +541,6 @@ mssql:
   volumePermissions:
     enabled: false
 
-  auth:
-    database: "HEAppEDb"
-    password: "foo-bar-baz-1234567890"
-    rootPassword: "foo-bar-baz-1234567890"    
-  
   primary:
     podSecurityContext:
       enabled: true

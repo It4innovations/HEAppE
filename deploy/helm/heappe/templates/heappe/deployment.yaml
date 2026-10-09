@@ -33,12 +33,15 @@ spec:
             - name: http
               containerPort: {{ .Values.api.containerPort }}
               protocol: TCP
-          env:        
-            - name: ConnectionStrings__MiddlewareContext
+          env:
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "heappe.fullname" . }}-connectionstrings
-                  key: MiddlewareContext
+                  name: {{ include "heappe.fullname" . }}-mssql
+                  key: mssql-root-password
+            - name: ConnectionStrings__MiddlewareContext
+              value: {{ printf "Server=%s,1433;Database=HEAppEDb;User Id=sa;Password=$(DB_PASSWORD);TrustServerCertificate=True;Encrypt=Yes" (include "heappe.mssql.fullname" .) }}
+
             - name: ASPNETCORE_RUNTYPE_ENVIRONMENT
               value: {{ .Values.api.environmentType | quote }}
             {{- if .Values.sshAgent.enabled }}

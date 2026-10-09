@@ -136,17 +136,6 @@ Jaeger fully qualified name
 {{- end }}
 
 {{/*
-MSSQL connection string
-*/}}
-{{- define "heappe.mssql.connectionString" -}}
-{{- if .Values.mssql.external.enabled }}
-{{- .Values.mssql.external.connectionString }}
-{{- else }}
-{{- printf "Server=%s,1433;Database=HEAppEDb;User Id=sa;Password=%s;TrustServerCertificate=True;Encrypt=Yes" (include "heappe.mssql.fullname" .) .Values.mssql.auth.password }}
-{{- end }}
-{{- end }}
-
-{{/*
 OTEL Collector endpoint
 */}}
 {{- define "heappe.otelcollector.endpoint" -}}
