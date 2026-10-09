@@ -106,7 +106,7 @@ public interface IManagementLogic
 
     void RemoveSubProject(long modelId);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
-    Cluster GetClusterById(long clusterId);
+    Cluster GetClusterById(long clusterId, ClusterDetailLevel detailLevel = ClusterDetailLevel.Full);
     Cluster GetByIdWithProxyConnection(long clusterId);
 
     Task<Cluster> CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,

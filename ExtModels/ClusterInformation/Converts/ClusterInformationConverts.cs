@@ -48,7 +48,7 @@ public static class ClusterInformationConverts
         return convert;
     }
     
-    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
     {
         var convert = new ExtendedClusterExt
         {
@@ -63,9 +63,10 @@ public static class ClusterInformationConverts
             DomainName = cluster.DomainName,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
-            FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
-            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
-                .ToArray(),
+            FileTransferMethodIds = cluster.FileTransferMethods?.Select(x => x.Id).ToList() ?? new List<long>(),
+            NodeTypes = detailLevel == ClusterDetailLevelExt.ClustersOnly
+                ? null
+                : cluster.NodeTypes?.Select(s => s.ConvertIntToExt(projects, onlyActive, detailLevel)).ToArray(),
             CustomConfiguration = MaskCustomConfiguration(cluster),
             CustomConfigurationVaultToggles = cluster.CustomConfigurationVaultToggles
         };
@@ -164,66 +165,36 @@ public static class ClusterInformationConverts
     }
 
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
+    public static ClusterDetailLevelExt ConvertIntToExt(this ClusterDetailLevel detailLevel)
     {
-        // get all projects
-        var projectExts = new List<ProjectExt>();
-        if (nodeType.Cluster != null)
+        return detailLevel switch
         {
-            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
-                .Where(x => !x.IsDeleted && x.Project != null)
-                .GroupBy(x => x.ProjectId)
-                .Select(g => g.First())
-                .OrderBy(o=>o.ClusterId)
-                .ToList();
-
-            if (dbClusterProjects != null)
-            {
-                foreach (var cp in dbClusterProjects)
-                {
-                    projectExts.Add(cp.Project.ConvertIntToExt());
-                }
-            }
-
-            // select possible commands for specific project or command for all projects
-            foreach (var project in projectExts)
-                project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
-                        !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
-                    .Select(command => command.ConvertIntToExt())
-                    .ToArray();
-        }
-
-        var convert = new ClusterNodeTypeExt
-        {
-            Id = nodeType.Id,
-            Name = nodeType.Name,
-            Description = nodeType.Description,
-            NumberOfNodes = nodeType.NumberOfNodes,
-            CoresPerNode = nodeType.CoresPerNode,
-            MaxWalltime = nodeType.MaxWalltime,
-            FileTransferMethodId = nodeType.FileTransferMethodId,
-            Queue = nodeType.Queue,
-            QualityOfService = nodeType.QualityOfService,
-            ClusterAllocationName = nodeType.ClusterAllocationName,
-            ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
-            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
-                .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
-            ClusterId = nodeType.ClusterId,
-            Projects = projectExts.ToArray()
+            ClusterDetailLevel.Full => ClusterDetailLevelExt.Full,
+            ClusterDetailLevel.ClustersOnly => ClusterDetailLevelExt.ClustersOnly,
+            ClusterDetailLevel.NodeTypes => ClusterDetailLevelExt.NodeTypes,
+            ClusterDetailLevel.Projects => ClusterDetailLevelExt.Projects,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Cluster detail level",
+                $"<{string.Join(", ", Enum.GetValues(typeof(ClusterDetailLevelExt)).Cast<int>())}>"
+            )
         };
-        return convert;
     }
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
+    public static ClusterDetailLevel ConvertExtToInt(this ClusterDetailLevelExt detailLevelExt)
     {
-        var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
-        var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));
-        var projectExts = new List<ProjectExt>();
+        return (ClusterDetailLevel)detailLevelExt;
+    }
 
-        if (nodeType.Cluster != null)
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
+    {
+        // get all projects
+        List<ProjectExt>? projectExts = null;
+        if (detailLevel != ClusterDetailLevelExt.NodeTypes && nodeType.Cluster != null)
         {
+            projectExts = new List<ProjectExt>();
             var dbClusterProjects = nodeType.Cluster.ClusterProjects?
-                .Where(x => !x.IsDeleted && x.Project != null && allowedProjectIds.Contains(x.ProjectId))
+                .Where(x => !x.IsDeleted && x.Project != null)
                 .GroupBy(x => x.ProjectId)
                 .Select(g => g.First())
                 .OrderBy(o => o.ClusterId)
@@ -233,18 +204,25 @@ public static class ClusterInformationConverts
             {
                 foreach (var cp in dbClusterProjects)
                 {
-                    if (onlyActive && cp.Project.EndDate < DateTime.UtcNow) continue;
-
                     projectExts.Add(cp.Project.ConvertIntToExt());
                 }
             }
 
-            foreach (var project in projectExts)
+            if (detailLevel == ClusterDetailLevelExt.Full)
             {
-                project.CommandTemplates = nodeType.PossibleCommands?
-                    .Where(c => !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
-                    .Select(command => command.ConvertIntToExt())
-                    .ToArray() ?? Array.Empty<CommandTemplateExt>();
+                // select possible commands for specific project or command for all projects
+                foreach (var project in projectExts)
+                    project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
+                            !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+                        .Select(command => command.ConvertIntToExt())
+                        .ToArray();
+            }
+            else
+            {
+                foreach (var project in projectExts)
+                {
+                    project.CommandTemplates = null;
+                }
             }
         }
 
@@ -264,9 +242,78 @@ public static class ClusterInformationConverts
             Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings?
                 .Select(s => s.Accounting?.ConvertIntToExt())
                 .Where(a => a != null)
-                .ToArray() ?? Array.Empty<AccountingExt>(),
+                .ToArray(),
             ClusterId = nodeType.ClusterId,
-            Projects = projectExts.ToArray()
+            Projects = projectExts?.ToArray()
+        };
+        return convert;
+    }
+
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
+    {
+        List<ProjectExt>? projectExts = null;
+
+        if (detailLevel != ClusterDetailLevelExt.NodeTypes && nodeType.Cluster != null)
+        {
+            var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
+            var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));
+            projectExts = new List<ProjectExt>();
+
+            var dbClusterProjects = nodeType.Cluster.ClusterProjects?
+                .Where(x => !x.IsDeleted && x.Project != null && allowedProjectIds.Contains(x.ProjectId))
+                .GroupBy(x => x.ProjectId)
+                .Select(g => g.First())
+                .OrderBy(o => o.ClusterId)
+                .ToList();
+
+            if (dbClusterProjects != null)
+            {
+                foreach (var cp in dbClusterProjects)
+                {
+                    if (onlyActive && cp.Project.EndDate < DateTime.UtcNow) continue;
+
+                    projectExts.Add(cp.Project.ConvertIntToExt());
+                }
+            }
+
+            if (detailLevel == ClusterDetailLevelExt.Full)
+            {
+                foreach (var project in projectExts)
+                {
+                    project.CommandTemplates = nodeType.PossibleCommands?
+                        .Where(c => !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+                        .Select(command => command.ConvertIntToExt())
+                        .ToArray() ?? Array.Empty<CommandTemplateExt>();
+                }
+            }
+            else
+            {
+                foreach (var project in projectExts)
+                {
+                    project.CommandTemplates = null;
+                }
+            }
+        }
+
+        var convert = new ClusterNodeTypeExt
+        {
+            Id = nodeType.Id,
+            Name = nodeType.Name,
+            Description = nodeType.Description,
+            NumberOfNodes = nodeType.NumberOfNodes,
+            CoresPerNode = nodeType.CoresPerNode,
+            MaxWalltime = nodeType.MaxWalltime,
+            FileTransferMethodId = nodeType.FileTransferMethodId,
+            Queue = nodeType.Queue,
+            QualityOfService = nodeType.QualityOfService,
+            ClusterAllocationName = nodeType.ClusterAllocationName,
+            ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
+            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings?
+                .Select(s => s.Accounting?.ConvertIntToExt())
+                .Where(a => a != null)
+                .ToArray(),
+            ClusterId = nodeType.ClusterId,
+            Projects = projectExts?.ToArray()
         };
 
         return convert;

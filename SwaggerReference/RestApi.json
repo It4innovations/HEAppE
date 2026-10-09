@@ -7224,7 +7224,7 @@
           {
             "name": "Id",
             "in": "query",
-            "description": "",
+            "description": "Cluster identifier",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -7233,9 +7233,17 @@
           {
             "name": "SessionCode",
             "in": "query",
-            "description": "",
+            "description": "User session code",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "DetailLevel",
+            "in": "query",
+            "description": "Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.",
+            "schema": {
+              "$ref": "#/components/schemas/ClusterDetailLevelExt"
             }
           }
         ],
@@ -7567,9 +7575,17 @@
           {
             "name": "SessionCode",
             "in": "query",
-            "description": "",
+            "description": "User session code",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "DetailLevel",
+            "in": "query",
+            "description": "Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.",
+            "schema": {
+              "$ref": "#/components/schemas/ClusterDetailLevelExt"
             }
           }
         ],
@@ -15905,6 +15921,16 @@
           4,
           8,
           16
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ClusterDetailLevelExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
         ],
         "type": "integer",
         "format": "int32"

@@ -5,9 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## V6.7.0
+## V6.6.0
 
 ### Added
+- **Cluster Information Nesting / Detail Level (`detailLevel` parameter):**
+  - Added optional `detailLevel` query parameter (`ClusterDetailLevelExt`: `Full = 0`, `ClustersOnly = 1`, `NodeTypes = 2`, `Projects = 3`) to `GET /heappe/Management/Clusters` and `GET /heappe/Management/Cluster` endpoints for non-breaking reduction of response payload and nested object graph traversal.
+  - Implemented selective eager loading (`.Include()`) in `ClusterRepository` (`GetAllWithActiveProjectFilter` and `GetById`) reducing EF Core database queries by up to 7 split SQL queries when querying cluster metadata or node types without projects and command templates.
+- **Task-level Quality of Service (QoS) support:**
+  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
+  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
+  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
+  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
+  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
 - **Token & Certificate In-Memory Caching with Adaptive TTL:**
   - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers (min 5s, max 60s, 15% of total duration) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
   - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
@@ -23,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
 - **SubProject Lifecycle Unit Tests:**
   - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
+- **EF Core Navigation Property Validation Tests:**
+  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
 
 ### Fixed
 - **Kerberos ticket expiration validation in `KrbLibSim`:**
@@ -41,20 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added guards in `EnsureValidPublicKeyForSshCa` to keep existing `PublicKey` and avoid regenerating keys for existing credentials when Vault data was not loaded (`!IsVaultDataLoaded`).
   - Added guard in `ClusterAuthenticationCredentialsRepository.UpdateAsync` to only write to Vault when `IsVaultDataLoaded` is true, preventing overwriting existing Vault secrets with empty data during transient Vault read errors.
   - Handled auto-resolved `authType` in `ManagementLogic.CreateCredential` to return existing user credentials regardless of type mismatch instead of throwing `HPCIdentityAlreadyExistsWithDifferentType` during auto-provisioning workflows.
-
-## V6.6.0
-
-### Added
-- **Task-level Quality of Service (QoS) support:**
-  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
-  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
-  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
-  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
-  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
-- **EF Core Navigation Property Validation Tests:**
-  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
-
-### Fixed
 - **Kerberos SSH and SFTP connection host resolution:**
   - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
 - **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
