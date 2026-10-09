@@ -542,6 +542,8 @@ mssql:
     enabled: false
 
   primary:
+    hostUsers:
+      enabled: false
     podSecurityContext:
       enabled: true
       fsGroup: 1001
