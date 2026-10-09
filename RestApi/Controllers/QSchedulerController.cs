@@ -333,7 +333,7 @@ public class QSchedulerController : BaseController<QSchedulerController>
     /// </summary>
     /// <param name="sessionCode">HEAppE session code</param>
     /// <param name="submittedTaskId">HEAppE Task ID</param>
-    /// <param name="artifactName">Artifact name (e.g. measurements, measurements_counts, sweep_results)</param>
+    /// <param name="artifactName">Artifact name (e.g. measurements, measurement_counts, sweep_results)</param>
     [HttpGet("GetTaskArtifact")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

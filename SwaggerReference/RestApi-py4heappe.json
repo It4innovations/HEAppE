@@ -14406,7 +14406,7 @@
           {
             "name": "ArtifactName",
             "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "description": "Artifact name (e.g. measurements, measurement_counts, sweep_results)",
             "schema": {
               "type": "string"
             }
