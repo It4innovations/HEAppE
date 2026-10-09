@@ -65,14 +65,14 @@ public class SshConnector : IPoolableAdapter
         var authType = credentials.AuthenticationType;
 
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
-            (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey) ||
-             authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate)))
+            (authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKey) ||
+             authType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate)))
         {
             authType = ClusterAuthenticationCredentialsAuthType.SshCertificate;
         }
 
         SshClient sshClient;
-        if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Password))
+        if (authType.Equals(ClusterAuthenticationCredentialsAuthType.Password))
         {
             if(cluster.ProxyConnection == null)
                 sshClient = (SshClient) CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
@@ -81,7 +81,7 @@ public class SshConnector : IPoolableAdapter
                 sshClient = (SshClient) CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
                     proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port);
         }
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
         {
             if(cluster.ProxyConnection == null)
                 sshClient = (SshClient) CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName,
@@ -91,7 +91,7 @@ public class SshConnector : IPoolableAdapter
                     proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
                     credentials.Password, port);
         }
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
         {
             if(cluster.ProxyConnection == null)
                 sshClient = (SshClient) CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username,
@@ -101,7 +101,7 @@ public class SshConnector : IPoolableAdapter
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
                     credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port);
         }
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKey))
         {
             if(cluster.ProxyConnection == null)
                 sshClient = (SshClient) CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username,
@@ -111,11 +111,11 @@ public class SshConnector : IPoolableAdapter
                     proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey,
                     credentials.PrivateKeyPassphrase, port);
         }
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent))
             sshClient = (SshClient) CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger);
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent))
             sshClient = (SshClient) CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger);
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate))
         {
             if(cluster.ProxyConnection == null)
                 sshClient = (SshClient) await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port);
@@ -123,7 +123,7 @@ public class SshConnector : IPoolableAdapter
                 sshClient = (SshClient) await CreateConnectionObjectUsingSshCertificateViaProxyAsync(proxy.Host, proxy.Type,
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port);
         }
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.Kerberos))
             sshClient = (SshClient) await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, 
                     !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName, 
                     lexisToken, cluster, cluster.Port ?? port);

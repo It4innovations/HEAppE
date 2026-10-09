@@ -12,7 +12,7 @@ public static class ClusterAuthenticationCredentialsUtils
     public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(
         ClusterAuthenticationCredentials credential, Cluster cluster)
     {
-        if (credential.AuthenticationType.HasFlag(ClusterAuthenticationCredentialsAuthType.Unknown))
+        if (credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.Unknown))
         {
             if (cluster != null && (cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
             {
@@ -20,7 +20,7 @@ public static class ClusterAuthenticationCredentialsUtils
             }
         }
 
-        if (credential.AuthenticationType.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+        if (credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.Kerberos))
         {
             return ClusterAuthenticationCredentialsAuthType.Kerberos;
         }
@@ -37,7 +37,7 @@ public static class ClusterAuthenticationCredentialsUtils
         if (!string.IsNullOrEmpty(credential.PrivateKey))
         {
             if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
-                credential.AuthenticationType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+                credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate))
             {
                 return ClusterAuthenticationCredentialsAuthType.SshCertificate;
             }
@@ -72,7 +72,7 @@ public static class ClusterAuthenticationCredentialsUtils
             return ClusterAuthenticationCredentialsAuthType.SshCertificate;
         }
 
-        return credential.AuthenticationType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+        return credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
             ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
             : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
     }

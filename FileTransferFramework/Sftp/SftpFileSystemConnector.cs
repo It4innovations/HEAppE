@@ -59,14 +59,14 @@ public class SftpFileSystemConnector : IPoolableAdapter
         var authType = credentials.AuthenticationType;
 
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
-            (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey) || 
-             authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate)))
+            (authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKey) || 
+             authType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate)))
         {
             authType = ClusterAuthenticationCredentialsAuthType.SshCertificate;
         }
 
         SftpClient sftpClient;
-        if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Password))
+        if(authType.Equals(ClusterAuthenticationCredentialsAuthType.Password))
         {
             if(proxy == null)
                 sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
@@ -75,7 +75,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port,
                     proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port);
         }
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.PasswordInteractive))
         {
             if(proxy == null)
                 sftpClient = (SftpClient) CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName,
@@ -85,7 +85,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
                     credentials.Password, port);
         }
-        else if(authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
+        else if(authType.Equals(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey))
         {
             if(proxy == null)
                 sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username,
@@ -95,7 +95,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username,
                     credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port);
         }
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKey))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKey))
         {
             if(proxy == null)
                 sftpClient = (SftpClient) CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username,
@@ -105,12 +105,12 @@ public class SftpFileSystemConnector : IPoolableAdapter
                     proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey,
                     credentials.PrivateKeyPassphrase, port);
         }
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent) || 
-                 authType.HasFlag(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent) || 
+                 authType.Equals(ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent))
             sftpClient = (SftpClient) await CreateConnectionObjectUsingNoAuthenticationAsync(masterNodeName, credentials.Username, port);
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.Kerberos))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.Kerberos))
             sftpClient = (SftpClient) await CreateConnectionObjectUsingKerberosAuthenticationAsync(masterNodeName, credentials.Username, cluster, lexisToken, port);
-        else if (authType.HasFlag(ClusterAuthenticationCredentialsAuthType.SshCertificate))
+        else if (authType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate))
         {
             if(proxy == null)
                 sftpClient = (SftpClient) await CreateConnectionObjectUsingSshCertificateAsync(masterNodeName, credentials, sshCaToken, port);
