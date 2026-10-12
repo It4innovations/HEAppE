@@ -112,7 +112,7 @@ public class ManagementLogic : IManagementLogic
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -269,7 +269,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -1543,7 +1543,7 @@ public class ManagementLogic : IManagementLogic
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
                 var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(path, overwriteExistingProjectRootDirectory, localBasepath,
-                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
@@ -1612,7 +1612,7 @@ public class ManagementLogic : IManagementLogic
                     .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
                 
                 var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
-                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    _httpContextKeys.Context.SshCaToken, _expirioToken);
                 
                 if (!status.Item1)
                 {
@@ -4777,7 +4777,7 @@ public class ManagementLogic : IManagementLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

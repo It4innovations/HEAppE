@@ -39,6 +39,11 @@ public interface IRequestContext
     public string? UserOrgToken { get; set; }
 
     /// <summary>
+    /// Expirio token – backed by ExchangedTokens["expirio"], falling back to LEXISToken or IdpToken.
+    /// </summary>
+    public string? ExpirioToken { get; set; }
+
+    /// <summary>
     /// Dictionary of all exchanged tokens, keyed by target name.
     /// Used by the unified token exchange system.
     /// </summary>
@@ -55,6 +60,7 @@ public class RequestContext : IRequestContext
     private string _sshCaToken;
     private string _idpToken;
     private string? _userOrgToken;
+    private string? _expirioToken;
 
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
@@ -86,6 +92,15 @@ public class RequestContext : IRequestContext
     {
         get => GetExchangedToken("userorg") ?? _userOrgToken;
         set { _userOrgToken = value; if (value != null) ExchangedTokens["userorg"] = value; }
+    }
+
+    /// <summary>
+    /// Expirio token – backed by ExchangedTokens["expirio"] if present, otherwise falls back to LEXISToken or IdpToken.
+    /// </summary>
+    public string? ExpirioToken
+    {
+        get => GetExchangedToken("expirio") ?? _expirioToken ?? (!string.IsNullOrEmpty(LEXISToken) ? LEXISToken : IdpToken);
+        set { _expirioToken = value; if (value != null) ExchangedTokens["expirio"] = value; }
     }
 
     public string LEXISToken { get; set; }
@@ -132,8 +147,9 @@ public class HttpContextKeys : IHttpContextKeys
             var effectiveUserOrgToken = Context.GetExchangedToken("userorg");
             if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
-                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
-                _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
+                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled ||
+                                     (!string.IsNullOrEmpty(Context.LEXISToken) && Context.LEXISToken != Context.IdpToken);
+                _logger.LogInformation($"[Authorize] Using JWT introspection. UseLexisToken: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken))

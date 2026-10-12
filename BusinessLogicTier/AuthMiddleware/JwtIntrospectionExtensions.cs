@@ -107,9 +107,15 @@ public static class JwtIntrospectionExtensions
                             {
                                 try
                                 {
+                                    if (!string.IsNullOrEmpty(requestContext.Context.IdpToken) &&
+                                        !requestContext.Context.ExchangedTokens.ContainsKey("idp"))
+                                    {
+                                        requestContext.Context.ExchangedTokens["idp"] = requestContext.Context.IdpToken;
+                                    }
+
                                     var postAuthResults = await tokenExchangeService.ExecuteAutoExchangesAsync(
                                         "PostAuth",
-                                        requestContext.Context.IdpToken ?? requestContext.Context.LEXISToken,
+                                        requestContext.Context.LEXISToken ?? requestContext.Context.IdpToken,
                                         requestContext.Context.ExchangedTokens);
 
                                     foreach (var result in postAuthResults.Where(r => !r.Value.Success))

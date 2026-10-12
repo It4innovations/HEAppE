@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -39,7 +39,8 @@ public class UploadFileToClusterModelValidator : AbstractValidator<UploadFileToC
 {
     public UploadFileToClusterModelValidator()
     {
-        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled &&
+            !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
             !LexisAuthenticationConfiguration.UseBearerAuth)
         {
             RuleFor(x => x.SessionCode).IsSessionCode();

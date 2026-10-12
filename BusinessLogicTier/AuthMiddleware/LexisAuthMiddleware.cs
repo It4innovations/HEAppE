@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.TokenExchange;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -85,6 +87,21 @@ public class LexisAuthMiddleware
             
             try
             {
+                var tokenExchangeService = context.RequestServices.GetService<ITokenExchangeService>();
+                if (tokenExchangeService != null && tokenExchangeService.HasAutoExchangeTargets("PostAuth"))
+                {
+                    if (!string.IsNullOrEmpty(keys.Context.IdpToken) &&
+                        !keys.Context.ExchangedTokens.ContainsKey("idp"))
+                    {
+                        keys.Context.ExchangedTokens["idp"] = keys.Context.IdpToken;
+                    }
+
+                    await tokenExchangeService.ExecuteAutoExchangesAsync(
+                        "PostAuth",
+                        keys.Context.LEXISToken ?? keys.Context.IdpToken ?? token,
+                        keys.Context.ExchangedTokens);
+                }
+
                 await keys.Authorize(sshCaService, userOrgService, expirioService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);

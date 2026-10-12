@@ -343,6 +343,23 @@ public class TokenExchangeStrategiesTests
     }
 
     [Fact]
+    public void RequestContext_ExpirioToken_IntegratesWithExchangedTokensAndFallsBackToLexisToken()
+    {
+        // Arrange
+        var context = new RequestContext
+        {
+            LEXISToken = "incoming-lexis-token"
+        };
+
+        // Fallback to LEXISToken when no "expirio" exchange exists
+        context.ExpirioToken.Should().Be("incoming-lexis-token");
+
+        // When "expirio" exchanged token is present, prefer it over LEXISToken
+        context.ExchangedTokens["expirio"] = "exchanged-expirio-token";
+        context.ExpirioToken.Should().Be("exchanged-expirio-token");
+    }
+
+    [Fact]
     public async Task IntrospectionStrategy_WhenTokenIsActive_ReturnsSuccessWithOriginalToken()
     {
         // Arrange
