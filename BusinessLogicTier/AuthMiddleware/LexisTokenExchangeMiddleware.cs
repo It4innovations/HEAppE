@@ -48,22 +48,57 @@ public class LexisTokenExchangeMiddleware
             if (tokenExchangeService.HasAutoExchangeTargets("PreAuth"))
             {
                 _logger.LogInformation("LexisTokenExchangeMiddleware: Using unified token exchange (PreAuth phase).");
-                var results = await tokenExchangeService.ExecuteAutoExchangesAsync(
-                    "PreAuth", incomingToken, contextKeysService.Context.ExchangedTokens);
+                try
+                {
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IntrospectLexisToken &&
+                        !tokenExchangeService.HasPreIntrospectionConfigured("PreAuth"))
+                    {
+                        _logger.LogInformation("LexisTokenExchangeMiddleware: Introspecting incoming LEXIS token on LEXIS Keycloak before PreAuth exchange.");
+                        await lexisTokenService.IntrospectLexisTokenAsync(incomingToken);
+                    }
 
-                // If a PreAuth exchange produced an IdP or FIP token, update the Authorization header
-                var idpToken = contextKeysService.Context.GetExchangedToken("idp") ?? contextKeysService.Context.GetExchangedToken("fip");
-                if (!string.IsNullOrEmpty(idpToken))
-                {
-                    context.Request.Headers["Authorization"] = $"Bearer {idpToken}";
-                    contextKeysService.Context.IdpToken = idpToken;
-                    _logger.LogDebug("LexisTokenExchangeMiddleware: Authorization header updated with exchanged IdP/FIP token.");
+                    var results = await tokenExchangeService.ExecuteAutoExchangesAsync(
+                        "PreAuth", incomingToken, contextKeysService.Context.ExchangedTokens);
+
+                    var failedResult = results.Values.FirstOrDefault(r => !r.Success);
+                    if (failedResult != null)
+                    {
+                        _logger.LogError(
+                            "LexisTokenExchangeMiddleware: PreAuth token exchange failed for target '{Target}': {Error}",
+                            failedResult.TargetName, failedResult.Error);
+
+                        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Title = $"Token Exchange Failed ({failedResult.TargetName})",
+                            Detail = failedResult.Error
+                        };
+
+                        context.Response.ContentType = "application/json";
+                        context.Response.StatusCode = problem.Status.Value;
+                        await context.Response.WriteAsJsonAsync(problem);
+                        return;
+                    }
+
+                    // If a PreAuth exchange produced an IdP or FIP token, update the Authorization header
+                    var idpToken = contextKeysService.Context.GetExchangedToken("idp") ?? contextKeysService.Context.GetExchangedToken("fip");
+                    if (!string.IsNullOrEmpty(idpToken))
+                    {
+                        context.Request.Headers["Authorization"] = $"Bearer {idpToken}";
+                        contextKeysService.Context.IdpToken = idpToken;
+                        _logger.LogDebug("LexisTokenExchangeMiddleware: Authorization header updated with exchanged IdP/FIP token.");
+                    }
+                    else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+                             !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                    {
+                        // No IdP exchange configured, use incoming token as-is
+                        contextKeysService.Context.IdpToken = incomingToken;
+                    }
                 }
-                else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
-                         !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                catch (Exception ex)
                 {
-                    // No IdP exchange configured, use incoming token as-is
-                    contextKeysService.Context.IdpToken = incomingToken;
+                    await WriteTokenExchangeErrorResponseAsync(context, ex);
+                    return;
                 }
             }
             // === Legacy fallback (when no TokenExchangeTargets configured) ===
@@ -91,6 +126,12 @@ public class LexisTokenExchangeMiddleware
                 _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token (legacy)");
                 try
                 {
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IntrospectLexisToken)
+                    {
+                        _logger.LogInformation("LexisTokenExchangeMiddleware: Introspecting LEXIS token on LEXIS Keycloak before exchange (legacy)");
+                        await lexisTokenService.IntrospectLexisTokenAsync(incomingToken);
+                    }
+
                     string providerKey = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange
                         ? $"expirio:{ExpirioSettings.ProviderName}"
                         : $"keycloak:{JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.Broker}";
@@ -153,35 +194,40 @@ public class LexisTokenExchangeMiddleware
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
-
-                    var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
-                    {
-                        Status = StatusCodes.Status401Unauthorized,
-                        Title = "Token Exchange Failed",
-                        Detail = ex.Message
-                    };
-
-                    if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
-                    {
-                        problem.Title = authEx.ServiceName != null ? $"Token Exchange Failed ({authEx.ServiceName})" : "Token Exchange Failed";
-                        problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
-                    }
-                    else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
-                    {
-                        problem.Status = StatusCodes.Status502BadGateway;
-                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"Token Exchange External Problem ({externalEx.ServiceName})" : "Token Exchange External Problem";
-                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
-                    }
-
-                    context.Response.ContentType = "application/json";
-                    context.Response.StatusCode = problem.Status.Value;
-                    await context.Response.WriteAsJsonAsync(problem);
+                    await WriteTokenExchangeErrorResponseAsync(context, ex);
                     return;
                 }
             }
         }
         await _next(context);
+    }
+
+    private async Task WriteTokenExchangeErrorResponseAsync(HttpContext context, Exception ex)
+    {
+        _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
+
+        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "Token Exchange Failed",
+            Detail = ex.Message
+        };
+
+        if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+        {
+            problem.Title = authEx.ServiceName != null ? $"Token Exchange Failed ({authEx.ServiceName})" : "Token Exchange Failed";
+            problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+        }
+        else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
+        {
+            problem.Status = StatusCodes.Status502BadGateway;
+            problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"Token Exchange External Problem ({externalEx.ServiceName})" : "Token Exchange External Problem";
+            problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+        }
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = problem.Status.Value;
+        await context.Response.WriteAsJsonAsync(problem);
     }
 
     private static string ComputeSha256(string input)

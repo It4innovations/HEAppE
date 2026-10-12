@@ -345,4 +345,92 @@ public class TokenExchangeServiceTests
         context.GetExchangedToken("SSHCA").Should().Be("new-ssh-token");
         context.GetExchangedToken("IDP").Should().Be("custom-idp-token");
     }
+
+    [Fact]
+    public async Task ExchangeAsync_WithIntrospectSubjectTokenEnabled_WhenActive_ExecutesExpirioExchange()
+    {
+        // Arrange
+        var callOrder = new List<string>();
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "fip",
+            IsEnabled = true,
+            Strategy = "Expirio",
+            IntrospectSubjectToken = true,
+            IntrospectionAuthority = "https://aai.lexis.tech/auth/realms/LEXIS_AAI",
+            IntrospectionClientId = "heappe",
+            IntrospectionClientSecret = "secret",
+            ExpirioProviderName = "efp-provider",
+            ExpirioClientName = "efp-client"
+        };
+
+        var introspectionStrategy = new Mock<ITokenExchangeStrategy>();
+        introspectionStrategy.Setup(s => s.StrategyName).Returns("Introspection");
+        introspectionStrategy.Setup(s => s.ExchangeAsync(target, "lexis-token", It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("introspect"))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("fip", "lexis-token"));
+
+        var expirioStrategy = new Mock<ITokenExchangeStrategy>();
+        expirioStrategy.Setup(s => s.StrategyName).Returns("Expirio");
+        expirioStrategy.Setup(s => s.ExchangeAsync(target, "lexis-token", It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("expirio"))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("fip", "fip-token-123"));
+
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { introspectionStrategy.Object, expirioStrategy.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object);
+
+        // Act
+        var result = await service.ExchangeAsync("fip", "lexis-token");
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.AccessToken.Should().Be("fip-token-123");
+        callOrder.Should().Equal("introspect", "expirio");
+        service.HasPreIntrospectionConfigured("PostAuth").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_WithIntrospectSubjectTokenEnabled_WhenInactive_FailsWithoutCallingExpirio()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "fip",
+            IsEnabled = true,
+            Strategy = "Expirio",
+            IntrospectSubjectToken = true,
+            AutoExchange = true,
+            AutoExchangePhase = "PreAuth"
+        };
+
+        var introspectionStrategy = new Mock<ITokenExchangeStrategy>();
+        introspectionStrategy.Setup(s => s.StrategyName).Returns("Introspection");
+        introspectionStrategy.Setup(s => s.ExchangeAsync(target, "invalid-lexis-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Failed("fip", "Token introspection failed: token is not active."));
+
+        var expirioStrategy = new Mock<ITokenExchangeStrategy>();
+        expirioStrategy.Setup(s => s.StrategyName).Returns("Expirio");
+
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { introspectionStrategy.Object, expirioStrategy.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object);
+
+        // Act
+        var result = await service.ExchangeAsync("fip", "invalid-lexis-token");
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("Subject token introspection failed");
+        expirioStrategy.Verify(
+            s => s.ExchangeAsync(It.IsAny<TokenExchangeTargetConfiguration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        service.HasPreIntrospectionConfigured("PreAuth").Should().BeTrue();
+    }
 }

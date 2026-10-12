@@ -341,4 +341,152 @@ public class TokenExchangeStrategiesTests
         // Case-insensitivity check
         context.GetExchangedToken("USERORG").Should().Be("updated-userorg-token");
     }
+
+    [Fact]
+    public async Task IntrospectionStrategy_WhenTokenIsActive_ReturnsSuccessWithOriginalToken()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "lexis-introspect",
+            Strategy = "Introspection",
+            IntrospectionEndpoint = "https://aai.lexis.tech/auth/realms/LEXIS_AAI/protocol/openid-connect/token/introspect",
+            IntrospectionClientId = "heappe",
+            IntrospectionClientSecret = "secret"
+        };
+
+        var responsePayload = new
+        {
+            active = true,
+            sub = "user-123",
+            username = "lexis_user",
+            exp = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds()
+        };
+
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(responsePayload))
+        };
+
+        var factory = CreateMockHttpClientFactory(response);
+        var loggerMock = new Mock<ILogger<IntrospectionExchangeStrategy>>();
+        var strategy = new IntrospectionExchangeStrategy(factory, loggerMock.Object);
+
+        // Act
+        var result = await strategy.ExchangeAsync(target, "lexis-access-token");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.AccessToken.Should().Be("lexis-access-token");
+        result.TargetName.Should().Be("lexis-introspect");
+    }
+
+    [Fact]
+    public async Task IntrospectionStrategy_WhenTokenIsInactive_ReturnsFailed()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "lexis-introspect",
+            Strategy = "Introspection",
+            IntrospectionEndpoint = "https://aai.lexis.tech/auth/realms/LEXIS_AAI/protocol/openid-connect/token/introspect"
+        };
+
+        var responsePayload = new { active = false };
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(responsePayload))
+        };
+
+        var factory = CreateMockHttpClientFactory(response);
+        var loggerMock = new Mock<ILogger<IntrospectionExchangeStrategy>>();
+        var strategy = new IntrospectionExchangeStrategy(factory, loggerMock.Object);
+
+        // Act
+        var result = await strategy.ExchangeAsync(target, "revoked-lexis-token");
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("not active");
+    }
+
+    [Fact]
+    public async Task IntrospectionStrategy_WhenTokenIsExpired_ReturnsFailed()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "lexis-introspect",
+            Strategy = "Introspection",
+            IntrospectionEndpoint = "https://aai.lexis.tech/auth/realms/LEXIS_AAI/protocol/openid-connect/token/introspect"
+        };
+
+        var responsePayload = new
+        {
+            active = true,
+            exp = DateTimeOffset.UtcNow.AddMinutes(-5).ToUnixTimeSeconds()
+        };
+
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(responsePayload))
+        };
+
+        var factory = CreateMockHttpClientFactory(response);
+        var loggerMock = new Mock<ILogger<IntrospectionExchangeStrategy>>();
+        var strategy = new IntrospectionExchangeStrategy(factory, loggerMock.Object);
+
+        // Act
+        var result = await strategy.ExchangeAsync(target, "expired-lexis-token");
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("expired");
+    }
+
+    [Fact]
+    public async Task IntrospectionStrategy_WithDiscovery_FetchesWellKnownAndDiscoversIntrospectionEndpoint()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "lexis-disco",
+            Strategy = "Introspection",
+            IntrospectionAuthority = "https://aai.lexis.tech/auth/realms/LEXIS_AAI",
+            IntrospectionClientId = "heappe",
+            IntrospectionClientSecret = "secret"
+        };
+
+        var factory = CreateMockHttpClientFactory(req =>
+        {
+            if (req.RequestUri!.ToString().Contains(".well-known/openid-configuration"))
+            {
+                var disco = new
+                {
+                    introspection_endpoint = "https://aai.lexis.tech/auth/realms/LEXIS_AAI/protocol/openid-connect/token/introspect"
+                };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(disco))
+                };
+            }
+
+            var introspectResp = new { active = true };
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(introspectResp))
+            };
+        });
+
+        var loggerMock = new Mock<ILogger<IntrospectionExchangeStrategy>>();
+        var strategy = new IntrospectionExchangeStrategy(factory, loggerMock.Object);
+
+        // Act
+        var result = await strategy.ExchangeAsync(target, "lexis-token-xyz");
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.AccessToken.Should().Be("lexis-token-xyz");
+    }
 }

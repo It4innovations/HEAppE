@@ -51,6 +51,24 @@ public class TokenExchangeService : ITokenExchangeService
             return TokenExchangeResult.Failed(targetName, $"Strategy '{target.Strategy}' is not registered.");
         }
 
+        if (target.IntrospectSubjectToken &&
+            !string.Equals(target.Strategy, "Introspection", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_strategies.TryGetValue("Introspection", out var introspectionStrategy))
+            {
+                _logger.LogError("Strategy 'Introspection' is not registered, cannot introspect subject token for target '{TargetName}'.", targetName);
+                return TokenExchangeResult.Failed(targetName, "Strategy 'Introspection' is not registered.");
+            }
+
+            _logger.LogDebug("Introspecting subject token before exchange for target '{TargetName}'.", targetName);
+            var introspectionResult = await introspectionStrategy.ExchangeAsync(target, subjectToken, cancellationToken);
+            if (!introspectionResult.Success)
+            {
+                _logger.LogWarning("Subject token introspection failed for target '{TargetName}': {Error}", targetName, introspectionResult.Error);
+                return TokenExchangeResult.Failed(targetName, $"Subject token introspection failed: {introspectionResult.Error}");
+            }
+        }
+
         _logger.LogDebug("Executing token exchange for target '{TargetName}' using strategy '{Strategy}'.", targetName, strategy.StrategyName);
         return await strategy.ExchangeAsync(target, subjectToken, cancellationToken);
     }
@@ -133,6 +151,16 @@ public class TokenExchangeService : ITokenExchangeService
             t.AutoExchange &&
             string.Equals(t.AutoExchangePhase, phase, StringComparison.OrdinalIgnoreCase) &&
             EvaluateCondition(t.AutoExchangeCondition));
+    }
+
+    public bool HasPreIntrospectionConfigured(string phase)
+    {
+        return _targets.Values.Any(t =>
+            t.IsEnabled &&
+            t.AutoExchange &&
+            string.Equals(t.AutoExchangePhase, phase, StringComparison.OrdinalIgnoreCase) &&
+            EvaluateCondition(t.AutoExchangeCondition) &&
+            (t.IntrospectSubjectToken || string.Equals(t.Strategy, "Introspection", StringComparison.OrdinalIgnoreCase)));
     }
 
     private bool EvaluateCondition(string? condition)

@@ -28,6 +28,7 @@ public class TokenExchangeTargetConfiguration
     /// - "Expirio" – Exchange via Expirio service
     /// - "ClientCredentials" – OAuth2 client_credentials grant
     /// - "KeycloakBroker" – RFC 8693 + Keycloak broker /token endpoint (two-step)
+    /// - "Introspection" – OAuth2 token introspection (RFC 7662), validates and passes through the subject token
     /// </summary>
     public string Strategy { get; set; } = "Rfc8693";
 
@@ -53,6 +54,39 @@ public class TokenExchangeTargetConfiguration
     /// Client secret for the exchange request authentication.
     /// </summary>
     public string ClientSecret { get; set; } = string.Empty;
+
+    // === Pre-Exchange Introspection Settings ===
+
+    /// <summary>
+    /// Whether to introspect the subject token before executing the exchange.
+    /// Useful in EFP flows where an incoming LEXIS token must be validated against LEXIS Keycloak
+    /// before being exchanged via Expirio for a FIP token.
+    /// </summary>
+    public bool IntrospectSubjectToken { get; set; } = false;
+
+    /// <summary>
+    /// Explicit introspection endpoint URL for subject token validation.
+    /// If empty, discovered from IntrospectionAuthority (or Authority) via .well-known/openid-configuration.
+    /// </summary>
+    public string IntrospectionEndpoint { get; set; } = string.Empty;
+
+    /// <summary>
+    /// OIDC Authority URL for subject token introspection (e.g., LEXIS Keycloak realm URL).
+    /// Falls back to Authority if empty.
+    /// </summary>
+    public string IntrospectionAuthority { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Client ID for authenticating the introspection request.
+    /// Falls back to ClientId if empty.
+    /// </summary>
+    public string IntrospectionClientId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Client secret for authenticating the introspection request.
+    /// Falls back to ClientSecret if empty.
+    /// </summary>
+    public string IntrospectionClientSecret { get; set; } = string.Empty;
 
     // === RFC 8693 Settings ===
 

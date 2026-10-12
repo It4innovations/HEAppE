@@ -140,6 +140,7 @@ builder.Services.AddSingleton<ITokenExchangeStrategy>(sp => sp.GetRequiredServic
 builder.Services.AddSingleton<ITokenExchangeStrategy, ExpirioExchangeStrategy>();
 builder.Services.AddSingleton<ITokenExchangeStrategy, ClientCredentialsExchangeStrategy>();
 builder.Services.AddSingleton<ITokenExchangeStrategy, KeycloakBrokerExchangeStrategy>();
+builder.Services.AddSingleton<ITokenExchangeStrategy, IntrospectionExchangeStrategy>();
 builder.Services.AddScoped<ITokenExchangeService, TokenExchangeService>();
 
 builder.Services.AddHttpClient("TokenExchangeClient")

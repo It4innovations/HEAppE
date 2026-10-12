@@ -193,6 +193,7 @@ public class Startup
         services.AddSingleton<ITokenExchangeStrategy, ExpirioExchangeStrategy>();
         services.AddSingleton<ITokenExchangeStrategy, ClientCredentialsExchangeStrategy>();
         services.AddSingleton<ITokenExchangeStrategy, KeycloakBrokerExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, IntrospectionExchangeStrategy>();
         services.AddScoped<ITokenExchangeService, TokenExchangeService>();
 
         services.AddHttpClient("TokenExchangeClient")

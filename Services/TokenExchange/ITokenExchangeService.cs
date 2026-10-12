@@ -51,4 +51,9 @@ public interface ITokenExchangeService
     /// Check if there are any enabled auto-exchange targets for the specified phase.
     /// </summary>
     bool HasAutoExchangeTargets(string phase);
+
+    /// <summary>
+    /// Check if any enabled auto-exchange target for the specified phase is configured to perform token introspection.
+    /// </summary>
+    bool HasPreIntrospectionConfigured(string phase);
 }
