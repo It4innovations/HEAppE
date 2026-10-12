@@ -546,14 +546,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId, _logger);
             
+            string resolvedSid = !string.IsNullOrEmpty(result.KeycloakSid)
+                ? result.KeycloakSid
+                : (result.Id != Guid.Empty
+                    ? result.Id.ToString()
+                    : result.SystemRoles?.FirstOrDefault(r => !string.IsNullOrEmpty(r.IdpUserId))?.IdpUserId);
             string username = result.UserName;
             if (string.IsNullOrEmpty(username))
             {
-                username = !string.IsNullOrEmpty(result.KeycloakSid) ? result.KeycloakSid : result.Id.ToString();
+                username = resolvedSid;
             }
             if (string.IsNullOrEmpty(username))
             {
-                username = StringUtils.GenerateUsername(result.Id.ToString());
+                username = StringUtils.GenerateUsername(result.Email ?? result.Id.ToString());
             }
 
             _logger.LogInformation($"LEXIS AAI: User \"{username}\" wants to authenticate to the system.");
@@ -575,13 +580,16 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// </summary>
     private async Task<AdaptorUser> GetOrRegisterLexisCredentialsAsync(UserInfoExtendedModel lexisUser)
     {
-        var lexisProjects = lexisUser.SystemRoles
+        var lexisProjects = (lexisUser.SystemRoles ?? Enumerable.Empty<UserSystemRoleExtendedModel>())
             .Where(w => !string.IsNullOrEmpty(w.ProjectShortName))
             .Select(x => new
             {
                 x.ProjectShortName,
-                ProjectResourceNames = x.ProjectResources.Select(r => r.Name).Distinct(),
-                Permissions = x.SystemPermissionTypes
+                ProjectResourceNames = (x.ProjectResources ?? Enumerable.Empty<ProjectResourceDetailModel>())
+                    .Select(r => !string.IsNullOrEmpty(r.Name) ? r.Name : r.ResourceName)
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .Distinct(),
+                Permissions = x.SystemPermissionTypes ?? new List<string>()
             })
             .ToList();
 
@@ -595,8 +603,14 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
         }
 
-        var idpSid = !string.IsNullOrEmpty(lexisUser.KeycloakSid) ? lexisUser.KeycloakSid : lexisUser.Id.ToString();
-        AdaptorUser user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+        var idpSid = !string.IsNullOrEmpty(lexisUser.KeycloakSid)
+            ? lexisUser.KeycloakSid
+            : (lexisUser.Id != Guid.Empty
+                ? lexisUser.Id.ToString()
+                : lexisUser.SystemRoles?.FirstOrDefault(r => !string.IsNullOrEmpty(r.IdpUserId))?.IdpUserId);
+        AdaptorUser user = !string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString()
+            ? await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid)
+            : null;
         
         string username = lexisUser.UserName;
         if (string.IsNullOrEmpty(username))
@@ -610,7 +624,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
             if (user != null)
             {
-                user.IdpSid = idpSid;
+                if (!string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
+                {
+                    user.IdpSid = idpSid;
+                }
                 user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             else
@@ -618,19 +635,27 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 try 
                 {
                     user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
-                    user.IdpSid = idpSid;
-                    _unitOfWork.AdaptorUserRepository.Update(user);
-                    _unitOfWork.Save();
+                    if (!string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
+                    {
+                        user.IdpSid = idpSid;
+                        _unitOfWork.AdaptorUserRepository.Update(user);
+                        _unitOfWork.Save();
+                    }
                 }
                 catch (Exception)
                 {
-                    user = await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid);
+                    user = !string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString()
+                        ? await _unitOfWork.AdaptorUserRepository.GetByIdpSidIgnoreQueryFiltersAsync(idpSid)
+                        : null;
                     if (user is null)
                     {
                         user = await _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFiltersAsync(lexisUser.Email);
                         if (user is null) throw;
                         
-                        user.IdpSid = idpSid;
+                        if (!string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
+                        {
+                            user.IdpSid = idpSid;
+                        }
                         user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
                     }
                 }
@@ -639,7 +664,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         else
         {
             user = UpdateUser(user, user.Username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
-            if (string.IsNullOrEmpty(user.IdpSid))
+            if ((string.IsNullOrEmpty(user.IdpSid) || user.IdpSid == Guid.Empty.ToString()) &&
+                !string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
             {
                 user.IdpSid = idpSid;
                 _unitOfWork.AdaptorUserRepository.Update(user);
