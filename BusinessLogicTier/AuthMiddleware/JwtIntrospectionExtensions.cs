@@ -40,6 +40,12 @@ public static class JwtIntrospectionExtensions
                 {
                     var log = context.RequestServices.GetRequiredService<ILoggerFactory>()
                         .CreateLogger(nameof(JwtIntrospectionExtensions));
+                    var endpoint = context.GetEndpoint();
+                    if (endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() != null)
+                    {
+                        log.LogDebug("[SmartScheme] Path: {Path} (Anonymous) -> LocalScheme", context.Request.Path);
+                        return "LocalScheme";
+                    }
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
                     if (JwtTokenIntrospectionConfiguration.IsEnabled && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
@@ -80,6 +86,7 @@ public static class JwtIntrospectionExtensions
                             var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                                 .CreateLogger(nameof(JwtIntrospectionExtensions));
                             log.LogError("[Introspection] Auth Failed (Keycloak). Error: {Error}. Path: {Path}", context.Error, context.HttpContext.Request.Path);
+                            context.HttpContext.Items["IntrospectionError"] = context.Error;
                             context.Fail($"Authentication failed (Keycloak): {context.Error}");
                             return Task.CompletedTask;
                         },
@@ -94,11 +101,15 @@ public static class JwtIntrospectionExtensions
                             var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
                             var expirioService = context.HttpContext.RequestServices.GetRequiredService<IExpirioService>();
+                            var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
 
                             try
                             {
-                                await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().Authorize(sshCaService, userOrgService, expirioService);
+                                await requestContext.Authorize(sshCaService, userOrgService, expirioService);
                                 log.LogDebug("[Introspection] Internal Authorization Success");
+
+                                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                                    requestContext.Context.AdaptorUserId, requestContext.Context.UserName, requestContext.Context.Email);
                             }
                             catch (Exception ex)
                             {
@@ -128,6 +139,7 @@ public static class JwtIntrospectionExtensions
                                 response.ContentType = "application/json";
                                 response.StatusCode = problem.Status.Value;
                                 await response.WriteAsJsonAsync(problem);
+                                context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                 context.Fail(ex);
                                 return;
@@ -160,6 +172,7 @@ public static class JwtIntrospectionExtensions
                                     response.ContentType = "application/json";
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
+                                    context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                     context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
                                     return;
@@ -170,7 +183,7 @@ public static class JwtIntrospectionExtensions
                                 }
                                 try
                                 {
-                                    await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                    await requestContext.ExchangeSshCaToken(disco.TokenEndpoint, client);
                                 }
                                 catch (Exception ex)
                                 {
@@ -194,6 +207,7 @@ public static class JwtIntrospectionExtensions
                                     response.ContentType = "application/json";
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
+                                    context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                     context.Fail(ex);
                                     return;

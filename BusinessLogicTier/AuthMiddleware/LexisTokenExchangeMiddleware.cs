@@ -34,6 +34,13 @@ public class LexisTokenExchangeMiddleware
     {
         ApplyRequestSizeLimit(context);
 
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() != null)
+        {
+            await _next(context);
+            return;
+        }
+
         bool isBearer = context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
                         authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
 

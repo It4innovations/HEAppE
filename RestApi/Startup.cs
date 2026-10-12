@@ -341,9 +341,9 @@ public class Startup
         app.UseRouting();
         app.UseCors(_allowSpecificOrigins);
 
-        app.UseMiddleware<LexisAuthMiddleware>();
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
+        app.UseMiddleware<LexisAuthMiddleware>();
         app.UseMiddleware<LogUserContextMiddleware>();
         app.UseMiddleware<RequestResponseLoggingMiddleware>(true);
         app.UseAuthorization();
