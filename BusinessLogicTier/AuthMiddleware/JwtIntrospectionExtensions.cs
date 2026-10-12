@@ -44,7 +44,7 @@ public static class JwtIntrospectionExtensions
                     var endpoint = context.GetEndpoint();
                     if (endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() != null)
                     {
-                        log.LogDebug("[SmartScheme] Path: {Path} -> LocalScheme (Anonymous)", context.Request.Path);
+                        log.LogDebug("[SmartScheme] Path: {Path} (Anonymous) -> LocalScheme", context.Request.Path);
                         return "LocalScheme";
                     }
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
@@ -235,7 +235,7 @@ public static class JwtIntrospectionExtensions
                                 }
                                 try
                                 {
-                                    await context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>().ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                    await requestContext.ExchangeSshCaToken(disco.TokenEndpoint, client);
                                 }
                                 catch (Exception ex)
                                 {

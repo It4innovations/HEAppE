@@ -49,21 +49,19 @@ public class LexisAuthMiddleware
 
         if (JwtTokenIntrospectionConfiguration.IsEnabled && isBearer)
         {
-            // When introspection is enabled, UseAuthentication() (OAuth2Introspection) has already
-            // validated the token and invoked OnTokenValidated -> keys.Authorize(...).
             if (context.User?.Identity?.IsAuthenticated != true)
             {
-                var introspectionError = context.Items.TryGetValue("IntrospectionError", out var err) && err != null
-                    ? err.ToString()
-                    : "Token introspection failed or token is inactive.";
+                string errorDetail = context.Items.TryGetValue("IntrospectionError", out var errObj) && errObj is string errStr && !string.IsNullOrEmpty(errStr)
+                    ? $"Authentication failed (Keycloak): {errStr}"
+                    : "Token introspection failed: token is invalid or not active.";
 
-                _logger.LogWarning("AuthMiddleware: Bearer token introspection did not authenticate the user: {Error}", introspectionError);
+                _logger.LogWarning("AuthMiddleware: OAuth2 introspection failed for Bearer token.");
 
                 var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                 {
                     Status = StatusCodes.Status401Unauthorized,
                     Title = "Unauthorized Access (Keycloak)",
-                    Detail = introspectionError
+                    Detail = errorDetail
                 };
 
                 context.Response.ContentType = "application/json";
@@ -71,6 +69,10 @@ public class LexisAuthMiddleware
                 await context.Response.WriteAsJsonAsync(problem);
                 return;
             }
+
+            _logger.LogInformation("AuthMiddleware: Bearer token validated and authorized via OAuth2Introspection.");
+            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                keys.Context.AdaptorUserId, keys.Context.UserName, keys.Context.Email);
         }
         else if (LexisAuthenticationConfiguration.UseBearerAuth && isBearer)
         {
