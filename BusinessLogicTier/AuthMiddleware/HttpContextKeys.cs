@@ -130,21 +130,21 @@ public class HttpContextKeys : IHttpContextKeys
         try
         {
             var effectiveUserOrgToken = Context.GetExchangedToken("userorg");
-            if (LexisAuthenticationConfiguration.UseBearerAuth)
-            {
-                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
-                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
-                {
-                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? Context.LEXISToken
-                });
-            }
-            else if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
                 bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
                 _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : Context.IdpToken)
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken))
+                });
+            }
+            else if (LexisAuthenticationConfiguration.UseBearerAuth)
+            {
+                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
+                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? Context.LEXISToken
                 });
             }
             

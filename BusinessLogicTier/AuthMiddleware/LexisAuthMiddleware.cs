@@ -37,14 +37,49 @@ public class LexisAuthMiddleware
             return;
         }
 
+        if (context.Items.ContainsKey("AuthErrorHandled"))
+        {
+            return;
+        }
+
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         _logger.LogInformation($"Auth Check - UseBearer: {LexisAuthenticationConfiguration.UseBearerAuth}, IntrospectionEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, HeaderPresent: {authHeader != null}");
 
-        if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && authHeader?.StartsWith("Bearer ") == true)
+        bool isBearer = authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true;
+
+        if (JwtTokenIntrospectionConfiguration.IsEnabled && isBearer)
+        {
+            // When introspection is enabled, UseAuthentication() (OAuth2Introspection) has already
+            // validated the token and invoked OnTokenValidated -> keys.Authorize(...).
+            if (context.User?.Identity?.IsAuthenticated != true)
+            {
+                var introspectionError = context.Items.TryGetValue("IntrospectionError", out var err) && err != null
+                    ? err.ToString()
+                    : "Token introspection failed or token is inactive.";
+
+                _logger.LogWarning("AuthMiddleware: Bearer token introspection did not authenticate the user: {Error}", introspectionError);
+
+                var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Unauthorized Access (Keycloak)",
+                    Detail = introspectionError
+                };
+
+                context.Response.ContentType = "application/json";
+                context.Response.StatusCode = problem.Status.Value;
+                await context.Response.WriteAsJsonAsync(problem);
+                return;
+            }
+        }
+        else if (LexisAuthenticationConfiguration.UseBearerAuth && isBearer)
         {
             _logger.LogInformation("AuthMiddleware: Processing Bearer token.");
             string token = authHeader["Bearer ".Length..].Trim();
-            keys.Context.LEXISToken = token;
+            if (string.IsNullOrEmpty(keys.Context.LEXISToken))
+            {
+                keys.Context.LEXISToken = token;
+            }
             
             try
             {
@@ -93,7 +128,7 @@ public class LexisAuthMiddleware
                 return;
             }
         }
-        else
+        else if (context.User?.Identity?.IsAuthenticated != true && !context.Request.Headers.ContainsKey("X-API-Key"))
         {
             _logger.LogInformation("AuthMiddleware: Falling back to LocalScheme.");
             var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
