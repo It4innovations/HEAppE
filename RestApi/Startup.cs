@@ -64,6 +64,7 @@ using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
 using HEAppE.Services.TokenExchange;
 using HEAppE.Services.TokenExchange.Strategies;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi;
 
@@ -119,7 +120,8 @@ public class Startup
             sp.GetRequiredService<IHttpClientFactory>(),
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
-            SshCaSettings.ConnectionTimeoutInSeconds
+            SshCaSettings.ConnectionTimeoutInSeconds,
+            sp.GetService<IMemoryCache>()
         ));
         
         services.AddSingleton<SqlServerHealthCheck>();

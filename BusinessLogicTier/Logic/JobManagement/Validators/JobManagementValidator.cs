@@ -270,7 +270,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
     {
         try
         {
-            var project = _unitOfWork.ProjectRepository.GetById(projectId)
+            var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,

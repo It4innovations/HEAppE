@@ -28,36 +28,48 @@ public static class ClusterAuthenticationCredentialsUtils
         if (credentials == null)
             throw new ArgumentNullException(nameof(credentials));
 
-        // 1. If existing PublicKey is a valid Ed25519 key, return it
-        if (IsValidSshPublicKey(credentials.PublicKey))
-        {
-            return credentials.PublicKey;
-        }
-
-        // 2. Try to derive public key from PrivateKey (must result in ssh-ed25519)
+        // 1. If PrivateKey is present, derive and verify the Ed25519 public key directly from it.
+        // This guarantees that the public key sent to SSH CA matches the private key used for SSH authentication.
         if (!string.IsNullOrWhiteSpace(credentials.PrivateKey))
         {
             try
             {
-                var derivedKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials);
-                if (derivedKey != null && IsValidSshPublicKey(derivedKey.PublicKeyInAuthorizedKeysFormat))
+                var derivedKey = EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(
+                    credentials.PrivateKey, credentials.PrivateKeyPassphrase, credentials.Username);
+
+                if (IsValidSshPublicKey(derivedKey))
                 {
-                    credentials.PublicKey = derivedKey.PublicKeyInAuthorizedKeysFormat;
-                    if (!string.IsNullOrEmpty(derivedKey.PublicKeyFingerprint))
+                    if (credentials.PublicKey != derivedKey)
                     {
-                        credentials.PublicKeyFingerprint = derivedKey.PublicKeyFingerprint;
+                        logger?.LogInformation($"[SshCaUtils] Synchronizing PublicKey with PrivateKey for user '{credentials.Username}'.");
+                        credentials.PublicKey = derivedKey;
                     }
-                    logger?.LogInformation($"[SshCaUtils] Derived valid Ed25519 public key from private key for user '{credentials.Username}'.");
+                    credentials.CipherType = FileTransferCipherType.Ed25519;
                     return credentials.PublicKey;
                 }
             }
             catch (Exception ex)
             {
-                logger?.LogWarning(ex, $"[SshCaUtils] Failed to derive Ed25519 public key from existing private key for user '{credentials.Username}'.");
+                logger?.LogWarning(ex, $"[SshCaUtils] Failed to derive Ed25519 public key from private key for user '{credentials.Username}'.");
             }
         }
+        else if (IsValidSshPublicKey(credentials.PublicKey))
+        {
+            // PrivateKey is not loaded/available in this context, but PublicKey is already a valid Ed25519 key
+            return credentials.PublicKey;
+        }
 
-        // 3. Key is missing, destroyed, or non-Ed25519: Regenerate Ed25519 key pair for SSH CA API
+        // 2. If PrivateKey is not loaded (Vault down/unavailable) and entity already exists in DB,
+        // DO NOT overwrite or regenerate keys - return existing PublicKey if available.
+        if (!credentials.IsVaultDataLoaded && credentials.Id > 0 && !string.IsNullOrWhiteSpace(credentials.PublicKey))
+        {
+            logger?.LogWarning($"[SshCaUtils] Vault data not loaded for existing Credential ID {credentials.Id} ('{credentials.Username}'). Keeping existing PublicKey without regenerating.");
+            return credentials.PublicKey;
+        }
+
+        // 3. PrivateKey is missing, destroyed, or non-Ed25519 (e.g. RSA or unparseable).
+        // Since SSH CA strictly requires Ed25519, non-Ed25519 credentials cannot be certified.
+        // Regenerate a fresh matching Ed25519 key pair for SSH CA API.
         logger?.LogWarning($"[SshCaUtils] SSH key for user '{credentials.Username}' is missing, destroyed, or non-Ed25519 (PublicKey: '{credentials.PublicKey}'). Regenerating Ed25519 SSH key pair for SSH CA API.");
 
         var edGenerator = new EdDSACertGeneratorV2();

@@ -138,7 +138,7 @@ public static class ManagementConverts
             CreatedAt = cp.CreatedAt,
             ModifiedAt = cp.ModifiedAt,
             PreferredAuthType = cp.PreferredAuthType.ConvertIntToExt(),
-            AdaptorUserId = cp.ClusterProjectCredentials.FirstOrDefault(x => !x.IsDeleted)?.AdaptorUserId
+            AdaptorUserId = cp.ClusterProjectCredentials?.FirstOrDefault(x => !x.IsDeleted)?.AdaptorUserId
         };
         return convert;
     }

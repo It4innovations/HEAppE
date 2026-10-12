@@ -592,7 +592,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
 
-        string host = !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName;
+        string host = !string.IsNullOrEmpty(masterNodeName) ? masterNodeName : cluster.DomainName;
         int? connectionPort = cluster.Port ?? port;
         string address = connectionPort.HasValue ? $"{host}:{connectionPort.Value}" : host;
         return new KerberosSftpClient(_logger, masterNodeName, address, username);

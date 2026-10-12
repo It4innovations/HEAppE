@@ -5,9 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{CEF75BA3-0DB0-4E5D-A5BB-B09EB008D38A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "scp", "examples\scp\scp.csproj", "{55EF57F9-DA86-4764-AE46-5F9B2DA2F108}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "scp", "src\scp\scp.csproj", "{55EF57F9-DA86-4764-AE46-5F9B2DA2F108}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ssh", "examples\ssh\ssh.csproj", "{84FDE20B-A693-4A32-B3A4-3EF43F23F000}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ssh", "ssh\ssh\ssh.csproj", "{84FDE20B-A693-4A32-B3A4-3EF43F23F000}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{ABC009F1-7116-46D9-8928-2185D571DD73}"
 EndProject

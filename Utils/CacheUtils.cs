@@ -1,7 +1,8 @@
+using System;
+using System.Threading;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using System.Threading;
 
 namespace HEAppE.Utils;
 
@@ -108,5 +109,44 @@ public static class CacheUtils
     public static void AddClusterInvalidation(MemoryCacheEntryOptions options)
     {
         // No-op to prevent CancellationTokenSource CallbackNode memory leak
+    }
+
+    /// <summary>
+    /// Calculates an adaptive TTL for caching tokens with a dynamic safety buffer.
+    /// Formula: Buffer = min(maxBufferSeconds, max(minBufferSeconds, totalDurationSeconds * ratio))
+    /// Usable TTL = totalDuration - Buffer
+    /// </summary>
+    /// <param name="totalDuration">Total token lifetime or remaining lifetime.</param>
+    /// <param name="ratio">Ratio of lifetime to reserve as buffer (default: 0.15, i.e. 15%).</param>
+    /// <param name="minBufferSeconds">Minimum buffer in seconds (default: 5s).</param>
+    /// <param name="maxBufferSeconds">Maximum buffer in seconds (default: 60s).</param>
+    /// <returns>Usable cache TTL with safety buffer applied, or TimeSpan.Zero if duration is insufficient.</returns>
+    public static TimeSpan CalculateAdaptiveTtl(TimeSpan totalDuration, double ratio = 0.15, double minBufferSeconds = 5, double maxBufferSeconds = 60)
+    {
+        if (totalDuration <= TimeSpan.Zero)
+            return TimeSpan.Zero;
+
+        var totalSeconds = totalDuration.TotalSeconds;
+        var bufferSeconds = Math.Min(maxBufferSeconds, Math.Max(minBufferSeconds, totalSeconds * ratio));
+        var usableSeconds = totalSeconds - bufferSeconds;
+
+        return usableSeconds > 0 ? TimeSpan.FromSeconds(usableSeconds) : TimeSpan.Zero;
+    }
+
+    /// <summary>
+    /// Calculates an adaptive TTL from an expiration DateTime (UTC).
+    /// </summary>
+    public static TimeSpan CalculateAdaptiveTtl(DateTime expirationUtc, double ratio = 0.15, double minBufferSeconds = 5, double maxBufferSeconds = 60)
+    {
+        var remaining = expirationUtc - DateTime.UtcNow;
+        return CalculateAdaptiveTtl(remaining, ratio, minBufferSeconds, maxBufferSeconds);
+    }
+
+    /// <summary>
+    /// Calculates an adaptive TTL from an integer expires_in (seconds).
+    /// </summary>
+    public static TimeSpan CalculateAdaptiveTtl(int expiresInSeconds, double ratio = 0.15, double minBufferSeconds = 5, double maxBufferSeconds = 60)
+    {
+        return CalculateAdaptiveTtl(TimeSpan.FromSeconds(expiresInSeconds), ratio, minBufferSeconds, maxBufferSeconds);
     }
 }

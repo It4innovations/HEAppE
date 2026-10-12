@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.5.2"
+    "version": "v6.6.0"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -8095,7 +8095,7 @@
           {
             "name": "Id",
             "in": "query",
-            "description": "",
+            "description": "Cluster identifier",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -8104,9 +8104,17 @@
           {
             "name": "SessionCode",
             "in": "query",
-            "description": "",
+            "description": "User session code",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "DetailLevel",
+            "in": "query",
+            "description": "Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.",
+            "schema": {
+              "$ref": "#/components/schemas/ClusterDetailLevelExt"
             }
           }
         ],
@@ -8438,9 +8446,17 @@
           {
             "name": "SessionCode",
             "in": "query",
-            "description": "",
+            "description": "User session code",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "DetailLevel",
+            "in": "query",
+            "description": "Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.",
+            "schema": {
+              "$ref": "#/components/schemas/ClusterDetailLevelExt"
             }
           }
         ],
@@ -14390,7 +14406,7 @@
           {
             "name": "ArtifactName",
             "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "description": "Artifact name (e.g. measurements, measurement_counts, sweep_results)",
             "schema": {
               "type": "string"
             }
@@ -14763,6 +14779,192 @@
             "schema": {
               "type": "string",
               "description": "Calibration endpoint"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/QScheduler/MachineInfo": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine info",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "description": "Project id",
+            "schema": {
+              "type": "integer",
+              "description": "Project id",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "SessionCode",
+            "in": "query",
+            "description": "Session code",
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Session code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/heappe/ClusterInformation/MachineInfo": {
+      "get": {
+        "tags": [
+          "QScheduler"
+        ],
+        "summary": "Get QScheduler machine info",
+        "parameters": [
+          {
+            "name": "ClusterNodeTypeId",
+            "in": "query",
+            "description": "Cluster node type id",
+            "schema": {
+              "type": "integer",
+              "description": "Cluster node type id",
+              "format": "int64"
             }
           },
           {
@@ -16092,6 +16294,11 @@
             "description": "Placement policy",
             "nullable": true
           },
+          "QualityOfService": {
+            "type": "string",
+            "description": "Quality of service",
+            "nullable": true
+          },
           "IsExclusive": {
             "type": "boolean",
             "description": "Is exclusive",
@@ -16643,6 +16850,16 @@
           }
         },
         "additionalProperties": false
+      },
+      "ClusterDetailLevelExt": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
       },
       "ClusterDetailedReportExt": {
         "type": "object",
@@ -22605,6 +22822,11 @@
             "type": "string",
             "description": "Reason (parsed from scheduler, e.g. SLURM)",
             "nullable": true
+          },
+          "QualityOfService": {
+            "type": "string",
+            "description": "Quality of service",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -22904,6 +23126,13 @@
             "minLength": 0,
             "type": "string",
             "description": "Placement policy",
+            "nullable": true
+          },
+          "QualityOfService": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Quality of service",
             "nullable": true
           },
           "Priority": {

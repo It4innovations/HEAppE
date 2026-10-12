@@ -132,7 +132,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     public async Task UpdateAsync(ClusterAuthenticationCredentials entityToUpdate)
     {
         await base.UpdateAsync(entityToUpdate);
-        await _vaultConnector.SetClusterAuthenticationCredentialsAsync(entityToUpdate.ExportVaultData());
+        if (entityToUpdate.IsVaultDataLoaded)
+        {
+            await _vaultConnector.SetClusterAuthenticationCredentialsAsync(entityToUpdate.ExportVaultData());
+        }
     }
 
     public override async Task<IList<ClusterAuthenticationCredentials>> GetAllAsync()

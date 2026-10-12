@@ -75,8 +75,10 @@ public class UserOrgV2Service(IHttpClientFactory httpClientFactory) : IUserOrgSe
         request.Headers.Add("X-Api-Token", accessToken);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         
-        string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-        request.Headers.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+        string rawVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+        string sanitizedVersion = string.IsNullOrWhiteSpace(rawVersion) ? "unknown" : rawVersion.Replace('/', '-');
+        string sanitizedInstanceId = string.IsNullOrWhiteSpace(instanceId) ? "unknown" : instanceId.Replace('/', '-');
+        request.Headers.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
         
         if (body != null) 
         {

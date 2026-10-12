@@ -116,7 +116,7 @@ class QSchedulerHandler(BaseHTTPRequestHandler):
             elif len(sub) == 3 and sub[1] == 'artifacts':
                 # GET /tasks/{id}/artifacts/{name}
                 art_name = sub[2]
-                artifacts = task.get("artifacts", {"measurements": "00: 50, 11: 50"})
+                artifacts = task.get("artifacts", {"measurements": "00: 50, 11: 50", "measurement_counts": '{"0": 512, "1": 512}'})
                 if art_name in artifacts:
                     self._send_text(200, str(artifacts[art_name]), 'application/octet-stream')
                 else:

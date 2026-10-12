@@ -15,6 +15,8 @@ public class TaskSpecification : CommonTaskProperties
 
     [StringLength(40)] public string PlacementPolicy { get; set; }
 
+    [StringLength(1000)] public string QualityOfService { get; set; }
+
     public bool IsExclusive { get; set; }
 
     public bool IsRerunnable { get; set; }
@@ -71,6 +73,7 @@ public class TaskSpecification : CommonTaskProperties
         result.AppendLine("MemoryPerCPU=" + MemoryPerCPU);
         result.AppendLine("MemoryPerGPU=" + MemoryPerGPU);
         result.AppendLine("WalltimeLimit=" + WalltimeLimit);
+        result.AppendLine("QualityOfService=" + QualityOfService);
         result.AppendLine("JobArrays=" + JobArrays);
         result.AppendLine("IsExclusive=" + IsExclusive);
         result.AppendLine("IsRerunnable=" + IsRerunnable);
@@ -135,6 +138,7 @@ public class TaskSpecification : CommonTaskProperties
     {
         JobArrays = taskSpecification.JobArrays;
         PlacementPolicy = taskSpecification.PlacementPolicy;
+        QualityOfService = taskSpecification.QualityOfService;
         IsExclusive = taskSpecification.IsExclusive;
         IsRerunnable = taskSpecification.IsRerunnable;
         StandardInputFile = taskSpecification.StandardInputFile;

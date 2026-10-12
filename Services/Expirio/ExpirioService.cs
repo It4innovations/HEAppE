@@ -7,6 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -19,11 +22,13 @@ namespace HEAppE.Services.Expirio;
 public class ExpirioService : IExpirioService
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMemoryCache? _memoryCache;
     private const string CLIENT_NAME = "ExpirioClient";
 
-    public ExpirioService(IHttpClientFactory httpClientFactory)
+    public ExpirioService(IHttpClientFactory httpClientFactory, IMemoryCache? memoryCache = null)
     {
         _httpClientFactory = httpClientFactory;
+        _memoryCache = memoryCache;
     }
 
     public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default)
@@ -98,6 +103,15 @@ public class ExpirioService : IExpirioService
     {
         logger.LogInformation("[Expirio] Method: ExchangeToken");
 
+        var tokenHash = ComputeSha256(token);
+        var cacheKey = $"expirio_exchange:{request?.ProviderName}:{request?.ClientName}:{tokenHash}";
+
+        if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out string? cachedToken) && !string.IsNullOrEmpty(cachedToken))
+        {
+            logger.LogDebug("[Expirio] Token exchange cache hit.");
+            return cachedToken;
+        }
+
         var jsonRequest = JsonSerializer.Serialize(request);
         var url = $"{ExpirioSettings.BaseUrl}/exchange";
 
@@ -120,6 +134,30 @@ public class ExpirioService : IExpirioService
             {
                 var exchangedToken = ParseTokenResponse(content, logger);
                 logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {HEAppE.Utils.StringUtils.MaskToken(exchangedToken)}");
+
+                if (_memoryCache != null && !string.IsNullOrEmpty(exchangedToken))
+                {
+                    var incomingExp = GetTokenExpiration(token);
+                    var exchangedExp = GetTokenExpiration(exchangedToken);
+
+                    DateTime expirationTime;
+                    if (incomingExp.HasValue && exchangedExp.HasValue)
+                        expirationTime = incomingExp.Value < exchangedExp.Value ? incomingExp.Value : exchangedExp.Value;
+                    else if (incomingExp.HasValue)
+                        expirationTime = incomingExp.Value;
+                    else if (exchangedExp.HasValue)
+                        expirationTime = exchangedExp.Value;
+                    else
+                        expirationTime = DateTime.UtcNow.AddMinutes(10);
+
+                    var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expirationTime);
+                    if (ttl > TimeSpan.FromSeconds(5))
+                    {
+                        _memoryCache.Set(cacheKey, exchangedToken, ttl);
+                        logger.LogDebug("[Expirio] Cached exchanged token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                    }
+                }
+
                 return exchangedToken;
             }
             else
@@ -220,6 +258,15 @@ public class ExpirioService : IExpirioService
             return result;
         }
 
+        var tokenHash = ComputeSha256(token);
+        var cacheKey = $"expirio_firecrest_creds:{secretName}:{tokenHash}";
+
+        if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out Dictionary<string, dynamic>? cached) && cached != null)
+        {
+            logger.LogDebug("[Expirio] Returning cached Firecrest credentials for secret '{SecretName}'.", secretName);
+            return cached;
+        }
+
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
 
         var httpUrl = $"{ExpirioSettings.BaseUrl}/secret/text/{secretName}";
@@ -266,6 +313,20 @@ public class ExpirioService : IExpirioService
 
             logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). ClientId: {clientId}, ClientSecret: {HEAppE.Utils.StringUtils.MaskToken(clientSecret)}");
 
+            if (_memoryCache != null && result.Count > 0)
+            {
+                var tokenExp = GetTokenExpiration(token);
+                var ttl = tokenExp.HasValue
+                    ? HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(tokenExp.Value)
+                    : TimeSpan.FromMinutes(10);
+
+                if (ttl > TimeSpan.FromSeconds(5))
+                {
+                    _memoryCache.Set(cacheKey, result, ttl);
+                    logger.LogDebug("[Expirio] Cached Firecrest credentials for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                }
+            }
+
             return result;
         }
         else
@@ -274,5 +335,33 @@ public class ExpirioService : IExpirioService
         }
 
         return result;
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static DateTime? GetTokenExpiration(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (jwt.ValidTo != DateTime.MinValue && jwt.ValidTo != DateTime.MaxValue)
+                {
+                    return jwt.ValidTo;
+                }
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+        return null;
     }
 }

@@ -16,40 +16,111 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
     }
 
-    public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
+    public IEnumerable<Cluster> GetAllWithActiveProjectFilter(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        return _dbSet
+        var query = _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
-            .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(cp => cp.Project)
+            .AsSplitQuery();
 
+        if (detailLevel == ClusterDetailLevel.ClustersOnly)
+        {
+            return query
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToList();
+        }
+
+        if (detailLevel == ClusterDetailLevel.NodeTypes)
+        {
+            return query
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToList();
+        }
+
+        if (detailLevel == ClusterDetailLevel.Projects)
+        {
+            return query
+                .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(cp => cp.Project)
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToList();
+        }
+
+        return query
+            .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+                .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.ClusterNodeTypeAggregation)
-            .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
-            .ThenInclude(acc => acc.Accounting)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(pc => pc.TemplateParameters)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToList();
     }
 
-    public async Task<IEnumerable<Cluster>> GetAllWithActiveProjectFilterAsync()
+    public async Task<IEnumerable<Cluster>> GetAllWithActiveProjectFilterAsync(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        return await _dbSet
+        var query = _dbSet
             .AsNoTrackingWithIdentityResolution()
-            .AsSplitQuery()
+            .AsSplitQuery();
+
+        if (detailLevel == ClusterDetailLevel.ClustersOnly)
+        {
+            return await query
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToListAsync();
+        }
+
+        if (detailLevel == ClusterDetailLevel.NodeTypes)
+        {
+            return await query
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToListAsync();
+        }
+
+        if (detailLevel == ClusterDetailLevel.Projects)
+        {
+            return await query
+                .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(cp => cp.Project)
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .ToListAsync();
+        }
+
+        return await query
             .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(cp => cp.Project)
+                .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.ClusterNodeTypeAggregation)
-            .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
-            .ThenInclude(acc => acc.Accounting)
+                .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                    .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                        .ThenInclude(acc => acc.Accounting)
             .Include(c => c.NodeTypes)
-            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
-            .ThenInclude(pc => pc.TemplateParameters)
+                .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(pc => pc.TemplateParameters)
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
             .ToListAsync();
@@ -64,11 +135,52 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return await _dbSet.Where(c => c.ProxyConnection.Id == clusterProxyConnectionId).ToListAsync();
     }
-    
+
     public override Cluster GetById(long id)
     {
-        return _dbSet
-            .AsSplitQuery()
+        return GetById(id, ClusterDetailLevel.Full);
+    }
+
+    public Cluster GetById(long id, ClusterDetailLevel detailLevel)
+    {
+        var query = _dbSet
+            .AsSplitQuery();
+
+        if (detailLevel == ClusterDetailLevel.ClustersOnly)
+        {
+            return query
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .FirstOrDefault(c => c.Id == id);
+        }
+
+        if (detailLevel == ClusterDetailLevel.NodeTypes)
+        {
+            return query
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .FirstOrDefault(c => c.Id == id);
+        }
+
+        if (detailLevel == ClusterDetailLevel.Projects)
+        {
+            return query
+                .Include(c => c.ClusterProjects)
+                    .ThenInclude(cp => cp.Project)
+                .Include(c => c.NodeTypes)
+                    .ThenInclude(n => n.ClusterNodeTypeAggregation)
+                        .ThenInclude(a => a.ClusterNodeTypeAggregationAccountings)
+                            .ThenInclude(acc => acc.Accounting)
+                .Include(c => c.FileTransferMethods)
+                .Include(c => c.ProxyConnection)
+                .FirstOrDefault(c => c.Id == id);
+        }
+
+        return query
             .Include(c => c.ClusterProjects)
                 .ThenInclude(cp => cp.Project)
             .Include(c => c.NodeTypes)

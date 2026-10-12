@@ -105,6 +105,14 @@ public class Program
             {
                 logger.LogInformation("Checking database compatibility, migrations and seeding...");
                 HEAppE.DataAccessTier.MiddlewareContext.InitializeDatabase(logger);
+
+                logger.LogInformation("Loading dynamic system role assignments from database...");
+                using (IUnitOfWork uow = new DatabaseUnitOfWork(logger))
+                {
+                    var dynamicAssignments = uow.SystemRoleAssignmentRepository.GetAll();
+                    RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
+                    logger.LogInformation($"Loaded {dynamicAssignments?.Count ?? 0} dynamic system role assignments from database.");
+                }
             }
             catch (Exception ex)
             {

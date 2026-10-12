@@ -8,10 +8,12 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 
 public interface IClusterInformationLogic
 {
-    IEnumerable<Cluster> ListAvailableClusters();
+    IEnumerable<Cluster> ListAvailableClusters(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full);
     Task<ClusterNodeUsage> GetCurrentClusterNodeUsageAsync(long clusterNodeId, AdaptorUser loggedUser, long projectId);
 
     Task<string> GetMachineArchitectureAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId);
+
+    Task<string> GetMachineInfoAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId);
 
     Task<string> GetMachineCalibrationAsync(long clusterNodeTypeId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
 
@@ -22,7 +24,7 @@ public interface IClusterInformationLogic
     Task<ClusterAuthenticationCredentials> GetNextAvailableUserCredentials(long clusterId, long projectId,
         bool requireIsInitialized, long? adaptorUserId);
     ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);
-    Cluster GetClusterById(long clusterId);
+    Cluster GetClusterById(long clusterId, ClusterDetailLevel detailLevel = ClusterDetailLevel.Full);
     IEnumerable<ClusterNodeType> ListClusterNodeTypes();
     bool IsUserAvailableToRun(ClusterAuthenticationCredentials user);
 

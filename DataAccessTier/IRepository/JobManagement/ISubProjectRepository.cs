@@ -7,4 +7,6 @@ public interface ISubProjectRepository : IRepository<SubProject>
 {
     SubProject GetByIdentifier(string accountingString, long projectId);
     Task<SubProject> GetByIdentifierAsync(string accountingString, long projectId);
+    System.Collections.Generic.List<SubProject> GetSubProjectsForProject(long projectId);
+    Task<System.Collections.Generic.List<SubProject>> GetSubProjectsForProjectAsync(long projectId);
 }

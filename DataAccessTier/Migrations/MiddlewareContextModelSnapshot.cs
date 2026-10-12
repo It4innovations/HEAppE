@@ -1416,6 +1416,10 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("QualityOfService")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("StandardErrorFile")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
