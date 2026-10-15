@@ -1,5 +1,6 @@
 #pragma warning disable CS0108
-﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+﻿using HEAppE.CertificateGenerator;
+using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -83,6 +84,43 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             activeLogger.LogDebug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
+            if (!string.IsNullOrEmpty(item.PrivateKey))
+            {
+                if (item.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                             or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                                             or ClusterAuthenticationCredentialsAuthType.Unknown)
+                {
+                    activeLogger.LogInformation($"[ClusterAuthenticationCredentialsRepository] Credential ID {item.Id} ('{item.Username}') has PrivateKey loaded from Vault but AuthenticationType is {item.AuthenticationType}. Auto-correcting to PrivateKey.");
+                    item.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
+
+                if (string.IsNullOrEmpty(item.PublicKey) || string.IsNullOrEmpty(item.PublicKeyFingerprint))
+                {
+                    try
+                    {
+                        var derived = SSHGenerator.GetPublicKeyFromPrivateKey(item);
+                        if (derived != null)
+                        {
+                            if (string.IsNullOrEmpty(item.PublicKey) &&
+                                !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat) &&
+                                derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                            {
+                                item.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                            }
+                            if (string.IsNullOrEmpty(item.PublicKeyFingerprint) &&
+                                !string.IsNullOrEmpty(derived.PublicKeyFingerprint) &&
+                                derived.PublicKeyFingerprint.Length <= 200)
+                            {
+                                item.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        activeLogger.LogWarning(ex, $"Failed to derive public key for credential ID {item.Id} ({item.Username}).");
+                    }
+                }
+            }
             result.Add(item);
         }
 
@@ -95,6 +133,43 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         {
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(credentials.Id);
             credentials.ImportVaultData(vaultData);
+            if (!string.IsNullOrEmpty(credentials.PrivateKey))
+            {
+                if (credentials.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                             or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                                             or ClusterAuthenticationCredentialsAuthType.Unknown)
+                {
+                    _logger?.LogInformation($"[ClusterAuthenticationCredentialsRepository] Credential ID {credentials.Id} ('{credentials.Username}') has PrivateKey loaded from Vault but AuthenticationType is {credentials.AuthenticationType}. Auto-correcting to PrivateKey.");
+                    credentials.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
+
+                if (string.IsNullOrEmpty(credentials.PublicKey) || string.IsNullOrEmpty(credentials.PublicKeyFingerprint))
+                {
+                    try
+                    {
+                        var derived = SSHGenerator.GetPublicKeyFromPrivateKey(credentials);
+                        if (derived != null)
+                        {
+                            if (string.IsNullOrEmpty(credentials.PublicKey) &&
+                                !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat) &&
+                                derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                            {
+                                credentials.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                            }
+                            if (string.IsNullOrEmpty(credentials.PublicKeyFingerprint) &&
+                                !string.IsNullOrEmpty(derived.PublicKeyFingerprint) &&
+                                derived.PublicKeyFingerprint.Length <= 200)
+                            {
+                                credentials.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, $"Failed to derive public key for credential ID {credentials.Id} ({credentials.Username}).");
+                    }
+                }
+            }
         }
 
         return credentials;

@@ -1225,18 +1225,38 @@ public class ManagementLogic : IManagementLogic
 
     private CredentialResponse CreateCredentialResponse(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
     {
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            clusterCredentials.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            clusterCredentials.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+        }
+
         var response = CredentialResponse.GetCredential(clusterCredentials, adaptorUserId);
-        if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(clusterCredentials.PrivateKey))
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            (string.IsNullOrEmpty(response.PublicKeyExt) || string.IsNullOrEmpty(response.PublicKeyFingerprint)))
         {
             try
             {
                 var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterCredentials);
                 if (derived != null)
                 {
-                    response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
-                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint))
+                    if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat))
+                    {
+                        response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
+                        if (derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                        {
+                            clusterCredentials.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(derived.PublicKeyFingerprint))
                     {
                         response.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        if (derived.PublicKeyFingerprint.Length <= 200)
+                        {
+                            clusterCredentials.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        }
                     }
                 }
             }
@@ -1245,6 +1265,20 @@ public class ManagementLogic : IManagementLogic
                 _logger.LogWarning(ex, $"Failed to derive public key for credential {clusterCredentials.Id} ({clusterCredentials.Username}).");
             }
         }
+
+        if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(response.PublicKeyExt))
+        {
+            var fingerprint = SSHGenerator.ComputeFingerprintFromAuthorizedKeys(response.PublicKeyExt);
+            if (!string.IsNullOrEmpty(fingerprint))
+            {
+                response.PublicKeyFingerprint = fingerprint;
+                if (fingerprint.Length <= 200)
+                {
+                    clusterCredentials.PublicKeyFingerprint = fingerprint;
+                }
+            }
+        }
+
         return response;
     }
 

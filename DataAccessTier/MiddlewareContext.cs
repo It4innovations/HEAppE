@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects;
@@ -554,33 +555,73 @@ public class MiddlewareContext : DbContext
         foreach (var clusterAuthenticationCredential in clusterAuthCredWithVaultData)
         {
             var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
-                .Select(x => x.ClusterProject.Cluster)
+                .Select(x => x.ClusterProject?.Cluster)
+                .Where(c => c != null)
                 .ToList();
-            if (clusters.Count() >= 1)
-            {
-                var previousAuthType = clusterAuthenticationCredential.AuthenticationType;
-                clusterAuthenticationCredential.AuthenticationType =
-                    ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
-                        clusterAuthenticationCredential, clusters.First());
+            var firstCluster = clusters.FirstOrDefault();
+            var previousAuthType = clusterAuthenticationCredential.AuthenticationType;
+            clusterAuthenticationCredential.AuthenticationType =
+                ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
+                    clusterAuthenticationCredential, firstCluster);
 
-                // If auth type changed to SshCertificate but PrivateKey is missing,
-                // reset IsInitialized so the system regenerates the key on next use.
-                bool isSshCert = clusterAuthenticationCredential.AuthenticationType
-                    is ClusterAuthenticationCredentialsAuthType.SshCertificate
-                    or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
-                bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
-                if (isSshCert && keyMissing)
+            if (clusterAuthenticationCredential.AuthenticationType != previousAuthType)
+            {
+                _logger.LogInformation(
+                    "Credential ID {Id} (Username: {Username}) AuthenticationType updated from {PreviousAuthType} to {NewAuthType}.",
+                    clusterAuthenticationCredential.Id,
+                    clusterAuthenticationCredential.Username,
+                    previousAuthType,
+                    clusterAuthenticationCredential.AuthenticationType);
+            }
+
+            // If auth type changed to SshCertificate but PrivateKey is missing,
+            // reset IsInitialized so the system regenerates the key on next use.
+            bool isSshCert = clusterAuthenticationCredential.AuthenticationType
+                is ClusterAuthenticationCredentialsAuthType.SshCertificate
+                or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
+            if (isSshCert && keyMissing)
+            {
+                foreach (var cpc in clusterAuthenticationCredential.ClusterProjectCredentials)
                 {
-                    foreach (var cpc in clusterAuthenticationCredential.ClusterProjectCredentials)
+                    cpc.IsInitialized = false;
+                }
+                _logger.LogWarning(
+                    "Credential ID {Id} (Username: {Username}) has AuthenticationType {AuthType} but missing PrivateKey. " +
+                    "Resetting IsInitialized to trigger re-provisioning.",
+                    clusterAuthenticationCredential.Id,
+                    clusterAuthenticationCredential.Username,
+                    clusterAuthenticationCredential.AuthenticationType);
+            }
+
+            if (!string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey) &&
+                (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKey) || string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKeyFingerprint)))
+            {
+                try
+                {
+                    var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterAuthenticationCredential);
+                    if (derived != null)
                     {
-                        cpc.IsInitialized = false;
+                        if (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKey) &&
+                            !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat) &&
+                            derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                        {
+                            clusterAuthenticationCredential.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                        }
+                        if (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKeyFingerprint) &&
+                            !string.IsNullOrEmpty(derived.PublicKeyFingerprint) &&
+                            derived.PublicKeyFingerprint.Length <= 200)
+                        {
+                            clusterAuthenticationCredential.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        }
                     }
-                    _logger.LogWarning(
-                        "Credential ID {Id} (Username: {Username}) has AuthenticationType {AuthType} but missing PrivateKey. " +
-                        "Resetting IsInitialized to trigger re-provisioning.",
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to derive public key for credential ID {Id} ({Username}) during seeding.",
                         clusterAuthenticationCredential.Id,
-                        clusterAuthenticationCredential.Username,
-                        clusterAuthenticationCredential.AuthenticationType);
+                        clusterAuthenticationCredential.Username);
                 }
             }
         }

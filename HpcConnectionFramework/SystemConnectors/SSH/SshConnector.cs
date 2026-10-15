@@ -64,6 +64,20 @@ public class SshConnector : IPoolableAdapter
         ClusterProxyConnection proxy = cluster.ProxyConnection;
         var authType = credentials.AuthenticationType;
 
+        // Auto-heal / correct authentication type: if PrivateKey is present (e.g. loaded from Vault),
+        // we must NEVER fall back to local ssh-agent (NoAuthenticationSshClient) which would fail with NoIdentities.
+        if (!string.IsNullOrEmpty(credentials.PrivateKey) &&
+            authType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            _logger?.LogInformation($"[SshConnector] Credential ID {credentials.Id} ('{credentials.Username}') has PrivateKey loaded from Vault but AuthenticationType is {authType}. Correcting to PrivateKey.");
+            authType = proxy is null
+                ? ClusterAuthenticationCredentialsAuthType.PrivateKey
+                : ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+            credentials.AuthenticationType = authType;
+        }
+
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
             (authType is ClusterAuthenticationCredentialsAuthType.PrivateKey
                      or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
@@ -73,6 +87,7 @@ public class SshConnector : IPoolableAdapter
             authType = proxy is null
                 ? ClusterAuthenticationCredentialsAuthType.SshCertificate
                 : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            credentials.AuthenticationType = authType;
         }
 
         SshClient sshClient = (SshClient)(authType switch
