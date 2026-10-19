@@ -65,7 +65,6 @@ jobs:
             --collect:"XPlat Code Coverage" \
             --settings ci/coverage.runsettings \
             --logger "trx;LogFileName=test_results.trx" \
-            --logger "GitHubActions" \
             --results-directory ./TestResults
 
       - name: Generate Code Coverage Reports (HTML & Cobertura)
