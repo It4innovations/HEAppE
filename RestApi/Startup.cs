@@ -62,6 +62,8 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
+using HEAppE.Services.TokenExchange;
+using HEAppE.Services.TokenExchange.Strategies;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi;
@@ -103,6 +105,11 @@ public class Startup
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());
         Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
+
+        // Unified Token Exchange: bind targets from configuration
+        var tokenExchangeTargets = new List<TokenExchangeTargetConfiguration>();
+        Configuration.GetSection("TokenExchangeTargets").Bind(tokenExchangeTargets);
+        services.AddSingleton<IEnumerable<TokenExchangeTargetConfiguration>>(tokenExchangeTargets);
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -179,6 +186,19 @@ public class Startup
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
         services.AddSingleton<IHEAppEEventHub, HEAppEEventHub>();
+
+        // Unified Token Exchange: register strategies and service
+        services.AddSingleton<Rfc8693ExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy>(sp => sp.GetRequiredService<Rfc8693ExchangeStrategy>());
+        services.AddSingleton<ITokenExchangeStrategy, ExpirioExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, ClientCredentialsExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, KeycloakBrokerExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, IntrospectionExchangeStrategy>();
+        services.AddScoped<ITokenExchangeService, TokenExchangeService>();
+
+        services.AddHttpClient("TokenExchangeClient")
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddSmartAuthentication(Configuration);
 
