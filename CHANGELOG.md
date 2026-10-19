@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
   - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
   - Added automatic parsing and extraction of QScheduler version in machine info responses.
+- **QScheduler Standalone Notifier & Callback Integration:**
+  - Integrated support for QScheduler standalone notifiers in `QSchedulerSchedulerAdapter` for task and session callbacks.
+  - Automatically resolves and transmits the `notify` query parameter set to HEAppE instance identifier (`InstanceIdentifierPath`) when callbacks are enabled (`EnableCallback = true`), with optional cluster override via `Cluster.CustomConfiguration["QSchedulerNotifier"]` without exposing configuration to end users in the public API.
+  - Added propagation of `time_limit_ms` query parameter derived from task `WalltimeLimit` during task submissions (`POST /tasks`).
+  - Refactored adapter URL and query string construction (`BuildUrl`) using safe query parameter joining, avoiding string concatenation with `+=`.
+  - Maintained backward compatibility with older QScheduler versions.
+  - Updated mock QScheduler server in `ci/docker/qscheduler/server.py` and added unit test coverage in `SshCaAPITests`.
 - **SubProject repository queries:**
   - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
 - **SubProject Lifecycle Unit Tests:**
