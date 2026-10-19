@@ -59,6 +59,7 @@ namespace HEAppE.ConnectionPool
         private readonly int _connectionRetryAttempts = 3;
         private readonly int _connectionTimeoutMs = 30000;
         private volatile bool _disposed;
+        public bool IsDisposed => _disposed;
         
         /// <summary>
         /// Maximum time (ms) to wait for a connection slot before throwing.

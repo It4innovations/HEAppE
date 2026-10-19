@@ -6,6 +6,7 @@ namespace HEAppE.ConnectionPool;
 
 public interface IConnectionPool : IDisposable
 {
+    bool IsDisposed { get; }
     Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster,
         string sshCaToken, string lexisToken, Func<Task<string>>? refreshSshCaToken = null);
     Task ReturnConnectionAsync(ConnectionInfo schedulerConnection);

@@ -109,6 +109,11 @@ public abstract class SchedulerFactory
             clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId,
             clusterConf.ConnectionProtocol, clusterConf.Port);
 
+        if (_schedulerConnectionPoolSingletons.TryGetValue(endpoint, out var existingPool) && existingPool.IsDisposed)
+        {
+            _schedulerConnectionPoolSingletons.TryRemove(endpoint, out _);
+        }
+
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
             key => 
