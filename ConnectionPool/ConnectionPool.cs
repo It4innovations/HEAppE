@@ -493,6 +493,14 @@ namespace HEAppE.ConnectionPool
             {
                 var vaultData = await connector.GetClusterAuthenticationCredentials(cred.Id);
                 cred.ImportVaultData(vaultData);
+
+                if (!string.IsNullOrEmpty(cred.PrivateKey) &&
+                    cred.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                             or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+                {
+                    _logger.LogInformation($"[ConnectionPool] User:{cred.Username} (ID:{cred.Id}) has PrivateKey loaded from Vault but AuthenticationType was {cred.AuthenticationType}. Correcting to PrivateKey.");
+                    cred.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
             }
             catch (Exception ex)
             {
