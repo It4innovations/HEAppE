@@ -64,6 +64,7 @@ using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
 using HEAppE.Services.TokenExchange;
 using HEAppE.Services.TokenExchange.Strategies;
+using HEAppE.RestUtils;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi;
@@ -160,6 +161,7 @@ public class Startup
                 conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         })
+        .ConfigureHighThroughputSocketsHandler()
         .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("userorg", "identity"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
@@ -172,14 +174,17 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
+        .ConfigureHighThroughputSocketsHandler()
         .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("expirio", "accounting"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("SshCaClient")
+            .ConfigureHighThroughputSocketsHandler()
             .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("ssh ca", "certificateauthority"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("FirecREST")
+            .ConfigureHighThroughputSocketsHandler()
             .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("firecrest", "cluster"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
@@ -197,6 +202,7 @@ public class Startup
         services.AddScoped<ITokenExchangeService, TokenExchangeService>();
 
         services.AddHttpClient("TokenExchangeClient")
+            .ConfigureHighThroughputSocketsHandler()
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
@@ -224,7 +230,8 @@ public class Startup
         services.AddHttpClient("LexisTokenExchangeClient", conf => 
         {
             conf.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.ConnectionTimeoutInSeconds);
-        });
+        })
+        .ConfigureHighThroughputSocketsHandler();
         services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
@@ -323,7 +330,9 @@ public class Startup
         // message to appear twice. We only update the log level and DB connection string.
         ConfigureLog4NetLevel();
 
-        AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
+        var rawLoggingConnString = Configuration.GetConnectionString("Logging");
+        var loggingConnString = HEAppE.DataAccessTier.MiddlewareContextSettings.NormalizeConnectionString(rawLoggingConnString, defaultMaxPoolSize: 100);
+        AdoNetAppenderHelper.SetConnectionString(loggingConnString);
 
 
         ServiceActivator.Configure(app.ApplicationServices);

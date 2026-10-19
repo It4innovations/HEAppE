@@ -24,6 +24,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
+using HEAppE.RestUtils;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.Expirio.Configuration;
@@ -43,6 +44,8 @@ using Polly;
 using Polly.Extensions.Http;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+
+System.Threading.ThreadPool.SetMinThreads(100, 100);
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -144,6 +147,7 @@ builder.Services.AddSingleton<ITokenExchangeStrategy, IntrospectionExchangeStrat
 builder.Services.AddScoped<ITokenExchangeService, TokenExchangeService>();
 
 builder.Services.AddHttpClient("TokenExchangeClient")
+    .ConfigureHighThroughputSocketsHandler()
     .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
     .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
@@ -162,6 +166,7 @@ builder.Services.AddHttpClient("ExpirioClient", conf =>
     conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
     conf.DefaultRequestHeaders.Add("Accept", "application/json");
 })
+.ConfigureHighThroughputSocketsHandler()
 .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
@@ -171,16 +176,20 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
 })
+.ConfigureHighThroughputSocketsHandler()
 .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddHttpClient("SshCaClient")
+    .ConfigureHighThroughputSocketsHandler()
     .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddHttpClient("FirecREST")
+    .ConfigureHighThroughputSocketsHandler()
     .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddHttpClient("LexisTokenExchangeClient");
+builder.Services.AddHttpClient("LexisTokenExchangeClient")
+    .ConfigureHighThroughputSocketsHandler();
 builder.Services.AddAuthentication("Bearer");
 builder.Services.AddAuthorization();
 

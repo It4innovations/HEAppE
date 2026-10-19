@@ -917,6 +917,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("State")
+                        .HasFilter("[State] > 1 AND [State] < 16");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("State"), new[] { "SubmitterId", "ProjectId" });
+
                     b.HasIndex("SubmitterId");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubmitterId"), new[] { "State" });

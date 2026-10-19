@@ -20,6 +20,7 @@ using HEAppE.Exceptions.AbstractTypes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using HEAppE.Authentication;
+using HEAppE.RestUtils;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -277,6 +278,7 @@ public static class JwtIntrospectionExtensions
 
             services.AddTransient<LoggingHandler>();
             services.AddHttpClient(OAuth2IntrospectionDefaults.BackChannelHttpClientName)
+                .ConfigureHighThroughputSocketsHandler()
                 .AddHttpMessageHandler<LoggingHandler>()
                 .ConfigureHttpClient(client =>
                 {
@@ -300,6 +302,7 @@ public static class JwtIntrospectionExtensions
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
+            .ConfigureHighThroughputSocketsHandler()
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         }

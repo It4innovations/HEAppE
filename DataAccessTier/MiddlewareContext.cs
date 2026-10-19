@@ -66,24 +66,7 @@ public class MiddlewareContext : DbContext
                                 {
                                     logger.LogInformation("Starting migration and seeding into the new database.");
                                     context.Database.Migrate();
-                                    try
-                                    {
-                                        var dbName = context.Database.GetDbConnection().Database;
-                                        if (!string.IsNullOrEmpty(dbName))
-                                        {
-                                            var builder = new SqlCommandBuilder();
-                                            var safeDbName = builder.QuoteIdentifier(dbName);
-#pragma warning disable EF1002
-                                            // nosemgrep: security_code_scan.SCS0002-1
-                                            context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
-#pragma warning restore EF1002
-                                            logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
-                                    }
+                                    EnsureRcsiEnabled(context, logger);
                                     context.EnsureDatabaseSeeded();
                                     _isMigrated = true;
                                 }
@@ -126,6 +109,8 @@ public class MiddlewareContext : DbContext
                                         }
                                     }
 
+                                    EnsureRcsiEnabled(context, logger);
+
                                     logger.LogInformation("Application and database migrations are compatible. Seeding data...");
                                     context.EnsureDatabaseSeeded();
                                     _isMigrated = true;
@@ -144,6 +129,57 @@ public class MiddlewareContext : DbContext
             }
     }
 
+    private static void EnsureRcsiEnabled(MiddlewareContext context, ILogger logger)
+    {
+        try
+        {
+            var dbConnection = context.Database.GetDbConnection();
+            var dbName = dbConnection.Database;
+            if (string.IsNullOrEmpty(dbName)) return;
+
+            bool isRcsiOn = false;
+            var wasOpen = dbConnection.State == System.Data.ConnectionState.Open;
+            if (!wasOpen)
+            {
+                dbConnection.Open();
+            }
+            try
+            {
+                using var cmd = dbConnection.CreateCommand();
+                cmd.CommandText = "SELECT CAST(is_read_committed_snapshot_on AS BIT) FROM sys.databases WHERE name = DB_NAME()";
+                var res = cmd.ExecuteScalar();
+                isRcsiOn = res != null && res != DBNull.Value && Convert.ToBoolean(res);
+            }
+            finally
+            {
+                if (!wasOpen)
+                {
+                    dbConnection.Close();
+                }
+            }
+
+            if (!isRcsiOn)
+            {
+                var builder = new SqlCommandBuilder();
+                var safeDbName = builder.QuoteIdentifier(dbName);
+                logger.LogInformation($"Enabling READ_COMMITTED_SNAPSHOT (RCSI) for database: {dbName}...");
+#pragma warning disable EF1002
+                // nosemgrep: security_code_scan.SCS0002-1
+                context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;");
+#pragma warning restore EF1002
+                logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
+            }
+            else
+            {
+                logger.LogDebug($"READ_COMMITTED_SNAPSHOT (RCSI) is already active for database: {dbName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"Could not automatically verify or set RCSI: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region Instances
@@ -160,20 +196,8 @@ public class MiddlewareContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            var connectionString = MiddlewareContextSettings.ConnectionString;
-            if (!string.IsNullOrEmpty(connectionString))
-            {
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                if (!builder.MultipleActiveResultSets)
-                {
-                    builder.MultipleActiveResultSets = true;
-                }
-                if (!builder.TrustServerCertificate)
-                {
-                    builder.TrustServerCertificate = true;
-                }
-                connectionString = builder.ConnectionString;
-            }
+            var connectionString = MiddlewareContextSettings.NormalizeConnectionString(MiddlewareContextSettings.ConnectionString);
+
 
             optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
                 sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
@@ -376,6 +400,11 @@ public class MiddlewareContext : DbContext
             .HasIndex(nameof(SubmittedTaskInfo.State), "SubmittedJobInfoId")
             .HasFilter("[State] > 1 AND [State] < 16")
             .IncludeProperties("NodeTypeId", "SpecificationId", "ProjectId");
+
+        modelBuilder.Entity<SubmittedJobInfo>()
+            .HasIndex(nameof(SubmittedJobInfo.State))
+            .HasFilter("[State] > 1 AND [State] < 16")
+            .IncludeProperties("SubmitterId", "ProjectId");
 
         modelBuilder.Entity<SubmittedJobInfo>()
             .HasIndex("SpecificationId", "ProjectId")
