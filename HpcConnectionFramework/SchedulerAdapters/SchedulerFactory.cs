@@ -153,7 +153,8 @@ public abstract class SchedulerFactory
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     clusterConf.Port,
-                    logger);
+                    logger,
+                    _connectionPoolSettings.ConnectionAcquireTimeoutMs);
             });
     }
 

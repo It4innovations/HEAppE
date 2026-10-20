@@ -94,7 +94,10 @@ public class Startup
         MiddlewareContextSettings.Clear();
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
-        DatabaseMigrationSettings.AutoMigrateDatabase = Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
+        Configuration.GetSection("HPCConnectionFrameworkSettings:TunnelSettings").Bind(HPCConnectionFrameworkConfiguration.TunnelSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:ClustersConnectionPoolSettings").Bind(HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:SshClientSettings").Bind(HPCConnectionFrameworkConfiguration.SshClientSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:ScriptsSettings").Bind(HPCConnectionFrameworkConfiguration.ScriptsSettings);
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
         ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());

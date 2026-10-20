@@ -15,9 +15,9 @@ public static class SshCommandUtils
 {    
     /// <summary>
     /// Maximum number of attempts for a single command execution.
-    /// Loaded from configuration (default is usually 10).
+    /// Loaded dynamically from configuration (with a safe minimum of 3).
     /// </summary>
-    private static readonly int MaxRetries = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
+    private static int MaxRetries => Math.Max(3, HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts);
     
     /// <summary>
     /// Base delay for exponential backoff in milliseconds.
@@ -153,13 +153,22 @@ public static class SshCommandUtils
     /// <summary>
     /// Identifies if the exception is a transient network/timeout error that warrants a retry.
     /// </summary>
-    private static bool IsTransient(Exception ex)
+    private static bool IsTransient(Exception? ex)
     {
-        // Identify network-level issues where a retry might succeed
-        return ex is System.Net.Sockets.SocketException || 
-               ex is TimeoutException || 
-               ex is Renci.SshNet.Common.SshConnectionException ||
-               ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("Failed to open a channel", StringComparison.OrdinalIgnoreCase);
+        while (ex != null)
+        {
+            if (ex is System.Net.Sockets.SocketException || 
+                ex is TimeoutException || 
+                ex is Renci.SshNet.Common.SshConnectionException ||
+                ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("Failed to open a channel", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("administratively prohibited", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("channel open failed", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            ex = ex.InnerException;
+        }
+        return false;
     }
 }
