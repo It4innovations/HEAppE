@@ -59,6 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Increased `bufferSize` from `1` to `30` in `DataStagingAPI/Logging/log4netDocker.config` to match `log4net.config` and batch SQL log writes, eliminating per-log-record synchronous database roundtrips.
 
 ### Fixed
+- **AdaptorUser Lookup, Token Authentication, and Database Concurrency Optimizations:**
+  - Added filtered nonclustered database indexes on `AdaptorUser` (`IX_AdaptorUser_Username`, `IX_AdaptorUser_Email`, `IX_AdaptorUser_IdpSid`, `IX_AdaptorUser_Password` with `[IsDeleted] = 0` filter) via EF Core migration `AddFilteredIndexesOnAdaptorUser`, eliminating full table scans (`Table Scan` / `Clustered Index Scan`) during authentication and user lookups.
+  - Eliminated redundant `UPDATE AdaptorUser` writes in `UpdateUser` during token authentication when username, email, and user type remain unchanged, preventing row and table lock contention (`LCK_M_S` / `LCK_M_X`).
+  - Added `CurrentUser` to `IRequestContext` and `RequestContext`, populated during `Authorize` and `LocalAuth`, allowing `AuthenticateUser` in the service tier to reuse the already-synchronized user instance and eliminating duplicate `SELECT TOP(2)` database roundtrips per HTTP request.
+  - Trimmed unnecessary 5-level deep eager loading (`.ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster)`) from `AdaptorUserRepository` (`GetByName`, `GetByNameAsync`, `GetByApiKey`, `GetByApiKeyAsync`, `GetById`, `GetByIdAsync`), eliminating tens of thousands of redundant split queries on `ClusterProject`.
+  - Replaced `.SingleOrDefault()` with `.FirstOrDefault()` in `AdaptorUserRepository.GetById` and `GetByApiKey`, generating `TOP(1)` queries instead of `TOP(2)`.
+  - Enhanced in-memory user caching in `UserAndLimitationManagementLogic` and `LocalAuthenticationHandler` with 5-minute TTL and bidirectional indexing (`UserById_{id}` and `UserByName_{username}`) with automatic eviction on role/user changes.
 - **Database Lock Contention & RCSI (`READ_COMMITTED_SNAPSHOT`) Activation:**
   - Added automatic verification and activation of `READ_COMMITTED_SNAPSHOT` on startup for both existing and new databases in `MiddlewareContext.EnsureRcsiEnabled`, eliminating row/table lock contention, blocking chains, and `Execution Timeout Expired` (error 258) exceptions under concurrent load.
 - **Database Connection Health Check Resilience:**

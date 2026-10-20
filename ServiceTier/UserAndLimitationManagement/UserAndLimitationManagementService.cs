@@ -192,6 +192,14 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public static AdaptorUser AuthenticateUser(string sessionCode, IUserAndLimitationManagementLogic authLogic, IHttpContextKeys httpContextKeys)
     {
+        if (httpContextKeys?.Context?.CurrentUser != null && string.IsNullOrEmpty(sessionCode))
+        {
+            if (httpContextKeys.Context.CurrentUser.IsBlocked)
+                throw new UnauthorizedAccessException("Unauthorized");
+
+            return httpContextKeys.Context.CurrentUser;
+        }
+
         if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && string.IsNullOrEmpty(sessionCode))
         {
             if (httpContextKeys.Context.AdaptorUserId <= 0)

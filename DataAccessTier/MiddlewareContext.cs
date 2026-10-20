@@ -350,6 +350,22 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<AdaptorUser>()
             .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
 
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Username)
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Email)
+            .HasFilter("[IsDeleted] = 0 AND [Email] IS NOT NULL");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.IdpSid)
+            .HasFilter("[IsDeleted] = 0 AND [IdpSid] IS NOT NULL");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Password)
+            .HasFilter("[IsDeleted] = 0 AND [Password] IS NOT NULL");
+
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfiguration).HasJsonConversion();
         modelBuilder.Entity<Cluster>()

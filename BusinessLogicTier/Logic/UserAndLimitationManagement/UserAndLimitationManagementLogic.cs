@@ -243,7 +243,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             try
             {
                 string userCacheKey = $"UserById_{id}";
-                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
+                cache.Set(userCacheKey, user, TimeSpan.FromMinutes(5));
+                if (!string.IsNullOrEmpty(user.Username))
+                {
+                    cache.Set($"UserByName_{user.Username}", user, TimeSpan.FromMinutes(5));
+                }
             }
             catch (Exception ex)
             {
@@ -668,8 +672,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 !string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
             {
                 user.IdpSid = idpSid;
+                user.ModifiedAt = changedTime;
                 _unitOfWork.AdaptorUserRepository.Update(user);
                 _unitOfWork.Save();
+
+                EvictUserCache(user);
             }
         }
 
@@ -732,6 +739,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         await _unitOfWork.SaveAsync();
+
+        EvictUserCache(user);
         
         return user;
     }
@@ -819,13 +828,50 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser UpdateUser(AdaptorUser user, string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
     {
-        user.Username = username;
-        user.Email = email;
-        user.ModifiedAt = changedTime;
-        user.UserType = adaptorUserType;
-        _unitOfWork.AdaptorUserRepository.Update(user);
-        _unitOfWork.Save();
+        bool isChanged = false;
+        if (!string.IsNullOrEmpty(username) && !string.Equals(user.Username, username, StringComparison.Ordinal))
+        {
+            user.Username = username;
+            isChanged = true;
+        }
+        if (!string.IsNullOrEmpty(email) && !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.Email = email;
+            isChanged = true;
+        }
+        if (user.UserType != adaptorUserType)
+        {
+            user.UserType = adaptorUserType;
+            isChanged = true;
+        }
+
+        if (isChanged)
+        {
+            user.ModifiedAt = changedTime;
+            _unitOfWork.AdaptorUserRepository.Update(user);
+            _unitOfWork.Save();
+
+            EvictUserCache(user);
+        }
         return user;
+    }
+
+    private void EvictUserCache(AdaptorUser user)
+    {
+        if (user == null) return;
+        try
+        {
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            cache?.Remove($"UserById_{user.Id}");
+            if (!string.IsNullOrEmpty(user.Username))
+            {
+                cache?.Remove($"UserByName_{user.Username}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to evict user from cache");
+        }
     }
 
 
@@ -909,8 +955,41 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private AdaptorUser GetActiveUser(string username)
     {
         _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
-        var user = _unitOfWork.AdaptorUserRepository.GetByName(username)
-               ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
+        var cache = LogicFactory.GetService<IMemoryCache>();
+        AdaptorUser user = null;
+        if (cache != null && !string.IsNullOrEmpty(username))
+        {
+            try
+            {
+                if (cache.TryGetValue($"UserByName_{username}", out AdaptorUser cachedUser))
+                {
+                    user = cachedUser;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to read user from cache for {Username}", username);
+            }
+        }
+
+        if (user == null)
+        {
+            user = _unitOfWork.AdaptorUserRepository.GetByName(username)
+                   ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
+
+            if (cache != null && user != null)
+            {
+                try
+                {
+                    cache.Set($"UserByName_{username}", user, TimeSpan.FromMinutes(5));
+                    cache.Set($"UserById_{user.Id}", user, TimeSpan.FromMinutes(5));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to write user to cache for {Username}", username);
+                }
+            }
+        }
 
         if (user is null || user.IsDeleted)
         {

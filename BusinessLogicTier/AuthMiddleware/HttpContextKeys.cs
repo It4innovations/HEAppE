@@ -25,6 +25,7 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public interface IRequestContext
 {
+    public AdaptorUser? CurrentUser { get; set; }
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
@@ -62,6 +63,7 @@ public class RequestContext : IRequestContext
     private string? _userOrgToken;
     private string? _expirioToken;
 
+    public AdaptorUser? CurrentUser { get; set; }
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
@@ -171,6 +173,13 @@ public class HttpContextKeys : IHttpContextKeys
                 _context.UserName = user.Username;
                 _context.Email = user.Email;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
+                _context.CurrentUser = user;
+
+                _memoryCache?.Set($"UserById_{user.Id}", user, TimeSpan.FromMinutes(5));
+                if (!string.IsNullOrEmpty(user.Username))
+                {
+                    _memoryCache?.Set($"UserByName_{user.Username}", user, TimeSpan.FromMinutes(5));
+                }
             }
             else
             {
