@@ -243,11 +243,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             try
             {
                 string userCacheKey = $"UserById_{id}";
-                cache.Set(userCacheKey, user, TimeSpan.FromMinutes(5));
-                if (!string.IsNullOrEmpty(user.Username))
-                {
-                    cache.Set($"UserByName_{user.Username}", user, TimeSpan.FromMinutes(5));
-                }
+                cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
             }
             catch (Exception ex)
             {
@@ -863,10 +859,6 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             var cache = LogicFactory.GetService<IMemoryCache>();
             cache?.Remove($"UserById_{user.Id}");
-            if (!string.IsNullOrEmpty(user.Username))
-            {
-                cache?.Remove($"UserByName_{user.Username}");
-            }
         }
         catch (Exception ex)
         {
@@ -955,41 +947,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private AdaptorUser GetActiveUser(string username)
     {
         _logger.LogInformation($"User \"{username}\" wants to authenticate to the system.");
-        var cache = LogicFactory.GetService<IMemoryCache>();
-        AdaptorUser user = null;
-        if (cache != null && !string.IsNullOrEmpty(username))
-        {
-            try
-            {
-                if (cache.TryGetValue($"UserByName_{username}", out AdaptorUser cachedUser))
-                {
-                    user = cachedUser;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Failed to read user from cache for {Username}", username);
-            }
-        }
-
-        if (user == null)
-        {
-            user = _unitOfWork.AdaptorUserRepository.GetByName(username)
-                   ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
-
-            if (cache != null && user != null)
-            {
-                try
-                {
-                    cache.Set($"UserByName_{username}", user, TimeSpan.FromMinutes(5));
-                    cache.Set($"UserById_{user.Id}", user, TimeSpan.FromMinutes(5));
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to write user to cache for {Username}", username);
-                }
-            }
-        }
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(username)
+               ?? _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(username);
 
         if (user is null || user.IsDeleted)
         {
@@ -1007,7 +966,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private SessionCode CreateSessionCode(AdaptorUser user)
     {
-        var sessionCode = _unitOfWork.SessionCodeRepository.GetByUser(user);
+        var trackedUser = _unitOfWork.AdaptorUserRepository.GetById(user.Id) ?? user;
+        var sessionCode = _unitOfWork.SessionCodeRepository.GetByUser(trackedUser);
 
         if (sessionCode is null || IsSessionExpired(sessionCode))
         {
@@ -1022,7 +982,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 AuthenticationTime = DateTime.UtcNow,
                 LastAccessTime = DateTime.UtcNow,
                 UniqueCode = guid.ToString(),
-                User = user
+                User = trackedUser
             };
             _unitOfWork.SessionCodeRepository.Insert(sessionCode);
         }

@@ -91,8 +91,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                     user = unitOfWork.AdaptorUserRepository.GetByName(username);
                     if (user != null)
                     {
-                        _cache.Set(userCacheKey, user, TimeSpan.FromMinutes(5));
-                        _cache.Set($"UserById_{user.Id}", user, TimeSpan.FromMinutes(5));
+                        _cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
                     }
                 }
                 

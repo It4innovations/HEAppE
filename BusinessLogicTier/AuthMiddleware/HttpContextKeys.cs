@@ -174,12 +174,6 @@ public class HttpContextKeys : IHttpContextKeys
                 _context.Email = user.Email;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
                 _context.CurrentUser = user;
-
-                _memoryCache?.Set($"UserById_{user.Id}", user, TimeSpan.FromMinutes(5));
-                if (!string.IsNullOrEmpty(user.Username))
-                {
-                    _memoryCache?.Set($"UserByName_{user.Username}", user, TimeSpan.FromMinutes(5));
-                }
             }
             else
             {
