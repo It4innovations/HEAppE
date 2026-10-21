@@ -104,7 +104,7 @@ internal class LinuxCommands : ICommands
         var inputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}Temp/{hash}/.";
         var outputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
-            $"{clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}",
+            $"bash {clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}",
             _logger);
         _logger.LogInformation(
             $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
@@ -128,7 +128,7 @@ internal class LinuxCommands : ICommands
         var outputDirectory = $"{localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}Temp/{hash}";
 
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
-            $"{clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}",
+            $"bash {clusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}",
             _logger);
         _logger.LogInformation(
             $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
@@ -147,7 +147,7 @@ internal class LinuxCommands : ICommands
         var clusterConfig3 = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         string remoteCmd3Path = clusterConfig3.GetPathToScript(jobInfo.Project.AccountingString, "remote-cmd3.sh");
         var sshCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient),
-            $"{clusterConfig3.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}",
+            $"bash {clusterConfig3.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}",
             _logger);
         _logger.LogInformation($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
@@ -165,7 +165,7 @@ internal class LinuxCommands : ICommands
         foreach (var publicKey in publicKeys)
         {
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-            var cmdText = $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};";
+            var cmdText = $"bash {HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};";
 
             if (cmdBuilder.Length + cmdText.Length > 55000)
             {
@@ -204,7 +204,7 @@ internal class LinuxCommands : ICommands
         var clusterConfig4 = ClusterRuntimeConfiguration.For(jobInfo.Specification.Cluster.CustomConfiguration);
         var cmdBuilder =
             new StringBuilder(
-                $"{clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"bash {clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
         foreach (var task in jobInfo.Tasks)
         {
             var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
@@ -212,7 +212,7 @@ internal class LinuxCommands : ICommands
                 : string.Empty;
 
             cmdBuilder.Append(
-                $"{clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"bash {clusterConfig4.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {clusterConfig4.InstanceIdentifierPath}/{clusterConfig4.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
         _logger.LogInformation($"Create job directory command: \"{cmdBuilder}\"");
@@ -660,7 +660,7 @@ internal class LinuxCommands : ICommands
             var heappeJobsDir = $"{copyFilesClusterConfig.InstanceIdentifierPath.TrimStart('/')}/{copyFilesClusterConfig.JobLogArchiveSubPath.TrimStart('/')}";
 
             cmdBuilder.Append(
-                $"{copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"bash {copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
 
             foreach (var task in jobInfo.Tasks)
             {
@@ -669,7 +669,7 @@ internal class LinuxCommands : ICommands
                     : string.Empty;
 
                 cmdBuilder.Append(
-                    $"{copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                    $"bash {copyFilesClusterConfig.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {projectBasePath.TrimEnd('/')} {heappeJobsDir} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
             }
         }
 

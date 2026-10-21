@@ -118,6 +118,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made `InvalidateConnectionPool` and `InvalidateAllConnectionPools` virtual in `FileSystemFactory` and overrode them in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` to clear cached manager singletons (`_managerSingletons`) and connector singletons (`_connectorSingletons`).
   - Added self-healing capability and dynamic connection pool provider in `SftpFileSystemManager` that automatically re-acquires a fresh, valid connection pool from `FileSystemFactory` if the previous pool was disposed, eliminating `System.ObjectDisposedException: Cannot acquire connection from a disposed ConnectionPool` during file uploads/downloads following cluster cache invalidations.
   - Updated `SchedulerFactory.GetSchedulerConnectionPool` to verify `!existingPool.IsDisposed` and evict disposed pools prior to acquiring connections.
+- **Explicit Bash Interpreter Execution for Remote Scripts (`noexec` Compatibility):**
+  - Fixed `bash: .../run_command.sh: /bin/bash: bad interpreter: Permission denied` occurring on HPC clusters where user home or scratch storage partitions are mounted with the `noexec` security flag.
+  - Prepended explicit `bash` interpreter invocation across all scheduler adapters (`SlurmSchedulerAdapter`, `PbsProSchedulerAdapter`, `HyperQueueSchedulerAdapter`, `LinuxLocalSchedulerAdapter`) and file system commands in `LinuxCommands` (`create_job_directory.sh`, `copy_data_from_temp.sh`, `copy_data_to_temp.sh`, `add_key.sh`, `remove_key.sh`).
+  - Updated `SchedulerDataConvertor.ResolveExecutableFile` to ensure `.sh` task scripts in `.key_scripts` are executed via `bash <script>`, bypassing kernel `noexec` restrictions on cluster nodes without requiring cluster-side configuration changes.
 
 ## V6.5.2
 
