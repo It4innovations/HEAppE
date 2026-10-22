@@ -225,7 +225,3 @@ jobs:
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.tag_name }}
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.version }}
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.version }}-${{ steps.meta.outputs.short_sha }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe-datastagingapi:latest
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe-datastagingapi:${{ needs.prepare-release.outputs.tag_name }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe-datastagingapi:${{ needs.prepare-release.outputs.version }}
-            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe-datastagingapi:${{ needs.prepare-release.outputs.version }}-${{ steps.meta.outputs.short_sha }}

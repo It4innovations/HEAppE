@@ -212,7 +212,3 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.version }}-dev
             ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}
             ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:dev-latest
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.version }}-dev
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.branch }}
-            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
