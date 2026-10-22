@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -356,6 +357,10 @@ internal class LinuxCommands : ICommands
             }
             return true;
         }
+        catch (ClusterStorageQuotaExceededException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError($"Exception: {ex.Message}");
@@ -468,6 +473,12 @@ internal class LinuxCommands : ICommands
             }
             catch (Exception ex)
             {
+                if (SshCommandUtils.IsDiskQuotaExceeded(ex.Message) || SshCommandUtils.IsNoSpaceLeftOnDevice(ex.Message))
+                {
+                    throw new ClusterStorageQuotaExceededException(
+                        SshCommandUtils.IsDiskQuotaExceeded(ex.Message) ? "DiskQuotaExceeded" : "NoSpaceLeftOnDevice",
+                        ex.Message);
+                }
                 _logger.LogWarning($"SFTP upload failed ({ex.Message}). Falling back to SSH base64 upload...");
             }
 
@@ -494,6 +505,10 @@ internal class LinuxCommands : ICommands
                     uploadedSuccessfully = true;
                     _logger.LogInformation("Script directory initialized/updated successfully via SSH base64 fallback.");
                 }
+                catch (ClusterStorageQuotaExceededException)
+                {
+                    throw;
+                }
                 catch (Exception fallbackEx)
                 {
                     _logger.LogError($"SSH base64 script upload fallback failed: {fallbackEx.Message}");
@@ -506,6 +521,10 @@ internal class LinuxCommands : ICommands
             await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter(sshClient), chmodCmd, _logger);
 
             return true;
+        }
+        catch (ClusterStorageQuotaExceededException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -687,6 +706,10 @@ internal class LinuxCommands : ICommands
                 await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)schedulerConnectionConnection),
                     cmdBuilder.ToString(), _logger);
             _logger.LogInformation($"Copy job files result: \"{sshCommand.Result}\"");
+        }
+        catch (ClusterStorageQuotaExceededException)
+        {
+            throw;
         }
         catch (SshCommandException ex)
         {

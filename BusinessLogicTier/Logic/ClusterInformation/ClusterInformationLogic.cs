@@ -536,6 +536,28 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                     return credentials;
                 }
 
+                // If credentials already exist in DB for this project and cluster, they failed to initialize
+                // (e.g. disk quota or script setup error). Do NOT attempt to create them again,
+                // as that would fail with HPCIdentityAlreadyExistsWithDifferentType or mask the initialization failure.
+                bool hasExistingCredentials;
+                if (onlyServiceAccounts)
+                {
+                    hasExistingCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized: false, adaptorUserId, _logger) != null;
+                }
+                else
+                {
+                    var existing = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized: false, adaptorUserId, _logger);
+                    hasExistingCredentials = existing != null && existing.Any();
+                }
+
+                if (hasExistingCredentials)
+                {
+                    _logger.LogWarning("Existing credentials found for ClusterId: {0}, ProjectId: {1}, but initialization failed.", clusterId, projectId);
+                    throw;
+                }
+
                 // If initialization failed because they don't exist, try creating them
                 return await _credentialProvisioningLogic.CreateAndInitializeMissingCredentials(
                     clusterId: clusterId,

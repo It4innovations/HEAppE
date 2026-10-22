@@ -179,6 +179,12 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
+            case ClusterStorageQuotaExceededException:
+                problem.Title = "Cluster Storage Quota Exceeded";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
             case ResourceUsageException resourceUsageEx:
                 problem.Title = resourceUsageEx.Message == "ReporterNoAccessToJob" ? "Access Forbidden" : "Resource Usage Error";
                 problem.Detail = GetExceptionMessage(exception);
@@ -289,10 +295,22 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
-            case SshCommandException:
-                problem.Title = "SSH Command Problem";
-                problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status502BadGateway;
+            case SshCommandException sshEx:
+                if (sshEx.Message?.Contains("Disk quota exceeded", StringComparison.OrdinalIgnoreCase) == true
+                    || sshEx.Message?.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase) == true
+                    || sshEx.Message?.Contains("No space left on device", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    problem.Title = "Cluster Storage Quota Exceeded";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status400BadRequest;
+                    logLevel = LogLevel.Warning;
+                }
+                else
+                {
+                    problem.Title = "SSH Command Problem";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status502BadGateway;
+                }
                 break;
             case SFTPCommandException:
                 problem.Title = "SFTP Command Problem";

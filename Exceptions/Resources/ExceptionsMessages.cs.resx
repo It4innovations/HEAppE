@@ -579,4 +579,10 @@
   <data name="SshCAServiceTypeException_UnableToRetrieveSshkey" xml:space="preserve">
     <value>Nelze získat klíč z SSH CA.</value>
   </data>
+  <data name="ClusterStorageQuotaExceededException_DiskQuotaExceeded" xml:space="preserve">
+    <value>Na HPC clusteru byla překročena disková kvóta: {0}</value>
+  </data>
+  <data name="ClusterStorageQuotaExceededException_NoSpaceLeftOnDevice" xml:space="preserve">
+    <value>Na HPC clusteru došlo volné místo na disku: {0}</value>
+  </data>
 </root>

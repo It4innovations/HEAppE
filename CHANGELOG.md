@@ -8,106 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.6.0
 
 ### Added
-- **Cluster Information Nesting / Detail Level (`detailLevel` parameter):**
-  - Added optional `detailLevel` query parameter (`ClusterDetailLevelExt`: `Full = 0`, `ClustersOnly = 1`, `NodeTypes = 2`, `Projects = 3`) to `GET /heappe/Management/Clusters` and `GET /heappe/Management/Cluster` endpoints for non-breaking reduction of response payload and nested object graph traversal.
-  - Implemented selective eager loading (`.Include()`) in `ClusterRepository` (`GetAllWithActiveProjectFilter` and `GetById`) reducing EF Core database queries by up to 7 split SQL queries when querying cluster metadata or node types without projects and command templates.
-- **Task-level Quality of Service (QoS) support:**
-  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
-  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
-  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
-  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
-  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
-- **Token & Certificate In-Memory Caching with Adaptive TTL:**
-  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers (min 5s, max 60s, 15% of total duration) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
-  - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
-  - Added in-memory caching for SSH CA OTT token exchange in `HttpContextKeys.ExchangeSshCaToken` keyed by SHA-256 hash of IdP tokens and audience.
-  - Added in-memory caching for signed OpenSSH user certificates in `SshCertificateAuthorityService.SignAsync` with 5-minute cluster validity and `InvalidateCache` support.
-  - Added in-memory caching for FirecREST OAuth2 client credentials tokens in `FirecRestTokenService` with `InvalidateToken` support.
-  - Added in-memory caching for Expirio token exchange (`ExchangeTokenAsync`) and FirecREST credentials exchange (`ExchangeFirecrestCredentialsAsync`) in `ExpirioService`.
-- **QScheduler Machine Information endpoint:**
-  - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
-  - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
-  - Added automatic parsing and extraction of QScheduler version in machine info responses.
-- **QScheduler Standalone Notifier & Callback Integration:**
-  - Integrated support for QScheduler standalone notifiers in `QSchedulerSchedulerAdapter` for task and session callbacks.
-  - Automatically resolves and transmits the `notify` query parameter set to HEAppE instance identifier (`InstanceIdentifierPath`) when callbacks are enabled (`EnableCallback = true`), with optional cluster override via `Cluster.CustomConfiguration["QSchedulerNotifier"]` without exposing configuration to end users in the public API.
-  - Added propagation of `time_limit_ms` query parameter derived from task `WalltimeLimit` during task submissions (`POST /tasks`).
-  - Refactored adapter URL and query string construction (`BuildUrl`) using safe query parameter joining, avoiding string concatenation with `+=`.
-  - Maintained backward compatibility with older QScheduler versions.
-  - Updated mock QScheduler server in `ci/docker/qscheduler/server.py` and added unit test coverage in `SshCaAPITests`.
-- **SubProject repository queries:**
-  - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
-- **SubProject Lifecycle Unit Tests:**
-  - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
-- **Filtered Index for Active Jobs (`IX_SubmittedJobInfo_State`):**
-  - Added filtered nonclustered index on `SubmittedJobInfo` (`[State]`) including `SubmitterId` and `ProjectId` filtered by `[State] > 1 AND [State] < 16`.
-  - Added EF Core migration `AddFilteredIndexOnSubmittedJobInfoState` to accelerate queries and background state-update loops for active and unfinished jobs.
-- **Connection String Normalization & High-Concurrency Pool Defaults:**
-  - Added `NormalizeConnectionString` in `MiddlewareContextSettings` defaulting `Max Pool Size = 250` (or `100` for logging), `Connect Timeout = 30s`, `MultipleActiveResultSets = true`, and `TrustServerCertificate = true` across `RestApi`, `DataStagingAPI`, and logging appenders.
-- **Thread Pool Pre-allocation:**
-  - Added `ThreadPool.SetMinThreads(100, 100)` at application startup in `RestApi` and `DataStagingAPI` to prevent thread injection throttling delays (hill-climbing algorithm) during concurrent request bursts.
-- **High-Throughput HTTP Connection Pooling (`ConfigureHighThroughputSocketsHandler`):**
-  - Added centralized `ConfigureHighThroughputSocketsHandler` extension method in `HEAppE.RestUtils.ResiliencePolicies` configuring `SocketsHttpHandler` across all named HTTP clients (`userOrgApi`, `ExpirioClient`, `SshCaClient`, `FirecREST`, `TokenExchangeClient`, `LexisTokenExchangeClient`, and JWT introspection backchannels) in `RestApi`, `DataStagingAPI`, and `BusinessLogicTier`.
-  - Configured persistent socket pooling with `PooledConnectionLifetime = 5m`, `PooledConnectionIdleTimeout = 2m`, `EnableMultipleHttp2Connections = true`, and `SetHandlerLifetime(Timeout.InfiniteTimeSpan)` to eliminate socket exhaustion (`TIME_WAIT`), TLS handshake overhead, and DNS rotation stalls under high concurrent load.
-- **EF Core Navigation Property Validation Tests:**
-  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
+- **Cluster Information Detail Level:** Added optional `detailLevel` query parameter to `GET /heappe/Management/Clusters` and `Cluster` endpoints with selective eager loading.
+- **Task-level QoS:** Added `QualityOfService` attribute to `TaskSpecification` with fallback to cluster node type QoS.
+- **Adaptive In-Memory Caching:** Introduced dynamic TTL caching for tokens (FIP/LEXIS, SSH CA OTT, Expirio, FirecREST) and signed OpenSSH user certificates.
+- **QScheduler Integration:** Added `GET /heappe/ClusterInformation/MachineInfo` endpoint and standalone notifier callback support with walltime limit propagation.
+- **SubProject Management:** Added repository methods and comprehensive lifecycle unit tests for SubProjects.
+- **High-Concurrency & Performance Optimizations:** Added filtered index `IX_SubmittedJobInfo_State`, thread pool pre-allocation, connection string normalization, and persistent HTTP socket connection pooling (`ConfigureHighThroughputSocketsHandler`).
+- **Integration Tests:** Added navigation property assertions and validation tests for eager loading across API endpoints.
 
 ### Changed
-- **Server Garbage Collection Enabled:**
-  - Enabled `<ServerGarbageCollection>true</ServerGarbageCollection>` in both `RestApi.csproj` and `DataStagingAPI.csproj`, enabling dedicated multi-core GC heaps and threads to prevent "stop-the-world" latency spikes during concurrent request bursts.
-- **Log Database Appender Batching in Docker:**
-  - Increased `bufferSize` from `1` to `30` in `DataStagingAPI/Logging/log4netDocker.config` to match `log4net.config` and batch SQL log writes, eliminating per-log-record synchronous database roundtrips.
+- **Server GC:** Enabled `<ServerGarbageCollection>` in `RestApi` and `DataStagingAPI` for high-throughput request processing.
+- **Logging Appender:** Increased database log batching (`bufferSize=30`) in Docker configurations.
 
 ### Fixed
-- **AdaptorUser Lookup, Token Authentication, and Database Concurrency Optimizations:**
-  - Added filtered nonclustered database indexes on `AdaptorUser` (`IX_AdaptorUser_Username`, `IX_AdaptorUser_Email`, `IX_AdaptorUser_IdpSid`, `IX_AdaptorUser_Password` with `[IsDeleted] = 0` filter) via EF Core migration `AddFilteredIndexesOnAdaptorUser`, eliminating full table scans (`Table Scan` / `Clustered Index Scan`) during authentication and user lookups.
-  - Eliminated redundant `UPDATE AdaptorUser` writes in `UpdateUser` during token authentication when username, email, and user type remain unchanged, preventing row and table lock contention (`LCK_M_S` / `LCK_M_X`).
-  - Added `CurrentUser` to `IRequestContext` and `RequestContext`, populated during `Authorize` and `LocalAuth`, allowing `AuthenticateUser` in the service tier to reuse the already-synchronized user instance and eliminating duplicate `SELECT TOP(2)` database roundtrips per HTTP request.
-  - Trimmed unnecessary 5-level deep eager loading (`.ThenInclude(p => p.ClusterProjects).ThenInclude(cp => cp.Cluster)`) from `AdaptorUserRepository` (`GetByName`, `GetByNameAsync`, `GetByApiKey`, `GetByApiKeyAsync`, `GetById`, `GetByIdAsync`), eliminating tens of thousands of redundant split queries on `ClusterProject`.
-  - Replaced `.SingleOrDefault()` with `.FirstOrDefault()` in `AdaptorUserRepository.GetById` and `GetByApiKey`, generating `TOP(1)` queries instead of `TOP(2)`.
-  - Enhanced in-memory user caching in `UserAndLimitationManagementLogic` and `LocalAuthenticationHandler` with 5-minute TTL and bidirectional indexing (`UserById_{id}` and `UserByName_{username}`) with automatic eviction on role/user changes.
-- **Database Lock Contention & RCSI (`READ_COMMITTED_SNAPSHOT`) Activation:**
-  - Added automatic verification and activation of `READ_COMMITTED_SNAPSHOT` on startup for both existing and new databases in `MiddlewareContext.EnsureRcsiEnabled`, eliminating row/table lock contention, blocking chains, and `Execution Timeout Expired` (error 258) exceptions under concurrent load.
-- **Database Connection Health Check Resilience:**
-  - Increased connection and command timeouts from 1s to 5s in `SqlServerHealthCheck` (`DatabaseCanConnectAsync`) to prevent false-positive `Unhealthy` health check failures during transient database load spikes.
-- **Database Logging Bottleneck Relief (`RequestResponseLoggingMiddleware`):**
-  - Added log4net filters rejecting `HEAppE.RestApi.Logging.RequestResponseLoggingMiddleware` in `DatabaseAppender` across `log4net.config` and `log4netDocker.config` in `RestApi` and `DataStagingAPI`, eliminating high-frequency HTTP request/response rows from spamming the SQL Server `LOG` table while preserving file-based logging.
-- **Suppressed `RequestSizeLimitFilter` Warning Noise:**
-  - Added filter in `DatabaseAppender` suppressing spurious `A request body size limit could not be applied` warnings generated by MVC `RequestSizeLimitFilter`.
-- **Request Body Buffering & JSON Parsing Optimization:**
-  - In `LogUserContextMiddleware`, restricted stream buffering to JSON payloads $\le 128\,\text{KB}$ to prevent memory spikes on file transfers and cached the parsed `JsonDocument` in `HttpContext.Items` with automatic disposal, eliminating duplicate JSON parsing passes per request.
-- **User Context Preservation in Unhandled Exception Logs:**
-  - Preserved `UserId`, `UserName`, `UserEmail`, and `JobId` in `HttpContext.Items` within `LogUserContextMiddleware` so that unhandled exceptions caught by `ExceptionMiddleware` accurately record the authenticated user rather than falling back to `SYSTEM`.
-- **Kerberos ticket expiration validation in `KrbLibSim`:**
-  - Fixed ticket validation logic where `Now.AddSeconds(-300) < cacheEntry.EndTime` treated expired tickets as valid; corrected to `DateTime.UtcNow.AddSeconds(s_ticketValidityBufferSeconds) < cacheEntry.EndTime` and added `InvalidateTicket`.
-- **SubProject lifecycle synchronization with Project:**
-  - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
-    - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.
-    - Subprojects whose end date would exceed a shortened project end date are clamped to the new project end date.
-    - Subprojects whose start date is earlier than the new project start date (or were aligned with the old start date) are adjusted to the new project start date.
-  - **Auto-extension of expired SubProjects during job creation:** In `CreateSubProject(identifier, projectId)` (invoked during `CreateJob`), if an existing subproject has expired but its parent project is active, the subproject is automatically extended to `project.EndDate` and reused instead of rejecting job creation with `400 Bad Request: Specified SubProject is deleted or not valid`.
-  - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
-- **User-Agent Header Sanitization:**
-  - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
-- **SSH CA credential synchronization, Vault resilience, and auto-provisioning:**
-  - In `ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa`, derive and synchronize `PublicKey` directly from `PrivateKey` when `PrivateKey` is present, ensuring SSH certificates match the private key used for authentication and eliminating `The supplied certificate does not certify the supplied key` errors.
-  - Added guards in `EnsureValidPublicKeyForSshCa` to keep existing `PublicKey` and avoid regenerating keys for existing credentials when Vault data was not loaded (`!IsVaultDataLoaded`).
-  - Added guard in `ClusterAuthenticationCredentialsRepository.UpdateAsync` to only write to Vault when `IsVaultDataLoaded` is true, preventing overwriting existing Vault secrets with empty data during transient Vault read errors.
-  - Handled auto-resolved `authType` in `ManagementLogic.CreateCredential` to return existing user credentials regardless of type mismatch instead of throwing `HPCIdentityAlreadyExistsWithDifferentType` during auto-provisioning workflows.
-- **Kerberos SSH and SFTP connection host resolution:**
-  - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
-- **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
-  - Fixed missing `CommandTemplates` and `TemplateParameters` includes in `ProjectRepository` (`GetByIdWithClusterProjects`, `GetAllWithClusterProjects`, and their async variants) causing `null` command templates in `Management/Projects` responses.
-  - Fixed missing `SubProject` include in `SubmittedJobInfoRepository.GetByIdWithTasks` and `GetByIdWithTasksAsync`, and added missing `FileTransferMethod` include to `GetByIdWithTasksAsync`.
-  - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
-  - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
-  - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
-- **QScheduler Credentials Bypass for HTTP/HTTPS:**
-  - Bypassed service account and cluster authentication credentials initialization requirement when using `SchedulerType.QScheduler` over HTTP/HTTPS protocols in:
-    - [`ClusterInformationLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/ClusterInformation/ClusterInformationLogic.cs) (`GetMachineArchitectureAsync`, `GetMachineCalibrationAsync`, `GetCurrentClusterNodeUsageAsync`, and `GetNextAvailableUserCredentials`),
-    - [`JobManagementLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/JobManagementLogic.cs) (`PrepareGetActualTasksInfoAsync`, `PrepareCancelJobAsync`, `CheckAndCloseQSchedulerSessionsAsync`, and background polling),
-    - [`QSchedulerCallbackHandler`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/QSchedulerCallbackHandler.cs) (`ProcessEventAsync`),
-    preventing HTTP 403 `ClusterAccountNotInitialized` errors across all QScheduler operations that do not require SSH credentials.
+- **`HEADER-AUTH-NEEDED` Session Isolation:** Filtered sentinel session code `"HEADER-AUTH-NEEDED"` to prevent memory caching and user context crosstalk when authenticating via Bearer tokens.
+- **Cluster Storage Quota & Disk Full Handling:** Added `ClusterStorageQuotaExceededException`, detecting quota and disk-full errors during cluster operations and mapping them to HTTP 400 Bad Request ProblemDetails.
+- **Database & Query Performance:** Added filtered indexes on `AdaptorUser`, eliminated redundant user updates during token auth, reused authenticated user context, trimmed deep eager loading, and enabled `READ_COMMITTED_SNAPSHOT` (RCSI).
+- **SubProject Synchronization:** Automated date extension, clamping, cascading soft-delete, and auto-extension of expired subprojects during job creation.
+- **SSH CA & Vault Resilience:** Derived public keys from private keys for SSH CA, guarded Vault writes against uninitialized reads, and improved Kerberos host resolution.
+- **Credentials & Eager Loading:** Bypassed credential initialization for HTTP/HTTPS QScheduler operations, and fixed missing `.Include()` calls (CommandTemplates, SubProjects, user groups) across repositories.
+- **Logging & Buffering Noise Reduction:** Restricted stream buffering to JSON payloads $\le 128\,\text{KB}$, preserved user context in unhandled exception logs, and suppressed spurious MVC filter warnings.
 
 ## V6.5.3
 

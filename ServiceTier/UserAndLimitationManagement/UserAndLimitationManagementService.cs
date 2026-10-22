@@ -185,14 +185,16 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
-            var loggedUser = userLogic.GetUserForSessionCode(sessionCode);
+            var loggedUser = AuthenticateUser(sessionCode, userLogic, _httpContextKeys);
             return loggedUser.ConvertIntToExt();
         }
     }
 
     public static AdaptorUser AuthenticateUser(string sessionCode, IUserAndLimitationManagementLogic authLogic, IHttpContextKeys httpContextKeys)
     {
-        if (httpContextKeys?.Context?.CurrentUser != null && string.IsNullOrEmpty(sessionCode))
+        var isSessionCodeEmpty = string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
+
+        if (httpContextKeys?.Context?.CurrentUser != null && isSessionCodeEmpty)
         {
             if (httpContextKeys.Context.CurrentUser.IsBlocked)
                 throw new UnauthorizedAccessException("Unauthorized");
@@ -200,7 +202,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             return httpContextKeys.Context.CurrentUser;
         }
 
-        if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && string.IsNullOrEmpty(sessionCode))
+        if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && isSessionCodeEmpty)
         {
             if (httpContextKeys.Context.AdaptorUserId <= 0)
                 throw new UnauthorizedAccessException("Unauthorized");
@@ -212,9 +214,9 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             return userFromContext;
         }
 
-        if (string.IsNullOrEmpty(sessionCode))
+        if (isSessionCodeEmpty)
         {
-            if (httpContextKeys.Context.AdaptorUserId > 0)
+            if (httpContextKeys?.Context?.AdaptorUserId > 0)
             {
                 var userFromContext = authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
                 if (userFromContext == null)
@@ -297,7 +299,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var authenticationLogic = LogicFactory.GetLogicFactory()
             .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
 
-        var user = authenticationLogic.GetUserForSessionCode(sessionCode);
+        var user = AuthenticateUser(sessionCode, authenticationLogic, httpContextKeys);
         if (user == null)
             throw new UnauthorizedAccessException("Unauthorized");
 

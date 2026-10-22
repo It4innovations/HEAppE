@@ -123,6 +123,20 @@ public static class SshCommandUtils
                 throw new InputValidationException("GitCloneCommandError");
             }
 
+            if (IsDiskQuotaExceeded(sshCommand.Error) || IsDiskQuotaExceeded(sshCommand.Result))
+            {
+                var quotaError = !string.IsNullOrWhiteSpace(sshCommand.Error) ? sshCommand.Error.Trim() : sshCommand.Result.Trim();
+                logger.LogWarning("SSH command error (Disk quota exceeded). Error: {Error}, Exit Code: {ExitCode}", quotaError, sshCommand.ExitStatus);
+                throw new ClusterStorageQuotaExceededException("DiskQuotaExceeded", quotaError);
+            }
+
+            if (IsNoSpaceLeftOnDevice(sshCommand.Error) || IsNoSpaceLeftOnDevice(sshCommand.Result))
+            {
+                var spaceError = !string.IsNullOrWhiteSpace(sshCommand.Error) ? sshCommand.Error.Trim() : sshCommand.Result.Trim();
+                logger.LogWarning("SSH command error (No space left on device). Error: {Error}, Exit Code: {ExitCode}", spaceError, sshCommand.ExitStatus);
+                throw new ClusterStorageQuotaExceededException("NoSpaceLeftOnDevice", spaceError);
+            }
+
             // General command failure - throw exception. IsTransient will determine if we retry.
             var errMsg = !string.IsNullOrEmpty(sshCommand.Error) ? sshCommand.Error : sshCommand.Result;
             logger.LogWarning("SSH command execution failed with non-zero exit code. Error: {Error}, Result: {Result}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.Result, sshCommand.ExitStatus);
@@ -170,5 +184,18 @@ public static class SshCommandUtils
             ex = ex.InnerException;
         }
         return false;
+    }
+
+    public static bool IsDiskQuotaExceeded(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("Disk quota exceeded", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsNoSpaceLeftOnDevice(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("No space left on device", StringComparison.OrdinalIgnoreCase);
     }
 }
