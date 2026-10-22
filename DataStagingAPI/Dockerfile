@@ -9,6 +9,7 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["DataStagingAPI/DataStagingAPI.csproj", "DataStagingAPI/"]
+COPY ["RestApi/RestApi.csproj", "RestApi/"]
 COPY ["ExtModels/ExtModels.csproj", "ExtModels/"]
 COPY ["BusinessLogicTier/BusinessLogicTier.csproj", "BusinessLogicTier/"]
 COPY ["CertificateGenerator/CertificateGenerator.csproj", "CertificateGenerator/"]
@@ -23,12 +24,18 @@ COPY ["HpcConnectionFramework/HpcConnectionFramework.csproj", "HpcConnectionFram
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestApiModels/RestApiModels.csproj", "RestApiModels/"]
 COPY ["ServiceTier/ServiceTier.csproj", "ServiceTier/"]
+COPY ["Services/Services.csproj", "Services/"]
+COPY ["BackgroundThread/BackgroundThread.csproj", "BackgroundThread/"]
+COPY ["Authentication/Authentication.csproj", "Authentication/"]
+COPY ["Exceptions/Exceptions.csproj", "Exceptions/"]
+COPY ["SshCaAPI/SshCaAPI.csproj", "SshCaAPI/"]
+COPY ["Tmds.Ssh/src/Tmds.Ssh/Tmds.Ssh.csproj", "Tmds.Ssh/src/Tmds.Ssh/"]
 COPY ["CHANGELOG.md", "CHANGELOG.md"]
 
 RUN dotnet restore "DataStagingAPI/DataStagingAPI.csproj"
 COPY . .
 WORKDIR "/src/DataStagingAPI"
-RUN dotnet build "DataStagingAPI.csproj" -c Release -o /app/build
+RUN dotnet build "DataStagingAPI.csproj" -c Release -o /app/build -p:CI=true
 
 FROM build AS publish
 RUN dotnet publish "DataStagingAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false

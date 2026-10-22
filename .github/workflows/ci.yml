@@ -200,3 +200,19 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.version }}-dev
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
+
+      - name: Build & Publish HEAppE DataStaging API Development Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./DataStagingAPI/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:dev-latest
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.version }}-dev
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:dev-latest
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.version }}-dev
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.branch }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe-datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
