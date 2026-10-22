@@ -81,6 +81,7 @@ builder.Configuration.Bind("CertificateGeneratorSettings", new CertificateGenera
 MiddlewareContextSettings.Clear();
 builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
+DatabaseMigrationSettings.AutoMigrateDatabase = builder.Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
 builder.Configuration.GetSection("HPCConnectionFrameworkSettings:TunnelSettings").Bind(HPCConnectionFrameworkConfiguration.TunnelSettings);
 builder.Configuration.GetSection("HPCConnectionFrameworkSettings:ClustersConnectionPoolSettings").Bind(HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings);
 builder.Configuration.GetSection("HPCConnectionFrameworkSettings:SshClientSettings").Bind(HPCConnectionFrameworkConfiguration.SshClientSettings);
