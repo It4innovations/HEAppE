@@ -32,14 +32,14 @@ jobs:
       - name: Parse CHANGELOG.md
         id: changelog
         run: |
-          # Extract first header version (e.g. ## V6.5.2 -> V6.5.2)
+          # Extract first header version (e.g. ## V6.5.3 -> V6.5.3)
           TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md | tr -d ' \r\n')
           if [ -z "$TAG_NAME" ]; then
             echo "ERROR: Could not parse release tag from CHANGELOG.md!"
             exit 1
           fi
           
-          # Pure semver without V prefix (e.g. 6.5.2)
+          # Pure semver without V prefix (e.g. 6.5.3)
           VERSION=$(echo "$TAG_NAME" | sed -E 's/^[Vv]//')
           
           # Extract top changelog section for release body
@@ -131,7 +131,7 @@ jobs:
             --no-build \
             --collect:"XPlat Code Coverage" \
             --settings ci/coverage.runsettings \
-            --logger "trx;LogFileName=test_results.trx" \
+            --logger "trx" \
             --logger "console;verbosity=normal" \
             --results-directory ./TestResults
 

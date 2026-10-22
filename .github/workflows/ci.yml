@@ -82,6 +82,7 @@ jobs:
       - name: Generate Code Coverage Reports (HTML & Cobertura)
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
         if: always()
+        continue-on-error: true
         with:
           reports: 'TestResults/**/coverage.cobertura.xml'
           targetdir: 'TestResults/CoverageReport'
