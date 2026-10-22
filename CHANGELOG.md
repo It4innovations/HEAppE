@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.5.3
+
+### Fixed
+- **Connection Pool Lifecycle & File Transfer Manager Desynchronization (`ObjectDisposedException`):**
+  - Added `IsDisposed` property to `IConnectionPool` and `ConnectionPool` to track pool disposal status reliably.
+  - Fixed cache invalidation desynchronization in `FileSystemFactory` where `InvalidateAllConnectionPools()` disposed underlying connection pools while cached `IRexFileSystemManager` instances in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` remained active and retained references to the disposed pool.
+  - Made `InvalidateConnectionPool` and `InvalidateAllConnectionPools` virtual in `FileSystemFactory` and overrode them in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` to clear cached manager singletons (`_managerSingletons`) and connector singletons (`_connectorSingletons`).
+  - Added self-healing capability and dynamic connection pool provider in `SftpFileSystemManager` that automatically re-acquires a fresh, valid connection pool from `FileSystemFactory` if the previous pool was disposed, eliminating `System.ObjectDisposedException: Cannot acquire connection from a disposed ConnectionPool` during file uploads/downloads following cluster cache invalidations.
+  - Updated `SchedulerFactory.GetSchedulerConnectionPool` to verify `!existingPool.IsDisposed` and evict disposed pools prior to acquiring connections.
 
 ## V6.5.2
 

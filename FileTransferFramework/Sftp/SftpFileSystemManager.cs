@@ -22,17 +22,37 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     #region Constructors
 
     public SftpFileSystemManager(ILogger logger, FileTransferMethod configuration,
-        FileSystemFactory synchronizerFactory, IConnectionPool connectionPool)
+        FileSystemFactory synchronizerFactory, IConnectionPool connectionPool,
+        Func<IConnectionPool>? connectionPoolProvider = null)
         : base(logger, configuration, synchronizerFactory)
     {
         _connectionPool = connectionPool;
+        _connectionPoolProvider = connectionPoolProvider;
     }
 
     #endregion
 
     #region Instances
 
-    private readonly IConnectionPool _connectionPool;
+    private readonly Func<IConnectionPool>? _connectionPoolProvider;
+    private IConnectionPool _connectionPool;
+
+    public bool IsDisposed => (_connectionPool?.IsDisposed ?? false) && _connectionPoolProvider == null;
+
+    private IConnectionPool ConnectionPool
+    {
+        get
+        {
+            if (_connectionPool == null || _connectionPool.IsDisposed)
+            {
+                if (_connectionPoolProvider != null)
+                {
+                    _connectionPool = _connectionPoolProvider();
+                }
+            }
+            return _connectionPool;
+        }
+    }
 
     /// <summary>
     ///     Script Configuration
@@ -54,7 +74,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
 
         var connection =
-            await _connectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
+            await ConnectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         _logger.LogInformation($"Downloading file {relativeFilePath} from cluster");
         try
         {
@@ -73,7 +93,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
     }
 
@@ -81,7 +101,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         string absoluteFilePath, string sshCaToken, string lexisToken)
     {
         _logger.LogInformation($"Downloading file {absoluteFilePath} from cluster");
-        var connection = await _connectionPool.GetConnectionForUserAsync(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken, lexisToken);
+        var connection = await ConnectionPool.GetConnectionForUserAsync(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
             var client = SftpClientAdapter.FromObject(connection.Connection);
@@ -94,7 +114,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
     }
 
@@ -104,7 +124,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath);
         var connection =
-            await _connectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
+            await ConnectionPool.GetConnectionForUserAsync(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
             var remotePath = jobClusterDirectoryPath;
@@ -113,7 +133,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
     }
 
@@ -121,7 +141,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials,
         Cluster cluster, string sshCaToken, string lexisToken)
     {
-        var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        var connection = await ConnectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = SftpClientAdapter.FromObject(connection.Connection);
@@ -140,7 +160,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
     }
 
@@ -148,7 +168,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials,
         Cluster cluster, string sshCaToken, string lexisToken)
     {
-        var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        var connection = await ConnectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = SftpClientAdapter.FromObject(connection.Connection);
@@ -157,7 +177,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
     }
 
@@ -165,7 +185,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         var synchronizer = (SftpFullNameSynchronizer)_synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
-        synchronizer.ConnectionPool = _connectionPool;
+        synchronizer.ConnectionPool = ConnectionPool;
         return synchronizer;
     }
 
@@ -310,7 +330,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     public override async Task<bool> UploadFileToClusterByAbsolutePathAsync(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         bool result = false;
-        var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        var connection = await ConnectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var sftpClient = (SftpClient)connection.Connection;
@@ -347,7 +367,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
 
         return result;
@@ -358,7 +378,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     {
         bool result = false;
         absoluteFilePath = absoluteFilePath.Replace('\\', '/');
-        var connection = await _connectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+        var connection = await ConnectionPool.GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = SftpClientAdapter.FromObject(connection.Connection);
@@ -377,7 +397,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
         finally
         {
-            await _connectionPool.ReturnConnectionAsync(connection);
+            await ConnectionPool.ReturnConnectionAsync(connection);
         }
 
         return result;
