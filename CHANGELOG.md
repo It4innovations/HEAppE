@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.6.1
+
+### Fixed
+- **LEXIS Role Mapping Thread-Safety & Duplicate Key Collision:**
+  - Fixed `System.ArgumentException: An item with the same key has already been added` occurring during concurrent requests or when multiple HEAppE roles share the same external permission string in `RoleMapping`.
+  - Implemented thread-safe double-checked locking for `RoleMapping.MappingRoles` initialization and automatic cache invalidation on property updates via `Reset()`.
+  - Upgraded mapping representation to 1-to-many (`Dictionary<string, List<string>>`), allowing multiple roles to share an external permission with case-insensitive lookup (`StringComparer.OrdinalIgnoreCase`) and comma-separated permission support.
+  - Updated `UserAndLimitationManagementLogic` to flatten mapped roles via `SelectMany` and resolve the highest-privilege role via `AdaptorUserRoleRepository.GetByRoleNames`.
+  - Added comprehensive unit test suite `RoleMappingTests` covering thread safety under parallel load, multi-role mapping, cache invalidation, and case-insensitivity.
+
 ## V6.6.0
 
 ### Added
