@@ -325,5 +325,4 @@ public class SlurmScriptGenerationTests
 
         cmd.Should().Contain("echo '\\''preparing job'\\'';echo '\\''running job'\\'';'");
     }
-    }
 }
