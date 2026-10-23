@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `LogUserContextMiddleware` to ignore `"HEADER-AUTH-NEEDED"` and check both `"SessionCode"` and `"sessionCode"` query/JSON parameters, ensuring requests authenticated via Bearer tokens properly resolve user context from HTTP context keys.
   - Prevented `"HEADER-AUTH-NEEDED"` from being accepted or cached in `UserAndLimitationManagementLogic.GetUserForSessionCode` and `AuthenticateLocalSession`.
   - Updated `ServiceTier.UserAndLimitationManagementService.GetCurrentUserInfo` and `GetValidatedUserForSessionCode` to delegate to `AuthenticateUser`, correctly handling header-authenticated requests with sentinel or empty session codes.
+- **Auth Middleware Pipeline Order & Introspection Precedence:**
+  - Fixed an issue where `LexisAuthMiddleware` executed before `LexisTokenExchangeMiddleware` and `UseAuthentication()` (`OAuth2Introspection`), causing raw unexchanged Bearer tokens to be sent prematurely to UserOrg and failing with HTTP 401 Unauthorized.
+  - Reordered middleware pipeline in `Startup.cs` and `DataStagingAPI/Program.cs` so that token exchange and OAuth2 introspection run before `LexisAuthMiddleware`.
 
 ## V6.5.3
 
