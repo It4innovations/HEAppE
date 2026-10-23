@@ -669,9 +669,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
             if (!groupsWithProject.Any()) continue;
 
+            if (lexisProject.Permissions is null) continue;
+
             var roleNames = lexisProject.Permissions
-                .Where(RoleMapping.MappingRoles.ContainsKey)
-                .Select(s => RoleMapping.MappingRoles[s])
+                .Where(p => !string.IsNullOrEmpty(p) && RoleMapping.MappingRoles.ContainsKey(p))
+                .SelectMany(s => RoleMapping.MappingRoles[s])
+                .Distinct()
                 .ToList();
 
             if (!roleNames.Any()) continue;
