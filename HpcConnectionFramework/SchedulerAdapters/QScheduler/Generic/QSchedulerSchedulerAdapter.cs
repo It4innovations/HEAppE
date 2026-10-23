@@ -96,6 +96,63 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return "'" + path.Replace("'", "'\\''") + "'";
     }
 
+    /// <summary>
+    /// Builds a URL with query parameters using clean formatting without string concatenation (+ operators).
+    /// Omits any null or empty parameters automatically.
+    /// </summary>
+    private static string BuildUrl(string basePath, params (string Key, string? Value)[] queryParams)
+    {
+        var validParams = queryParams
+            .Where(p => !string.IsNullOrEmpty(p.Value))
+            .Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value!)}");
+
+        var queryString = string.Join("&", validParams);
+        if (string.IsNullOrEmpty(queryString))
+        {
+            return basePath;
+        }
+
+        return $"{basePath}?{queryString}";
+    }
+
+    /// <summary>
+    /// Resolves the notifier name for QScheduler callbacks.
+    /// When callbacks are enabled on the cluster (EnableCallback == true):
+    /// 1. Cluster CustomConfiguration["QSchedulerNotifier"] (if explicitly configured)
+    /// 2. clusterConfig.InstanceIdentifierPath (default HEAppE instance identifier)
+    /// If callbacks are disabled or identifier is not configured: null (no notify parameter passed).
+    /// </summary>
+    private string? ResolveNotifier(Cluster cluster, ClusterRuntimeConfiguration clusterConfig)
+    {
+        if (!clusterConfig.EnableCallback)
+        {
+            return null;
+        }
+
+        if (cluster.CustomConfiguration != null &&
+            cluster.CustomConfiguration.TryGetValue("QSchedulerNotifier", out var configNotifier) &&
+            !string.IsNullOrWhiteSpace(configNotifier))
+        {
+            if (configNotifier.Length > 256)
+            {
+                _logger.LogWarning($"Cluster configured QSchedulerNotifier '{configNotifier}' exceeds maximum name length of 256 characters. QScheduler may reject it.");
+            }
+            return configNotifier;
+        }
+
+        var instanceId = clusterConfig.InstanceIdentifierPath;
+        if (!string.IsNullOrWhiteSpace(instanceId))
+        {
+            if (instanceId.Length > 256)
+            {
+                _logger.LogWarning($"Cluster InstanceIdentifierPath '{instanceId}' exceeds maximum notifier name length of 256 characters. QScheduler may reject it.");
+            }
+            return instanceId;
+        }
+
+        return null;
+    }
+
     internal class HttpResponseStream : System.IO.Stream
     {
         private readonly System.Net.Http.HttpResponseMessage _response;
@@ -467,9 +524,17 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                     _logger.LogInformation($"Creating QScheduler session for machine ID: {machineId}, walltime: {walltimeSecs}s");
 
+                    var sessionNotifier = ResolveNotifier(
+                        jobSpecification.Cluster,
+                        clusterConfig);
+
                     // Create session for this machine group
                     var walltimeMs = walltimeSecs * 1000;
-                    var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
+                    var relativeUrl = BuildUrl("sessions",
+                        ("machine", machineId),
+                        ("project", projectName),
+                        ("time_limit_ms", walltimeMs.ToString()),
+                        ("notify", sessionNotifier));
                     var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
                     var sessionIdStr = sessionResponse.Trim();
                     if (!long.TryParse(sessionIdStr, out sessionId))
@@ -481,20 +546,28 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 }
 
                 bool isSessionOpen = false;
-                try
+                if (existingSessionId.HasValue)
                 {
-                    _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
-                    var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
-                    var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
-                    _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
-                    if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
-                    {
-                        isSessionOpen = true;
-                    }
+                    // Existing session provided by caller is already active; skip redundant HTTP GET round-trip
+                    isSessionOpen = true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    try
+                    {
+                        _logger.LogInformation($"Querying state of session {sessionId} before task submission.");
+                        var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "GET", $"sessions/{sessionId}");
+                        var sessionState = sessionResponse.Trim().Replace("\"", "").ToLower();
+                        _logger.LogInformation($"Session {sessionId} state: '{sessionState}'");
+                        if (sessionState == "open" || sessionState == "running" || sessionState.Contains("state:open") || sessionState.Contains("state:running"))
+                        {
+                            isSessionOpen = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to query state of session {sessionId}: {ex.Message}");
+                    }
                 }
 
                 foreach (var taskSpec in group)
@@ -527,7 +600,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         }
 
                         var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
-                        var relativeUrl = $"tasks?machine={machineId}&session_id={sessionId}&user={username}";
+                        var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
+                        var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
+
+                        var relativeUrl = BuildUrl("tasks",
+                            ("machine", machineId),
+                            ("session_id", sessionId.ToString()),
+                            ("user", username),
+                            ("notify", taskNotifier),
+                            ("time_limit_ms", timeLimitMs));
                         _logger.LogInformation($"Session {sessionId} is open. Submitting task {taskSpec.Id} immediately.");
 
                         try
@@ -575,7 +656,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     }
 
                     var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
-                    var relativeUrl = $"tasks?machine={machineId}&project={projectName}&user={username}";
+                    var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
+                    var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
+
+                    var relativeUrl = BuildUrl("tasks",
+                        ("machine", machineId),
+                        ("project", projectName),
+                        ("user", username),
+                        ("notify", taskNotifier),
+                        ("time_limit_ms", timeLimitMs));
                     var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
                     var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
@@ -665,7 +754,17 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         var username = taskInfo.Specification?.JobSpecification?.ClusterUser?.Username ?? 
                                        taskInfo.Specification?.JobSpecification?.Submitter?.Username ?? 
                                        "heappe";
-                        var relativeUrl = $"tasks?machine={machineId}&session_id={sessionId}&user={username}";
+                        var taskNotifier = ResolveNotifier(
+                            cluster,
+                            clusterConfig);
+                        var timeLimitMs = taskInfo.Specification?.WalltimeLimit > 0 ? ((long)taskInfo.Specification.WalltimeLimit * 1000).ToString() : null;
+
+                        var relativeUrl = BuildUrl("tasks",
+                            ("machine", machineId),
+                            ("session_id", sessionId),
+                            ("user", username),
+                            ("notify", taskNotifier),
+                            ("time_limit_ms", timeLimitMs));
                         _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}.");
                         
                         var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
@@ -801,6 +900,24 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/arch");
         _logger.LogDebug($"GetMachineArchitectureAsync response for machine ID {machineId}: '{result}'");
         _logger.LogInformation($"GetMachineArchitectureAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
+    }
+
+    public async Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId)
+    {
+        _logger.LogInformation($"GetMachineInfoAsync started for machine ID: {machineId}, cluster ID: {cluster.Id}");
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"machine/{machineId}/about");
+        _logger.LogDebug($"GetMachineInfoAsync response for machine ID {machineId}: '{result}'");
+        _logger.LogInformation($"GetMachineInfoAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
+        return result;
+    }
+
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster)
+    {
+        _logger.LogInformation($"GetQSchedulerVersionAsync started for cluster ID: {cluster.Id}");
+        var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", "/version");
+        _logger.LogDebug($"GetQSchedulerVersionAsync response for cluster ID {cluster.Id}: '{result}'");
+        _logger.LogInformation($"GetQSchedulerVersionAsync completed for cluster ID {cluster.Id}. Response length: {result?.Length ?? 0} chars.");
         return result;
     }
 
@@ -953,8 +1070,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             projectName = project?.Name;
         }
 
+        var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
+        var sessionNotifier = ResolveNotifier(cluster, clusterConfig);
+
         var walltimeMs = walltimeLimitSecs * 1000;
-        var relativeUrl = $"sessions?machine={machineId}&project={projectName}&time_limit_ms={walltimeMs}";
+        var relativeUrl = BuildUrl("sessions",
+            ("machine", machineId),
+            ("project", projectName),
+            ("time_limit_ms", walltimeMs.ToString()),
+            ("notify", sessionNotifier));
         var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl);
         var sessionIdStr = sessionResponse.Trim();
         if (!long.TryParse(sessionIdStr, out long sessionId))

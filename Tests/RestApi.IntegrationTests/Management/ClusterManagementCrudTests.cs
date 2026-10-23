@@ -281,4 +281,61 @@ public class ClusterManagementCrudTests : ManagementTestBase
             getDeletedResp.StatusCode.Should().Match(sc => sc == HttpStatusCode.NotFound || sc == HttpStatusCode.BadRequest);
         }
     }
+
+    [Fact]
+    public async Task Clusters_WithDetailLevel_ReturnsExpectedHierarchy()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+
+        // 1. Default (Full)
+        var fullClusters = await _client.GetJsonAsync<List<ExtendedClusterExt>>(
+            $"/heappe/Management/Clusters?sessionCode={sessionCode}");
+        fullClusters.Should().NotBeNullOrEmpty();
+        var clusterWithNodes = fullClusters.Find(c => c.NodeTypes != null && c.NodeTypes.Length > 0);
+        clusterWithNodes.Should().NotBeNull();
+
+        // 2. ClustersOnly
+        var clustersOnly = await _client.GetJsonAsync<List<ExtendedClusterExt>>(
+            $"/heappe/Management/Clusters?sessionCode={sessionCode}&detailLevel=ClustersOnly");
+        clustersOnly.Should().NotBeNullOrEmpty();
+        foreach (var cluster in clustersOnly)
+        {
+            cluster.NodeTypes.Should().BeNull();
+        }
+
+        // 3. NodeTypes
+        var nodeTypesLevel = await _client.GetJsonAsync<List<ExtendedClusterExt>>(
+            $"/heappe/Management/Clusters?sessionCode={sessionCode}&detailLevel=NodeTypes");
+        nodeTypesLevel.Should().NotBeNullOrEmpty();
+        foreach (var cluster in nodeTypesLevel)
+        {
+            if (cluster.NodeTypes != null)
+            {
+                foreach (var nt in cluster.NodeTypes)
+                {
+                    nt.Projects.Should().BeNull();
+                }
+            }
+        }
+
+        // 4. Single Cluster with DetailLevel
+        if (clusterWithNodes?.Id != null)
+        {
+            var singleClusterOnly = await _client.GetJsonAsync<ExtendedClusterExt>(
+                $"/heappe/Management/Cluster?id={clusterWithNodes.Id}&sessionCode={sessionCode}&detailLevel=ClustersOnly");
+            singleClusterOnly.Should().NotBeNull();
+            singleClusterOnly.NodeTypes.Should().BeNull();
+
+            var singleNodeTypeLevel = await _client.GetJsonAsync<ExtendedClusterExt>(
+                $"/heappe/Management/Cluster?id={clusterWithNodes.Id}&sessionCode={sessionCode}&detailLevel=NodeTypes");
+            singleNodeTypeLevel.Should().NotBeNull();
+            if (singleNodeTypeLevel.NodeTypes != null)
+            {
+                foreach (var nt in singleNodeTypeLevel.NodeTypes)
+                {
+                    nt.Projects.Should().BeNull();
+                }
+            }
+        }
+    }
 }

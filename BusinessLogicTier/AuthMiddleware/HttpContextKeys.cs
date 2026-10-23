@@ -15,6 +15,9 @@ using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
@@ -22,6 +25,7 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public interface IRequestContext
 {
+    public AdaptorUser? CurrentUser { get; set; }
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
@@ -29,17 +33,86 @@ public interface IRequestContext
     public string SshCaToken { get; set; } 
     public string IdpToken { get; set; }
     public string LEXISToken { get; set; }
+
+    /// <summary>
+    /// UserOrg token – backed by ExchangedTokens["userorg"].
+    /// </summary>
+    public string? UserOrgToken { get; set; }
+
+    /// <summary>
+    /// Expirio token – backed by ExchangedTokens["expirio"], falling back to LEXISToken or IdpToken.
+    /// </summary>
+    public string? ExpirioToken { get; set; }
+
+    /// <summary>
+    /// Dictionary of all exchanged tokens, keyed by target name.
+    /// Used by the unified token exchange system.
+    /// </summary>
+    Dictionary<string, string> ExchangedTokens { get; }
+
+    /// <summary>
+    /// Get an exchanged token by target name.
+    /// </summary>
+    string? GetExchangedToken(string targetName);
 }
 
 public class RequestContext : IRequestContext
 {
+    private string _sshCaToken;
+    private string _idpToken;
+    private string? _userOrgToken;
+    private string? _expirioToken;
+
+    public AdaptorUser? CurrentUser { get; set; }
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
     public string Email { get; set; }
     public string UserInfo { get; set; }
-    public string SshCaToken { get; set; } 
-    public string IdpToken { get; set; }
+
+    /// <summary>
+    /// SSH CA token – backed by ExchangedTokens["sshca"] for backward compatibility.
+    /// </summary>
+    public string SshCaToken
+    {
+        get => GetExchangedToken("sshca") ?? _sshCaToken;
+        set { _sshCaToken = value; if (value != null) ExchangedTokens["sshca"] = value; }
+    }
+
+    /// <summary>
+    /// IdP / FIP token – backed by ExchangedTokens["idp"] or ExchangedTokens["fip"] for backward compatibility.
+    /// </summary>
+    public string IdpToken
+    {
+        get => GetExchangedToken("idp") ?? GetExchangedToken("fip") ?? _idpToken;
+        set { _idpToken = value; if (value != null) ExchangedTokens["idp"] = value; }
+    }
+
+    /// <summary>
+    /// UserOrg token – backed by ExchangedTokens["userorg"] if present.
+    /// </summary>
+    public string? UserOrgToken
+    {
+        get => GetExchangedToken("userorg") ?? _userOrgToken;
+        set { _userOrgToken = value; if (value != null) ExchangedTokens["userorg"] = value; }
+    }
+
+    /// <summary>
+    /// Expirio token – backed by ExchangedTokens["expirio"] if present, otherwise falls back to LEXISToken or IdpToken.
+    /// </summary>
+    public string? ExpirioToken
+    {
+        get => GetExchangedToken("expirio") ?? _expirioToken ?? (!string.IsNullOrEmpty(LEXISToken) ? LEXISToken : IdpToken);
+        set { _expirioToken = value; if (value != null) ExchangedTokens["expirio"] = value; }
+    }
+
     public string LEXISToken { get; set; }
+
+    /// <inheritdoc />
+    public Dictionary<string, string> ExchangedTokens { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public string? GetExchangedToken(string targetName)
+        => ExchangedTokens.TryGetValue(targetName, out var token) ? token : null;
 }
 
 public interface IHttpContextKeys
@@ -55,11 +128,13 @@ public class HttpContextKeys : IHttpContextKeys
     private readonly IRequestContext _context;
     public IRequestContext Context => _context;
     private readonly ILogger _logger;
+    private readonly IMemoryCache? _memoryCache;
 
-    public HttpContextKeys(IRequestContext context, ILoggerFactory loggerFactory)
+    public HttpContextKeys(IRequestContext context, ILoggerFactory loggerFactory, IMemoryCache? memoryCache = null)
     {
         _context = context;
         _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.HttpContextKeys");
+        _memoryCache = memoryCache;
     }
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService, IExpirioService expirioService)
@@ -71,13 +146,15 @@ public class HttpContextKeys : IHttpContextKeys
         AdaptorUser user = null;
         try
         {
+            var effectiveUserOrgToken = Context.GetExchangedToken("userorg");
             if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
-                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
-                _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
+                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled ||
+                                     (!string.IsNullOrEmpty(Context.LEXISToken) && Context.LEXISToken != Context.IdpToken);
+                _logger.LogInformation($"[Authorize] Using JWT introspection. UseLexisToken: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken)
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken))
                 });
             }
             else if (LexisAuthenticationConfiguration.UseBearerAuth)
@@ -85,7 +162,7 @@ public class HttpContextKeys : IHttpContextKeys
                 _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = Context.LEXISToken
+                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? Context.LEXISToken
                 });
             }
             
@@ -96,6 +173,7 @@ public class HttpContextKeys : IHttpContextKeys
                 _context.UserName = user.Username;
                 _context.Email = user.Email;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
+                _context.CurrentUser = user;
             }
             else
             {
@@ -113,6 +191,17 @@ public class HttpContextKeys : IHttpContextKeys
 
     public async Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient)
     {
+        var idpToken = Context.IdpToken;
+        var audience = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.Audience;
+        var cacheKey = $"ssh_ca_token_exchange:{ComputeSha256(idpToken ?? string.Empty)}:{audience}";
+
+        if (_memoryCache != null && !string.IsNullOrEmpty(idpToken) && _memoryCache.TryGetValue(cacheKey, out string? cachedToken) && !string.IsNullOrEmpty(cachedToken))
+        {
+            _logger.LogDebug("[SshCaExchange] Returning cached SSH CA OTT token.");
+            _context.SshCaToken = cachedToken;
+            return cachedToken;
+        }
+
         _logger.LogInformation($"[SshCaExchange Request] URL: {tokenExchangeAddress}");
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
         var clientSecret = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientSecret;
@@ -156,6 +245,18 @@ public class HttpContextKeys : IHttpContextKeys
                 });
                 
                 _context.SshCaToken = tokenResponse.AccessToken;
+
+                if (_memoryCache != null && !string.IsNullOrEmpty(tokenResponse?.AccessToken))
+                {
+                    var expiresIn = tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : 60;
+                    var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expiresIn);
+                    if (ttl > TimeSpan.FromSeconds(5))
+                    {
+                        _memoryCache.Set(cacheKey, tokenResponse.AccessToken, ttl);
+                        _logger.LogDebug("[SshCaExchange] Cached SSH CA OTT token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                    }
+                }
+
                 return tokenResponse.AccessToken;
             }
             catch (System.Text.Json.JsonException ex)
@@ -173,6 +274,12 @@ public class HttpContextKeys : IHttpContextKeys
             _logger.LogError(ex, "[SshCaExchange] Failed to exchange SSH CA token.");
             throw new ExternalException("Internal error during SSH CA token exchange.", ex) { ServiceName = "KeycloakTokenExchange" };
         }
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
     }
 
     private void LogRequestDetails(string url, Dictionary<string, string> form)

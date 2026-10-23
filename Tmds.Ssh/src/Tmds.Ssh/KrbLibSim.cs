@@ -214,8 +214,10 @@ public sealed class KrbLibSim
             if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
             {
                 var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
+                if (cacheEntry == null)
+                    return false;
                 // returns true if the ticket is valid, false if not (anticipates the expiration by buffer seconds)
-                return DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(-s_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
+                return DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(s_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
             }
             else
                 return false;
@@ -244,6 +246,18 @@ public sealed class KrbLibSim
                     s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(user, ticketCache));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Explicitly invalidates and removes the ticket cache for a specific user.
+    /// </summary>
+    public static void InvalidateTicket(string username)
+    {
+        if (s_ticketCaches != null && !string.IsNullOrEmpty(username))
+        {
+            s_ticketCaches.TryRemove(username, out _);
+            s_logger?.LogInformation($"Invalidated Kerberos ticket cache for user '{username}'.");
         }
     }
 

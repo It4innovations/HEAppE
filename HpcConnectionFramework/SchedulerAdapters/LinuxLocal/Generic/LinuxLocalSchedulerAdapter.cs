@@ -60,7 +60,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             var jobDirPath = Path.Combine(clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, account, jobId)
                 .Replace('\\', '/');
             var cliCommand =
-                $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+                $"bash {clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
             var command = await SshCommandUtils.RunSshCommandAsync(connectorClient, cliCommand, _logger);
 
             _logger.LogInformation($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
@@ -142,7 +142,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {sshCommandBase64}",
+            $"bash {clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {sshCommandBase64}",
             _logger);
 
         shellCommandSb.Clear();
@@ -150,7 +150,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath;
 
         shellCommandSb.Append(
-            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
+            $"bash {clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{clusterConfig.InstanceIdentifierPath}/{clusterConfig.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
         jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
         //log local HPC Run script to log file
@@ -160,7 +160,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
         command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh", credentials?.Username)} {sshCommandBase64}",
+            $"bash {clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh", credentials?.Username)} {sshCommandBase64}",
             _logger);
 
         return await GetActualTasksInfoAsync(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
@@ -198,7 +198,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
             .Distinct();
         localClusterJobIds.ToList().ForEach(id =>
             commandSb.Append(
-                $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(clusterConfig.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
+                $"bash {_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(clusterConfig.SubExecutionsPath, id.ToString()).Replace('\\', '/')};"));
         var command = commandSb.ToString();
 
         _logger.LogInformation(
@@ -221,7 +221,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         var clusterConfig = ClusterRuntimeConfiguration.For(nodeType.Cluster?.CustomConfiguration);
         var command = await SshCommandUtils.RunSshCommandAsync(connectorClient,
-            $"{clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
+            $"bash {clusterConfig.Scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}",
             _logger);
         _logger.LogInformation($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
         if (int.TryParse(command.Result, out var totalJobs)) usage.TotalJobs = totalJobs;
@@ -537,6 +537,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         throw new NotSupportedException("GetMachineArchitecture is not supported by LinuxLocal");
     }
 
+    public Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId) =>
+        throw new NotSupportedException("GetMachineInfo is not supported by LinuxLocal");
+    
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster) =>
+        throw new NotSupportedException("GetQSchedulerVersionAsync is not supported by LinuxLocal");
     public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
         throw new NotSupportedException("GetMachineCalibration is not supported by LinuxLocal");

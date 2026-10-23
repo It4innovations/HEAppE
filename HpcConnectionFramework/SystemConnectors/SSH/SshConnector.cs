@@ -64,6 +64,20 @@ public class SshConnector : IPoolableAdapter
         ClusterProxyConnection proxy = cluster.ProxyConnection;
         var authType = credentials.AuthenticationType;
 
+        // Auto-heal / correct authentication type: if PrivateKey is present (e.g. loaded from Vault),
+        // we must NEVER fall back to local ssh-agent (NoAuthenticationSshClient) which would fail with NoIdentities.
+        if (!string.IsNullOrEmpty(credentials.PrivateKey) &&
+            authType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            _logger?.LogInformation($"[SshConnector] Credential ID {credentials.Id} ('{credentials.Username}') has PrivateKey loaded from Vault but AuthenticationType is {authType}. Correcting to PrivateKey.");
+            authType = proxy is null
+                ? ClusterAuthenticationCredentialsAuthType.PrivateKey
+                : ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+            credentials.AuthenticationType = authType;
+        }
+
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
             (authType is ClusterAuthenticationCredentialsAuthType.PrivateKey
                      or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
@@ -73,6 +87,7 @@ public class SshConnector : IPoolableAdapter
             authType = proxy is null
                 ? ClusterAuthenticationCredentialsAuthType.SshCertificate
                 : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            credentials.AuthenticationType = authType;
         }
 
         SshClient sshClient = (SshClient)(authType switch
@@ -127,7 +142,6 @@ public class SshConnector : IPoolableAdapter
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
                 await CreateConnectionObjectUsingKerberosAsync(masterNodeName, credentials.Username, 
-                    !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName, 
                     lexisToken, cluster, cluster.Port ?? port),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
@@ -733,7 +747,7 @@ public class SshConnector : IPoolableAdapter
         return client;
     }
 
-    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string addressHost, string lexisToken, Cluster cluster, int? port)
+    private async Task<SshClient> CreateConnectionObjectUsingKerberosAsync(string masterNodeName, string username, string lexisToken, Cluster cluster, int? port)
     {
         KerberosConfigHelper.VerifyKrb5ConfigExists();
 
@@ -743,8 +757,10 @@ public class SshConnector : IPoolableAdapter
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
 
-        string address = port.HasValue ? $"{addressHost}:{port.Value}" : addressHost;
-        return new KerberosSshClient(masterNodeName, address, username);
+        string host = !string.IsNullOrEmpty(masterNodeName) ? masterNodeName : cluster.DomainName;
+        int? connectionPort = cluster.Port ?? port;
+        string address = connectionPort.HasValue ? $"{host}:{connectionPort.Value}" : host;
+        return new KerberosSshClient(masterNodeName, address, username, _logger);
     }
 
     private static string GetDomainFromHostname(string hostname)

@@ -110,7 +110,7 @@ public class JobManagementService : IJobManagementService
                     adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
                 .CreateJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath,
                     BusinessLogicConfiguration.SharedAccountsPoolMode,
-                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    _httpContextKeys.Context.SshCaToken, _expirioToken);
         }
         catch (Exception ex)
         {
@@ -156,7 +156,7 @@ public class JobManagementService : IJobManagementService
         // SSH call: submit job
         var submittedTasks = await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .SubmitJobAsync(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .SubmitJobAsync(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         // Save submitted state to DB
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -188,7 +188,7 @@ public class JobManagementService : IJobManagementService
         var cluster = jobInfo.Specification.Cluster;
         var actualUnfinishedSchedulerTasksInfo = await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .GetActualTasksInfoAsync(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         // Update DB
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -227,9 +227,9 @@ public class JobManagementService : IJobManagementService
         
         var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList();
         await scheduler.CancelJobAsync(submittedTask, "Job cancelled manually by the client.",
-            jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
-        var actualUnfinishedSchedulerTasksInfo = await scheduler.GetActualTasksInfoAsync(submittedTask, credentials, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var actualUnfinishedSchedulerTasksInfo = await scheduler.GetActualTasksInfoAsync(submittedTask, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         // Update DB
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -274,13 +274,13 @@ public class JobManagementService : IJobManagementService
             
             await SchedulerFactory.GetInstance(archJobInfo.Specification.Cluster.SchedulerType)
                 .CreateScheduler(archJobInfo.Specification.Cluster, archJobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-                .MoveJobFilesAsync(archJobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                .MoveJobFilesAsync(archJobInfo, sourceDestinations, BusinessLogicConfiguration.SharedAccountsPoolMode, _httpContextKeys.Context.SshCaToken, _expirioToken);
         }
 
         // 3. Perform SSH delete
         var isDeleted = await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .DeleteJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .DeleteJobDirectoryAsync(jobInfo, clusterProject.ScratchStoragePath, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         // 4. Update DB state on success
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
@@ -741,7 +741,7 @@ public class JobManagementService : IJobManagementService
 
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .CopyJobDataToTempAsync(jobInfo, clusterProject.ScratchStoragePath, sessionCode, path, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .CopyJobDataToTempAsync(jobInfo, clusterProject.ScratchStoragePath, sessionCode, path, _httpContextKeys.Context.SshCaToken, _expirioToken);
     }
 
     public async Task CopyJobDataFromTempAsync(long createdJobInfoId, string sessionCode, string tempSessionCode)
@@ -762,7 +762,7 @@ public class JobManagementService : IJobManagementService
 
         await SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .CopyJobDataFromTempAsync(jobInfo, clusterProject.ScratchStoragePath, tempSessionCode, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .CopyJobDataFromTempAsync(jobInfo, clusterProject.ScratchStoragePath, tempSessionCode, _httpContextKeys.Context.SshCaToken, _expirioToken);
     }
 
     public async Task<IEnumerable<string>> AllocatedNodesIPsAsync(long submittedTaskInfoId, string sessionCode)
@@ -783,7 +783,7 @@ public class JobManagementService : IJobManagementService
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
         var stringIPs = await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .GetAllocatedNodesAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .GetAllocatedNodesAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         return stringIPs.ToArray();
     }
@@ -808,7 +808,7 @@ public class JobManagementService : IJobManagementService
 
         var dryRunResult = await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .DryRunJobAsync(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .DryRunJobAsync(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         return dryRunResult.ConvertIntToExt();
     }
@@ -879,14 +879,13 @@ public class JobManagementService : IJobManagementService
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
 
             // Auto-resolve NodeType for the specified cluster
-            var nodeTypes = await unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommandsAsync();
-            var nodeType = nodeTypes.FirstOrDefault(n => n.ClusterId == specification.ClusterId)
+            var nodeType = await unitOfWork.ClusterNodeTypeRepository.GetFirstByClusterIdAsync(specification.ClusterId)
                 ?? throw new Exceptions.External.InvalidRequestException("NoNodeTypesConfigured");
 
             long? transferMethodId = nodeType.FileTransferMethodId;
             if (!transferMethodId.HasValue)
             {
-                var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllAsync();
+                var transferMethods = await unitOfWork.FileTransferMethodRepository.GetAllReadOnlyAsync();
                 var transferMethod = transferMethods.FirstOrDefault()
                     ?? throw new Exceptions.External.InvalidRequestException("NoTransferMethodsConfigured");
                 transferMethodId = transferMethod.Id;
@@ -1008,7 +1007,7 @@ public class JobManagementService : IJobManagementService
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

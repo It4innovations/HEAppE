@@ -6,7 +6,7 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <DockerfileContext>..\heappe-core</DockerfileContext>
         <RootNamespace>HEAppE.DataStagingAPI</RootNamespace>
-        <ServerGarbageCollection>false</ServerGarbageCollection>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <ItemGroup>

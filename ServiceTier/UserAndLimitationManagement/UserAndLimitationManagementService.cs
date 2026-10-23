@@ -194,6 +194,14 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         var isSessionCodeEmpty = string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
 
+        if (httpContextKeys?.Context?.CurrentUser != null && isSessionCodeEmpty)
+        {
+            if (httpContextKeys.Context.CurrentUser.IsBlocked)
+                throw new UnauthorizedAccessException("Unauthorized");
+
+            return httpContextKeys.Context.CurrentUser;
+        }
+
         if ((JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth) && isSessionCodeEmpty)
         {
             if (httpContextKeys.Context.AdaptorUserId <= 0)

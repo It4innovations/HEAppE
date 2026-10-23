@@ -179,6 +179,12 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status400BadRequest;
                 logLevel = LogLevel.Warning;
                 break;
+            case ClusterStorageQuotaExceededException:
+                problem.Title = "Cluster Storage Quota Exceeded";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                logLevel = LogLevel.Warning;
+                break;
             case ResourceUsageException resourceUsageEx:
                 problem.Title = resourceUsageEx.Message == "ReporterNoAccessToJob" ? "Access Forbidden" : "Resource Usage Error";
                 problem.Detail = GetExceptionMessage(exception);
@@ -289,10 +295,22 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
-            case SshCommandException:
-                problem.Title = "SSH Command Problem";
-                problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status502BadGateway;
+            case SshCommandException sshEx:
+                if (sshEx.Message?.Contains("Disk quota exceeded", StringComparison.OrdinalIgnoreCase) == true
+                    || sshEx.Message?.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase) == true
+                    || sshEx.Message?.Contains("No space left on device", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    problem.Title = "Cluster Storage Quota Exceeded";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status400BadRequest;
+                    logLevel = LogLevel.Warning;
+                }
+                else
+                {
+                    problem.Title = "SSH Command Problem";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status502BadGateway;
+                }
                 break;
             case SFTPCommandException:
                 problem.Title = "SFTP Command Problem";
@@ -349,8 +367,33 @@ public class ExceptionMiddleware
 
         var traceId = GetTraceId(context);
         log4net.LogicalThreadContext.Properties["requestId"] = traceId;
-        _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
-        log4net.LogicalThreadContext.Properties.Remove("requestId");
+        log4net.LogicalThreadContext.Properties["isUserAction"] = true;
+
+        long? userId = context.Items.TryGetValue("UserId", out var uIdObj) && uIdObj is long uId ? uId : null;
+        string userName = context.Items.TryGetValue("UserName", out var uNameObj) ? uNameObj?.ToString() : null;
+        string email = context.Items.TryGetValue("UserEmail", out var uEmailObj) ? uEmailObj?.ToString() : null;
+        long? jobId = context.Items.TryGetValue("JobId", out var jIdObj) && jIdObj is long jId ? jId : null;
+
+        if (userId.HasValue || !string.IsNullOrEmpty(userName) || !string.IsNullOrEmpty(email))
+        {
+            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(userId ?? 0, userName, email);
+        }
+        if (jobId.HasValue)
+        {
+            HEAppE.Utils.LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);
+        }
+
+        try
+        {
+            _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
+        }
+        finally
+        {
+            HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+            HEAppE.Utils.LoggingUtils.RemoveJobIdFromLogThreadContext();
+            log4net.LogicalThreadContext.Properties.Remove("isUserAction");
+            log4net.LogicalThreadContext.Properties.Remove("requestId");
+        }
 
         if (!string.IsNullOrEmpty(problem.Detail))
         {

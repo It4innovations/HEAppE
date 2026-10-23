@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.TokenExchange;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using HEAppE.Services.Expirio.Configuration;
 using HEAppE.Services.Expirio.Models;
+
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -26,7 +31,7 @@ public class LexisTokenExchangeMiddleware
     }
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService,
-        IExpirioService expirioService)
+        IExpirioService expirioService, ITokenExchangeService tokenExchangeService, IMemoryCache? memoryCache = null)
     {
         ApplyRequestSizeLimit(context);
 
@@ -46,7 +51,65 @@ public class LexisTokenExchangeMiddleware
             var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
             contextKeysService.Context.LEXISToken = incomingToken;
 
-            if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+            // === New unified token exchange: PreAuth phase ===
+            if (tokenExchangeService.HasAutoExchangeTargets("PreAuth"))
+            {
+                _logger.LogInformation("LexisTokenExchangeMiddleware: Using unified token exchange (PreAuth phase).");
+                try
+                {
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IntrospectLexisToken &&
+                        !tokenExchangeService.HasPreIntrospectionConfigured("PreAuth"))
+                    {
+                        _logger.LogInformation("LexisTokenExchangeMiddleware: Introspecting incoming LEXIS token on LEXIS Keycloak before PreAuth exchange.");
+                        await lexisTokenService.IntrospectLexisTokenAsync(incomingToken);
+                    }
+
+                    var results = await tokenExchangeService.ExecuteAutoExchangesAsync(
+                        "PreAuth", incomingToken, contextKeysService.Context.ExchangedTokens);
+
+                    var failedResult = results.Values.FirstOrDefault(r => !r.Success);
+                    if (failedResult != null)
+                    {
+                        _logger.LogError(
+                            "LexisTokenExchangeMiddleware: PreAuth token exchange failed for target '{Target}': {Error}",
+                            failedResult.TargetName, failedResult.Error);
+
+                        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Title = $"Token Exchange Failed ({failedResult.TargetName})",
+                            Detail = failedResult.Error
+                        };
+
+                        context.Response.ContentType = "application/json";
+                        context.Response.StatusCode = problem.Status.Value;
+                        await context.Response.WriteAsJsonAsync(problem);
+                        return;
+                    }
+
+                    // If a PreAuth exchange produced an IdP or FIP token, update the Authorization header
+                    var idpToken = contextKeysService.Context.GetExchangedToken("idp") ?? contextKeysService.Context.GetExchangedToken("fip");
+                    if (!string.IsNullOrEmpty(idpToken))
+                    {
+                        context.Request.Headers["Authorization"] = $"Bearer {idpToken}";
+                        contextKeysService.Context.IdpToken = idpToken;
+                        _logger.LogDebug("LexisTokenExchangeMiddleware: Authorization header updated with exchanged IdP/FIP token.");
+                    }
+                    else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
+                             !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                    {
+                        // No IdP exchange configured, use incoming token as-is
+                        contextKeysService.Context.IdpToken = incomingToken;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await WriteTokenExchangeErrorResponseAsync(context, ex);
+                    return;
+                }
+            }
+            // === Legacy fallback (when no TokenExchangeTargets configured) ===
+            else if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) &&
                 !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
                 if ((LexisAuthenticationConfiguration.UseBearerAuth && JwtTokenIntrospectionConfiguration.IsEnabled) ||
@@ -67,26 +130,69 @@ public class LexisTokenExchangeMiddleware
             }
             else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
             {
-                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token");
+                _logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for IdP token (legacy)");
                 try
                 {
-                    string exchanged;
-                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration
-                        .UseExpirioServiceForTokenExchange)
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IntrospectLexisToken)
                     {
-                        _logger.LogInformation(
-                            $"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
-                        var request = new ExchangeRequest()
-                        {
-                            ProviderName = ExpirioSettings.ProviderName,
-                            ClientName = JwtTokenIntrospectionConfiguration.ClientId
-                        };
-                        exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, _logger);
+                        _logger.LogInformation("LexisTokenExchangeMiddleware: Introspecting LEXIS token on LEXIS Keycloak before exchange (legacy)");
+                        await lexisTokenService.IntrospectLexisTokenAsync(incomingToken);
+                    }
+
+                    string providerKey = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange
+                        ? $"expirio:{ExpirioSettings.ProviderName}"
+                        : $"keycloak:{JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.Broker}";
+                    string tokenHash = ComputeSha256(incomingToken);
+                    string cacheKey = $"fip_token_exchange:{providerKey}:{tokenHash}";
+
+                    string exchanged;
+                    if (memoryCache != null && memoryCache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrEmpty(cached))
+                    {
+                        _logger.LogDebug("LexisTokenExchangeMiddleware: Token exchange cache hit.");
+                        exchanged = cached;
                     }
                     else
                     {
-                        _logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService");
-                        exchanged = await lexisTokenService.ExchangeLexisTokenForIdpAsync(incomingToken);
+                        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration
+                            .UseExpirioServiceForTokenExchange)
+                        {
+                            _logger.LogInformation(
+                                $"LexisTokenExchangeMiddleware: Using Expirio (Provider: {ExpirioSettings.ProviderName})");
+                            var request = new ExchangeRequest()
+                            {
+                                ProviderName = ExpirioSettings.ProviderName,
+                                ClientName = JwtTokenIntrospectionConfiguration.ClientId
+                            };
+                            exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, _logger);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService");
+                            exchanged = await lexisTokenService.ExchangeLexisTokenForIdpAsync(incomingToken);
+                        }
+
+                        if (memoryCache != null && !string.IsNullOrEmpty(exchanged))
+                        {
+                            var incomingExp = GetTokenExpiration(incomingToken);
+                            var exchangedExp = GetTokenExpiration(exchanged);
+
+                            DateTime expirationTime;
+                            if (incomingExp.HasValue && exchangedExp.HasValue)
+                                expirationTime = incomingExp.Value < exchangedExp.Value ? incomingExp.Value : exchangedExp.Value;
+                            else if (incomingExp.HasValue)
+                                expirationTime = incomingExp.Value;
+                            else if (exchangedExp.HasValue)
+                                expirationTime = exchangedExp.Value;
+                            else
+                                expirationTime = DateTime.UtcNow.AddMinutes(10);
+
+                            var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expirationTime);
+                            if (ttl > TimeSpan.FromSeconds(5))
+                            {
+                                memoryCache.Set(cacheKey, exchanged, ttl);
+                                _logger.LogDebug("LexisTokenExchangeMiddleware: Cached exchanged token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                            }
+                        }
                     }
 
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
@@ -95,35 +201,68 @@ public class LexisTokenExchangeMiddleware
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
-
-                    var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
-                    {
-                        Status = StatusCodes.Status401Unauthorized,
-                        Title = "Token Exchange Failed",
-                        Detail = ex.Message
-                    };
-
-                    if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
-                    {
-                        problem.Title = authEx.ServiceName != null ? $"Token Exchange Failed ({authEx.ServiceName})" : "Token Exchange Failed";
-                        problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
-                    }
-                    else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
-                    {
-                        problem.Status = StatusCodes.Status502BadGateway;
-                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"Token Exchange External Problem ({externalEx.ServiceName})" : "Token Exchange External Problem";
-                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
-                    }
-
-                    context.Response.ContentType = "application/json";
-                    context.Response.StatusCode = problem.Status.Value;
-                    await context.Response.WriteAsJsonAsync(problem);
+                    await WriteTokenExchangeErrorResponseAsync(context, ex);
                     return;
                 }
             }
         }
         await _next(context);
+    }
+
+    private async Task WriteTokenExchangeErrorResponseAsync(HttpContext context, Exception ex)
+    {
+        _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
+
+        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "Token Exchange Failed",
+            Detail = ex.Message
+        };
+
+        if (ex is HEAppE.Exceptions.External.AuthenticationTypeException authEx)
+        {
+            problem.Title = authEx.ServiceName != null ? $"Token Exchange Failed ({authEx.ServiceName})" : "Token Exchange Failed";
+            problem.Detail = authEx.Message + (authEx.Details != null ? $": {authEx.Details}" : "");
+        }
+        else if (ex is HEAppE.Exceptions.AbstractTypes.ExternalException externalEx)
+        {
+            problem.Status = StatusCodes.Status502BadGateway;
+            problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName) ? $"Token Exchange External Problem ({externalEx.ServiceName})" : "Token Exchange External Problem";
+            problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+        }
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = problem.Status.Value;
+        await context.Response.WriteAsJsonAsync(problem);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static DateTime? GetTokenExpiration(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (jwt.ValidTo != DateTime.MinValue && jwt.ValidTo != DateTime.MaxValue)
+                {
+                    return jwt.ValidTo;
+                }
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+        return null;
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, (bool isSizeLimit, bool isAllowLargeBody)> _sizeLimitMetadataTypeCache = new();

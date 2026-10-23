@@ -144,11 +144,12 @@ public class ClusterInformationService : IClusterInformationService
 
         // Get Lexis permission rules if enabled
         CommandTemplatePermissionsModel lexisPermissions = null;
-        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        var userOrgToken = _httpContextKeys.Context.UserOrgToken ?? _httpContextKeys.Context.LEXISToken;
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(userOrgToken))
         {
             string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
             lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
-                _httpContextKeys.Context.LEXISToken,
+                userOrgToken,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
                 instanceId, _logger);
         }
@@ -312,6 +313,21 @@ public class ClusterInformationService : IClusterInformationService
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var result = await clusterLogic.GetMachineArchitectureAsync(clusterNodeTypeId, loggedUser, projectId);
             _logger.LogInformation($"GetMachineArchitecture service tier returning result for clusterNodeTypeId: {clusterNodeTypeId}");
+            return result;
+        }
+    }
+
+    public async Task<string> GetMachineInfo(long clusterNodeTypeId, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineInfo service tier call. clusterNodeTypeId: {clusterNodeTypeId}, projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var result = await clusterLogic.GetMachineInfoAsync(clusterNodeTypeId, loggedUser, projectId);
+            _logger.LogInformation($"GetMachineInfo service tier returning result for clusterNodeTypeId: {clusterNodeTypeId}");
             return result;
         }
     }

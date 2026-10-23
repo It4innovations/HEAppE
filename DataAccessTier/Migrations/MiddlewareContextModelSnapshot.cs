@@ -917,6 +917,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("State")
+                        .HasFilter("[State] > 1 AND [State] < 16");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("State"), new[] { "SubmitterId", "ProjectId" });
+
                     b.HasIndex("SubmitterId");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubmitterId"), new[] { "State" });
@@ -1416,6 +1421,10 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("QualityOfService")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("StandardErrorFile")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -1794,7 +1803,19 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .HasFilter("[IsDeleted] = 0 AND [Email] IS NOT NULL");
+
+                    b.HasIndex("IdpSid")
+                        .HasFilter("[IsDeleted] = 0 AND [IdpSid] IS NOT NULL");
+
                     b.HasIndex("IsDeleted")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("Password")
+                        .HasFilter("[IsDeleted] = 0 AND [Password] IS NOT NULL");
+
+                    b.HasIndex("Username")
                         .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("AdaptorUser");

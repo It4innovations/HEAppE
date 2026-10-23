@@ -8,10 +8,11 @@ namespace HEAppE.DataAccessTier.IRepository.ClusterInformation;
 
 public interface IClusterRepository : IRepository<Cluster>
 {
-    IEnumerable<Cluster> GetAllWithActiveProjectFilter();
-    Task<IEnumerable<Cluster>> GetAllWithActiveProjectFilterAsync();
+    IEnumerable<Cluster> GetAllWithActiveProjectFilter(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full);
+    Task<IEnumerable<Cluster>> GetAllWithActiveProjectFilterAsync(ClusterDetailLevel detailLevel = ClusterDetailLevel.Full);
     IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId);
     Task<IEnumerable<Cluster>> GetAllByClusterProxyConnectionIdAsync(long clusterProxyConnectionId);
+    Cluster GetById(long id, ClusterDetailLevel detailLevel);
     Cluster GetByIdWithProxyConnection(long id);
     Task<Cluster> GetByIdWithProxyConnectionAsync(long id);
     IQueryable<Cluster> AsQueryable();

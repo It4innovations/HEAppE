@@ -270,13 +270,13 @@ internal class JobManagementValidator : AsyncAbstractValidator
     {
         try
         {
-            var project = _unitOfWork.ProjectRepository.GetById(projectId)
+            var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                     projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, _logger);
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger);
-            return (await scheduler.GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)).ToList();
+            return (await scheduler.GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken, _expirioToken)).ToList();
         }
         catch (Exception)
         {
@@ -288,7 +288,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

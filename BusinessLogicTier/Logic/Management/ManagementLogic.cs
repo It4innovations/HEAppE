@@ -91,7 +91,7 @@ public class ManagementLogic : IManagementLogic
         long projectId, string description, string extendedAllocationCommand, string executableFile,
         string preparationScript, long? adaptorUserId)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId) ??
@@ -112,7 +112,7 @@ public class ManagementLogic : IManagementLogic
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -257,7 +257,7 @@ public class ManagementLogic : IManagementLogic
 
         if (commandTemplate.CreatedFrom is null) throw new InvalidRequestException("CommandTemplateNotFromGeneric");
 
-        var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         if (commandTemplate.IsGeneric) throw new InputValidationException("CommandTemplateIsGeneric");
@@ -269,7 +269,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -400,6 +400,8 @@ public class ManagementLogic : IManagementLogic
                     throw new InvalidRequestException("ProjectAlreadyExist", accountingString);
                 }
                 
+                var dynamicAssignments = _unitOfWork.SystemRoleAssignmentRepository.GetAll();
+                RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
                 RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
 
                 var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
@@ -456,6 +458,9 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(id)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
+        var oldStartDate = project.StartDate;
+        var oldEndDate = project.EndDate;
+
         project.UsageType = usageType;
         project.Name = modelName ?? project.Name;
         project.Description = description ?? project.Description;
@@ -466,8 +471,41 @@ public class ManagementLogic : IManagementLogic
             useAccountingStringForScheduler ?? project.UseAccountingStringForScheduler;
         project.IsOneToOneMapping = isOneToOneMapping;
 
-
         _unitOfWork.ProjectRepository.Update(project);
+
+        var subProjects = _unitOfWork.SubProjectRepository.GetSubProjectsForProject(id);
+        foreach (var subProject in subProjects)
+        {
+            var isModified = false;
+
+            if (subProject.EndDate.HasValue)
+            {
+                if (subProject.EndDate == oldEndDate || subProject.EndDate > endDate)
+                {
+                    subProject.EndDate = endDate;
+                    isModified = true;
+                }
+                else if (subProject.EndDate < endDate && subProject.EndDate <= DateTime.UtcNow && endDate > DateTime.UtcNow)
+                {
+                    subProject.EndDate = endDate;
+                    isModified = true;
+                }
+            }
+
+            if (subProject.StartDate == oldStartDate || subProject.StartDate < startDate)
+            {
+                subProject.StartDate = startDate;
+                isModified = true;
+            }
+
+            if (isModified)
+            {
+                subProject.ModifiedAt = DateTime.UtcNow;
+                _unitOfWork.SubProjectRepository.Update(subProject);
+                _logger.LogInformation($"SubProject ID '{subProject.Id}' (Identifier: '{subProject.Identifier}') has been automatically updated due to Project ID '{project.Id}' modification.");
+            }
+        }
+
         _unitOfWork.Save();
         _logger.LogInformation($"Project ID '{project.Id}' has been modified.");
 
@@ -493,6 +531,14 @@ public class ManagementLogic : IManagementLogic
             x.ModifiedAt = modified;
             x.IsDeleted = true;
         });
+
+        var subProjects = _unitOfWork.SubProjectRepository.GetSubProjectsForProject(id);
+        foreach (var subProject in subProjects)
+        {
+            subProject.IsDeleted = true;
+            subProject.ModifiedAt = modified;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+        }
 
         _unitOfWork.ProjectRepository.Update(project);
         _logger.LogInformation($"Project id '{project.Id}' has been deleted.");
@@ -1051,6 +1097,9 @@ public class ManagementLogic : IManagementLogic
         if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
+        // Track whether authType was explicitly provided or auto-resolved
+        bool authTypeWasAutoResolved = authType == null;
+
         // Resolve AuthType if not provided
         if (authType == null)
         {
@@ -1153,10 +1202,20 @@ public class ManagementLogic : IManagementLogic
                 .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
         if (existingCredentials.Any())
         {
-            //return existing credential with same type of throw exception
+            //return existing credential with same type or throw exception
             var existingWithSameType = existingCredentials.FirstOrDefault(x => x.AuthenticationType == authType.Value);
             if (existingWithSameType != null)
                 return CreateCredentialResponse(existingWithSameType, adaptorUserId);
+
+            // When authType was auto-resolved (not explicitly provided), return existing credential
+            // regardless of type mismatch to avoid blocking auto-provisioning flows
+            if (authTypeWasAutoResolved)
+            {
+                var existingCredential = existingCredentials.First();
+                _logger.LogWarning($"AuthType was auto-resolved to '{authType}' but existing credential for user '{username}' " +
+                    $"has type '{existingCredential.AuthenticationType}'. Returning existing credential (ID: {existingCredential.Id}).");
+                return CreateCredentialResponse(existingCredential, adaptorUserId);
+            }
 
             throw new InvalidRequestException("HPCIdentityAlreadyExistsWithDifferentType");
         }
@@ -1166,18 +1225,38 @@ public class ManagementLogic : IManagementLogic
 
     private CredentialResponse CreateCredentialResponse(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
     {
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            clusterCredentials.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            clusterCredentials.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+        }
+
         var response = CredentialResponse.GetCredential(clusterCredentials, adaptorUserId);
-        if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(clusterCredentials.PrivateKey))
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            (string.IsNullOrEmpty(response.PublicKeyExt) || string.IsNullOrEmpty(response.PublicKeyFingerprint)))
         {
             try
             {
                 var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterCredentials);
                 if (derived != null)
                 {
-                    response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
-                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint))
+                    if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat))
+                    {
+                        response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
+                        if (derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                        {
+                            clusterCredentials.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(derived.PublicKeyFingerprint))
                     {
                         response.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        if (derived.PublicKeyFingerprint.Length <= 200)
+                        {
+                            clusterCredentials.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        }
                     }
                 }
             }
@@ -1186,6 +1265,20 @@ public class ManagementLogic : IManagementLogic
                 _logger.LogWarning(ex, $"Failed to derive public key for credential {clusterCredentials.Id} ({clusterCredentials.Username}).");
             }
         }
+
+        if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(response.PublicKeyExt))
+        {
+            var fingerprint = SSHGenerator.ComputeFingerprintFromAuthorizedKeys(response.PublicKeyExt);
+            if (!string.IsNullOrEmpty(fingerprint))
+            {
+                response.PublicKeyFingerprint = fingerprint;
+                if (fingerprint.Length <= 200)
+                {
+                    clusterCredentials.PublicKeyFingerprint = fingerprint;
+                }
+            }
+        }
+
         return response;
     }
 
@@ -1426,7 +1519,7 @@ public class ManagementLogic : IManagementLogic
     public async Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username, bool isAdministrator = false)
     {
-        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(projectId);
         if (project == null) 
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
         
@@ -1484,7 +1577,7 @@ public class ManagementLogic : IManagementLogic
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
                 var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(path, overwriteExistingProjectRootDirectory, localBasepath,
-                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
@@ -1553,7 +1646,7 @@ public class ManagementLogic : IManagementLogic
                     .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
                 
                 var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
-                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    _httpContextKeys.Context.SshCaToken, _expirioToken);
                 
                 if (!status.Item1)
                 {
@@ -1772,9 +1865,9 @@ public class ManagementLogic : IManagementLogic
     /// <param name="id"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public Cluster GetClusterById(long id)
+    public Cluster GetClusterById(long id, ClusterDetailLevel detailLevel = ClusterDetailLevel.Full)
     {
-        var cluster = _unitOfWork.ClusterRepository.GetById(id);
+        var cluster = _unitOfWork.ClusterRepository.GetById(id, detailLevel);
 
         return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
     }
@@ -2980,12 +3073,25 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         var subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
-        if (subProject is not null &&
-            (subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
-            throw new InputValidationException("SubProjectDeletedOrEnded");
-
         if (subProject is not null)
         {
+            if (subProject.IsDeleted)
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+
+            // If the subproject has expired but the parent project is active, auto-extend the subproject
+            if (subProject.EndDate.HasValue && subProject.EndDate <= DateTime.UtcNow &&
+                project.EndDate > DateTime.UtcNow && project.StartDate <= DateTime.UtcNow)
+            {
+                subProject.EndDate = project.EndDate;
+                subProject.ModifiedAt = DateTime.UtcNow;
+                _unitOfWork.SubProjectRepository.Update(subProject);
+                _unitOfWork.Save();
+                _logger.LogInformation($"SubProject ID '{subProject.Id}' (Identifier: '{subProject.Identifier}') was expired but auto-extended to project EndDate '{project.EndDate}' because Project ID '{project.Id}' is active.");
+            }
+
+            if ((subProject.EndDate.HasValue && subProject.EndDate <= DateTime.UtcNow) || subProject.StartDate >= DateTime.UtcNow)
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+
             //already exists, reuse it
             return subProject;
         }
@@ -3712,7 +3818,7 @@ public class ManagementLogic : IManagementLogic
 
     public List<AdaptorUser> ListAdaptorUsers()
     {
-        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAll().ToList();
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllWithGroupsAndRoles();
         return adaptorUsers;
     }
 
@@ -4705,7 +4811,7 @@ public class ManagementLogic : IManagementLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

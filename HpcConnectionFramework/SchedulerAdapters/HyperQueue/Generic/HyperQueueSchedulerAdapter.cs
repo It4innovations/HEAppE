@@ -71,7 +71,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            $"{_commands.InterpreterCommand} 'bash {clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
@@ -383,6 +383,12 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     {
         throw new NotSupportedException("GetMachineArchitecture is not supported by HyperQueue");
     }
+
+    public Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId) =>
+        throw new NotSupportedException("GetMachineInfo is not supported by HyperQueue");
+
+    public async Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster) =>
+        throw new NotSupportedException("GetQSchedulerVersionAsync is not supported by HyperQueue");
 
     public Task<string> GetMachineCalibrationAsync(object connectorClient, HEAppE.DomainObjects.ClusterInformation.Cluster cluster, string machineId, string calibrationId, string endpoint)
     {

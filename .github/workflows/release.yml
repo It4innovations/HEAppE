@@ -213,3 +213,15 @@ jobs:
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.tag_name }}
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.version }}
             ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/heappe:${{ needs.prepare-release.outputs.version }}-${{ steps.meta.outputs.short_sha }}
+
+      - name: Build & Publish HEAppE DataStaging API Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./DataStagingAPI/Dockerfile
+          push: ${{ steps.meta.outputs.push }}
+          tags: |
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:latest
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.tag_name }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.version }}
+            ghcr.io/${{ needs.prepare-release.outputs.image_owner }}/datastagingapi:${{ needs.prepare-release.outputs.version }}-${{ steps.meta.outputs.short_sha }}

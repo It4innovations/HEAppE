@@ -105,7 +105,8 @@ public abstract class FileSystemFactory : IDisposable
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     configuration.Cluster.Port,
-                    logger);
+                    logger,
+                    poolSettings.ConnectionAcquireTimeoutMs);
 
                 _schedulerConnPoolSingletons[configuration.Id] = connection;
             }

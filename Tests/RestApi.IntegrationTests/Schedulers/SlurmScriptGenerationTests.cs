@@ -203,6 +203,89 @@ public class SlurmScriptGenerationTests
     }
 
     [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenScriptInKeyScriptsEndingInSh_PrependsBash()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "TestTemplate",
+            ExecutableFile = "~/.HEAppE/.key_scripts/test.sh"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().StartWith("bash ");
+        resolved.Should().EndWith("/.ad0227181/Identifier/.key_scripts/test.sh");
+    }
+
+    [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenBinaryOrNonScript_DoesNotPrependBash()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "PythonTemplate",
+            ExecutableFile = "/usr/bin/python3"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().Be("/usr/bin/python3");
+    }
+
+    [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenAlreadyPrefixedWithBash_DoesNotDuplicate()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "ExplicitBashTemplate",
+            ExecutableFile = "bash ~/.HEAppE/.key_scripts/test.sh"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().NotStartWith("bash bash ");
+    }
+
+    private class TestSlurmDataConvertor : HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.SlurmDataConvertor
+    {
+        public TestSlurmDataConvertor() : base(null, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance) { }
+        public string TestResolveExecutableFile(CommandTemplate template, JobSpecification jobSpec) =>
+            ResolveExecutableFile(template, jobSpec);
+    }
+
+    [Fact]
     public void SlurmTaskAdapter_SetPreparationAndCommand_WhenCommandLineContainsSingleQuotes_EscapesQuotesForWrapOption()
     {
         var adapter = new SlurmTaskAdapter("sbatch");

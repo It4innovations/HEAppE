@@ -12,4 +12,5 @@ public interface IClusterNodeTypeRepository : IRepository<ClusterNodeType>
     Task<IEnumerable<ClusterNodeType>> GetAllByFileTransferMethodAsync(long fileTransferMethodId);
     ClusterNodeType GetByIdWithClusterAndProjects(long id);
     Task<ClusterNodeType> GetByIdWithClusterAndProjectsAsync(long id);
+    Task<ClusterNodeType> GetFirstByClusterIdAsync(long clusterId);
 }

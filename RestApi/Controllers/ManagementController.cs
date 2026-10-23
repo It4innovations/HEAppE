@@ -1174,8 +1174,9 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get Cluster by id
     /// </summary>
-    /// <param name="id"></param>
-    /// <param name="sessionCode"></param>
+    /// <param name="id">Cluster identifier</param>
+    /// <param name="sessionCode">User session code</param>
+    /// <param name="detailLevel">Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.</param>
     /// <returns></returns>
     [HttpGet("Cluster")]
     [RequestSizeLimit(100)]
@@ -1184,9 +1185,9 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetClusterById(long id, string sessionCode)
+    public IActionResult GetClusterById(long id, string sessionCode, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
     {
-        var cluster = _managementService.GetClusterById(id, sessionCode);
+        var cluster = _managementService.GetClusterById(id, sessionCode, detailLevel);
         return Ok(cluster);
     }
 
@@ -1268,7 +1269,8 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get all clusters
     /// </summary>
-    /// <param name="sessionCode"></param>
+    /// <param name="sessionCode">User session code</param>
+    /// <param name="detailLevel">Level of detail/nesting returned for cluster information (Full = 0, ClustersOnly = 1, NodeTypes = 2, Projects = 3). Default is Full.</param>
     /// <returns></returns>
     [HttpGet("Clusters")]
     [RequestSizeLimit(100)]
@@ -1277,9 +1279,9 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetAllClusters(string sessionCode)
+    public IActionResult GetAllClusters(string sessionCode, ClusterDetailLevelExt detailLevel = ClusterDetailLevelExt.Full)
     {
-        var clusters = _managementService.GetClusters(sessionCode);
+        var clusters = _managementService.GetClusters(sessionCode, detailLevel);
         return Ok(clusters);
     }
 

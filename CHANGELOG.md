@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.6.0
+
+### Added
+- **Cluster Information Detail Level:** Added optional `detailLevel` query parameter to `GET /heappe/Management/Clusters` and `Cluster` endpoints with selective eager loading.
+- **Task-level QoS:** Added `QualityOfService` attribute to `TaskSpecification` with fallback to cluster node type QoS.
+- **Adaptive In-Memory Caching:** Introduced dynamic TTL caching for tokens (FIP/LEXIS, SSH CA OTT, Expirio, FirecREST) and signed OpenSSH user certificates.
+- **QScheduler Integration:** Added `GET /heappe/ClusterInformation/MachineInfo` endpoint and standalone notifier callback support with walltime limit propagation.
+- **SubProject Management:** Added repository methods and comprehensive lifecycle unit tests for SubProjects.
+- **High-Concurrency & Performance Optimizations:** Added filtered index `IX_SubmittedJobInfo_State`, thread pool pre-allocation, connection string normalization, and persistent HTTP socket connection pooling (`ConfigureHighThroughputSocketsHandler`).
+- **Integration Tests:** Added navigation property assertions and validation tests for eager loading across API endpoints.
+
+### Changed
+- **Server GC:** Enabled `<ServerGarbageCollection>` in `RestApi` and `DataStagingAPI` for high-throughput request processing.
+- **Logging Appender:** Increased database log batching (`bufferSize=30`) in Docker configurations.
+
+### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **`HEADER-AUTH-NEEDED` Session Isolation:** Filtered sentinel session code `"HEADER-AUTH-NEEDED"` to prevent memory caching and user context crosstalk when authenticating via Bearer tokens.
+- **Cluster Storage Quota & Disk Full Handling:** Added `ClusterStorageQuotaExceededException`, detecting quota and disk-full errors during cluster operations and mapping them to HTTP 400 Bad Request ProblemDetails.
+- **Database & Query Performance:** Added filtered indexes on `AdaptorUser`, eliminated redundant user updates during token auth, reused authenticated user context, trimmed deep eager loading, and enabled `READ_COMMITTED_SNAPSHOT` (RCSI).
+- **SubProject Synchronization:** Automated date extension, clamping, cascading soft-delete, and auto-extension of expired subprojects during job creation.
+- **SSH CA & Vault Resilience:** Derived public keys from private keys for SSH CA, guarded Vault writes against uninitialized reads, and improved Kerberos host resolution.
+- **Credentials & Eager Loading:** Bypassed credential initialization for HTTP/HTTPS QScheduler operations, and fixed missing `.Include()` calls (CommandTemplates, SubProjects, user groups) across repositories.
+- **Logging & Buffering Noise Reduction:** Restricted stream buffering to JSON payloads $\le 128\,\text{KB}$, preserved user context in unhandled exception logs, and suppressed spurious MVC filter warnings.
+
 ## V6.5.4
 
 ### Fixed
@@ -31,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made `InvalidateConnectionPool` and `InvalidateAllConnectionPools` virtual in `FileSystemFactory` and overrode them in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` to clear cached manager singletons (`_managerSingletons`) and connector singletons (`_connectorSingletons`).
   - Added self-healing capability and dynamic connection pool provider in `SftpFileSystemManager` that automatically re-acquires a fresh, valid connection pool from `FileSystemFactory` if the previous pool was disposed, eliminating `System.ObjectDisposedException: Cannot acquire connection from a disposed ConnectionPool` during file uploads/downloads following cluster cache invalidations.
   - Updated `SchedulerFactory.GetSchedulerConnectionPool` to verify `!existingPool.IsDisposed` and evict disposed pools prior to acquiring connections.
+- **Explicit Bash Interpreter Execution for Remote Scripts (`noexec` Compatibility):**
+  - Fixed `bash: .../run_command.sh: /bin/bash: bad interpreter: Permission denied` occurring on HPC clusters where user home or scratch storage partitions are mounted with the `noexec` security flag.
+  - Prepended explicit `bash` interpreter invocation across all scheduler adapters (`SlurmSchedulerAdapter`, `PbsProSchedulerAdapter`, `HyperQueueSchedulerAdapter`, `LinuxLocalSchedulerAdapter`) and file system commands in `LinuxCommands` (`create_job_directory.sh`, `copy_data_from_temp.sh`, `copy_data_to_temp.sh`, `add_key.sh`, `remove_key.sh`).
+  - Updated `SchedulerDataConvertor.ResolveExecutableFile` to ensure `.sh` task scripts in `.key_scripts` are executed via `bash <script>`, bypassing kernel `noexec` restrictions on cluster nodes without requiring cluster-side configuration changes.
 
 ## V6.5.2
 
@@ -107,7 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Slurm GPU allocation and job submission failures on clusters such as Barbora (which do not support `--gres=gpu` GRES options):
   - Updated `SlurmTaskAdapter` to prioritize `GpuCores` over `MaxCores` when determining GPU allocation count.
   - Changed default Slurm GPU directive from sending both `--gres=gpu:X` and `--gpus=X` to defaulting to `--gpus=X` when `SlurmGpuRequestStyle` is unconfigured.
-  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` $\leftrightarrow$ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
+  - Added automatic zero-configuration GPU request style fallback (`ToggleGpuRequestStyle`) in `SlurmSchedulerAdapter` across `SubmitJobAsync`, `CheckClusterAuthenticationCredentialsStatus`, and `DryRunJobAsync` to automatically retry with toggled GPU directives (`--gpus=X` ↔ `--gres=gpu:X`) on failure while preserving original error tracebacks if retries also fail.
 - Fixed cluster script directory initialization failures in `LinuxCommands`:
   - Added automatic SSH base64 upload fallback when SFTP script upload fails (e.g. `Permission denied (publickey)` due to single-session SSH CA restrictions).
   - Ensured remote `.key_scripts` files (such as `create_job_directory.sh`) and `.commit_hash` are always updated and permissions configured cleanly over the active SSH channel.

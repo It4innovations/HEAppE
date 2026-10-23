@@ -24,6 +24,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        System.Threading.ThreadPool.SetMinThreads(100, 100);
         var host = CreateWebHostBuilder(args).Build();
 
         using (var scope = host.Services.CreateScope())
@@ -38,7 +39,8 @@ public class Program
                 ? "Logging/log4netDocker.config"
                 : "Logging/log4net.config");
 
-            var loggingConnString = host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging");
+            var rawLoggingConnString = host.Services.GetRequiredService<IConfiguration>().GetConnectionString("Logging");
+            var loggingConnString = HEAppE.DataAccessTier.MiddlewareContextSettings.NormalizeConnectionString(rawLoggingConnString, defaultMaxPoolSize: 100);
             AdoNetAppenderHelper.SetConnectionString(loggingConnString);
 
             var logger = loggerFactory.CreateLogger("HEAppE.DatabaseInitialization");
@@ -105,6 +107,14 @@ public class Program
             {
                 logger.LogInformation("Checking database compatibility, migrations and seeding...");
                 HEAppE.DataAccessTier.MiddlewareContext.InitializeDatabase(logger);
+
+                logger.LogInformation("Loading dynamic system role assignments from database...");
+                using (IUnitOfWork uow = new DatabaseUnitOfWork(logger))
+                {
+                    var dynamicAssignments = uow.SystemRoleAssignmentRepository.GetAll();
+                    RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
+                    logger.LogInformation($"Loaded {dynamicAssignments?.Count ?? 0} dynamic system role assignments from database.");
+                }
             }
             catch (Exception ex)
             {

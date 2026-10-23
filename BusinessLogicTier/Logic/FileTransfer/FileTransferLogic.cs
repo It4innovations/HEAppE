@@ -151,7 +151,7 @@ public class FileTransferLogic : IFileTransferLogic
                             adaptorUserId: adaptorUserId, _expirioService, _expirioToken, _logger);
                     await scheduler.RemoveDirectFileTransferAccessForUserAsync(tempKey.Select(s => s.PublicKey),
                         tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project,
-                        _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        _httpContextKeys.Context.SshCaToken, _expirioToken);
                 }
                 finally
                 {
@@ -299,7 +299,7 @@ public class FileTransferLogic : IFileTransferLogic
             });
 
         await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-            .AllowDirectFileTransferAccessForUserToJobAsync(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            .AllowDirectFileTransferAccessForUserToJobAsync(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         await _unitOfWork.SaveAsync();
         return transferMethod;
@@ -324,7 +324,7 @@ public class FileTransferLogic : IFileTransferLogic
         await SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             .RemoveDirectFileTransferAccessForUserAsync(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
-                jobInfo.Specification.Cluster, jobInfo.Project, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                jobInfo.Specification.Cluster, jobInfo.Project, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         temporaryKey.IsDeleted = true;
         await _unitOfWork.SaveAsync();
@@ -355,13 +355,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         await fileManager.DownloadPartOfJobFileFromClusterAsync(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.JobLogArchiveSubPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.JobLogArchiveSubPath, _httpContextKeys.Context.SshCaToken, _expirioToken);
                 }
                 else
                 {
                     contents =
                         await fileManager.DownloadPartOfJobFileFromClusterAsync(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                            currentOffset.Offset, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath, _httpContextKeys.Context.SshCaToken, _expirioToken);
                 }
 
                 if (contents != null)
@@ -396,10 +396,10 @@ public class FileTransferLogic : IFileTransferLogic
             foreach (var jobInfo in fileTransferMethodGroup)
             {
                 var synchronizationTime = DateTime.UtcNow;
-                var files = await fileManager.CopyLogFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
-                foreach (var file in await fileManager.CopyProgressFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)) files.Add(file);
-                foreach (var file in await fileManager.CopyStdOutputFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)) files.Add(file);
-                foreach (var file in await fileManager.CopyStdErrorFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)) files.Add(file);
+                var files = await fileManager.CopyLogFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _expirioToken);
+                foreach (var file in await fileManager.CopyProgressFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _expirioToken)) files.Add(file);
+                foreach (var file in await fileManager.CopyStdOutputFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _expirioToken)) files.Add(file);
+                foreach (var file in await fileManager.CopyStdErrorFilesFromClusterAsync(jobInfo, _httpContextKeys.Context.SshCaToken, _expirioToken)) files.Add(file);
                 var fileContents = new SynchronizedJobFiles
                 {
                     SubmittedJobInfoId = jobInfo.Id,
@@ -422,14 +422,14 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (jobInfo.State == JobState.Deleted)
         {
-            var archivedFiles = await fileManager.ListArchivedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            var archivedFiles = await fileManager.ListArchivedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _expirioToken);
             return archivedFiles?.Where(f => !IsPathBlocked(f.FileName)).ToList();
         }
         
         if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
             return null;
        
-        var files = await fileManager.ListChangedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var files = await fileManager.ListChangedFilesForJobAsync(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken, _expirioToken);
         return files?.Where(f => !IsPathBlocked(f.FileName)).ToList();
     }
     public async Task<byte[]> DownloadFileFromClusterAsync(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
@@ -466,7 +466,7 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     try
                     {
-                        return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _expirioToken);
                     }
                     catch (Exception exception)
                     {
@@ -479,7 +479,7 @@ public class FileTransferLogic : IFileTransferLogic
                     try
                     {
                         relativeFilePath = Path.Combine($"{jobInfo.Specification.Id}", relativeFilePath.TrimStart('/'));
-                        return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _expirioToken);
                     }
                     catch (Exception exception)
                     {
@@ -487,7 +487,7 @@ public class FileTransferLogic : IFileTransferLogic
                     }
                 }
             }
-            return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _expirioToken);
         }
         catch (SftpPathNotFoundException exception)
         {
@@ -562,7 +562,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value, cluster).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
-        var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _expirioToken);
         result.Add("Succeeded", succeeded);
         result.Add("Path", succeeded ? absoluteFilePath : null);
         return result;
@@ -592,11 +592,11 @@ public class FileTransferLogic : IFileTransferLogic
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(projectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value, cluster).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService, _logger);
-        var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _expirioToken);
         bool attributesSet = false;
         if (succeeded)
         {
-            attributesSet = await fileManager.ModifyAbsolutePathFileAttributesAsync(absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken,
+            attributesSet = await fileManager.ModifyAbsolutePathFileAttributesAsync(absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken, _expirioToken,
                 ownerCanExecute: true, groupCanExecute: true);
         }
         result.Add("Succeeded", succeeded);
@@ -650,7 +650,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         var fileManager = CreateFileSystemManager(jobSpecification);
         var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, jobSpecification.ClusterUser, jobSpecification.Cluster, 
-                                                                         _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                                                                         _httpContextKeys.Context.SshCaToken, _expirioToken);
         result.Add("Succeeded", succeeded);
         result.Add("Path", succeeded ? absoluteFilePath : null);
         return result;
@@ -747,7 +747,7 @@ public class FileTransferLogic : IFileTransferLogic
                     try
                     {
                         var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
-                        return await fileManager.DownloadFileFromClusterByAbsolutePathAsync(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        return await fileManager.DownloadFileFromClusterByAbsolutePathAsync(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken, _expirioToken);
                     }
                     catch (Exception exception)
                     {
@@ -761,7 +761,7 @@ public class FileTransferLogic : IFileTransferLogic
                     {
                         relativeFilePath = Path.Combine($"{jobInfo.Specification.Id}", relativeFilePath.TrimStart('/'));
                         var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
-                        return await fileManager.DownloadFileFromClusterByAbsolutePathAsync(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                        return await fileManager.DownloadFileFromClusterByAbsolutePathAsync(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken, _expirioToken);
                     }
                     catch (Exception exception)
                     {
@@ -769,7 +769,7 @@ public class FileTransferLogic : IFileTransferLogic
                     }
                 }
             }
-            return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            return await fileManager.DownloadFileFromClusterAsync(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken, _expirioToken);
         }
         catch (SftpPathNotFoundException exception)
         {
@@ -793,7 +793,7 @@ public class FileTransferLogic : IFileTransferLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

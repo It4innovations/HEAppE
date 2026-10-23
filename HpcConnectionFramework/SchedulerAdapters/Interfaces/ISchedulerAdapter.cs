@@ -61,5 +61,7 @@ public interface ISchedulerAdapter
 
     Task<string> GetMachineArchitectureAsync(object connectorClient, Cluster cluster, string machineId);
 
+    Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId);
+    Task<string> GetQSchedulerVersionAsync(object connectorClient, Cluster cluster);
     Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint);
 }

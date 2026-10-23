@@ -58,6 +58,19 @@ public class SftpFileSystemConnector : IPoolableAdapter
         ClusterProxyConnection proxy = cluster.ProxyConnection;
         var authType = credentials.AuthenticationType;
 
+        // Auto-heal / correct authentication type: if PrivateKey is present (e.g. loaded from Vault),
+        // we must NEVER fall back to local ssh-agent which would fail.
+        if (!string.IsNullOrEmpty(credentials.PrivateKey) &&
+            authType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                     or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            authType = proxy is null
+                ? ClusterAuthenticationCredentialsAuthType.PrivateKey
+                : ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+            credentials.AuthenticationType = authType;
+        }
+
         if ((!string.IsNullOrEmpty(sshCaToken) || SshCaSettings.UseCertificateAuthorityForAuthentication) &&
             (authType is ClusterAuthenticationCredentialsAuthType.PrivateKey
                      or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
@@ -67,6 +80,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             authType = proxy is null
                 ? ClusterAuthenticationCredentialsAuthType.SshCertificate
                 : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            credentials.AuthenticationType = authType;
         }
 
         var sftpClient = (SftpClient)(authType switch
@@ -592,7 +606,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         }
 
-        string host = !string.IsNullOrEmpty(cluster.DomainName) ? cluster.DomainName : masterNodeName;
+        string host = !string.IsNullOrEmpty(masterNodeName) ? masterNodeName : cluster.DomainName;
         int? connectionPort = cluster.Port ?? port;
         string address = connectionPort.HasValue ? $"{host}:{connectionPort.Value}" : host;
         return new KerberosSftpClient(_logger, masterNodeName, address, username);

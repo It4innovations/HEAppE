@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -49,7 +49,8 @@ public class UploadFileToProjectStorageDirModelValidator : AbstractValidator<Upl
 {
     public UploadFileToProjectStorageDirModelValidator()
     {
-        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled &&
+            !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
             !LexisAuthenticationConfiguration.UseBearerAuth)
         {
             RuleFor(x => x.SessionCode).IsSessionCode();
