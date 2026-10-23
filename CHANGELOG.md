@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.5.4
+
+### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+
 ## V6.5.3
 
 ### Fixed

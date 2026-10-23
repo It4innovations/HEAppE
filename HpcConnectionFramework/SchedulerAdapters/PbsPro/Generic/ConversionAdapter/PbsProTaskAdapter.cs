@@ -545,29 +545,33 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
             return;
         }
 
+        var escapedSymlink = !_pbs ? recursiveSymlinkCommand?.Replace("'", "'\\''") : recursiveSymlinkCommand;
+        var escapedPrep = !_pbs ? preparationScript?.Replace("'", "'\\''") : preparationScript;
+        var escapedCmd = !_pbs ? commandLine?.Replace("'", "'\\''") : commandLine;
+
         if (!_pbs)
             taskSourceSb.Append($"echo '");
         taskSourceSb.Append($"cd \"{normNodefileDir}\";cd \"{normWorkDir}\";");
         taskSourceSb.Append(
-            string.IsNullOrEmpty(recursiveSymlinkCommand)
+            string.IsNullOrEmpty(escapedSymlink)
                 ? string.Empty
-                : recursiveSymlinkCommand.Last().Equals(';')
-                    ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
+                : escapedSymlink.Last().Equals(';')
+                    ? escapedSymlink
+                    : $"{escapedSymlink};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
 
         taskSourceSb.Append(
-            string.IsNullOrEmpty(preparationScript)
+            string.IsNullOrEmpty(escapedPrep)
                 ? string.Empty
-                : preparationScript.Last().Equals(';')
-                    ? preparationScript
-                    : $"{preparationScript};");
+                : escapedPrep.Last().Equals(';')
+                    ? escapedPrep
+                    : $"{escapedPrep};");
 
         taskSourceSb.Append(
-            string.IsNullOrEmpty(commandLine)
+            string.IsNullOrEmpty(escapedCmd)
                 ? string.Empty
-                : commandLine.Last().Equals(';')
-                    ? commandLine
-                    : $"{commandLine};");
+                : escapedCmd.Last().Equals(';')
+                    ? escapedCmd
+                    : $"{escapedCmd};");
         if (!_pbs)
         {
             taskSourceSb.Append($"'");
