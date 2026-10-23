@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Logging Appender:** Increased database log batching (`bufferSize=30`) in Docker configurations.
 
 ### Fixed
+- **LEXIS Role Mapping Thread-Safety & Duplicate Key Collision:**
+  - Fixed `System.ArgumentException: An item with the same key has already been added` occurring during concurrent requests or when multiple HEAppE roles share the same external permission string in `RoleMapping`.
+  - Implemented thread-safe double-checked locking for `RoleMapping.MappingRoles` initialization and automatic cache invalidation on property updates via `Reset()`.
+  - Upgraded mapping representation to 1-to-many (`Dictionary<string, List<string>>`), allowing multiple roles to share an external permission with case-insensitive lookup (`StringComparer.OrdinalIgnoreCase`) and comma-separated permission support.
+  - Updated `UserAndLimitationManagementLogic` to flatten mapped roles via `SelectMany` and resolve the highest-privilege role via `AdaptorUserRoleRepository.GetByRoleNames`.
+  - Added comprehensive unit test suite `RoleMappingTests` covering thread safety under parallel load, multi-role mapping, cache invalidation, and case-insensitivity.
 - **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
   - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
   - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
