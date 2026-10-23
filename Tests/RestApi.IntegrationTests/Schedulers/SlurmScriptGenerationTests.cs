@@ -284,4 +284,46 @@ public class SlurmScriptGenerationTests
         public string TestResolveExecutableFile(CommandTemplate template, JobSpecification jobSpec) =>
             ResolveExecutableFile(template, jobSpec);
     }
+
+    [Fact]
+    public void SlurmTaskAdapter_SetPreparationAndCommand_WhenCommandLineContainsSingleQuotes_EscapesQuotesForWrapOption()
+    {
+        var adapter = new SlurmTaskAdapter("sbatch");
+        adapter.UseCallback = false;
+
+        adapter.SetPreparationAndCommand(
+            workDir: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101",
+            preparationScript: null,
+            commandLine: "~/.HEAppE/.project_12345/cluster/.key_scripts/test.sh 'Hello from Cluster'",
+            stdOutFile: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stdout",
+            stdErrFile: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        // The entire command must be wrapped in single quotes, and inner single quotes must be escaped as '\''
+        cmd.Should().Contain("--wrap 'cd \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101\";1>> \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stdout\" 2>> \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stderr\" ~/.HEAppE/.project_12345/cluster/.key_scripts/test.sh '\\''Hello from Cluster'\\'';'");
+    }
+
+    [Fact]
+    public void SlurmTaskAdapter_SetPreparationAndCommand_WhenPreparationScriptContainsSingleQuotes_EscapesQuotesForWrapOption()
+    {
+        var adapter = new SlurmTaskAdapter("sbatch");
+        adapter.UseCallback = false;
+
+        adapter.SetPreparationAndCommand(
+            workDir: "/scratch/job",
+            preparationScript: "echo 'preparing job'",
+            commandLine: "echo 'running job'",
+            stdOutFile: "/scratch/job/stdout",
+            stdErrFile: "/scratch/job/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        cmd.Should().Contain("echo '\\''preparing job'\\'';echo '\\''running job'\\'';'");
+    }
+    }
 }

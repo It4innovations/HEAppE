@@ -75,4 +75,24 @@ public class PbsProScriptGenerationTests
         var cmd = adapter.AllocationCmd.ToString();
         cmd.Should().Contain("-W depend=afterok:$_201");
     }
+
+    [Fact]
+    public void PbsProTaskAdapter_SetPreparationAndCommand_WhenCommandLineContainsSingleQuotes_EscapesQuotesForEcho()
+    {
+        var adapter = new PbsProTaskAdapter("qsub  -koed");
+        adapter.UseCallback = false;
+
+        adapter.SetPreparationAndCommand(
+            workDir: "/scratch/job/101",
+            preparationScript: "echo 'prep'",
+            commandLine: "test.sh 'Hello PBS'",
+            stdOutFile: "/scratch/job/101/stdout",
+            stdErrFile: "/scratch/job/101/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        cmd.Should().Contain("echo '\\''prep'\\'';test.sh '\\''Hello PBS'\\'';' | qsub  -koed");
+    }
 }

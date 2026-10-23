@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## V6.6.0
 
 ### Added
@@ -21,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Logging Appender:** Increased database log batching (`bufferSize=30`) in Docker configurations.
 
 ### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
 - **`HEADER-AUTH-NEEDED` Session Isolation:** Filtered sentinel session code `"HEADER-AUTH-NEEDED"` to prevent memory caching and user context crosstalk when authenticating via Bearer tokens.
 - **Cluster Storage Quota & Disk Full Handling:** Added `ClusterStorageQuotaExceededException`, detecting quota and disk-full errors during cluster operations and mapping them to HTTP 400 Bad Request ProblemDetails.
 - **Database & Query Performance:** Added filtered indexes on `AdaptorUser`, eliminated redundant user updates during token auth, reused authenticated user context, trimmed deep eager loading, and enabled `READ_COMMITTED_SNAPSHOT` (RCSI).
@@ -28,6 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SSH CA & Vault Resilience:** Derived public keys from private keys for SSH CA, guarded Vault writes against uninitialized reads, and improved Kerberos host resolution.
 - **Credentials & Eager Loading:** Bypassed credential initialization for HTTP/HTTPS QScheduler operations, and fixed missing `.Include()` calls (CommandTemplates, SubProjects, user groups) across repositories.
 - **Logging & Buffering Noise Reduction:** Restricted stream buffering to JSON payloads $\le 128\,\text{KB}$, preserved user context in unhandled exception logs, and suppressed spurious MVC filter warnings.
+
+## V6.5.4
+
+### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **Authentication & User Context Isolation (`HEADER-AUTH-NEEDED`):**
+  - Fixed user context crosstalk and incorrect user information in logs caused by treating and caching the sentinel session code `"HEADER-AUTH-NEEDED"` as a local session code in `LogUserContextMiddleware`, `UserAndLimitationManagementLogic`, and `UserAndLimitationManagementService`.
+  - Updated `LogUserContextMiddleware` to ignore `"HEADER-AUTH-NEEDED"` and check both `"SessionCode"` and `"sessionCode"` query/JSON parameters, ensuring requests authenticated via Bearer tokens properly resolve user context from HTTP context keys.
+  - Prevented `"HEADER-AUTH-NEEDED"` from being accepted or cached in `UserAndLimitationManagementLogic.GetUserForSessionCode` and `AuthenticateLocalSession`.
+  - Updated `ServiceTier.UserAndLimitationManagementService.GetCurrentUserInfo` and `GetValidatedUserForSessionCode` to delegate to `AuthenticateUser`, correctly handling header-authenticated requests with sentinel or empty session codes.
 
 ## V6.5.3
 
