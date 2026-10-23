@@ -157,6 +157,7 @@ public static class JwtIntrospectionExtensions
                             var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
                             var expirioService = context.HttpContext.RequestServices.GetRequiredService<IExpirioService>();
+                            var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
 
                             try
                             {
@@ -194,6 +195,7 @@ public static class JwtIntrospectionExtensions
                                 response.ContentType = "application/json";
                                 response.StatusCode = problem.Status.Value;
                                 await response.WriteAsJsonAsync(problem);
+                                context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                 context.HttpContext.Items["AuthErrorHandled"] = true;
                                 context.Fail(ex);
@@ -231,6 +233,7 @@ public static class JwtIntrospectionExtensions
                                     response.ContentType = "application/json";
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
+                                    context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                     context.HttpContext.Items["AuthErrorHandled"] = true;
                                     context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
@@ -266,6 +269,7 @@ public static class JwtIntrospectionExtensions
                                     response.ContentType = "application/json";
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
+                                    context.HttpContext.Items["AuthErrorHandled"] = true;
 
                                     context.HttpContext.Items["AuthErrorHandled"] = true;
                                     context.Fail(ex);
