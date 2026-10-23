@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.5.4
+
+### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **Authentication & User Context Isolation (`HEADER-AUTH-NEEDED`):**
+  - Fixed user context crosstalk and incorrect user information in logs caused by treating and caching the sentinel session code `"HEADER-AUTH-NEEDED"` as a local session code in `LogUserContextMiddleware`, `UserAndLimitationManagementLogic`, and `UserAndLimitationManagementService`.
+  - Updated `LogUserContextMiddleware` to ignore `"HEADER-AUTH-NEEDED"` and check both `"SessionCode"` and `"sessionCode"` query/JSON parameters, ensuring requests authenticated via Bearer tokens properly resolve user context from HTTP context keys.
+  - Prevented `"HEADER-AUTH-NEEDED"` from being accepted or cached in `UserAndLimitationManagementLogic.GetUserForSessionCode` and `AuthenticateLocalSession`.
+  - Updated `ServiceTier.UserAndLimitationManagementService.GetCurrentUserInfo` and `GetValidatedUserForSessionCode` to delegate to `AuthenticateUser`, correctly handling header-authenticated requests with sentinel or empty session codes.
+- **Auth Middleware Pipeline Order & Introspection Precedence:**
+  - Fixed an issue where `LexisAuthMiddleware` executed before `LexisTokenExchangeMiddleware` and `UseAuthentication()` (`OAuth2Introspection`), causing raw unexchanged Bearer tokens to be sent prematurely to UserOrg and failing with HTTP 401 Unauthorized.
+  - Reordered middleware pipeline in `Startup.cs` and `DataStagingAPI/Program.cs` so that token exchange and OAuth2 introspection run before `LexisAuthMiddleware`.
+
 ## V6.5.3
 
 ### Fixed

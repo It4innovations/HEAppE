@@ -134,7 +134,7 @@ namespace HEAppE.RestApi.Logging
             string userName = null;
             string email = null;
 
-            if (string.IsNullOrEmpty(sessionCode))
+            if (string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase))
             {
                 // get user from http context keys
                 // they are filled by LocalAuthenticationHandler or LexisAuthMiddleware depends on authentication type
@@ -185,10 +185,15 @@ namespace HEAppE.RestApi.Logging
             return null;
         }
 
-        private static async Task<string> ExtractSessionCode(HttpContext context)
+        private static bool IsValidSessionCode(string? sessionCode)
         {
-            var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(sessionCode))
+            return !string.IsNullOrWhiteSpace(sessionCode) && !string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static async Task<string?> ExtractSessionCode(HttpContext context)
+        {
+            var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault() ?? context.Request.Query["sessionCode"].FirstOrDefault();
+            if (IsValidSessionCode(sessionCode))
                 return sessionCode;
 
             var body = await GetRequestBodyAsync(context);
@@ -197,8 +202,12 @@ namespace HEAppE.RestApi.Logging
                 try 
                 {
                     using var json = JsonDocument.Parse(body);
-                    if (json.RootElement.TryGetProperty("SessionCode", out var prop))
-                        return prop.GetString();
+                    if (json.RootElement.TryGetProperty("SessionCode", out var prop) || json.RootElement.TryGetProperty("sessionCode", out prop))
+                    {
+                        var code = prop.GetString();
+                        if (IsValidSessionCode(code))
+                            return code;
+                    }
                 }
                 catch { }
             }

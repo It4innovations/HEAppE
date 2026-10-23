@@ -71,21 +71,21 @@ public class HttpContextKeys : IHttpContextKeys
         AdaptorUser user = null;
         try
         {
-            if (LexisAuthenticationConfiguration.UseBearerAuth)
-            {
-                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
-                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
-                {
-                    OpenIdLexisAccessToken = Context.LEXISToken
-                });
-            }
-            else if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
                 bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled;
                 _logger.LogInformation($"[Authorize] Using JWT introspection. LexisTokenFlowEnabled: {useLexisToken}");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
-                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : Context.IdpToken
+                    OpenIdLexisAccessToken = useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken)
+                });
+            }
+            else if (LexisAuthenticationConfiguration.UseBearerAuth)
+            {
+                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
+                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = Context.LEXISToken
                 });
             }
             

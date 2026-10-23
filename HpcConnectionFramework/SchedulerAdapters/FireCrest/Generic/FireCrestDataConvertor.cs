@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -108,7 +108,7 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             var taskScript = (string)base.ConvertTaskSpecificationToTask(jobSpecification, taskSpecification, "#!/bin/bash");
             if (_conversionAdapterFactory is SlurmConversionAdapterFactory)
             {
-                taskScript = Regex.Replace(taskScript, @"^#SBATCH\s+--wrap\s+'([^']*)'\s*$", "$1", RegexOptions.Multiline); // unwrap commands
+                taskScript = Regex.Replace(taskScript, @"^#SBATCH\s+--wrap\s+'(.*)'\s*$", m => m.Groups[1].Value.Replace("'\\''", "'"), RegexOptions.Multiline); // unwrap commands
             }
             else if (_conversionAdapterFactory is PbsProConversionAdapterFactory)
             {
