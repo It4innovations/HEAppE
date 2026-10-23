@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
   - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
   - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **Authentication & User Context Isolation (`HEADER-AUTH-NEEDED`):**
+  - Fixed user context crosstalk and incorrect user information in logs caused by treating and caching the sentinel session code `"HEADER-AUTH-NEEDED"` as a local session code in `LogUserContextMiddleware`, `UserAndLimitationManagementLogic`, and `UserAndLimitationManagementService`.
+  - Updated `LogUserContextMiddleware` to ignore `"HEADER-AUTH-NEEDED"` and check both `"SessionCode"` and `"sessionCode"` query/JSON parameters, ensuring requests authenticated via Bearer tokens properly resolve user context from HTTP context keys.
+  - Prevented `"HEADER-AUTH-NEEDED"` from being accepted or cached in `UserAndLimitationManagementLogic.GetUserForSessionCode` and `AuthenticateLocalSession`.
+  - Updated `ServiceTier.UserAndLimitationManagementService.GetCurrentUserInfo` and `GetValidatedUserForSessionCode` to delegate to `AuthenticateUser`, correctly handling header-authenticated requests with sentinel or empty session codes.
 
 ## V6.5.3
 

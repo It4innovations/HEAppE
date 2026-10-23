@@ -90,10 +90,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
+        bool isHeaderAuth = string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
         bool hasIdpOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) 
                                   || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
 
-        if (!hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        if (!isHeaderAuth && !hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
             _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);
@@ -104,11 +105,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             return GetUserById(_httpContextKeys.Context.AdaptorUserId);
         }
 
+        if (isHeaderAuth || string.IsNullOrEmpty(sessionCode))
+        {
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+
         return AuthenticateLocalSession(sessionCode);
     }
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
+        if (string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Unauthorized");
+
         var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null)
         {
