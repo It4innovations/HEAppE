@@ -4,68 +4,73 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.6.1
+
+### Fixed
+- **QScheduler (HTTP) 1:1 Mapping & Audit User:** Supported 1:1 user mapping over HTTP/HTTPS by skipping cluster credential checks and sending the HEAppE submitter as the audit user (#22).
+- **LEXIS Role Mapping Thread Safety:** Fixed `ArgumentException: An item with the same key has already been added` by ensuring thread-safe role initialization and supporting 1-to-many role mappings in `RoleMapping`.
 
 ## V6.6.0
 
 ### Added
-- **Cluster Information Nesting / Detail Level (`detailLevel` parameter):**
-  - Added optional `detailLevel` query parameter (`ClusterDetailLevelExt`: `Full = 0`, `ClustersOnly = 1`, `NodeTypes = 2`, `Projects = 3`) to `GET /heappe/Management/Clusters` and `GET /heappe/Management/Cluster` endpoints for non-breaking reduction of response payload and nested object graph traversal.
-  - Implemented selective eager loading (`.Include()`) in `ClusterRepository` (`GetAllWithActiveProjectFilter` and `GetById`) reducing EF Core database queries by up to 7 split SQL queries when querying cluster metadata or node types without projects and command templates.
-- **Task-level Quality of Service (QoS) support:**
-  - Added optional `QualityOfService` attribute (max length 1000) to `TaskSpecification` and `TaskSpecificationExt` in `CreateJob`.
-  - Added scheduler fallback in `SchedulerDataConvertor`: task-level QoS takes precedence over `ClusterNodeType.QualityOfService`, falling back to node type QoS when unspecified.
-  - Added `QualityOfService` to `AdminTaskInfoExt` in `ListDetailedJobsForAdmin` admin endpoint.
-  - Added `QualityOfService` to `SubmittedTaskInfoExt` in user job info endpoints (`CurrentInfoForJob`, `ListJobsForCurrentUser`).
-  - Added EF Core database migration `AddQualityOfServiceToTaskSpecification` for `TaskSpecification.QualityOfService`.
-- **Token & Certificate In-Memory Caching with Adaptive TTL:**
-  - Added centralized `CalculateAdaptiveTtl` in `CacheUtils` calculating dynamic safety buffers (min 5s, max 60s, 15% of total duration) to eliminate upstream token expiration race conditions without under-caching short-lived tokens.
-  - Added in-memory caching for FIP/LEXIS token exchange in `LexisTokenExchangeMiddleware` keyed by SHA-256 hash of incoming tokens.
-  - Added in-memory caching for SSH CA OTT token exchange in `HttpContextKeys.ExchangeSshCaToken` keyed by SHA-256 hash of IdP tokens and audience.
-  - Added in-memory caching for signed OpenSSH user certificates in `SshCertificateAuthorityService.SignAsync` with 5-minute cluster validity and `InvalidateCache` support.
-  - Added in-memory caching for FirecREST OAuth2 client credentials tokens in `FirecRestTokenService` with `InvalidateToken` support.
-  - Added in-memory caching for Expirio token exchange (`ExchangeTokenAsync`) and FirecREST credentials exchange (`ExchangeFirecrestCredentialsAsync`) in `ExpirioService`.
-- **QScheduler Machine Information endpoint:**
-  - Added `GET /heappe/ClusterInformation/MachineInfo` endpoint for retrieving hardware architecture, topology, and backend version of quantum machines managed by QScheduler.
-  - Added input model `GetMachineInfoModel` and request validation in `ClusterInformationValidator`.
-  - Added automatic parsing and extraction of QScheduler version in machine info responses.
-- **SubProject repository queries:**
-  - Added `GetSubProjectsForProject` and `GetSubProjectsForProjectAsync` methods to `ISubProjectRepository` and `SubProjectRepository` to query all active (non-deleted) subprojects belonging to a project.
-- **SubProject Lifecycle Unit Tests:**
-  - Added comprehensive unit test suite `ManagementLogicSubProjectTests` in `Tests/BusinessLogicTier.Tests` covering SubProject date extension, clamping, auto-extension during job creation, soft-deletion cascading, and validation.
-- **EF Core Navigation Property Validation Tests:**
-  - Added `NavigationPropertyValidationTests` and `NavigationPropertyAssertions` in `RestApi.IntegrationTests` verifying that API endpoints properly return eagerly loaded navigation properties and related graphs via `.Include()`.
+- **Cluster Information Detail Level:** Added optional `detailLevel` query parameter to `GET /heappe/Management/Clusters` and `Cluster` endpoints with selective eager loading.
+- **Task-level QoS:** Added `QualityOfService` attribute to `TaskSpecification` with fallback to cluster node type QoS.
+- **Adaptive In-Memory Caching:** Introduced dynamic TTL caching for tokens (FIP/LEXIS, SSH CA OTT, Expirio, FirecREST) and signed OpenSSH user certificates.
+- **QScheduler Integration:** Added `GET /heappe/ClusterInformation/MachineInfo` endpoint and standalone notifier callback support with walltime limit propagation.
+- **SubProject Management:** Added repository methods and comprehensive lifecycle unit tests for SubProjects.
+- **High-Concurrency & Performance Optimizations:** Added filtered index `IX_SubmittedJobInfo_State`, thread pool pre-allocation, connection string normalization, and persistent HTTP socket connection pooling (`ConfigureHighThroughputSocketsHandler`).
+- **Integration Tests:** Added navigation property assertions and validation tests for eager loading across API endpoints.
+
+### Changed
+- **Server GC:** Enabled `<ServerGarbageCollection>` in `RestApi` and `DataStagingAPI` for high-throughput request processing.
+- **Logging Appender:** Increased database log batching (`bufferSize=30`) in Docker configurations.
 
 ### Fixed
-- **Kerberos ticket expiration validation in `KrbLibSim`:**
-  - Fixed ticket validation logic where `Now.AddSeconds(-300) < cacheEntry.EndTime` treated expired tickets as valid; corrected to `DateTime.UtcNow.AddSeconds(s_ticketValidityBufferSeconds) < cacheEntry.EndTime` and added `InvalidateTicket`.
-- **SubProject lifecycle synchronization with Project:**
-  - **Automatic date extension and clamping in `ModifyProject`:** When a project's `EndDate` or `StartDate` is modified, all active subprojects under that project are automatically adjusted:
-    - Subprojects whose end date was aligned with the old project end date (or that were expired while the project is extended into the future) are automatically extended to the new project end date.
-    - Subprojects whose end date would exceed a shortened project end date are clamped to the new project end date.
-    - Subprojects whose start date is earlier than the new project start date (or were aligned with the old start date) are adjusted to the new project start date.
-  - **Auto-extension of expired SubProjects during job creation:** In `CreateSubProject(identifier, projectId)` (invoked during `CreateJob`), if an existing subproject has expired but its parent project is active, the subproject is automatically extended to `project.EndDate` and reused instead of rejecting job creation with `400 Bad Request: Specified SubProject is deleted or not valid`.
-  - **Cascading soft delete in `RemoveProject`:** When a project is removed, all associated subprojects are now also soft-deleted (`IsDeleted = true`).
-- **User-Agent Header Sanitization:**
-  - Sanitized application version and instance ID strings in HTTP client headers to avoid invalid header character exceptions.
-- **SSH CA credential synchronization, Vault resilience, and auto-provisioning:**
-  - In `ClusterAuthenticationCredentialsUtils.EnsureValidPublicKeyForSshCa`, derive and synchronize `PublicKey` directly from `PrivateKey` when `PrivateKey` is present, ensuring SSH certificates match the private key used for authentication and eliminating `The supplied certificate does not certify the supplied key` errors.
-  - Added guards in `EnsureValidPublicKeyForSshCa` to keep existing `PublicKey` and avoid regenerating keys for existing credentials when Vault data was not loaded (`!IsVaultDataLoaded`).
-  - Added guard in `ClusterAuthenticationCredentialsRepository.UpdateAsync` to only write to Vault when `IsVaultDataLoaded` is true, preventing overwriting existing Vault secrets with empty data during transient Vault read errors.
-  - Handled auto-resolved `authType` in `ManagementLogic.CreateCredential` to return existing user credentials regardless of type mismatch instead of throwing `HPCIdentityAlreadyExistsWithDifferentType` during auto-provisioning workflows.
-- **Kerberos SSH and SFTP connection host resolution:**
-  - Prioritized `masterNodeName` over `cluster.DomainName` for Kerberos SSH and SFTP connection hosts in `SshConnector` and `SftpFileSystemConnector` to prevent connection failures when `domainName` differs from the target host name.
-- **EF Core Missing Eager Loading (`.Include()`) and Null-Safety in Converters:**
-  - Fixed missing `CommandTemplates` and `TemplateParameters` includes in `ProjectRepository` (`GetByIdWithClusterProjects`, `GetAllWithClusterProjects`, and their async variants) causing `null` command templates in `Management/Projects` responses.
-  - Fixed missing `SubProject` include in `SubmittedJobInfoRepository.GetByIdWithTasks` and `GetByIdWithTasksAsync`, and added missing `FileTransferMethod` include to `GetByIdWithTasksAsync`.
-  - Synchronized async repository queries with their sync variants in `ClusterProjectRepository` (added `Cluster` and `Project` includes) and `AdaptorUserRepository` (added `Project` and `AdaptorUserRole` includes to `GetAllUsersInGroupAsync`).
-  - Added `GetAllWithGroupsAndRoles()` in `AdaptorUserRepository` to eagerly load user group roles and fixed `ManagementLogic.ListAdaptorUsers` to prevent empty groups in `Management/AdaptorUsers` responses.
-  - Hardened DTO converters against `NullReferenceException` when navigation properties are not loaded (`ClusterInformationConverts`, `JobReportingConverts`, `ManagementConverts`).
-- **QScheduler Credentials Bypass for HTTP/HTTPS:**
-  - Bypassed service account and cluster authentication credentials initialization requirement when using `SchedulerType.QScheduler` over HTTP/HTTPS protocols in:
-    - [`ClusterInformationLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/ClusterInformation/ClusterInformationLogic.cs) (`GetMachineArchitectureAsync`, `GetMachineCalibrationAsync`, `GetCurrentClusterNodeUsageAsync`, and `GetNextAvailableUserCredentials`),
-    - [`JobManagementLogic`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/JobManagementLogic.cs) (`PrepareGetActualTasksInfoAsync`, `PrepareCancelJobAsync`, `CheckAndCloseQSchedulerSessionsAsync`, and background polling),
-    - [`QSchedulerCallbackHandler`](file:///Users/jakubkonvicka/RiderProjects/heappe-core/BusinessLogicTier/Logic/JobManagement/QSchedulerCallbackHandler.cs) (`ProcessEventAsync`),
-    preventing HTTP 403 `ClusterAccountNotInitialized` errors across all QScheduler operations that do not require SSH credentials.
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **`HEADER-AUTH-NEEDED` Session Isolation:** Filtered sentinel session code `"HEADER-AUTH-NEEDED"` to prevent memory caching and user context crosstalk when authenticating via Bearer tokens.
+- **Cluster Storage Quota & Disk Full Handling:** Added `ClusterStorageQuotaExceededException`, detecting quota and disk-full errors during cluster operations and mapping them to HTTP 400 Bad Request ProblemDetails.
+- **Database & Query Performance:** Added filtered indexes on `AdaptorUser`, eliminated redundant user updates during token auth, reused authenticated user context, trimmed deep eager loading, and enabled `READ_COMMITTED_SNAPSHOT` (RCSI).
+- **SubProject Synchronization:** Automated date extension, clamping, cascading soft-delete, and auto-extension of expired subprojects during job creation.
+- **SSH CA & Vault Resilience:** Derived public keys from private keys for SSH CA, guarded Vault writes against uninitialized reads, and improved Kerberos host resolution.
+- **Credentials & Eager Loading:** Bypassed credential initialization for HTTP/HTTPS QScheduler operations, and fixed missing `.Include()` calls (CommandTemplates, SubProjects, user groups) across repositories.
+- **Logging & Buffering Noise Reduction:** Restricted stream buffering to JSON payloads $\le 128\,\text{KB}$, preserved user context in unhandled exception logs, and suppressed spurious MVC filter warnings.
+
+## V6.5.4
+
+### Fixed
+- **Scheduler Task Wrapping Argument Escaping (`--wrap` & `qsub`):**
+  - Fixed `sbatch: error: Script arguments not permitted with --wrap option` occurring when job command lines, preparation scripts, or directory symlinks contain single quotes (`'`).
+  - Escaped single quotes (`.Replace("'", "'\\''")`) in `SlurmTaskAdapter.SetPreparationAndCommand` when constructing `--wrap '...'` strings in non-callback mode and sbatch mode.
+  - Applied single quote escaping in `PbsProTaskAdapter.SetPreparationAndCommand` when piping non-script commands into `echo '...' | qsub`.
+  - Updated `FireCrestDataConvertor` regex to support unwrapping commands containing escaped single quotes.
+  - Included `recursiveSymlinkCommand` in callback task script generation for Slurm non-sbatch mode.
+- **Authentication & User Context Isolation (`HEADER-AUTH-NEEDED`):**
+  - Fixed user context crosstalk and incorrect user information in logs caused by treating and caching the sentinel session code `"HEADER-AUTH-NEEDED"` as a local session code in `LogUserContextMiddleware`, `UserAndLimitationManagementLogic`, and `UserAndLimitationManagementService`.
+  - Updated `LogUserContextMiddleware` to ignore `"HEADER-AUTH-NEEDED"` and check both `"SessionCode"` and `"sessionCode"` query/JSON parameters, ensuring requests authenticated via Bearer tokens properly resolve user context from HTTP context keys.
+  - Prevented `"HEADER-AUTH-NEEDED"` from being accepted or cached in `UserAndLimitationManagementLogic.GetUserForSessionCode` and `AuthenticateLocalSession`.
+  - Updated `ServiceTier.UserAndLimitationManagementService.GetCurrentUserInfo` and `GetValidatedUserForSessionCode` to delegate to `AuthenticateUser`, correctly handling header-authenticated requests with sentinel or empty session codes.
+- **Auth Middleware Pipeline Order & Introspection Precedence:**
+  - Fixed an issue where `LexisAuthMiddleware` executed before `LexisTokenExchangeMiddleware` and `UseAuthentication()` (`OAuth2Introspection`), causing raw unexchanged Bearer tokens to be sent prematurely to UserOrg and failing with HTTP 401 Unauthorized.
+  - Reordered middleware pipeline in `Startup.cs` and `DataStagingAPI/Program.cs` so that token exchange and OAuth2 introspection run before `LexisAuthMiddleware`.
+
+## V6.5.3
+
+### Fixed
+- **Connection Pool Lifecycle & File Transfer Manager Desynchronization (`ObjectDisposedException`):**
+  - Added `IsDisposed` property to `IConnectionPool` and `ConnectionPool` to track pool disposal status reliably.
+  - Fixed cache invalidation desynchronization in `FileSystemFactory` where `InvalidateAllConnectionPools()` disposed underlying connection pools while cached `IRexFileSystemManager` instances in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` remained active and retained references to the disposed pool.
+  - Made `InvalidateConnectionPool` and `InvalidateAllConnectionPools` virtual in `FileSystemFactory` and overrode them in `SftpFileSystemFactory` and `FirecRestFileSystemFactory` to clear cached manager singletons (`_managerSingletons`) and connector singletons (`_connectorSingletons`).
+  - Added self-healing capability and dynamic connection pool provider in `SftpFileSystemManager` that automatically re-acquires a fresh, valid connection pool from `FileSystemFactory` if the previous pool was disposed, eliminating `System.ObjectDisposedException: Cannot acquire connection from a disposed ConnectionPool` during file uploads/downloads following cluster cache invalidations.
+  - Updated `SchedulerFactory.GetSchedulerConnectionPool` to verify `!existingPool.IsDisposed` and evict disposed pools prior to acquiring connections.
+- **Explicit Bash Interpreter Execution for Remote Scripts (`noexec` Compatibility):**
+  - Fixed `bash: .../run_command.sh: /bin/bash: bad interpreter: Permission denied` occurring on HPC clusters where user home or scratch storage partitions are mounted with the `noexec` security flag.
+  - Prepended explicit `bash` interpreter invocation across all scheduler adapters (`SlurmSchedulerAdapter`, `PbsProSchedulerAdapter`, `HyperQueueSchedulerAdapter`, `LinuxLocalSchedulerAdapter`) and file system commands in `LinuxCommands` (`create_job_directory.sh`, `copy_data_from_temp.sh`, `copy_data_to_temp.sh`, `add_key.sh`, `remove_key.sh`).
+  - Updated `SchedulerDataConvertor.ResolveExecutableFile` to ensure `.sh` task scripts in `.key_scripts` are executed via `bash <script>`, bypassing kernel `noexec` restrictions on cluster nodes without requiring cluster-side configuration changes.
 
 ## V6.5.2
 

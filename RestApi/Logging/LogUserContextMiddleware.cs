@@ -49,6 +49,11 @@ namespace HEAppE.RestApi.Logging
                 userName = await ExtractUserNameFromContent(context);
             }
 
+            if (userId > 0) context.Items["UserId"] = userId;
+            if (!string.IsNullOrEmpty(userName)) context.Items["UserName"] = userName;
+            if (!string.IsNullOrEmpty(email)) context.Items["UserEmail"] = email;
+            if (jobId.HasValue) context.Items["JobId"] = jobId.Value;
+
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
             if (jobId.HasValue)
             {
@@ -134,7 +139,7 @@ namespace HEAppE.RestApi.Logging
             string userName = null;
             string email = null;
 
-            if (string.IsNullOrEmpty(sessionCode))
+            if (string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase))
             {
                 // get user from http context keys
                 // they are filled by LocalAuthenticationHandler or LexisAuthMiddleware depends on authentication type
@@ -159,15 +164,25 @@ namespace HEAppE.RestApi.Logging
             return (userId, userName, email);
         }
 
-        private static async Task<string> GetRequestBodyAsync(HttpContext context)
+        private const int MaxMetadataPayloadBytes = 128 * 1024; // 128 KB
+        private const string RequestBodyCacheKey = "CachedRequestBody";
+        private const string ParsedJsonCacheKey = "CachedParsedJson";
+
+        private static bool IsJsonRequest(HttpContext context)
         {
-            const string RequestBodyCacheKey = "CachedRequestBody";
+            var contentType = context.Request.ContentType;
+            return contentType != null && contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static async Task<string?> GetRequestBodyAsync(HttpContext context)
+        {
             if (context.Items.TryGetValue(RequestBodyCacheKey, out var cached) && cached is string body)
             {
                 return body;
             }
 
-            if (context.Request.ContentLength > 0)
+            // Only buffer JSON requests with reasonable payload size to avoid huge memory allocations on file transfers
+            if (IsJsonRequest(context) && context.Request.ContentLength > 0 && context.Request.ContentLength <= MaxMetadataPayloadBytes)
             {
                 context.Request.EnableBuffering();
                 var position = context.Request.Body.Position;
@@ -185,20 +200,54 @@ namespace HEAppE.RestApi.Logging
             return null;
         }
 
-        private static async Task<string> ExtractSessionCode(HttpContext context)
+        private static async Task<JsonDocument?> GetParsedJsonAsync(HttpContext context)
         {
-            var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(sessionCode))
-                return sessionCode;
+            if (context.Items.TryGetValue(ParsedJsonCacheKey, out var cached) && cached is JsonDocument doc)
+            {
+                return doc;
+            }
 
             var body = await GetRequestBodyAsync(context);
             if (!string.IsNullOrEmpty(body))
             {
-                try 
+                try
                 {
-                    using var json = JsonDocument.Parse(body);
-                    if (json.RootElement.TryGetProperty("SessionCode", out var prop))
-                        return prop.GetString();
+                    var parsed = JsonDocument.Parse(body);
+                    context.Items[ParsedJsonCacheKey] = parsed;
+                    context.Response.RegisterForDispose(parsed);
+                    return parsed;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsValidSessionCode(string? sessionCode)
+        {
+            return !string.IsNullOrWhiteSpace(sessionCode) && !string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static async Task<string?> ExtractSessionCode(HttpContext context)
+        {
+            var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault() ?? context.Request.Query["sessionCode"].FirstOrDefault();
+            if (IsValidSessionCode(sessionCode))
+                return sessionCode;
+
+            var json = await GetParsedJsonAsync(context);
+            if (json != null)
+            {
+                try
+                {
+                    if (json.RootElement.TryGetProperty("SessionCode", out var prop) || json.RootElement.TryGetProperty("sessionCode", out prop))
+                    {
+                        var code = prop.GetString();
+                        if (IsValidSessionCode(code))
+                            return code;
+                    }
                 }
                 catch { }
             }
@@ -228,14 +277,13 @@ namespace HEAppE.RestApi.Logging
                 }
             }
             
-            if (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)
+            if (IsJsonRequest(context))
             {
-                var body = await GetRequestBodyAsync(context);
-                if (!string.IsNullOrEmpty(body))
+                var json = await GetParsedJsonAsync(context);
+                if (json != null)
                 {
                     try
                     {
-                        using var json = JsonDocument.Parse(body);
                         foreach (var key in possibleKeys)
                         {
                             if (json.RootElement.TryGetProperty(key, out var prop))
@@ -277,16 +325,15 @@ namespace HEAppE.RestApi.Logging
             }
         }
 
-        private async Task<string> ExtractUserNameFromContent(HttpContext context)
+        private static async Task<string> ExtractUserNameFromContent(HttpContext context)
         {
-            if (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)
+            if (IsJsonRequest(context))
             {
-                var body = await GetRequestBodyAsync(context);
-                if (!string.IsNullOrEmpty(body))
+                var json = await GetParsedJsonAsync(context);
+                if (json != null)
                 {
                     try
                     {
-                        using var json = JsonDocument.Parse(body);
                         // Look for Username in generic credentials structure
                         if (json.RootElement.TryGetProperty("Credentials", out var creds) || json.RootElement.TryGetProperty("credentials", out creds))
                         {

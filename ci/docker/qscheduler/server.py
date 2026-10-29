@@ -179,12 +179,13 @@ class QSchedulerHandler(BaseHTTPRequestHandler):
             machine = query.get("machine", [None])[0]
             project = query.get("project", [None])[0]
             time_limit = int(query.get("time_limit_ms", [3600000])[0])
+            notify = query.get("notify", [None])[0]
 
             global session_counter
             with lock:
                 session_counter += 1
                 sid = session_counter
-                sessions[sid] = {
+                session_obj = {
                     "id": sid,
                     "state": "open",
                     "machine": machine or "TestMachine",
@@ -194,6 +195,9 @@ class QSchedulerHandler(BaseHTTPRequestHandler):
                     "opened_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "exectime_ms": 0
                 }
+                if notify:
+                    session_obj["notify"] = notify
+                sessions[sid] = session_obj
             self._send_text(201, str(sid))
             return
 
@@ -202,13 +206,15 @@ class QSchedulerHandler(BaseHTTPRequestHandler):
             project = query.get("project", [None])[0]
             session_id = query.get("session_id", [None])[0]
             user = query.get("user", ["heappe"])[0]
+            notify = query.get("notify", [None])[0]
+            time_limit = query.get("time_limit_ms", [None])[0]
 
             global task_counter
             with lock:
                 task_counter += 1
                 tid = task_counter
                 now_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                tasks[tid] = {
+                task_obj = {
                     "id": tid,
                     "machine": machine or "TestMachine",
                     "project": project,
@@ -224,6 +230,14 @@ class QSchedulerHandler(BaseHTTPRequestHandler):
                     "result": '{"outcome": {"type": "Ok"}, "counts": {"0": 512, "1": 512}}',
                     "artifacts": {"measurements": '{"0": 512, "1": 512}'}
                 }
+                if notify:
+                    task_obj["notify"] = notify
+                if time_limit:
+                    try:
+                        task_obj["time_limit_ms"] = int(time_limit)
+                    except ValueError:
+                        pass
+                tasks[tid] = task_obj
             self._send_text(201, str(tid))
             return
 

@@ -90,10 +90,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
+        bool isHeaderAuth = string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase);
         bool hasIdpOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.IdpToken) 
                                   || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
 
-        if (!hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        if (!isHeaderAuth && !hasIdpOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
         {
             _logger.LogInformation("Authenticating local user with session code.");
             return AuthenticateLocalSession(sessionCode);
@@ -104,11 +105,19 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             return GetUserById(_httpContextKeys.Context.AdaptorUserId);
         }
 
+        if (isHeaderAuth || string.IsNullOrEmpty(sessionCode))
+        {
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
+
         return AuthenticateLocalSession(sessionCode);
     }
 
     private AdaptorUser AuthenticateLocalSession(string sessionCode)
     {
+        if (string.IsNullOrEmpty(sessionCode) || string.Equals(sessionCode, "HEADER-AUTH-NEEDED", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Unauthorized");
+
         var cache = LogicFactory.GetService<IMemoryCache>();
         if (cache != null)
         {
@@ -668,8 +677,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 !string.IsNullOrEmpty(idpSid) && idpSid != Guid.Empty.ToString())
             {
                 user.IdpSid = idpSid;
+                user.ModifiedAt = changedTime;
                 _unitOfWork.AdaptorUserRepository.Update(user);
                 _unitOfWork.Save();
+
+                EvictUserCache(user);
             }
         }
 
@@ -686,9 +698,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
             if (!groupsWithProject.Any()) continue;
 
+            if (lexisProject.Permissions is null) continue;
+
             var roleNames = lexisProject.Permissions
-                .Where(RoleMapping.MappingRoles.ContainsKey)
-                .Select(s => RoleMapping.MappingRoles[s])
+                .Where(p => !string.IsNullOrEmpty(p) && RoleMapping.MappingRoles.ContainsKey(p))
+                .SelectMany(s => RoleMapping.MappingRoles[s])
+                .Distinct()
                 .ToList();
 
             if (!roleNames.Any()) continue;
@@ -732,6 +747,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         }
 
         await _unitOfWork.SaveAsync();
+
+        EvictUserCache(user);
         
         return user;
     }
@@ -819,13 +836,46 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private AdaptorUser UpdateUser(AdaptorUser user, string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
     {
-        user.Username = username;
-        user.Email = email;
-        user.ModifiedAt = changedTime;
-        user.UserType = adaptorUserType;
-        _unitOfWork.AdaptorUserRepository.Update(user);
-        _unitOfWork.Save();
+        bool isChanged = false;
+        if (!string.IsNullOrEmpty(username) && !string.Equals(user.Username, username, StringComparison.Ordinal))
+        {
+            user.Username = username;
+            isChanged = true;
+        }
+        if (!string.IsNullOrEmpty(email) && !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.Email = email;
+            isChanged = true;
+        }
+        if (user.UserType != adaptorUserType)
+        {
+            user.UserType = adaptorUserType;
+            isChanged = true;
+        }
+
+        if (isChanged)
+        {
+            user.ModifiedAt = changedTime;
+            _unitOfWork.AdaptorUserRepository.Update(user);
+            _unitOfWork.Save();
+
+            EvictUserCache(user);
+        }
         return user;
+    }
+
+    private void EvictUserCache(AdaptorUser user)
+    {
+        if (user == null) return;
+        try
+        {
+            var cache = LogicFactory.GetService<IMemoryCache>();
+            cache?.Remove($"UserById_{user.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to evict user from cache");
+        }
     }
 
 
@@ -928,7 +978,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     private SessionCode CreateSessionCode(AdaptorUser user)
     {
-        var sessionCode = _unitOfWork.SessionCodeRepository.GetByUser(user);
+        var trackedUser = _unitOfWork.AdaptorUserRepository.GetById(user.Id) ?? user;
+        var sessionCode = _unitOfWork.SessionCodeRepository.GetByUser(trackedUser);
 
         if (sessionCode is null || IsSessionExpired(sessionCode))
         {
@@ -943,7 +994,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 AuthenticationTime = DateTime.UtcNow,
                 LastAccessTime = DateTime.UtcNow,
                 UniqueCode = guid.ToString(),
-                User = user
+                User = trackedUser
             };
             _unitOfWork.SessionCodeRepository.Insert(sessionCode);
         }

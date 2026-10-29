@@ -15,10 +15,12 @@ using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.TokenExchange;
 using HEAppE.Exceptions.AbstractTypes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using HEAppE.Authentication;
+using HEAppE.RestUtils;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -98,10 +100,63 @@ public static class JwtIntrospectionExtensions
                                 context.Principal?.Identity?.Name,
                                 string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}")));
 
+                            // === PostAuth token exchanges (unified service) ===
+                            var tokenExchangeService = context.HttpContext.RequestServices.GetRequiredService<ITokenExchangeService>();
+                            var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
+
+                            if (tokenExchangeService.HasAutoExchangeTargets("PostAuth"))
+                            {
+                                try
+                                {
+                                    if (!string.IsNullOrEmpty(requestContext.Context.IdpToken) &&
+                                        !requestContext.Context.ExchangedTokens.ContainsKey("idp"))
+                                    {
+                                        requestContext.Context.ExchangedTokens["idp"] = requestContext.Context.IdpToken;
+                                    }
+
+                                    var postAuthResults = await tokenExchangeService.ExecuteAutoExchangesAsync(
+                                        "PostAuth",
+                                        requestContext.Context.LEXISToken ?? requestContext.Context.IdpToken,
+                                        requestContext.Context.ExchangedTokens);
+
+                                    foreach (var result in postAuthResults.Where(r => !r.Value.Success))
+                                    {
+                                        log.LogWarning("[Introspection] PostAuth token exchange failed for target '{Target}': {Error}", result.Key, result.Value.Error);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    log.LogError(ex, "[Introspection] PostAuth token exchange failed: {Message}", ex.Message);
+
+                                    var problem = new ProblemDetails
+                                    {
+                                        Status = StatusCodes.Status502BadGateway,
+                                        Title = "Token Exchange Failed",
+                                        Detail = ex.Message
+                                    };
+
+                                    if (ex is ExternalException externalEx)
+                                    {
+                                        problem.Title = !string.IsNullOrEmpty(externalEx.ServiceName)
+                                            ? $"Token Exchange External Problem ({externalEx.ServiceName})"
+                                            : "Token Exchange External Problem";
+                                        problem.Detail = externalEx.Message + (externalEx.Details != null ? $": {externalEx.Details}" : "");
+                                    }
+
+                                    var response = context.HttpContext.Response;
+                                    response.ContentType = "application/json";
+                                    response.StatusCode = problem.Status.Value;
+                                    await response.WriteAsJsonAsync(problem);
+
+                                    context.HttpContext.Items["AuthErrorHandled"] = true;
+                                    context.Fail(ex);
+                                    return;
+                                }
+                            }
+
                             var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices.GetRequiredService<IUserOrgService>();
                             var expirioService = context.HttpContext.RequestServices.GetRequiredService<IExpirioService>();
-                            var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
 
                             try
                             {
@@ -140,12 +195,14 @@ public static class JwtIntrospectionExtensions
                                 response.StatusCode = problem.Status.Value;
                                 await response.WriteAsJsonAsync(problem);
                                 context.HttpContext.Items["AuthErrorHandled"] = true;
-
                                 context.Fail(ex);
                                 return;
                             }
 
-                            if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+                            // === Legacy SSH CA fallback (when no PostAuth targets configured) ===
+                            if (!requestContext.Context.ExchangedTokens.ContainsKey("sshca") &&
+                                JwtTokenIntrospectionConfiguration.IsEnabled &&
+                                SshCaSettings.UseCertificateAuthorityForAuthentication)
                             {
                                 var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                                 var client = httpClientFactory.CreateClient();
@@ -158,7 +215,8 @@ public static class JwtIntrospectionExtensions
                                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                                 //get token endpoint from discovery document
                                 var disco = await client.GetDiscoveryDocumentAsync(JwtTokenIntrospectionConfiguration.Authority);
-                                if (disco.IsError)                                {
+                                if (disco.IsError)
+                                {
                                     log.LogError("[Introspection] Discovery document retrieval failed (Keycloak): {Error}", disco.Error);
 
                                     var problem = new ProblemDetails
@@ -173,7 +231,6 @@ public static class JwtIntrospectionExtensions
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
                                     context.HttpContext.Items["AuthErrorHandled"] = true;
-
                                     context.Fail($"Token exchange failed (Keycloak discovery error): {disco.Error}");
                                     return;
                                 }
@@ -208,7 +265,6 @@ public static class JwtIntrospectionExtensions
                                     response.StatusCode = problem.Status.Value;
                                     await response.WriteAsJsonAsync(problem);
                                     context.HttpContext.Items["AuthErrorHandled"] = true;
-
                                     context.Fail(ex);
                                     return;
                                 }
@@ -219,6 +275,7 @@ public static class JwtIntrospectionExtensions
 
             services.AddTransient<LoggingHandler>();
             services.AddHttpClient(OAuth2IntrospectionDefaults.BackChannelHttpClientName)
+                .ConfigureHighThroughputSocketsHandler()
                 .AddHttpMessageHandler<LoggingHandler>()
                 .ConfigureHttpClient(client =>
                 {
@@ -242,6 +299,7 @@ public static class JwtIntrospectionExtensions
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", $"HEAppE-{sanitizedInstanceId}/{sanitizedVersion}");
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
+            .ConfigureHighThroughputSocketsHandler()
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         }

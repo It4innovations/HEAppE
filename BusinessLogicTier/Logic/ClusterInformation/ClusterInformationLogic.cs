@@ -416,14 +416,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         if (cluster.SchedulerType == SchedulerType.QScheduler && 
             (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https))
         {
-            var firstCred = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(1)
-                ?? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().FirstOrDefault();
-            return firstCred ?? new ClusterAuthenticationCredentials
-            {
-                Id = 0,
-                Username = "http-service",
-                CipherType = DomainObjects.FileTransfer.FileTransferCipherType.Unknown
-            };
+            // QScheduler over HTTP does not use cluster credentials; the audit user sent to QScheduler comes
+            // from JobSpecification.Submitter. A persisted credential is still needed because the result is
+            // stored as JobSpecification.ClusterUser, so each project gets its own placeholder credential.
+            return await GetOrCreateHttpServicePlaceholderCredential(clusterId, projectId);
         }
 
         if (project.IsOneToOneMapping)
@@ -536,6 +532,28 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                     return credentials;
                 }
 
+                // If credentials already exist in DB for this project and cluster, they failed to initialize
+                // (e.g. disk quota or script setup error). Do NOT attempt to create them again,
+                // as that would fail with HPCIdentityAlreadyExistsWithDifferentType or mask the initialization failure.
+                bool hasExistingCredentials;
+                if (onlyServiceAccounts)
+                {
+                    hasExistingCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized: false, adaptorUserId, _logger) != null;
+                }
+                else
+                {
+                    var existing = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized: false, adaptorUserId, _logger);
+                    hasExistingCredentials = existing != null && existing.Any();
+                }
+
+                if (hasExistingCredentials)
+                {
+                    _logger.LogWarning("Existing credentials found for ClusterId: {0}, ProjectId: {1}, but initialization failed.", clusterId, projectId);
+                    throw;
+                }
+
                 // If initialization failed because they don't exist, try creating them
                 return await _credentialProvisioningLogic.CreateAndInitializeMissingCredentials(
                     clusterId: clusterId,
@@ -546,6 +564,90 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         }
     }
     
+
+    /// <summary>
+    ///     Username of the placeholder credential used for schedulers that need no cluster credentials (QScheduler over HTTP).
+    /// </summary>
+    internal const string HttpServicePlaceholderUsername = "http-service";
+
+    private static readonly System.Threading.SemaphoreSlim _httpServicePlaceholderLock = new(1, 1);
+
+    /// <summary>
+    ///     Returns the project's placeholder credential for the cluster, creating it on first use.
+    ///     It holds no secrets and is linked as a shared (non 1:1), initialized credential of the cluster project.
+    /// </summary>
+    private async Task<ClusterAuthenticationCredentials> GetOrCreateHttpServicePlaceholderCredential(long clusterId, long projectId)
+    {
+        ClusterAuthenticationCredentials FindExisting(ClusterProject cp) => cp.ClusterProjectCredentials
+            .Where(cpc => !cpc.IsDeleted && cpc.AdaptorUserId == null && cpc.ClusterAuthenticationCredentials != null
+                          && !cpc.ClusterAuthenticationCredentials.IsDeleted
+                          && cpc.ClusterAuthenticationCredentials.Username == HttpServicePlaceholderUsername
+                          && cpc.ClusterAuthenticationCredentials.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
+            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+            .OrderBy(c => c.Id)
+            .FirstOrDefault();
+
+        ClusterProject LoadClusterProject() => _unitOfWork.ClusterProjectRepository.AsQueryable()
+            .Include(cp => cp.ClusterProjectCredentials)
+                .ThenInclude(cpc => cpc.ClusterAuthenticationCredentials)
+            .FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId && !cp.IsDeleted)
+            ?? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, clusterId);
+
+        var existing = FindExisting(LoadClusterProject());
+        if (existing != null)
+            return existing;
+
+        // Serialize creation within this process so concurrent first requests do not create duplicates.
+        await _httpServicePlaceholderLock.WaitAsync();
+        try
+        {
+            var clusterProject = LoadClusterProject();
+            existing = FindExisting(clusterProject);
+            if (existing != null)
+                return existing;
+
+            var placeholder = new ClusterAuthenticationCredentials
+            {
+                Username = HttpServicePlaceholderUsername,
+                AuthenticationType = ClusterAuthenticationCredentialsAuthType.Unknown,
+                CipherType = DomainObjects.FileTransfer.FileTransferCipherType.Unknown,
+                IsGenerated = false,
+                IsDeleted = false
+            };
+            placeholder.ClusterProjectCredentials.Add(new ClusterProjectCredential
+            {
+                ClusterProject = clusterProject,
+                ClusterAuthenticationCredentials = placeholder,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false,
+                IsServiceAccount = false,
+                IsInitialized = true,   // nothing to initialize on the cluster
+                AdaptorUserId = null
+            });
+
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(placeholder);
+            await _unitOfWork.SaveAsync();
+            _logger.LogInformation($"Created QScheduler HTTP placeholder credential {placeholder.Id} for project {projectId} on cluster {clusterId}.");
+
+            // Best-effort: an (empty) vault entry avoids "not found" warnings on later reads.
+            // The placeholder holds no secrets, so a vault outage must not block job submission.
+            try
+            {
+                var vaultConnector = new HEAppE.DataAccessTier.Vault.VaultConnector(_logger);
+                if (!await vaultConnector.SetClusterAuthenticationCredentialsAsync(placeholder.ExportVaultData()))
+                    _logger.LogWarning($"Could not store placeholder credential {placeholder.Id} in vault; continuing without it.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Vault unavailable while storing placeholder credential {placeholder.Id}; continuing without it.");
+            }
+            return placeholder;
+        }
+        finally
+        {
+            _httpServicePlaceholderLock.Release();
+        }
+    }
 
     private async Task<ClusterAuthenticationCredentials> GetNextAvailableUserCredentialsByAdaptorUser(long clusterId, long projectId, bool requireIsInitialized, long adaptorUserId)
     {

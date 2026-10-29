@@ -10,7 +10,43 @@ namespace HEAppE.DataAccessTier;
 
 public class MiddlewareContextSettings
 {
-    public static string ConnectionString { get; set; }
+    private static string _connectionString;
+    public static string ConnectionString
+    {
+        get => _connectionString;
+        set => _connectionString = NormalizeConnectionString(value);
+    }
+
+    public static string NormalizeConnectionString(string connectionString, int defaultMaxPoolSize = 250, int defaultConnectTimeout = 30)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString)) return connectionString;
+        try
+        {
+            var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+            if (!builder.ContainsKey("Max Pool Size") || builder.MaxPoolSize <= 100)
+            {
+                builder.MaxPoolSize = defaultMaxPoolSize;
+            }
+            if (!builder.ContainsKey("Connect Timeout") || builder.ConnectTimeout < defaultConnectTimeout)
+            {
+                builder.ConnectTimeout = defaultConnectTimeout;
+            }
+            if (!builder.MultipleActiveResultSets)
+            {
+                builder.MultipleActiveResultSets = true;
+            }
+            if (!builder.TrustServerCertificate)
+            {
+                builder.TrustServerCertificate = true;
+            }
+            return builder.ConnectionString;
+        }
+        catch
+        {
+            return connectionString;
+        }
+    }
+
     public static List<AdaptorUser> AdaptorUsers { get; set; } = new();
 
     public static List<AdaptorUserRole> AdaptorUserRoles { get; set; } = new();

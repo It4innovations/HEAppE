@@ -29,6 +29,24 @@ public class FirecRestFileSystemFactory : FileSystemFactory
         }
     }
 
+    public override void InvalidateConnectionPool(long fileTransferMethodId)
+    {
+        base.InvalidateConnectionPool(fileTransferMethodId);
+        foreach (var kvp in _managerSingletons)
+        {
+            if (kvp.Value is FirecRestFileSystemManager fcMgr && fcMgr.FileTransferConfiguration?.Id == fileTransferMethodId)
+            {
+                _managerSingletons.TryRemove(kvp.Key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllConnectionPools()
+    {
+        base.InvalidateAllConnectionPools();
+        _managerSingletons.Clear();
+    }
+
     internal override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification syncFile,
         ClusterAuthenticationCredentials credentials)
     {

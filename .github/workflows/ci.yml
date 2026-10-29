@@ -82,6 +82,7 @@ jobs:
       - name: Generate Code Coverage Reports (HTML & Cobertura)
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
         if: always()
+        continue-on-error: true
         with:
           reports: 'TestResults/**/coverage.cobertura.xml'
           targetdir: 'TestResults/CoverageReport'
@@ -199,3 +200,15 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.version }}-dev
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
+
+      - name: Build & Publish HEAppE DataStaging API Development Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./DataStagingAPI/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:dev-latest
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.version }}-dev
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}

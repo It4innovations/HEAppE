@@ -95,7 +95,9 @@ public static class ClusterAuthenticationCredentialsUtils
             }
         }
 
-        if (cluster.ProxyConnection is null)
+        bool hasProxy = cluster?.ProxyConnection is not null;
+
+        if (!hasProxy)
         {
             //skip if type is >= 13 - other than classic 
             if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
@@ -120,7 +122,7 @@ public static class ClusterAuthenticationCredentialsUtils
                 
 
             if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster.ConnectionProtocol)
+                switch (cluster?.ConnectionProtocol)
                 {
                     case ClusterConnectionProtocol.MicrosoftHpcApi:
                         return ClusterAuthenticationCredentialsAuthType.Password;
@@ -163,7 +165,7 @@ public static class ClusterAuthenticationCredentialsUtils
             }
 
             if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster.ConnectionProtocol)
+                switch (cluster?.ConnectionProtocol)
                 {
                     case ClusterConnectionProtocol.MicrosoftHpcApi:
                         return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
@@ -183,15 +185,41 @@ public static class ClusterAuthenticationCredentialsUtils
                 }
         }
 
-        if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+        // If credential already has a valid key/certificate auth type (even if PrivateKey is currently unloaded in memory), preserve it!
+        if (credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKey
+            or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
+            or ClusterAuthenticationCredentialsAuthType.SshCertificate
+            or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
         {
-            return cluster?.ProxyConnection is null
-                ? ClusterAuthenticationCredentialsAuthType.SshCertificate
-                : ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
+                credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
+            {
+                return hasProxy
+                    ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
+                    : ClusterAuthenticationCredentialsAuthType.SshCertificate;
+            }
+
+            return hasProxy
+                ? ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
+                : ClusterAuthenticationCredentialsAuthType.PrivateKey;
         }
 
-        return credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-            ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-            : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
+        if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+        {
+            return hasProxy
+                ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
+                : ClusterAuthenticationCredentialsAuthType.SshCertificate;
+        }
+
+        // Only keep PrivateKeyInSshAgent / PrivateKeyInVaultAndInSshAgent if explicitly set and PrivateKey is not loaded
+        if (string.IsNullOrEmpty(credential.PrivateKey) &&
+            credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+        {
+            return credential.AuthenticationType;
+        }
+
+        return hasProxy
+            ? ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
+            : ClusterAuthenticationCredentialsAuthType.PrivateKey;
     }
 }

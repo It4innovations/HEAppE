@@ -62,6 +62,9 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.UserOrg;
 using HEAppE.Services.FirecRest;
+using HEAppE.Services.TokenExchange;
+using HEAppE.Services.TokenExchange.Strategies;
+using HEAppE.RestUtils;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi;
@@ -92,6 +95,10 @@ public class Startup
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
         DatabaseMigrationSettings.AutoMigrateDatabase = Configuration.GetValue<bool>("DatabaseMigrationSettings:AutoMigrateDatabase");
+        Configuration.GetSection("HPCConnectionFrameworkSettings:TunnelSettings").Bind(HPCConnectionFrameworkConfiguration.TunnelSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:ClustersConnectionPoolSettings").Bind(HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:SshClientSettings").Bind(HPCConnectionFrameworkConfiguration.SshClientSettings);
+        Configuration.GetSection("HPCConnectionFrameworkSettings:ScriptsSettings").Bind(HPCConnectionFrameworkConfiguration.ScriptsSettings);
         Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
         ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
@@ -103,6 +110,11 @@ public class Startup
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
         Configuration.Bind("ExpirioSettings", new ExpirioSettings());
         Configuration.Bind("JwtTokenIntrospectionConfiguration", new JwtTokenIntrospectionConfiguration());
+
+        // Unified Token Exchange: bind targets from configuration
+        var tokenExchangeTargets = new List<TokenExchangeTargetConfiguration>();
+        Configuration.GetSection("TokenExchangeTargets").Bind(tokenExchangeTargets);
+        services.AddSingleton<IEnumerable<TokenExchangeTargetConfiguration>>(tokenExchangeTargets);
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -153,6 +165,7 @@ public class Startup
                 conf.Timeout = TimeSpan.FromSeconds(LexisAuthenticationConfiguration.ConnectionTimeoutInSeconds);
             }
         })
+        .ConfigureHighThroughputSocketsHandler()
         .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("userorg", "identity"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
@@ -165,20 +178,37 @@ public class Startup
             conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
             conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
+        .ConfigureHighThroughputSocketsHandler()
         .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("expirio", "accounting"))
         .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("SshCaClient")
+            .ConfigureHighThroughputSocketsHandler()
             .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("ssh ca", "certificateauthority"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddHttpClient("FirecREST")
+            .ConfigureHighThroughputSocketsHandler()
             .AddHttpMessageHandler(() => new HEAppE.Services.Monitoring.ExternalServiceTelemetryDelegatingHandler("firecrest", "cluster"))
             .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
         
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
         services.AddSingleton<IHEAppEEventHub, HEAppEEventHub>();
+
+        // Unified Token Exchange: register strategies and service
+        services.AddSingleton<Rfc8693ExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy>(sp => sp.GetRequiredService<Rfc8693ExchangeStrategy>());
+        services.AddSingleton<ITokenExchangeStrategy, ExpirioExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, ClientCredentialsExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, KeycloakBrokerExchangeStrategy>();
+        services.AddSingleton<ITokenExchangeStrategy, IntrospectionExchangeStrategy>();
+        services.AddScoped<ITokenExchangeService, TokenExchangeService>();
+
+        services.AddHttpClient("TokenExchangeClient")
+            .ConfigureHighThroughputSocketsHandler()
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.TransientRetryPolicy)
+            .AddPolicyHandler(HEAppE.RestUtils.ResiliencePolicies.DefaultCircuitBreakerPolicy);
 
         services.AddSmartAuthentication(Configuration);
 
@@ -204,7 +234,8 @@ public class Startup
         services.AddHttpClient("LexisTokenExchangeClient", conf => 
         {
             conf.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.ConnectionTimeoutInSeconds);
-        });
+        })
+        .ConfigureHighThroughputSocketsHandler();
         services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
@@ -303,7 +334,9 @@ public class Startup
         // message to appear twice. We only update the log level and DB connection string.
         ConfigureLog4NetLevel();
 
-        AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
+        var rawLoggingConnString = Configuration.GetConnectionString("Logging");
+        var loggingConnString = HEAppE.DataAccessTier.MiddlewareContextSettings.NormalizeConnectionString(rawLoggingConnString, defaultMaxPoolSize: 100);
+        AdoNetAppenderHelper.SetConnectionString(loggingConnString);
 
 
         ServiceActivator.Configure(app.ApplicationServices);
