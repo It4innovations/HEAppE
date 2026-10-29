@@ -48,7 +48,7 @@ public class ClusterInformationService : IClusterInformationService
         _cacheProvider = cacheProvider;
         _logger = logger;
     }
-    
+
     private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
     {
         var options = new MemoryCacheEntryOptions()
@@ -194,7 +194,7 @@ public class ClusterInformationService : IClusterInformationService
                             })
                             // QScheduler clusters don't require command templates — skip template count check,
                             // but the project must still be present (user has a role in it).
-                            .Where(p => isQScheduler || p.CommandTemplates.Length > 0)
+                            .Where(p => isQScheduler || (commandTemplateName != null && p.CommandTemplates.Length > 0) || (p.CommandTemplates.Length >= 0 && commandTemplateName == null))
                             .ToArray();
                         return nt;
                     })
@@ -210,7 +210,7 @@ public class ClusterInformationService : IClusterInformationService
 
         return clustersExt;
     }
-    
+
 
     public ClusterClearCacheInfoExt ListAvailableClustersClearCache(string sessionCode)
     {
@@ -225,7 +225,7 @@ public class ClusterInformationService : IClusterInformationService
 
         var clearedKeysCount = _cacheProvider is MemoryCache memCache ? memCache.Count : 0;
         CacheUtils.InvalidateClusterCache(_logger);
-        
+
         return new ClusterClearCacheInfoExt
         {
             ClearedKeysCount = clearedKeysCount,
@@ -295,7 +295,7 @@ public class ClusterInformationService : IClusterInformationService
             }
 
             _logger.LogInformation($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsageAsync(clusterNodeId, loggedUser, projectId);
             SetCacheWithGlobalToken(memoryCacheKey, nodeUsage.ConvertIntToExt(), _cacheLimitForGetCurrentClusterUsage);
             return nodeUsage.ConvertIntToExt();
