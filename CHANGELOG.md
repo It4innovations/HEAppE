@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## V7.0.0
+
+### Added
+- **Allow Projects with Empty Command Templates:** Allowed clusters, node types, and projects with empty command templates in `ListAvailableClusters` when `commandTemplateName` is not specified (#17).
+
+### Changed
+- **Cluster Information Project Filtering:**
+  - `GET /heappe/ClusterInformation/ListAvailableClusters` now returns projects with empty `CommandTemplates` collections (`[]`) when querying without a specific `commandTemplateName` filter.
+  - Parent `NodeTypes` and `Clusters` are now visible even if their associated projects do not yet have any command templates defined.
+  - When the `commandTemplateName` query parameter is provided, filtering is preserved and only projects containing that specific template are returned.
+
 ## V6.6.1
 
 ### Fixed
