@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.6.1
 
 ### Fixed
+- **Certificate Generator Thread Safety:** Made base certificate generator comments immutable (`readonly`) and isolated EdDSA public comments, preventing race conditions during parallel test runs.
 - **QScheduler (HTTP) 1:1 Mapping & Audit User:** Supported 1:1 user mapping over HTTP/HTTPS by skipping cluster credential checks and sending the HEAppE submitter as the audit user (#22).
 - **LEXIS Role Mapping Thread Safety:** Fixed `ArgumentException: An item with the same key has already been added` by ensuring thread-safe role initialization and supporting 1-to-many role mappings in `RoleMapping`.
 
