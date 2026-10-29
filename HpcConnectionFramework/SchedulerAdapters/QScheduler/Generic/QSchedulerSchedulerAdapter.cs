@@ -447,6 +447,24 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
     }
 
+    /// <summary>
+    ///     Resolves the "user" sent to QScheduler. QScheduler accounts per project and uses the user only
+    ///     for auditing, so the HEAppE submitter takes precedence over the cluster credential username.
+    /// </summary>
+    private string ResolveAuditUser(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+    {
+        var user = jobSpecification?.Submitter?.Username;
+        if (!string.IsNullOrEmpty(user))
+            return user;
+
+        user = credentials?.Username ?? jobSpecification?.ClusterUser?.Username;
+        if (string.IsNullOrEmpty(user))
+            user = "heappe";
+
+        _logger.LogWarning($"QScheduler audit user: submitter not available for job specification {jobSpecification?.Id}; sending '{user}' instead.");
+        return user;
+    }
+
     public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
@@ -599,7 +617,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                                 : $"{taskDir}/{taskSpec.StandardInputFile}";
                         }
 
-                        var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
+                        var username = ResolveAuditUser(jobSpecification, credentials);
                         var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                         var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
@@ -655,7 +673,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             : $"{taskDir}/{taskSpec.StandardInputFile}";
                     }
 
-                    var username = credentials?.Username ?? jobSpecification.Submitter?.Username ?? "heappe";
+                    var username = ResolveAuditUser(jobSpecification, credentials);
                     var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                     var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
@@ -751,9 +769,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             ? $"{taskDir}/payload.json"
                             : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
 
-                        var username = taskInfo.Specification?.JobSpecification?.ClusterUser?.Username ?? 
-                                       taskInfo.Specification?.JobSpecification?.Submitter?.Username ?? 
-                                       "heappe";
+                        var username = ResolveAuditUser(taskInfo.Specification?.JobSpecification,
+                                                        taskInfo.Specification?.JobSpecification?.ClusterUser);
                         var taskNotifier = ResolveNotifier(
                             cluster,
                             clusterConfig);

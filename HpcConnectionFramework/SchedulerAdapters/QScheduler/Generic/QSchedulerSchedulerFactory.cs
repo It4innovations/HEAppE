@@ -61,7 +61,9 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
         string token,
         ILogger logger)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.IsOneToOneMapping ? adaptorUserId : null);
+        // Over HTTP the user is sent per request (for auditing), so one scheduler per project is enough.
+        var perUser = project.IsOneToOneMapping && RequiresClusterCredentials(configuration);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, perUser ? adaptorUserId : null);
         return _schedulerSingletons.GetOrAdd(
             uniqueIdentifier,
             key =>
@@ -117,6 +119,12 @@ internal class QSchedulerSchedulerFactory : SchedulerFactory
     {
         _schedulerSingletons.Clear();
     }
+
+    /// <summary>
+    ///     QScheduler over HTTP/HTTPS ignores cluster credentials (HttpConnector does not use them).
+    /// </summary>
+    protected override bool RequiresClusterCredentials(Cluster cluster) =>
+        cluster.ConnectionProtocol is not (ClusterConnectionProtocol.Http or ClusterConnectionProtocol.Https);
 
     protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {

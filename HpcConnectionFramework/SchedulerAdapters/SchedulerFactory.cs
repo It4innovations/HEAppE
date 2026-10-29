@@ -93,16 +93,22 @@ public abstract class SchedulerFactory
     #region Local Methods
 
     /// <summary>
+    ///     Whether connecting to this cluster needs per-user cluster credentials.
+    ///     When false, 1:1 projects share one connection pool and no user credential is required.
+    /// </summary>
+    protected virtual bool RequiresClusterCredentials(Cluster cluster) => true;
+
+    /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
     protected IConnectionPool GetSchedulerConnectionPool(
-        Cluster clusterConf, 
-        Project project, 
+        Cluster clusterConf,
+        Project project,
         ISshCertificateAuthorityService sshCertificateAuthorityService,
         long? adaptorUserId,
         IExpirioService expirio, ILogger logger)
     {
-        if (!project.IsOneToOneMapping)
+        if (!project.IsOneToOneMapping || !RequiresClusterCredentials(clusterConf))
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,

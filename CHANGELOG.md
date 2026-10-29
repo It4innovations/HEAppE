@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## V6.6.1
+
+### Fixed
+- **QScheduler (HTTP) 1:1 Mapping & Audit User:** Supported 1:1 user mapping over HTTP/HTTPS by skipping cluster credential checks and sending the HEAppE submitter as the audit user (#22).
+- **LEXIS Role Mapping Thread Safety:** Fixed `ArgumentException: An item with the same key has already been added` by ensuring thread-safe role initialization and supporting 1-to-many role mappings in `RoleMapping`.
+
 ## V6.6.0
 
 ### Added

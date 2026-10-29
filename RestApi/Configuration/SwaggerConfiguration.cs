@@ -19,7 +19,7 @@ public sealed class SwaggerConfiguration
     /// <summary>
     ///     API Version
     /// </summary>
-    public static string Version => DeploymentInformationsConfiguration.Version;
+    public static string Version => VersionInfo.Version;
 
     /// <summary>
     ///     API Title
