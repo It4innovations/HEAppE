@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Parent `NodeTypes` and `Clusters` are now visible even if their associated projects do not yet have any command templates defined.
   - When the `commandTemplateName` query parameter is provided, filtering is preserved and only projects containing that specific template are returned.
 
+## V6.6.2
+
+### Security
+- **Kerberos.NET Dependency Update:** Bumped `System.Security.Cryptography.Pkcs` from 8.0.1 to 8.0.2 to fix high-severity DoS vulnerability CVE-2026-84008 (#24).
+
 ## V6.6.1
 
 ### Fixed
