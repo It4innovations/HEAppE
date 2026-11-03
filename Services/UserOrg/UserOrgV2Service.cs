@@ -141,29 +141,31 @@ public class UserOrgV2Service(IHttpClientFactory httpClientFactory) : IUserOrgSe
                 string codePart = !string.IsNullOrEmpty(problemCode) ? $"\nProblem Code: {problemCode}" : "";
                 string titlePart = !string.IsNullOrEmpty(problemTitle) ? $"\nTitle: {problemTitle}" : "";
                 string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.{codePart}{titlePart}\nContent: {content}{traceIdPart}";
-                logger.LogError($"[UserOrg v2 API Error] UserOrg API Error: {details}");
 
-                switch (response.StatusCode)
+                var exception = response.StatusCode switch
                 {
-                    case HttpStatusCode.BadRequest:
-                        throw new AuthenticationTypeException("BadRequest", "UserOrg") { Details = details };
-                    case HttpStatusCode.Unauthorized:
-                        throw new AuthenticationTypeException("InvalidToken", "UserOrg") { Details = details };
-                    case HttpStatusCode.Forbidden:
-                        throw new AuthenticationTypeException("Forbidden", "UserOrg") { Details = details };
-                    case HttpStatusCode.NotFound:
-                        throw new AuthenticationTypeException("NotFound", "UserOrg") { Details = details };
-                    case HttpStatusCode.MethodNotAllowed:
-                        throw new AuthenticationTypeException("MethodNotAllowed", "UserOrg") { Details = details };
-                    case HttpStatusCode.PreconditionFailed:
-                        throw new AuthenticationTypeException("PreconditionFailed", "UserOrg") { Details = details };
-                    case HttpStatusCode.InternalServerError:
-                        throw new AuthenticationTypeException("ServerError", "UserOrg") { Details = details };
-                    case HttpStatusCode.BadGateway:
-                        throw new AuthenticationTypeException("UpstreamError", "UserOrg") { Details = details };
-                    default:
-                        throw new AuthenticationTypeException("ExternalApiError", "UserOrg") { Details = details };
+                    HttpStatusCode.BadRequest => new AuthenticationTypeException("BadRequest", "UserOrg") { Details = details },
+                    HttpStatusCode.Unauthorized => new AuthenticationTypeException("InvalidToken", "UserOrg") { Details = details },
+                    HttpStatusCode.Forbidden => new AuthenticationTypeException("Forbidden", "UserOrg") { Details = details },
+                    HttpStatusCode.NotFound => new AuthenticationTypeException("NotFound", "UserOrg") { Details = details },
+                    HttpStatusCode.MethodNotAllowed => new AuthenticationTypeException("MethodNotAllowed", "UserOrg") { Details = details },
+                    HttpStatusCode.PreconditionFailed => new AuthenticationTypeException("PreconditionFailed", "UserOrg") { Details = details },
+                    HttpStatusCode.InternalServerError => new AuthenticationTypeException("ServerError", "UserOrg") { Details = details },
+                    HttpStatusCode.BadGateway => new AuthenticationTypeException("UpstreamError", "UserOrg") { Details = details },
+                    _ => new AuthenticationTypeException("ExternalApiError", "UserOrg") { Details = details }
+                };
+
+                bool isAutoFallback = string.Equals(LexisAuthenticationConfiguration.ApiVersion, "auto", StringComparison.OrdinalIgnoreCase);
+                if (isAutoFallback && UserOrgService.IsV2FallbackWarranted(exception))
+                {
+                    logger.LogWarning($"[UserOrg v2 API Warning] UserOrg API Error: {details}");
                 }
+                else
+                {
+                    logger.LogError($"[UserOrg v2 API Error] UserOrg API Error: {details}");
+                }
+
+                throw exception;
             }
         }
         catch (AuthenticationTypeException)

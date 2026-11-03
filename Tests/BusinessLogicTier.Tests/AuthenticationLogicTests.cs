@@ -80,4 +80,137 @@ public class AuthenticationLogicTests
         resource.Locations[0].Endpoint.Should().Be("karolina.it4i.cz");
         resource.Locations[0].Type.Should().Be("HPC");
     }
+
+    [Theory]
+    [InlineData("Forbidden", "Status code: Forbidden.\nContent: Forbidden: no permission mapping for this endpoint", true)]
+    [InlineData("NotFound", "Status code: NotFound.\nContent: 404 Not Found", true)]
+    [InlineData("MethodNotAllowed", "Status code: MethodNotAllowed.", true)]
+    [InlineData("ExternalApiError", "Status code: NotImplemented.\nContent: 501 Not Implemented", true)]
+    [InlineData("InvalidToken", "Status code: Unauthorized.\nContent: Invalid token", false)]
+    [InlineData("ServerError", "Status code: InternalServerError.\nContent: Database error", false)]
+    [InlineData("BadRequest", "Status code: BadRequest.\nContent: Invalid parameters", false)]
+    public void IsV2FallbackWarranted_CorrectlyClassifiesExceptions(string message, string details, bool expected)
+    {
+        var ex = new HEAppE.Exceptions.External.AuthenticationTypeException(message, "UserOrg")
+        {
+            Details = details
+        };
+
+        var result = HEAppE.Services.UserOrg.UserOrgService.IsV2FallbackWarranted(ex);
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task UserOrgV2Service_WhenAutoFallbackActiveAndFallbackWarranted_LogsWarningNotError()
+    {
+        var originalApiVersion = HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion;
+        try
+        {
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion = "auto";
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.EndpointPrefix = "userorg";
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ExtendedUserInfoV2Endpoint = "api/v2/UserInfo/Extended";
+
+            var handler = new TestHandler((req) => new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden)
+            {
+                ReasonPhrase = "Forbidden",
+                Content = new StringContent("Forbidden: no permission mapping for this endpoint")
+            });
+
+            var httpClient = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("https://api.workflows.my-eurohpc.eu/")
+            };
+
+            var mockFactory = new Moq.Mock<IHttpClientFactory>();
+            mockFactory.Setup(f => f.CreateClient("userOrgApi")).Returns(httpClient);
+
+            var mockLogger = new Moq.Mock<Microsoft.Extensions.Logging.ILogger>();
+            var service = new HEAppE.Services.UserOrg.UserOrgV2Service(mockFactory.Object);
+
+            var act = () => service.GetUserInfoAsync("test-token", "instance-1", mockLogger.Object);
+            await act.Should().ThrowAsync<HEAppE.Exceptions.External.AuthenticationTypeException>();
+
+            mockLogger.Verify(
+                x => x.Log(
+                    Microsoft.Extensions.Logging.LogLevel.Warning,
+                    Moq.It.IsAny<Microsoft.Extensions.Logging.EventId>(),
+                    Moq.It.Is<Moq.It.IsAnyType>((v, t) => v.ToString()!.Contains("[UserOrg v2 API Warning]") && v.ToString()!.Contains("Forbidden")),
+                    Moq.It.IsAny<Exception>(),
+                    Moq.It.IsAny<Func<Moq.It.IsAnyType, Exception?, string>>()),
+                Moq.Times.Once);
+
+            mockLogger.Verify(
+                x => x.Log(
+                    Microsoft.Extensions.Logging.LogLevel.Error,
+                    Moq.It.IsAny<Microsoft.Extensions.Logging.EventId>(),
+                    Moq.It.Is<Moq.It.IsAnyType>((v, t) => v.ToString()!.Contains("[UserOrg v2 API Error]")),
+                    Moq.It.IsAny<Exception>(),
+                    Moq.It.IsAny<Func<Moq.It.IsAnyType, Exception?, string>>()),
+                Moq.Times.Never);
+        }
+        finally
+        {
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion = originalApiVersion;
+        }
+    }
+
+    [Fact]
+    public async Task UserOrgV2Service_WhenApiVersionIsV2_LogsErrorOnFailure()
+    {
+        var originalApiVersion = HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion;
+        try
+        {
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion = "v2";
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.EndpointPrefix = "userorg";
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ExtendedUserInfoV2Endpoint = "api/v2/UserInfo/Extended";
+
+            var handler = new TestHandler((req) => new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden)
+            {
+                ReasonPhrase = "Forbidden",
+                Content = new StringContent("Forbidden: no permission mapping for this endpoint")
+            });
+
+            var httpClient = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("https://api.workflows.my-eurohpc.eu/")
+            };
+
+            var mockFactory = new Moq.Mock<IHttpClientFactory>();
+            mockFactory.Setup(f => f.CreateClient("userOrgApi")).Returns(httpClient);
+
+            var mockLogger = new Moq.Mock<Microsoft.Extensions.Logging.ILogger>();
+            var service = new HEAppE.Services.UserOrg.UserOrgV2Service(mockFactory.Object);
+
+            var act = () => service.GetUserInfoAsync("test-token", "instance-1", mockLogger.Object);
+            await act.Should().ThrowAsync<HEAppE.Exceptions.External.AuthenticationTypeException>();
+
+            mockLogger.Verify(
+                x => x.Log(
+                    Microsoft.Extensions.Logging.LogLevel.Error,
+                    Moq.It.IsAny<Microsoft.Extensions.Logging.EventId>(),
+                    Moq.It.Is<Moq.It.IsAnyType>((v, t) => v.ToString()!.Contains("[UserOrg v2 API Error]")),
+                    Moq.It.IsAny<Exception>(),
+                    Moq.It.IsAny<Func<Moq.It.IsAnyType, Exception?, string>>()),
+                Moq.Times.Once);
+
+            mockLogger.Verify(
+                x => x.Log(
+                    Microsoft.Extensions.Logging.LogLevel.Warning,
+                    Moq.It.IsAny<Microsoft.Extensions.Logging.EventId>(),
+                    Moq.It.Is<Moq.It.IsAnyType>((v, t) => v.ToString()!.Contains("[UserOrg v2 API Warning]")),
+                    Moq.It.IsAny<Exception>(),
+                    Moq.It.IsAny<Func<Moq.It.IsAnyType, Exception?, string>>()),
+                Moq.Times.Never);
+        }
+        finally
+        {
+            HEAppE.ExternalAuthentication.Configuration.LexisAuthenticationConfiguration.ApiVersion = originalApiVersion;
+        }
+    }
+
+    private class TestHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(handler(request));
+    }
 }
