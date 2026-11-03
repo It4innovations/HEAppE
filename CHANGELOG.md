@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## V6.6.2
+
+### Security
+- **Kerberos.NET Dependency Update:** Bumped `System.Security.Cryptography.Pkcs` from 8.0.1 to 8.0.2 to fix high-severity DoS vulnerability CVE-2026-84008 (#24).
+
 ## V6.6.1
 
 ### Fixed
