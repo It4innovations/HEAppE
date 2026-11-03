@@ -52,8 +52,8 @@ public class ClusterAuthenticationCredentialsUtilsTests
 
         result.Should().NotBe(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent);
         result.Should().Be(SshCaSettings.UseCertificateAuthorityForAuthentication
-            ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
-            : ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy);
+            ? ClusterAuthenticationCredentialsAuthType.SshCertificate
+            : ClusterAuthenticationCredentialsAuthType.PrivateKey);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class ClusterAuthenticationCredentialsUtilsTests
             var proxyResult = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credNoKey, proxyCluster);
 
             directResult.Should().Be(ClusterAuthenticationCredentialsAuthType.SshCertificate);
-            proxyResult.Should().Be(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy);
+            proxyResult.Should().Be(ClusterAuthenticationCredentialsAuthType.SshCertificate);
         }
         finally
         {
