@@ -78,7 +78,7 @@ public class UserOrgService : IUserOrgService
         return await ResolveService().GetCommandTemplatePermissionsAsync(accessToken, heappeInstanceIdentifier, instanceId, logger);
     }
 
-    private static bool IsV2FallbackWarranted(AuthenticationTypeException ex)
+    public static bool IsV2FallbackWarranted(AuthenticationTypeException ex)
     {
         if (ex.Message is "NotFound" or "Forbidden" or "MethodNotAllowed" or "NotImplemented")
             return true;
