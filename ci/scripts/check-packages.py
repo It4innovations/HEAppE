@@ -160,13 +160,13 @@ def format_markdown_summary(
     outdated: List[Dict[str, Any]],
 ) -> str:
     md: List[str] = []
-    md.append("## 📦 NuGet Package Status Report")
+    md.append("## NuGet Package Status Report")
     md.append("")
 
     # 1. Security Vulnerabilities
-    md.append("### 🛡️ Security Vulnerabilities")
+    md.append("### Security Vulnerabilities")
     if not vulnerabilities:
-        md.append("✅ **No known package vulnerabilities detected.**")
+        md.append("**No known package vulnerabilities detected.**")
     else:
         md.append(f"> [!WARNING]\n> Found **{len(vulnerabilities)}** package(s) with known security advisories.")
         md.append("")
@@ -181,7 +181,7 @@ def format_markdown_summary(
 
     # 2. Deprecated Packages
     if deprecated:
-        md.append("### ⚠️ Deprecated Packages")
+        md.append("### Deprecated Packages")
         md.append("| Package | Current Version | Reasons | Alternative | Affected Projects |")
         md.append("|:---|:---|:---|:---|:---|")
         for d in deprecated:
@@ -192,9 +192,9 @@ def format_markdown_summary(
         md.append("")
 
     # 3. Outdated Packages
-    md.append("### 🔄 Outdated Packages")
+    md.append("### Outdated Packages")
     if not outdated:
-        md.append("✅ **All direct package references are up to date.**")
+        md.append("**All direct package references are up to date.**")
     else:
         majors = sum(1 for p in outdated if p["type"] == "Major")
         minors = sum(1 for p in outdated if p["type"] == "Minor")
@@ -212,7 +212,7 @@ def format_markdown_summary(
             breakdown.append(f"**{others}** Other")
 
         md.append(
-            f"ℹ️ Found **{len(outdated)}** outdated direct package(s) ({', '.join(breakdown)})."
+            f"Found **{len(outdated)}** outdated direct package(s) ({', '.join(breakdown)})."
         )
         md.append("")
         md.append("<details>")
@@ -221,10 +221,10 @@ def format_markdown_summary(
         md.append("| Update | Package | Current | Latest | Affected Projects |")
         md.append("|:---|:---|:---|:---|:---|")
         type_badge = {
-            "Major": "🔴 `Major`",
-            "Minor": "🟡 `Minor`",
-            "Patch": "🟢 `Patch`",
-            "Other": "⚪ `Other`",
+            "Major": "`Major`",
+            "Minor": "`Minor`",
+            "Patch": "`Patch`",
+            "Other": "`Other`",
         }
         for o in outdated:
             badge = type_badge.get(o["type"], f"`{o['type']}`")
