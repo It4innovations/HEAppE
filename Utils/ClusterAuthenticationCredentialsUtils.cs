@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Generators.v2;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -87,7 +87,7 @@ public static class ClusterAuthenticationCredentialsUtils
     public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(
         ClusterAuthenticationCredentials credential, Cluster cluster)
     {
-        if (credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.Unknown)
+        if (credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.Unknown))
         {
             if (cluster != null && (cluster.SchedulerType & SchedulerType.FirecRestSlurm) == SchedulerType.FirecRestSlurm)
             {
@@ -95,120 +95,63 @@ public static class ClusterAuthenticationCredentialsUtils
             }
         }
 
-        bool hasProxy = cluster?.ProxyConnection is not null;
-
-        if (!hasProxy)
+        if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
         {
-            //skip if type is >= 13 - other than classic 
-            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                return credential.AuthenticationType;
-            }
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
-
-            if (!string.IsNullOrEmpty(credential.PrivateKey))
-            {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
-                    credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
-                {
-                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
-                }
-                else
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
-                }
-            }
-                
-
-            if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster?.ConnectionProtocol)
-                {
-                    case ClusterConnectionProtocol.MicrosoftHpcApi:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    case ClusterConnectionProtocol.Ssh:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    case ClusterConnectionProtocol.SshInteractive:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
-
-                    case ClusterConnectionProtocol.Http:
-                    case ClusterConnectionProtocol.Https:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-
-                    default:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
-                }
-        }
-        else
-        {
-            //skip if type is >= 13 - other than classic 
-            if (credential.AuthenticationType >= ClusterAuthenticationCredentialsAuthType.Kerberos)
-            {
-                return credential.AuthenticationType;
-            }
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-            
-            if (!string.IsNullOrEmpty(credential.PrivateKey))
-            {
-                if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
-                    credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
-                {
-                    return ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
-                }
-                else
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(credential.Password))
-                switch (cluster?.ConnectionProtocol)
-                {
-                    case ClusterConnectionProtocol.MicrosoftHpcApi:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    case ClusterConnectionProtocol.Ssh:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    case ClusterConnectionProtocol.SshInteractive:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
-
-                    case ClusterConnectionProtocol.Http:
-                    case ClusterConnectionProtocol.Https:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                    default:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-                }
+            return credential.AuthenticationType;
         }
 
-        // If credential already has a valid key/certificate auth type (even if PrivateKey is currently unloaded in memory), preserve it!
-        if (credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKey
-            or ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-            or ClusterAuthenticationCredentialsAuthType.SshCertificate
-            or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
+        if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
+            return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+
+        if (!string.IsNullOrEmpty(credential.PrivateKey))
         {
             if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
-                credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy)
+                credential.AuthenticationType.Equals(ClusterAuthenticationCredentialsAuthType.SshCertificate))
             {
-                return hasProxy
-                    ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
-                    : ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+            }
+            else
+            {
+                return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(credential.Password))
+            switch (cluster?.ConnectionProtocol)
+            {
+                case ClusterConnectionProtocol.MicrosoftHpcApi:
+                    return ClusterAuthenticationCredentialsAuthType.Password;
+
+                case ClusterConnectionProtocol.Ssh:
+                    return ClusterAuthenticationCredentialsAuthType.Password;
+
+                case ClusterConnectionProtocol.SshInteractive:
+                    return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                case ClusterConnectionProtocol.Http:
+                case ClusterConnectionProtocol.Https:
+                    return ClusterAuthenticationCredentialsAuthType.Password;
+
+                default:
+                    return ClusterAuthenticationCredentialsAuthType.Password;
             }
 
-            return hasProxy
-                ? ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-                : ClusterAuthenticationCredentialsAuthType.PrivateKey;
+       // If credential already has a valid key/certificate auth type (even if PrivateKey is currently unloaded in memory), preserve it!
+        if (credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKey
+            or ClusterAuthenticationCredentialsAuthType.SshCertificate)
+        {
+            if (SshCaSettings.UseCertificateAuthorityForAuthentication ||
+                credential.AuthenticationType is ClusterAuthenticationCredentialsAuthType.SshCertificate)
+            {
+                return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+            }
+
+            return ClusterAuthenticationCredentialsAuthType.PrivateKey;
         }
 
         if (SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            return hasProxy
-                ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
-                : ClusterAuthenticationCredentialsAuthType.SshCertificate;
+            return ClusterAuthenticationCredentialsAuthType.SshCertificate;
         }
 
         // Only keep PrivateKeyInSshAgent / PrivateKeyInVaultAndInSshAgent if explicitly set and PrivateKey is not loaded
@@ -218,8 +161,6 @@ public static class ClusterAuthenticationCredentialsUtils
             return credential.AuthenticationType;
         }
 
-        return hasProxy
-            ? ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-            : ClusterAuthenticationCredentialsAuthType.PrivateKey;
+        return ClusterAuthenticationCredentialsAuthType.PrivateKey;
     }
 }

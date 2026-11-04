@@ -33,30 +33,6 @@ public class ClusterAuthenticationCredentialsUtilsTests
     }
 
     [Fact]
-    public void GetCredentialsAuthenticationType_WhenPrivateKeyIsPresentWithProxy_ShouldReturnProxyKeyOrCert()
-    {
-        var cred = new ClusterAuthenticationCredentials
-        {
-            Username = "testuser",
-            PrivateKey = "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
-            AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-        };
-
-        var cluster = new Cluster
-        {
-            ConnectionProtocol = ClusterConnectionProtocol.Ssh,
-            ProxyConnection = new ClusterProxyConnection { Host = "proxy.example.com", Port = 22 }
-        };
-
-        var result = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(cred, cluster);
-
-        result.Should().NotBe(ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent);
-        result.Should().Be(SshCaSettings.UseCertificateAuthorityForAuthentication
-            ? ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy
-            : ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy);
-    }
-
-    [Fact]
     public void GetCredentialsAuthenticationType_WhenAlreadyPrivateKey_ShouldPreserveEvenIfPrivateKeyNull()
     {
         var cred = new ClusterAuthenticationCredentials
@@ -135,38 +111,6 @@ public class ClusterAuthenticationCredentialsUtilsTests
         var act = () => ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(cred, null);
 
         act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void GetCredentialsAuthenticationType_WhenSshCaEnabled_ShouldReturnSshCertificateOrViaProxy()
-    {
-        var prevSetting = SshCaSettings.UseCertificateAuthorityForAuthentication;
-        try
-        {
-            SshCaSettings.UseCertificateAuthorityForAuthentication = true;
-
-            var credNoKey = new ClusterAuthenticationCredentials
-            {
-                Username = "testuser"
-            };
-
-            var directCluster = new Cluster { ConnectionProtocol = ClusterConnectionProtocol.Ssh };
-            var proxyCluster = new Cluster
-            {
-                ConnectionProtocol = ClusterConnectionProtocol.Ssh,
-                ProxyConnection = new ClusterProxyConnection { Host = "proxy.example.com", Port = 22 }
-            };
-
-            var directResult = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credNoKey, directCluster);
-            var proxyResult = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credNoKey, proxyCluster);
-
-            directResult.Should().Be(ClusterAuthenticationCredentialsAuthType.SshCertificate);
-            proxyResult.Should().Be(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy);
-        }
-        finally
-        {
-            SshCaSettings.UseCertificateAuthorityForAuthentication = prevSetting;
-        }
     }
 
     [Fact]

@@ -518,20 +518,10 @@ public static class ClusterInformationConverts
                 ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKey,
             ClusterAuthenticationCredentialsAuthType.PrivateKey => ClusterAuthenticationCredentialsAuthTypeExt
                 .PrivateKey,
-            ClusterAuthenticationCredentialsAuthType.PasswordViaProxy => ClusterAuthenticationCredentialsAuthTypeExt
-                .PasswordViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractiveViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKeyViaProxy,
-            ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyViaProxy,
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent =>
                 ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent,
             ClusterAuthenticationCredentialsAuthType.SshCertificate =>
                 ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate,
-            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy =>
-                ClusterAuthenticationCredentialsAuthTypeExt.SshCertificateViaProxy,
             ClusterAuthenticationCredentialsAuthType.Kerberos =>
                 ClusterAuthenticationCredentialsAuthTypeExt.Kerberos,
             ClusterAuthenticationCredentialsAuthType.FirecRestIdpViaExpirio =>

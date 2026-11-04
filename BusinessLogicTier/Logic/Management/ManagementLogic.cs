@@ -4024,7 +4024,6 @@ public class ManagementLogic : IManagementLogic
             case ClusterAuthenticationCredentialsAuthType.PrivateKey:
             case ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey:
             case ClusterAuthenticationCredentialsAuthType.SshCertificate:
-            case ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy:
                 credentials = new()
                 {
                     Username = username,

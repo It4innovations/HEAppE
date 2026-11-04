@@ -103,34 +103,6 @@ public class CredentialValidator : AbstractValidator
         privateKeyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKey, privateKeyRules);
 
-        var passwordViaProxyRules = new RulesDefinition();
-        passwordViaProxyRules.AddRule(PASSWORD, Requirement.Required);
-        passwordViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
-        passwordViaProxyRules.AddRule(PASSPHRASE, Requirement.Forbidden);
-        passwordViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
-        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordViaProxy, passwordViaProxyRules);
-
-        var passwordInteractiveViaProxyRules = new RulesDefinition();
-        passwordInteractiveViaProxyRules.AddRule(PASSWORD, Requirement.Optional);
-        passwordInteractiveViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
-        passwordInteractiveViaProxyRules.AddRule(PASSPHRASE, Requirement.Forbidden);
-        passwordInteractiveViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Forbidden);
-        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy, passwordInteractiveViaProxyRules);
-
-        var passwordAndPrivateKeyViaProxyRules = new RulesDefinition();
-        passwordAndPrivateKeyViaProxyRules.AddRule(PASSWORD, Requirement.Required);
-        passwordAndPrivateKeyViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
-        passwordAndPrivateKeyViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
-        passwordAndPrivateKeyViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
-        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy, passwordAndPrivateKeyViaProxyRules);
-
-        var privateKeyViaProxyRules = new RulesDefinition();
-        privateKeyViaProxyRules.AddRule(PASSWORD, Requirement.Forbidden);
-        privateKeyViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
-        privateKeyViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
-        privateKeyViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
-        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy, privateKeyViaProxyRules);
-
         var privateKeyInSshAgentRules = new RulesDefinition();
         privateKeyInSshAgentRules.AddRule(PASSWORD, Requirement.Forbidden);
         privateKeyInSshAgentRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.Forbidden);
@@ -146,13 +118,6 @@ public class CredentialValidator : AbstractValidator
         sshCertificateRules.AddRule(PASSPHRASE, Requirement.Optional);
         sshCertificateRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
         _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificate, sshCertificateRules);
-
-        var sshCertificateViaProxyRules = new RulesDefinition();
-        sshCertificateViaProxyRules.AddRule(PASSWORD, Requirement.Forbidden);
-        sshCertificateViaProxyRules.AddRule(PROVIDED_PRIVATE_KEY, Requirement.RequiredConditional, new(){new Conditional(GENERATE_NEW_KEY, true)});
-        sshCertificateViaProxyRules.AddRule(PASSPHRASE, Requirement.Optional);
-        sshCertificateViaProxyRules.AddRule(GENERATE_NEW_KEY, Requirement.Optional);
-        _validationCreateCredentialRules.Add(ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy, sshCertificateViaProxyRules);
 
         var kerberosRules = new RulesDefinition();
         kerberosRules.AddRule(PASSWORD, Requirement.Forbidden);
