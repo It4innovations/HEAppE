@@ -21,6 +21,35 @@ permissions:
   pull-requests: write
 
 jobs:
+  package-audit:
+    name: NuGet Package Audit & Outdated Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore NuGet Packages
+        run: |
+          dotnet restore "HEAppE Core.sln"
+
+      - name: Run NuGet Package Audit & Outdated Check
+        run: |
+          python3 ci/scripts/check-packages.py "HEAppE Core.sln"
+
   build-and-test:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
@@ -92,7 +121,7 @@ jobs:
       - name: Publish Test Failures Summary to GitHub Step Summary
         if: always() && steps.test.outcome == 'failure'
         run: |
-          echo "### ❌ Failed Test Cases" >> $GITHUB_STEP_SUMMARY
+          echo "### Failed Test Cases" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           python3 -c "
           import xml.etree.ElementTree as ET
@@ -112,7 +141,7 @@ jobs:
                       trace_elem = res.find('.//t:StackTrace', ns)
                       msg = msg_elem.text.strip() if msg_elem is not None and msg_elem.text else ''
                       trace = trace_elem.text.strip() if trace_elem is not None and trace_elem.text else ''
-                      print(f'#### 🔴 `{test_name}`\n')
+                      print(f'#### `{test_name}`\n')
                       if msg:
                           print(f'**Error:**\n\`\`\`\n{msg}\n\`\`\`\n')
                       if trace:

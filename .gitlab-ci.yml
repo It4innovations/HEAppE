@@ -185,14 +185,14 @@ coverage_threshold:
     - echo "=========================================================="
     - |
       if [ ! -f TestResults/CoverageReport/Summary.txt ]; then
-        echo "⚠️ Coverage report TestResults/CoverageReport/Summary.txt not found!"
+        echo "[WARNING] Coverage report TestResults/CoverageReport/Summary.txt not found!"
         exit 1
       fi
       cat TestResults/CoverageReport/Summary.txt
       echo "----------------------------------------------------------"
       COVERAGE=$(awk -F': ' '/Line coverage:/ {gsub(/%/,"",$2); print $2}' TestResults/CoverageReport/Summary.txt | tr -d ' \r\n')
       if [ -z "$COVERAGE" ]; then
-        echo "⚠️ Could not parse Line coverage percentage from Summary.txt"
+        echo "[WARNING] Could not parse Line coverage percentage from Summary.txt"
         exit 1
       fi
       echo "Current Line Coverage: ${COVERAGE}%"
@@ -200,11 +200,11 @@ coverage_threshold:
       echo "----------------------------------------------------------"
       IS_BELOW=$(awk -v cov="$COVERAGE" -v target="$TARGET_COVERAGE" 'BEGIN {print (cov < target) ? 1 : 0}')
       if [ "$IS_BELOW" -eq 1 ]; then
-        echo "⚠️  [WARNING] Total line coverage is ${COVERAGE}%, which is below target ${TARGET_COVERAGE}%!"
-        echo "⚠️  Review TestResults/CoverageReport/index.html to inspect uncovered lines."
+        echo "[WARNING] Total line coverage is ${COVERAGE}%, which is below target ${TARGET_COVERAGE}%!"
+        echo "[WARNING] Review TestResults/CoverageReport/index.html to inspect uncovered lines."
         exit 1
       fi
-      echo "🎉 [SUCCESS] Line coverage target met: ${COVERAGE}% >= ${TARGET_COVERAGE}%"
+      echo "[SUCCESS] Line coverage target met: ${COVERAGE}% >= ${TARGET_COVERAGE}%"
   tags:
     - Docker
     - Centos9
