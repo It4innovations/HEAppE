@@ -115,6 +115,17 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return $"{basePath}?{queryString}";
     }
 
+    private const string PulseContentType = "application/protobuf";
+
+    /// <summary>
+    /// True when the task carries a pulse-level payload (protobuf RunDefinition) instead of a JSON circuit.
+    /// Set by CreateAndSubmitQSchedulerJob through the HEAPPE_QSCHEDULER_TASK_KIND environment variable.
+    /// </summary>
+    private static bool IsPulseTask(TaskSpecification taskSpec) =>
+        taskSpec?.EnvironmentVariables?.Any(e =>
+            e.Name == "HEAPPE_QSCHEDULER_TASK_KIND" &&
+            string.Equals(e.Value, "pulse", StringComparison.OrdinalIgnoreCase)) == true;
+
     /// <summary>
     /// Resolves the notifier name for QScheduler callbacks.
     /// When callbacks are enabled on the cluster (EnableCallback == true):
@@ -250,7 +261,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         byte[] payloadBytes = null,
         System.IO.Stream payloadStream = null,
         string payloadFilePath = null,
-        string accept = null)
+        string accept = null,
+        string payloadContentType = null)
     {
         if (connectorClient is ConnectionPool.HttpConnection httpConn)
         {
@@ -273,13 +285,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             else if (payloadStream != null)
             {
                 request.Content = new StreamContent(payloadStream);
-                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(payloadContentType ?? "application/json");
             }
             else if (!string.IsNullOrEmpty(payloadFilePath))
             {
                 byte[] localBytes = System.IO.File.ReadAllBytes(payloadFilePath);
                 request.Content = new ByteArrayContent(localBytes);
-                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(payloadContentType ?? "application/octet-stream");
             }
             
             string content;
@@ -330,6 +342,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             }
             else if (payloadStream != null)
             {
+                // The stream is inlined into the curl command as text, which would corrupt binary (protobuf) payloads.
+                if (payloadContentType != null && payloadContentType != "application/json")
+                {
+                    throw new InvalidOperationException($"Binary payloads ({payloadContentType}) cannot be streamed over SSH; upload them to the task directory instead.");
+                }
                 using var ms = new System.IO.MemoryStream();
                 payloadStream.CopyTo(ms);
                 var jsonStr = Encoding.UTF8.GetString(ms.ToArray());
@@ -339,7 +356,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             else if (!string.IsNullOrEmpty(payloadFilePath))
             {
                 var quotedPath = ShellQuotePath(payloadFilePath);
-                dataArg = $"-H \"Content-Type: application/octet-stream\" --data-binary @{quotedPath} ";
+                dataArg = $"-H \"Content-Type: {payloadContentType ?? "application/octet-stream"}\" --data-binary @{quotedPath} ";
             }
             
             if (!string.IsNullOrWhiteSpace(accept))
@@ -638,17 +655,20 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                         var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
+                        var isPulse = IsPulseTask(taskSpec);
                         var relativeUrl = BuildUrl("tasks",
                             ("machine", machineId),
                             ("session_id", sessionId.ToString()),
                             ("user", username),
                             ("notify", taskNotifier),
-                            ("time_limit_ms", timeLimitMs));
+                            ("time_limit_ms", timeLimitMs),
+                            ("kind", isPulse ? "pulse" : null));
                         _logger.LogInformation($"Session {sessionId} is open. Submitting task {taskSpec.Id} immediately.");
 
                         try
                         {
-                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
+                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath,
+                                payloadContentType: isPulse ? PulseContentType : null);
                             var taskIdStr = taskResponse.Trim();
                             if (long.TryParse(taskIdStr, out long taskId))
                             {
@@ -694,13 +714,16 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                     var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
+                    var isPulse = IsPulseTask(taskSpec);
                     var relativeUrl = BuildUrl("tasks",
                         ("machine", machineId),
                         ("project", projectName),
                         ("user", username),
                         ("notify", taskNotifier),
-                        ("time_limit_ms", timeLimitMs));
-                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
+                        ("time_limit_ms", timeLimitMs),
+                        ("kind", isPulse ? "pulse" : null));
+                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath,
+                        payloadContentType: isPulse ? PulseContentType : null);
                     var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
                     {
@@ -793,15 +816,18 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             clusterConfig);
                         var timeLimitMs = taskInfo.Specification?.WalltimeLimit > 0 ? ((long)taskInfo.Specification.WalltimeLimit * 1000).ToString() : null;
 
+                        var isPulse = IsPulseTask(taskInfo.Specification);
                         var relativeUrl = BuildUrl("tasks",
                             ("machine", machineId),
                             ("session_id", sessionId),
                             ("user", username),
                             ("notify", taskNotifier),
-                            ("time_limit_ms", timeLimitMs));
+                            ("time_limit_ms", timeLimitMs),
+                            ("kind", isPulse ? "pulse" : null));
                         _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}.");
                         
-                        var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                        var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath,
+                            payloadContentType: isPulse ? PulseContentType : null);
                         var taskIdStr = taskResponse.Trim();
                         if (!long.TryParse(taskIdStr, out long taskId))
                         {

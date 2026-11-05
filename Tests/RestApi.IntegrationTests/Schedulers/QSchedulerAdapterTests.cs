@@ -260,4 +260,89 @@ public class QSchedulerAdapterTests
         var act = () => _adapter.SubmitJobAsync(directConn, jobSpec, null);
         await act.Should().ThrowAsync<QSchedulerApiException>();
     }
+    private static JobSpecification BuildDirectJobSpec(params EnvironmentVariable[] envVars)
+    {
+        return new JobSpecification
+        {
+            Id = 1,
+            Cluster = new Cluster { Id = 1, MasterNodeName = "localhost" },
+            Project = new Project
+            {
+                Id = 1,
+                Name = "QProjKind", // distinct name: the adapter caches registered projects statically
+                UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+                ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+                {
+                    new ProjectClusterNodeTypeAggregation
+                    {
+                        AllocationAmount = 1000,
+                        ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                    }
+                }
+            },
+            Tasks = new List<TaskSpecification>
+            {
+                new TaskSpecification
+                {
+                    Id = 1,
+                    Name = "t1",
+                    ClusterNodeType = new ClusterNodeType { Queue = "garnet" },
+                    EnvironmentVariables = new List<EnvironmentVariable>(envVars)
+                }
+            }
+        };
+    }
+
+    private List<HttpRequestMessage> CaptureTaskSubmits()
+    {
+        var captured = new List<HttpRequestMessage>();
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured.Add(req))
+            .ReturnsAsync(() => new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("7") });
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHandler.Object));
+        return captured;
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_PulseTask_SendsKindPulseAndProtobufContentType()
+    {
+        var captured = CaptureTaskSubmits();
+        var jobSpec = BuildDirectJobSpec(new EnvironmentVariable { Name = "HEAPPE_QSCHEDULER_TASK_KIND", Value = "pulse" });
+        var payload = new byte[] { 0x0A, 0x00, 0xFF, 0x80 };
+        HEAppE.Utils.QSchedulerPayloadContext.Payloads = new Dictionary<string, System.IO.Stream> { ["t1"] = new System.IO.MemoryStream(payload) };
+        try
+        {
+            await _adapter.SubmitJobAsync(new HttpConnection("http://localhost:4300"), jobSpec, null);
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+        }
+
+        var submit = captured.Should().ContainSingle(r => r.RequestUri!.AbsolutePath == "/tasks").Subject;
+        submit.RequestUri!.Query.Should().Contain("kind=pulse");
+        submit.Content!.Headers.ContentType!.MediaType.Should().Be("application/protobuf");
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_CircuitTask_OmitsKindAndSendsJson()
+    {
+        var captured = CaptureTaskSubmits();
+        var jobSpec = BuildDirectJobSpec();
+        HEAppE.Utils.QSchedulerPayloadContext.Payloads = new Dictionary<string, System.IO.Stream> { ["t1"] = new System.IO.MemoryStream(Encoding.UTF8.GetBytes("{}")) };
+        try
+        {
+            await _adapter.SubmitJobAsync(new HttpConnection("http://localhost:4300"), jobSpec, null);
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+        }
+
+        var submit = captured.Should().ContainSingle(r => r.RequestUri!.AbsolutePath == "/tasks").Subject;
+        submit.RequestUri!.Query.Should().NotContain("kind=");
+        submit.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+    }
 }

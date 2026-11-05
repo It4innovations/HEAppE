@@ -151,13 +151,18 @@ public class QSchedulerController : BaseController<QSchedulerController>
     ///             "MachineId": "iqm_simulator",
     ///             "WalltimeLimitSecs": 3600,
     ///             "PayloadPartName": "circuit1",
-    ///             "UseSessions": false
+    ///             "UseSessions": false,
+    ///             "Kind": "circuit"
     ///           }
     ///         ]
     ///       }
     ///     }
     /// 
-    /// Note: Attach your circuit payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').
+    /// Note: Attach your payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').
+    /// 
+    /// Kind is optional: "circuit" (default) for a JSON circuit, or "pulse" for a protobuf RunDefinition
+    /// (e.g. compiled with IQM Pulla from GetMachineArtifact and GetMachineCalibration). Pulse tasks are only
+    /// accepted by machines with pulse access; fetch their results with the "sweep_results" artifact.
     /// </remarks>
     /// <param name="model">JSON string of CreateAndSubmitQSchedulerJobModel (see remarks for example JSON format)</param>
     /// <param name="userOrgService">User org service</param>
@@ -266,11 +271,11 @@ public class QSchedulerController : BaseController<QSchedulerController>
                         using (var stream = file.OpenReadStream())
                         {
                             var uploadResult = await fileTransferService.UploadFileToJobExecutionDir(
-                                stream, "payload.json", createdJob.Id.Value, createdTask.Id.Value, parsedModel.SessionCode);
+                                stream, qTask.DefaultPayloadFileName(), createdJob.Id.Value, createdTask.Id.Value, parsedModel.SessionCode);
 
                             if (uploadResult == null || !uploadResult.ContainsKey("Succeeded") || uploadResult["Succeeded"] == false)
                             {
-                                throw new System.Exception($"Failed to upload circuit payload for task '{qTask.Name}'.");
+                                throw new System.Exception($"Failed to upload payload for task '{qTask.Name}'.");
                             }
                         }
                     }

@@ -196,6 +196,13 @@ public class JobManagementValidator : AbstractValidator
             _messageBuilder.Append($"Task '{task.Name}' cannot have both PayloadPartName and PayloadFilePath; ");
         }
 
+        if (!string.IsNullOrEmpty(task.Kind) &&
+            !string.Equals(task.Kind, "circuit", System.StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(task.Kind, "pulse", System.StringComparison.OrdinalIgnoreCase))
+        {
+            _messageBuilder.Append($"Task '{task.Name}' has invalid Kind '{task.Kind}' (allowed: circuit, pulse); ");
+        }
+
         if (hasPath && task.PayloadFilePath.Contains(".."))
         {
             _messageBuilder.Append($"Task '{task.Name}' contains invalid path traversal characters; ");
