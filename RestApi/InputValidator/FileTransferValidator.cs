@@ -1,4 +1,4 @@
-﻿using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.Utils.Validation;
 
@@ -55,8 +55,11 @@ public class FileTransferValidator : AbstractValidator
         ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
         ValidateSessionCode(model.SessionCode);
 
-        foreach (var taskFileOffset in model.TaskFileOffsets)
-            _ = ValidateTaskFileOffset(taskFileOffset);
+        if (model.TaskFileOffsets != null)
+        {
+            foreach (var taskFileOffset in model.TaskFileOffsets)
+                _ = ValidateTaskFileOffset(taskFileOffset);
+        }
 
         return _messageBuilder.ToString();
     }

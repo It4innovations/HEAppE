@@ -1,0 +1,40 @@
+{{- if .Values.telemetry.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heappe.otelcollector.fullname" . }}-config
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.otelcollector.selectorLabels" . | nindent 4 }}
+data:
+  otel-config.yaml: |-
+{{- if .Values.telemetry.otelCollector.config }}
+{{ .Values.telemetry.otelCollector.config | indent 4 }}
+{{- else }}
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:{{ .Values.telemetry.otelCollector.grpcPort }}
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 1024
+        spike_limit_mib: 256
+      batch:
+        timeout: 5s
+        send_batch_size: 1000
+        send_batch_max_size: 1000
+    exporters:
+      otlp/jaeger:
+        endpoint: {{ include "heappe.jaeger.fullname" . }}:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/jaeger]
+{{- end }}
+{{- end }}

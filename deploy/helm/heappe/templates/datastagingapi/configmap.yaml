@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heappe.fullname" . }}-datastaging-config
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.datastaging.selectorLabels" . | nindent 4 }}
+data:
+  appsettings.json: |
+    {{- $settings := deepCopy .Values.datastaging.appSettings }}
+    {{- $settings | toPrettyJson | nindent 4 }}
+  appsettings-data.json: |
+    {{- $settings := deepCopy .Values.datastaging.appSettings }}
+    {{- $settings | toPrettyJson | nindent 4 }}

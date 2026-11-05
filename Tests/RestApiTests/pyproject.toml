@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heappe-restapi-tests"
+version = "0.1.0"
+description = "HEAppE REST API Test Suite using Pytest and Schemathesis for py4heappe OpenAPI spec"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pytest>=8.0.0",
+    "pytest-subtests>=0.12.0",
+    "requests>=2.31.0",
+    "schemathesis>=3.20.0",
+    "hypothesis>=6.100.0",
+    "pydantic>=2.7.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --junitxml=TestResults.xml"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "[%(asctime)s] [%(levelname)s] (%(filename)s:%(lineno)s) %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+markers = [
+
+    "openapi: tests generated from OpenAPI/Swagger spec"
+]
+

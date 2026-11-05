@@ -1,0 +1,22 @@
+{{- if .Values.telemetry.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "heappe.jaeger.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.jaeger.selectorLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.telemetry.jaeger.service.type }}
+  ports:
+    - port: {{ .Values.telemetry.jaeger.uiPort }}
+      targetPort: ui
+      protocol: TCP
+      name: ui
+    - port: 4317
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+  selector:
+    {{- include "heappe.jaeger.selectorLabels" . | nindent 4 }}
+{{- end }}

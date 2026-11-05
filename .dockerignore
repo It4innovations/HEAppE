@@ -24,3 +24,9 @@
 **/scratch
 LICENSE
 README.md
+**/.hypothesis
+**/.idea
+**/.sonarqube
+**/deploy
+**/TestResults*
+**/.DS_Store

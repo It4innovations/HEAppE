@@ -1,0 +1,85 @@
+{{- if and .Values.vault.enabled (not .Values.vault.external.enabled) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "heappe.vault.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.vault.selectorLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "heappe.vault.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "heappe.vault.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.vault.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: vault
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.vault.image.repository }}:{{ .Values.vault.image.tag }}"
+          imagePullPolicy: {{ .Values.vault.image.pullPolicy }}
+          command:
+            - "vault"
+            - "server"
+            - "-dev"
+            - "-dev-listen-address=0.0.0.0:8200"
+          ports:
+            - name: http
+              containerPort: {{ .Values.vault.server.port }}
+              protocol: TCP
+          env:
+            - name: VAULT_ADDR
+              value: "http://localhost:8200"
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - name: vault-data
+              mountPath: /vault
+          resources:
+            {{- toYaml .Values.vault.resources | nindent 12 }}
+      {{- if not .Values.vault.persistence.enabled }}
+      volumes:
+        - name: vault-data
+          emptyDir: {}
+      {{- end }}
+      {{- with .Values.vault.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vault.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.vault.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.vault.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: vault-data
+      spec:
+        accessModes:
+          - {{ .Values.vault.persistence.accessMode | quote }}
+        {{- if .Values.vault.persistence.storageClass }}
+        {{- if (eq "-" .Values.vault.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.vault.persistence.storageClass | quote }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.vault.persistence.size | quote }}
+  {{- end }}
+{{- end }}

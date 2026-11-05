@@ -1,0 +1,37 @@
+{{- if .Values.telemetry.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "heappe.jaeger.fullname" . }}
+  labels:
+    {{- include "heappe.labels" . | nindent 4 }}
+    {{- include "heappe.jaeger.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "heappe.jaeger.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "heappe.labels" . | nindent 8 }}
+        {{- include "heappe.jaeger.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: jaeger
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.telemetry.jaeger.image.repository }}:{{ .Values.telemetry.jaeger.image.tag }}"
+          imagePullPolicy: {{ .Values.telemetry.jaeger.image.pullPolicy }}
+          ports:
+            - name: ui
+              containerPort: {{ .Values.telemetry.jaeger.uiPort }}
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.telemetry.jaeger.resources | nindent 12 }}
+{{- end }}

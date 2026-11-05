@@ -1,0 +1,115 @@
+{
+   "MiddlewareContextSettings":{
+      "AdaptorUsers":[
+         {
+            "Id":1,
+            "Username":"admin",
+            "Password":"F4FE8E5ECDCB6E0ECB198D8BAB702BC2CAD74905381B46BFD8FDDDAAA79E217954FCD3F1E5B1E0B78CA022C149DB434E3625B4C6F5E376752813AEE1FA256652",
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null
+         }
+      ],
+      "AdaptorUserGroups":[
+         {
+            "Id":1,
+            "Name":"AdminGroup",
+            "Description":"Administrator Group",
+            "ProjectId":1
+         }
+      ],
+      "AdaptorUserRoles":[
+         {
+            "Id":1,
+            "Name":"Administrator",
+            "Description":"HEAppE administrator role with access to the entire system."
+         },
+         {
+            "Id":2,
+            "Name":"Maintainer",
+            "Description":"HEAppE maintainer role for getting information about actual HEAppE status."
+         },
+         {
+            "Id":3,
+            "Name":"Submitter",
+            "Description":"Standard user, can submit and check his own jobs."
+         },
+         {
+            "Id":4,
+            "Name":"GroupReporter",
+            "Description":"Users with this role can report in assigned groups."
+         },
+         {
+            "Id":5,
+            "Name":"Reporter",
+            "Description":"Users with this role can watch other jobs in the same group."
+         },
+         {
+            "Id":6,
+            "Name":"ManagementAdmin",
+            "Description":"User with this role can create new project and use management API."
+         },
+         {
+            "Id":7,
+            "Name":"Manager",
+            "Description":"User with this role can manage command templates, can submit and check his own jobs."
+         }
+      ],
+      "AdaptorUserUserGroupRoles":[
+         {
+            "AdaptorUserId":1,
+            "AdaptorUserGroupId":1,
+            "AdaptorUserRoleId":1,
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         },
+         {
+            "AdaptorUserId":1,
+            "AdaptorUserGroupId":1,
+            "AdaptorUserRoleId":6,
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         }
+      ],
+      "FileTransferMethods":[],
+      "ClusterProxyConnections":[],
+      "Clusters":[],
+      "ClusterAuthenticationCredentials":[],
+      "Projects":[
+         {
+            "Id":1,
+            "Name":"DefaultProject",
+            "Description":"Default Project",
+            "AccountingString":"default_acc",
+            "StartDate":"2020-01-01 00:00:00",
+            "EndDate":"2035-01-01 00:00:00",
+            "CreatedAt":"2020-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "UseAccountingStringForScheduler":true,
+            "IsOneToOneMapping":false
+         }
+      ],
+      "Contacts":[],
+      "ProjectContacts":[],
+      "ClusterProjects":[],
+      "ClusterProjectCredentials":[],
+      "SubProjects":[],
+      "ClusterNodeTypes":[],
+      "Accountings":[],
+      "ClusterNodeTypeAggregations":[],
+      "ClusterNodeTypeAggregationAccounting":[],
+      "ProjectClusterNodeTypeAggregations":[],
+      "AccountingStates":[],
+      "CommandTemplates":[],
+      "CommandTemplateParameters":[],
+      "OpenStackInstances":[],
+      "OpenStackDomains":[],
+      "OpenStackProjectDomains":[],
+      "OpenStackProjects":[],
+      "OpenStackAuthenticationCredentials":[],
+      "OpenStackAuthenticationCredentialDomains":[],
+      "OpenStackAuthenticationCredentialProjects":[]
+   }
+}
