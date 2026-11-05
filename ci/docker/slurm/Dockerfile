@@ -1,5 +1,10 @@
 FROM rockylinux:9
 
+# Fix Rocky Linux mirrorlist 404 issues by using official dl.rockylinux.org CDN directly
+RUN sed -i -e 's|^mirrorlist=|#mirrorlist=|g' \
+           -e 's|^#baseurl=http://dl.rockylinux.org|baseurl=https://dl.rockylinux.org|g' \
+           /etc/yum.repos.d/[Rr]ocky*.repo
+
 # Install EPEL and packages
 RUN dnf install -y epel-release && \
     dnf install -y \

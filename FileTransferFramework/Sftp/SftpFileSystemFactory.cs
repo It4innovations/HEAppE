@@ -21,20 +21,44 @@ public class SftpFileSystemFactory : FileSystemFactory
 
     public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
-        if (_managerSingletons.TryGetValue(configuration.ServerHostname, out var fileManager))
+        if (_managerSingletons.TryGetValue(configuration.ServerHostname, out var fileManager) && !(fileManager is SftpFileSystemManager sftpMgr && sftpMgr.IsDisposed))
         {
             return fileManager;
         }
 
         lock (_managerSingletons)
         {
-            if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out fileManager))
+            if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out fileManager) || (fileManager is SftpFileSystemManager existingMgr && existingMgr.IsDisposed))
             {
-                fileManager = new SftpFileSystemManager(logger, configuration, this, GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService, logger));
-                _managerSingletons.TryAdd(configuration.ServerHostname, fileManager);
+                fileManager = new SftpFileSystemManager(
+                    logger,
+                    configuration,
+                    this,
+                    GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService, logger),
+                    () => GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService, logger));
+                _managerSingletons[configuration.ServerHostname] = fileManager;
             }
             return fileManager;
         }
+    }
+
+    public override void InvalidateConnectionPool(long fileTransferMethodId)
+    {
+        base.InvalidateConnectionPool(fileTransferMethodId);
+        foreach (var kvp in _managerSingletons)
+        {
+            if (kvp.Value is SftpFileSystemManager sftpMgr && sftpMgr.FileTransferConfiguration?.Id == fileTransferMethodId)
+            {
+                _managerSingletons.TryRemove(kvp.Key, out _);
+            }
+        }
+    }
+
+    public override void InvalidateAllConnectionPools()
+    {
+        base.InvalidateAllConnectionPools();
+        _managerSingletons.Clear();
+        _connectorSingletons.Clear();
     }
 
     internal override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification syncFile,

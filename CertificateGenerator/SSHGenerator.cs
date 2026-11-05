@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators;
@@ -102,46 +102,88 @@ public class SSHGenerator
         return key;
     }
 
+    public static string? ComputeFingerprintFromAuthorizedKeys(string? authorizedKeys)
+    {
+        if (string.IsNullOrWhiteSpace(authorizedKeys) || authorizedKeys == "Unable to convert")
+            return null;
+
+        try
+        {
+            var parts = authorizedKeys.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                var pubBlob = Convert.FromBase64String(parts[1]);
+                var hash = System.Security.Cryptography.SHA256.HashData(pubBlob);
+                if (parts[0] == "ssh-ed25519")
+                {
+                    var b64 = Convert.ToBase64String(hash).TrimEnd('=');
+                    return $"SHA256:{b64}";
+                }
+                else
+                {
+                    return BitConverter.ToString(hash).Replace("-", string.Empty).ToLower();
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
+    }
+
     public static SecureShellKey GetPublicKeyFromPrivateKey(ClusterAuthenticationCredentials existingKey)
     {
+        var cipherType = existingKey.CipherType != FileTransferCipherType.Unknown
+            ? existingKey.CipherType
+            : CipherGeneratorConfiguration.Type;
+
+        SecureShellKey key;
         switch (existingKey.CipherType)
         {
             case FileTransferCipherType.nistP256:
             case FileTransferCipherType.nistP521:
-                return new SecureShellKey
+                key = new SecureShellKey
                 {
                     Username = existingKey.Username,
-                    CipherType = CipherGeneratorConfiguration.Type,
+                    CipherType = cipherType,
                     PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
                         existingKey.PrivateKeyPassphrase) ?? "Unable to convert",
                     PublicKeyInAuthorizedKeysFormat =
                         ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
+                break;
             case FileTransferCipherType.Ed25519:
-                return new SecureShellKey
+                key = new SecureShellKey
                 {
                     Username = existingKey.Username,
-                    CipherType = CipherGeneratorConfiguration.Type,
+                    CipherType = cipherType,
                     PublicKeyPEM = null,
                     PublicKeyInAuthorizedKeysFormat =
                         EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
+                break;
             case FileTransferCipherType.RSA3072:
             case FileTransferCipherType.RSA4096:
             default:
-                return new SecureShellKey
+                key = new SecureShellKey
                 {
                     Username = existingKey.Username,
-                    CipherType = CipherGeneratorConfiguration.Type,
+                    CipherType = cipherType,
                     PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
                         existingKey.PrivateKeyPassphrase),
                     PublicKeyInAuthorizedKeysFormat =
                         RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
+                break;
         }
+
+        key.PublicKeyFingerprint = ComputeFingerprintFromAuthorizedKeys(key.PublicKeyInAuthorizedKeysFormat);
+        return key;
     }
 
     /// <summary>

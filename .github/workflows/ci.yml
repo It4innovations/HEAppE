@@ -21,6 +21,35 @@ permissions:
   pull-requests: write
 
 jobs:
+  package-audit:
+    name: NuGet Package Audit & Outdated Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore NuGet Packages
+        run: |
+          dotnet restore "HEAppE Core.sln"
+
+      - name: Run NuGet Package Audit & Outdated Check
+        run: |
+          python3 ci/scripts/check-packages.py "HEAppE Core.sln"
+
   build-and-test:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
@@ -82,6 +111,7 @@ jobs:
       - name: Generate Code Coverage Reports (HTML & Cobertura)
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
         if: always()
+        continue-on-error: true
         with:
           reports: 'TestResults/**/coverage.cobertura.xml'
           targetdir: 'TestResults/CoverageReport'
@@ -91,7 +121,7 @@ jobs:
       - name: Publish Test Failures Summary to GitHub Step Summary
         if: always() && steps.test.outcome == 'failure'
         run: |
-          echo "### ❌ Failed Test Cases" >> $GITHUB_STEP_SUMMARY
+          echo "### Failed Test Cases" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           python3 -c "
           import xml.etree.ElementTree as ET
@@ -111,7 +141,7 @@ jobs:
                       trace_elem = res.find('.//t:StackTrace', ns)
                       msg = msg_elem.text.strip() if msg_elem is not None and msg_elem.text else ''
                       trace = trace_elem.text.strip() if trace_elem is not None and trace_elem.text else ''
-                      print(f'#### 🔴 `{test_name}`\n')
+                      print(f'#### `{test_name}`\n')
                       if msg:
                           print(f'**Error:**\n\`\`\`\n{msg}\n\`\`\`\n')
                       if trace:
@@ -199,3 +229,15 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.version }}-dev
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}
             ghcr.io/${{ steps.meta.outputs.image_owner }}/heappe:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
+
+      - name: Build & Publish HEAppE DataStaging API Development Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./DataStagingAPI/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:dev-latest
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.version }}-dev
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}
+            ghcr.io/${{ steps.meta.outputs.image_owner }}/datastagingapi:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}

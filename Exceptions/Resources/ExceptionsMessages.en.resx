@@ -729,4 +729,10 @@
   <data name="UnableToCreateConnectionException_NoActiveConnectionForUser" xml:space="preserve">
     <value>Active connection for task &apos;{0}&apos; and node &apos;{1}&apos; was not found.</value>
   </data>
+  <data name="ClusterStorageQuotaExceededException_DiskQuotaExceeded" xml:space="preserve">
+    <value>Disk quota has been exceeded on the HPC cluster: {0}</value>
+  </data>
+  <data name="ClusterStorageQuotaExceededException_NoSpaceLeftOnDevice" xml:space="preserve">
+    <value>No space left on device on the HPC cluster: {0}</value>
+  </data>
 </root>

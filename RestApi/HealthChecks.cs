@@ -71,7 +71,7 @@ public class HEAppEHealth
     {
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
-        int? timeoutMs = 1000; // let it be constant for now...
+        int? timeoutMs = 5000;
         using var cts = new CancellationTokenSource(timeoutMs.Value);
         var cancellationToken = cts.Token;
         var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(logger, MiddlewareContextSettings.ConnectionString, cancellationToken);
@@ -156,7 +156,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
         try {
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out cacheEntry))
             {
-                using var cts = new CancellationTokenSource(1000);
+                using var cts = new CancellationTokenSource(5000);
                 cacheEntry = new Dictionary<string, object> {
                     {"canConnect", await DatabaseCanConnectAsync(_logger, MiddlewareContextSettings.ConnectionString, cts.Token) },
                     {"timestamp", HEAppEHealth.GetCurrentTimestamp() }
@@ -176,9 +176,8 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
         {
             var builder = new SqlConnectionStringBuilder(connectionString)
             {
-                // one second timeout is minimum possible (int)...
-                ConnectTimeout = 1,
-                CommandTimeout = 1
+                ConnectTimeout = 5,
+                CommandTimeout = 5
             };
 
             using (var connection = new SqlConnection(builder.ConnectionString))

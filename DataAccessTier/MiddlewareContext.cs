@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects;
@@ -65,24 +66,7 @@ public class MiddlewareContext : DbContext
                                 {
                                     logger.LogInformation("Starting migration and seeding into the new database.");
                                     context.Database.Migrate();
-                                    try
-                                    {
-                                        var dbName = context.Database.GetDbConnection().Database;
-                                        if (!string.IsNullOrEmpty(dbName))
-                                        {
-                                            var builder = new SqlCommandBuilder();
-                                            var safeDbName = builder.QuoteIdentifier(dbName);
-#pragma warning disable EF1002
-                                            // nosemgrep: security_code_scan.SCS0002-1
-                                            context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON;");
-#pragma warning restore EF1002
-                                            logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.LogWarning($"Could not automatically set RCSI on database creation: {ex.Message}");
-                                    }
+                                    EnsureRcsiEnabled(context, logger);
                                     context.EnsureDatabaseSeeded();
                                     _isMigrated = true;
                                 }
@@ -125,6 +109,8 @@ public class MiddlewareContext : DbContext
                                         }
                                     }
 
+                                    EnsureRcsiEnabled(context, logger);
+
                                     logger.LogInformation("Application and database migrations are compatible. Seeding data...");
                                     context.EnsureDatabaseSeeded();
                                     _isMigrated = true;
@@ -143,6 +129,57 @@ public class MiddlewareContext : DbContext
             }
     }
 
+    private static void EnsureRcsiEnabled(MiddlewareContext context, ILogger logger)
+    {
+        try
+        {
+            var dbConnection = context.Database.GetDbConnection();
+            var dbName = dbConnection.Database;
+            if (string.IsNullOrEmpty(dbName)) return;
+
+            bool isRcsiOn = false;
+            var wasOpen = dbConnection.State == System.Data.ConnectionState.Open;
+            if (!wasOpen)
+            {
+                dbConnection.Open();
+            }
+            try
+            {
+                using var cmd = dbConnection.CreateCommand();
+                cmd.CommandText = "SELECT CAST(is_read_committed_snapshot_on AS BIT) FROM sys.databases WHERE name = DB_NAME()";
+                var res = cmd.ExecuteScalar();
+                isRcsiOn = res != null && res != DBNull.Value && Convert.ToBoolean(res);
+            }
+            finally
+            {
+                if (!wasOpen)
+                {
+                    dbConnection.Close();
+                }
+            }
+
+            if (!isRcsiOn)
+            {
+                var builder = new SqlCommandBuilder();
+                var safeDbName = builder.QuoteIdentifier(dbName);
+                logger.LogInformation($"Enabling READ_COMMITTED_SNAPSHOT (RCSI) for database: {dbName}...");
+#pragma warning disable EF1002
+                // nosemgrep: security_code_scan.SCS0002-1
+                context.Database.ExecuteSqlRaw($"ALTER DATABASE {safeDbName} SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;");
+#pragma warning restore EF1002
+                logger.LogInformation($"RCSI isolation level has been successfully enabled for database: {dbName}");
+            }
+            else
+            {
+                logger.LogDebug($"READ_COMMITTED_SNAPSHOT (RCSI) is already active for database: {dbName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"Could not automatically verify or set RCSI: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region Instances
@@ -159,20 +196,8 @@ public class MiddlewareContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            var connectionString = MiddlewareContextSettings.ConnectionString;
-            if (!string.IsNullOrEmpty(connectionString))
-            {
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                if (!builder.MultipleActiveResultSets)
-                {
-                    builder.MultipleActiveResultSets = true;
-                }
-                if (!builder.TrustServerCertificate)
-                {
-                    builder.TrustServerCertificate = true;
-                }
-                connectionString = builder.ConnectionString;
-            }
+            var connectionString = MiddlewareContextSettings.NormalizeConnectionString(MiddlewareContextSettings.ConnectionString);
+
 
             optionsBuilder.UseSqlServer(connectionString ?? "Server=localhost;Database=dummy;MultipleActiveResultSets=True;TrustServerCertificate=true;",
                 sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
@@ -325,6 +350,22 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<AdaptorUser>()
             .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
 
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Username)
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Email)
+            .HasFilter("[IsDeleted] = 0 AND [Email] IS NOT NULL");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.IdpSid)
+            .HasFilter("[IsDeleted] = 0 AND [IdpSid] IS NOT NULL");
+
+        modelBuilder.Entity<AdaptorUser>()
+            .HasIndex(u => u.Password)
+            .HasFilter("[IsDeleted] = 0 AND [Password] IS NOT NULL");
+
         modelBuilder.Entity<Cluster>()
             .Property(p => p.CustomConfiguration).HasJsonConversion();
         modelBuilder.Entity<Cluster>()
@@ -375,6 +416,11 @@ public class MiddlewareContext : DbContext
             .HasIndex(nameof(SubmittedTaskInfo.State), "SubmittedJobInfoId")
             .HasFilter("[State] > 1 AND [State] < 16")
             .IncludeProperties("NodeTypeId", "SpecificationId", "ProjectId");
+
+        modelBuilder.Entity<SubmittedJobInfo>()
+            .HasIndex(nameof(SubmittedJobInfo.State))
+            .HasFilter("[State] > 1 AND [State] < 16")
+            .IncludeProperties("SubmitterId", "ProjectId");
 
         modelBuilder.Entity<SubmittedJobInfo>()
             .HasIndex("SpecificationId", "ProjectId")
@@ -554,33 +600,73 @@ public class MiddlewareContext : DbContext
         foreach (var clusterAuthenticationCredential in clusterAuthCredWithVaultData)
         {
             var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
-                .Select(x => x.ClusterProject.Cluster)
+                .Select(x => x.ClusterProject?.Cluster)
+                .Where(c => c != null)
                 .ToList();
-            if (clusters.Count() >= 1)
-            {
-                var previousAuthType = clusterAuthenticationCredential.AuthenticationType;
-                clusterAuthenticationCredential.AuthenticationType =
-                    ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
-                        clusterAuthenticationCredential, clusters.First());
+            var firstCluster = clusters.FirstOrDefault();
+            var previousAuthType = clusterAuthenticationCredential.AuthenticationType;
+            clusterAuthenticationCredential.AuthenticationType =
+                ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(
+                    clusterAuthenticationCredential, firstCluster);
 
-                // If auth type changed to SshCertificate but PrivateKey is missing,
-                // reset IsInitialized so the system regenerates the key on next use.
-                bool isSshCert = clusterAuthenticationCredential.AuthenticationType
-                    is ClusterAuthenticationCredentialsAuthType.SshCertificate
-                    or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
-                bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
-                if (isSshCert && keyMissing)
+            if (clusterAuthenticationCredential.AuthenticationType != previousAuthType)
+            {
+                _logger.LogInformation(
+                    "Credential ID {Id} (Username: {Username}) AuthenticationType updated from {PreviousAuthType} to {NewAuthType}.",
+                    clusterAuthenticationCredential.Id,
+                    clusterAuthenticationCredential.Username,
+                    previousAuthType,
+                    clusterAuthenticationCredential.AuthenticationType);
+            }
+
+            // If auth type changed to SshCertificate but PrivateKey is missing,
+            // reset IsInitialized so the system regenerates the key on next use.
+            bool isSshCert = clusterAuthenticationCredential.AuthenticationType
+                is ClusterAuthenticationCredentialsAuthType.SshCertificate
+                or ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy;
+            bool keyMissing = string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey);
+            if (isSshCert && keyMissing)
+            {
+                foreach (var cpc in clusterAuthenticationCredential.ClusterProjectCredentials)
                 {
-                    foreach (var cpc in clusterAuthenticationCredential.ClusterProjectCredentials)
+                    cpc.IsInitialized = false;
+                }
+                _logger.LogWarning(
+                    "Credential ID {Id} (Username: {Username}) has AuthenticationType {AuthType} but missing PrivateKey. " +
+                    "Resetting IsInitialized to trigger re-provisioning.",
+                    clusterAuthenticationCredential.Id,
+                    clusterAuthenticationCredential.Username,
+                    clusterAuthenticationCredential.AuthenticationType);
+            }
+
+            if (!string.IsNullOrEmpty(clusterAuthenticationCredential.PrivateKey) &&
+                (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKey) || string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKeyFingerprint)))
+            {
+                try
+                {
+                    var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterAuthenticationCredential);
+                    if (derived != null)
                     {
-                        cpc.IsInitialized = false;
+                        if (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKey) &&
+                            !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat) &&
+                            derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                        {
+                            clusterAuthenticationCredential.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                        }
+                        if (string.IsNullOrEmpty(clusterAuthenticationCredential.PublicKeyFingerprint) &&
+                            !string.IsNullOrEmpty(derived.PublicKeyFingerprint) &&
+                            derived.PublicKeyFingerprint.Length <= 200)
+                        {
+                            clusterAuthenticationCredential.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        }
                     }
-                    _logger.LogWarning(
-                        "Credential ID {Id} (Username: {Username}) has AuthenticationType {AuthType} but missing PrivateKey. " +
-                        "Resetting IsInitialized to trigger re-provisioning.",
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to derive public key for credential ID {Id} ({Username}) during seeding.",
                         clusterAuthenticationCredential.Id,
-                        clusterAuthenticationCredential.Username,
-                        clusterAuthenticationCredential.AuthenticationType);
+                        clusterAuthenticationCredential.Username);
                 }
             }
         }

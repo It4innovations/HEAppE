@@ -449,6 +449,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
                 var scriptName = parts[1];
                 var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
                 executableFile = clusterConfig.GetPathToScript(jobSpecification.Project.AccountingString, scriptName, jobSpecification.ClusterUser?.Username);
+                if (scriptName.EndsWith(".sh", StringComparison.OrdinalIgnoreCase) && !executableFile.StartsWith("bash "))
+                {
+                    executableFile = $"bash {executableFile}";
+                }
             }
         }
         return executableFile;

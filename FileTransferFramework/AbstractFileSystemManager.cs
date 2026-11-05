@@ -37,6 +37,8 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     protected FileTransferMethod _fileSystem;
     protected FileSystemFactory _synchronizerFactory;
 
+    public FileTransferMethod FileTransferConfiguration => _fileSystem;
+
     #endregion
 
     #region Abstract Methods

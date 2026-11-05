@@ -312,6 +312,7 @@ public class DictionaryController : BaseController<DictionaryController>
             keysMap["QSchedulerPort"] = qSchedulerSchedulers;
             keysMap["QSchedulerHost"] = qSchedulerSchedulers;
             keysMap["QSchedulerNotifyToken"] = qSchedulerSchedulers;
+            keysMap["QSchedulerNotifier"] = qSchedulerSchedulers;
 
             Func<string, string> getDefaultValue = keyName =>
             {

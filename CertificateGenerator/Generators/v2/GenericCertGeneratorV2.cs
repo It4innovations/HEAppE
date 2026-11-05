@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using HEAppE.Exceptions.Internal;
 using Org.BouncyCastle.Crypto;
@@ -17,7 +17,7 @@ public abstract class GenericCertGeneratorV2
     /// <summary>
     ///     Public comment
     /// </summary>
-    protected static string _publicComment = $"key-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
+    protected static readonly string _publicComment = $"key-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
 
     #endregion
 

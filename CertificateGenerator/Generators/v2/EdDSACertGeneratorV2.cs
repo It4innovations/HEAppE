@@ -17,11 +17,15 @@ namespace HEAppE.CertificateGenerator.Generators.v2;
 public class EdDSACertGeneratorV2 : GenericCertGeneratorV2
 {
     /// <summary>
+    ///     Default comment for EdDSA keys.
+    /// </summary>
+    protected new static readonly string _publicComment = $"generated@{Environment.MachineName}";
+
+    /// <summary>
     ///     Initializes a new instance of the EdDSACertGeneratorV2 class with a default key size of 4096 bits.
     /// </summary>
     public EdDSACertGeneratorV2()
     {
-        _publicComment = $"generated@{Environment.MachineName}";
         _generator = new Ed25519KeyPairGenerator();
         _generator.Init(new Ed25519KeyGenerationParameters(new SecureRandom()));
         _keyPair = _generator.GenerateKeyPair();

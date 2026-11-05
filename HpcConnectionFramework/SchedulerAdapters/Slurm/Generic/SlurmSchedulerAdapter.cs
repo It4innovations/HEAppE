@@ -164,7 +164,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
-        var sbatchCmd = $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+        var sbatchCmd = $"{_commands.InterpreterCommand} 'bash {clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         SshCommandWrapper command = null;
         try
@@ -178,7 +178,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 if (retrySshCommand != sshCommand)
                 {
                     _logger.LogWarning("Slurm command failed with GPU flags. Retrying job submission with toggled GPU request style...");
-                    var retrySbatchCmd = $"{_commands.InterpreterCommand} '{clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(retrySshCommand))}'";
+                    var retrySbatchCmd = $"{_commands.InterpreterCommand} 'bash {clusterConfig.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString, credentials?.Username)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(retrySshCommand))}'";
                     var retryCommand = await SshCommandUtils.RunSshCommandAsync(new SshClientAdapter((SshClient)connectorClient), retrySbatchCmd, _logger);
                     if (retryCommand.ExitStatus == 0)
                     {

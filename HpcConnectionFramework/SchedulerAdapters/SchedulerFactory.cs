@@ -93,21 +93,32 @@ public abstract class SchedulerFactory
     #region Local Methods
 
     /// <summary>
+    ///     Whether connecting to this cluster needs per-user cluster credentials.
+    ///     When false, 1:1 projects share one connection pool and no user credential is required.
+    /// </summary>
+    protected virtual bool RequiresClusterCredentials(Cluster cluster) => true;
+
+    /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
     protected IConnectionPool GetSchedulerConnectionPool(
-        Cluster clusterConf, 
-        Project project, 
+        Cluster clusterConf,
+        Project project,
         ISshCertificateAuthorityService sshCertificateAuthorityService,
         long? adaptorUserId,
         IExpirioService expirio, ILogger logger)
     {
-        if (!project.IsOneToOneMapping)
+        if (!project.IsOneToOneMapping || !RequiresClusterCredentials(clusterConf))
             adaptorUserId = null;
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
             clusterConf.SchedulerType, adaptorUserId, clusterConf.ProxyConnectionId,
             clusterConf.ConnectionProtocol, clusterConf.Port);
+
+        if (_schedulerConnectionPoolSingletons.TryGetValue(endpoint, out var existingPool) && existingPool.IsDisposed)
+        {
+            _schedulerConnectionPoolSingletons.TryRemove(endpoint, out _);
+        }
 
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
@@ -148,7 +159,8 @@ public abstract class SchedulerFactory
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     clusterConf.Port,
-                    logger);
+                    logger,
+                    _connectionPoolSettings.ConnectionAcquireTimeoutMs);
             });
     }
 

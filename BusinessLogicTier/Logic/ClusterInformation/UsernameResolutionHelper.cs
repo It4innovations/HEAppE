@@ -160,7 +160,8 @@ public static class UsernameResolutionHelper
                 if (attemptKerberos)
                 {
                     logger.LogWarning("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                    var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
+                    var token = httpContextKeys.Context.GetExchangedToken("expirio")
+                        ?? (!string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken);
                     if (!string.IsNullOrEmpty(token))
                     {
                         try

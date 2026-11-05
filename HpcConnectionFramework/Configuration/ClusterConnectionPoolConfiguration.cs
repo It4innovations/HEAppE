@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration;
+namespace HEAppE.HpcConnectionFramework.Configuration;
 
 /// <summary>
 ///     Cluster connection pool configuration
@@ -26,6 +26,12 @@ public sealed class ClusterConnectionPoolConfiguration
     ///     Connection pool maximum sessions per one physical connection (multiplexing limit)
     /// </summary>
     public int MaxSessionsPerConnection { get; set; } = 8;
+
+    /// <summary>
+    ///     Maximum time (in milliseconds) to wait for an available connection or session slot.
+    ///     Default: 30000ms (30 seconds).
+    /// </summary>
+    public int ConnectionAcquireTimeoutMs { get; set; } = 30000;
 
     #endregion
 }

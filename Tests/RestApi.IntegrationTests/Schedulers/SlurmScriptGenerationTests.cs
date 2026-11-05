@@ -201,4 +201,128 @@ public class SlurmScriptGenerationTests
         cmd.Should().Contain("exec bash \"$HOME/.HEAppE/.ATR-26-1/test-p01/.key_scripts/task_wrapper.sh\" \"https://heappe.example.com/callback\" \"slurm\"");
         cmd.Should().Contain("1>> \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stdout\" 2>> \"$HOME/test-p01/HEAppE/Executions/kon0379/38988/38988/stderr\"");
     }
+
+    [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenScriptInKeyScriptsEndingInSh_PrependsBash()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "TestTemplate",
+            ExecutableFile = "~/.HEAppE/.key_scripts/test.sh"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().StartWith("bash ");
+        resolved.Should().EndWith("/.ad0227181/Identifier/.key_scripts/test.sh");
+    }
+
+    [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenBinaryOrNonScript_DoesNotPrependBash()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "PythonTemplate",
+            ExecutableFile = "/usr/bin/python3"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().Be("/usr/bin/python3");
+    }
+
+    [Fact]
+    public void SlurmDataConvertor_ResolveExecutableFile_WhenAlreadyPrefixedWithBash_DoesNotDuplicate()
+    {
+        var convertor = new TestSlurmDataConvertor();
+        var jobSpec = new JobSpecification
+        {
+            Id = 1,
+            Project = new Project { AccountingString = "ad0227181" },
+            ClusterUser = new ClusterAuthenticationCredentials { Username = "ud0227181" },
+            Cluster = new Cluster
+            {
+                CustomConfiguration = new Dictionary<string, string>()
+            }
+        };
+
+        var template = new CommandTemplate
+        {
+            Name = "ExplicitBashTemplate",
+            ExecutableFile = "bash ~/.HEAppE/.key_scripts/test.sh"
+        };
+
+        var resolved = convertor.TestResolveExecutableFile(template, jobSpec);
+        resolved.Should().NotStartWith("bash bash ");
+    }
+
+    private class TestSlurmDataConvertor : HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.SlurmDataConvertor
+    {
+        public TestSlurmDataConvertor() : base(null, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance) { }
+        public string TestResolveExecutableFile(CommandTemplate template, JobSpecification jobSpec) =>
+            ResolveExecutableFile(template, jobSpec);
+    }
+
+    [Fact]
+    public void SlurmTaskAdapter_SetPreparationAndCommand_WhenCommandLineContainsSingleQuotes_EscapesQuotesForWrapOption()
+    {
+        var adapter = new SlurmTaskAdapter("sbatch");
+        adapter.UseCallback = false;
+
+        adapter.SetPreparationAndCommand(
+            workDir: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101",
+            preparationScript: null,
+            commandLine: "~/.HEAppE/.project_12345/cluster/.key_scripts/test.sh 'Hello from Cluster'",
+            stdOutFile: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stdout",
+            stdErrFile: "/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        // The entire command must be wrapped in single quotes, and inner single quotes must be escaped as '\''
+        cmd.Should().Contain("--wrap 'cd \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101\";1>> \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stdout\" 2>> \"/scratch/project_12345/cluster/HEAppE/Executions/user1/101/101/stderr\" ~/.HEAppE/.project_12345/cluster/.key_scripts/test.sh '\\''Hello from Cluster'\\'';'");
+    }
+
+    [Fact]
+    public void SlurmTaskAdapter_SetPreparationAndCommand_WhenPreparationScriptContainsSingleQuotes_EscapesQuotesForWrapOption()
+    {
+        var adapter = new SlurmTaskAdapter("sbatch");
+        adapter.UseCallback = false;
+
+        adapter.SetPreparationAndCommand(
+            workDir: "/scratch/job",
+            preparationScript: "echo 'preparing job'",
+            commandLine: "echo 'running job'",
+            stdOutFile: "/scratch/job/stdout",
+            stdErrFile: "/scratch/job/stderr",
+            recursiveSymlinkCommand: null
+        );
+
+        var cmd = adapter.AllocationCmd.ToString();
+
+        cmd.Should().Contain("echo '\\''preparing job'\\'';echo '\\''running job'\\'';'");
+    }
 }

@@ -112,7 +112,7 @@ public class ManagementLogic : IManagementLogic
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -269,7 +269,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService, _expirioToken, _logger)
-            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken))
+            .GetParametersFromGenericUserScriptAsync(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken, _expirioToken))
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -1225,18 +1225,38 @@ public class ManagementLogic : IManagementLogic
 
     private CredentialResponse CreateCredentialResponse(ClusterAuthenticationCredentials clusterCredentials, long? adaptorUserId)
     {
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            clusterCredentials.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                                                 or ClusterAuthenticationCredentialsAuthType.Unknown)
+        {
+            clusterCredentials.AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey;
+        }
+
         var response = CredentialResponse.GetCredential(clusterCredentials, adaptorUserId);
-        if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(clusterCredentials.PrivateKey))
+        if (!string.IsNullOrEmpty(clusterCredentials.PrivateKey) &&
+            (string.IsNullOrEmpty(response.PublicKeyExt) || string.IsNullOrEmpty(response.PublicKeyFingerprint)))
         {
             try
             {
                 var derived = SSHGenerator.GetPublicKeyFromPrivateKey(clusterCredentials);
                 if (derived != null)
                 {
-                    response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
-                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint))
+                    if (string.IsNullOrEmpty(response.PublicKeyExt) && !string.IsNullOrEmpty(derived.PublicKeyInAuthorizedKeysFormat))
+                    {
+                        response.PublicKeyExt = derived.PublicKeyInAuthorizedKeysFormat;
+                        if (derived.PublicKeyInAuthorizedKeysFormat.Length <= 200)
+                        {
+                            clusterCredentials.PublicKey = derived.PublicKeyInAuthorizedKeysFormat;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(derived.PublicKeyFingerprint))
                     {
                         response.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        if (derived.PublicKeyFingerprint.Length <= 200)
+                        {
+                            clusterCredentials.PublicKeyFingerprint = derived.PublicKeyFingerprint;
+                        }
                     }
                 }
             }
@@ -1245,6 +1265,20 @@ public class ManagementLogic : IManagementLogic
                 _logger.LogWarning(ex, $"Failed to derive public key for credential {clusterCredentials.Id} ({clusterCredentials.Username}).");
             }
         }
+
+        if (string.IsNullOrEmpty(response.PublicKeyFingerprint) && !string.IsNullOrEmpty(response.PublicKeyExt))
+        {
+            var fingerprint = SSHGenerator.ComputeFingerprintFromAuthorizedKeys(response.PublicKeyExt);
+            if (!string.IsNullOrEmpty(fingerprint))
+            {
+                response.PublicKeyFingerprint = fingerprint;
+                if (fingerprint.Length <= 200)
+                {
+                    clusterCredentials.PublicKeyFingerprint = fingerprint;
+                }
+            }
+        }
+
         return response;
     }
 
@@ -1543,7 +1577,7 @@ public class ManagementLogic : IManagementLogic
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 
                 var isInitialized = await scheduler.InitializeClusterScriptDirectoryAsync(path, overwriteExistingProjectRootDirectory, localBasepath,
-                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
@@ -1612,7 +1646,7 @@ public class ManagementLogic : IManagementLogic
                     .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, _expirioService, _expirioToken, _logger);
                 
                 var status = await scheduler.TestClusterAccessForAccountAsync(cluster, clusterAuthCredentials,
-                    _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                    _httpContextKeys.Context.SshCaToken, _expirioToken);
                 
                 if (!status.Item1)
                 {
@@ -4777,7 +4811,7 @@ public class ManagementLogic : IManagementLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 

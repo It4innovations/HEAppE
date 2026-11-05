@@ -4,6 +4,7 @@ using System.Net.Http;
 using log4net;
 using Polly;
 using Polly.Extensions.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HEAppE.RestUtils
 {
@@ -31,5 +32,19 @@ namespace HEAppE.RestUtils
                 {
                     Log.Info("Circuit reset.");
                 });
+
+        public static Microsoft.Extensions.DependencyInjection.IHttpClientBuilder ConfigureHighThroughputSocketsHandler(
+            this Microsoft.Extensions.DependencyInjection.IHttpClientBuilder builder,
+            TimeSpan? pooledConnectionLifetime = null)
+        {
+            return builder
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    PooledConnectionLifetime = pooledConnectionLifetime ?? TimeSpan.FromMinutes(5),
+                    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                    EnableMultipleHttp2Connections = true
+                })
+                .SetHandlerLifetime(System.Threading.Timeout.InfiniteTimeSpan);
+        }
     }
 }

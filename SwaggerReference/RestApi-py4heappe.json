@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.7.0"
+    "version": "v6.6.2"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -14406,7 +14406,7 @@
           {
             "name": "ArtifactName",
             "in": "query",
-            "description": "Artifact name (e.g. measurements, measurements_counts, sweep_results)",
+            "description": "Artifact name (e.g. measurements, measurement_counts, sweep_results)",
             "schema": {
               "type": "string"
             }

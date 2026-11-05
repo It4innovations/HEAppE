@@ -443,6 +443,9 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         var normStdOut = NormalizeShellPath(stdOutFile);
         var normStdErr = NormalizeShellPath(stdErrFile);
         var normWrapper = NormalizeShellPath(WrapperScriptPath);
+        var escapedSymlink = recursiveSymlinkCommand?.Replace("'", "'\\''");
+        var escapedPrep = preparationScript?.Replace("'", "'\\''");
+        var escapedCmd = commandLine?.Replace("'", "'\\''");
 
         if (UseCallback)
         {
@@ -454,21 +457,19 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 _taskAppender.Append($" --wrap \'cd \"{normWorkDir}\";");
                 _taskAppender.Append("mkdir -p .heappe; ");
                 _taskAppender.Append($"echo \"{CallbackSecret}\" > .heappe/callback_token; chmod 600 .heappe/callback_token;");
-                if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+                if (!string.IsNullOrEmpty(escapedSymlink))
                 {
-                    _taskAppender.Append(recursiveSymlinkCommand.Last().Equals(';')
-                        ? recursiveSymlinkCommand
-                        : $"{recursiveSymlinkCommand};");
+                    _taskAppender.Append(escapedSymlink.Last().Equals(';')
+                        ? escapedSymlink
+                        : $"{escapedSymlink};");
                 }
                 _taskAppender.Append("cat << \"EOF\" > .heappe/heappe_user_task.sh\n");
-                if (!string.IsNullOrEmpty(preparationScript))
+                if (!string.IsNullOrEmpty(escapedPrep))
                 {
-                    var escapedPrep = preparationScript.Replace("'", "'\\''");
                     _taskAppender.Append(escapedPrep.Last().Equals('\n') ? escapedPrep : $"{escapedPrep}\n");
                 }
-                if (!string.IsNullOrEmpty(commandLine))
+                if (!string.IsNullOrEmpty(escapedCmd))
                 {
-                    var escapedCmd = commandLine.Replace("'", "'\\''");
                     _taskAppender.Append(escapedCmd.Last().Equals('\n') ? escapedCmd : $"{escapedCmd}\n");
                 }
                 _taskAppender.Append("EOF\n");
@@ -486,6 +487,10 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
                 sb.Append($"chmod 600 \"{normWorkDir}/.heappe/callback_token\" && ");
                 
                 sb.Append($"cat << \"EOF_HEAPPE_USER_TASK\" > \"{normWorkDir}/.heappe/heappe_user_task.sh\"\n");
+                if (!string.IsNullOrEmpty(recursiveSymlinkCommand))
+                {
+                    sb.Append(recursiveSymlinkCommand.Last().Equals('\n') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand}\n");
+                }
                 if (!string.IsNullOrEmpty(preparationScript))
                 {
                     sb.Append(preparationScript.Last().Equals('\n') ? preparationScript : $"{preparationScript}\n");
@@ -513,25 +518,25 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
         _taskAppender.Append($" --wrap \'cd \"{normWorkDir}\";");
         _taskAppender.Append(
-            string.IsNullOrEmpty(recursiveSymlinkCommand)
+            string.IsNullOrEmpty(escapedSymlink)
                 ? string.Empty
-                : recursiveSymlinkCommand.Last().Equals(';')
-                    ? recursiveSymlinkCommand
-                    : $"{recursiveSymlinkCommand};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
+                : escapedSymlink.Last().Equals(';')
+                    ? escapedSymlink
+                    : $"{escapedSymlink};rm -f \"{normStdOut}\" \"{normStdErr}\";touch \"{normStdOut}\" \"{normStdErr}\";");
 
         _taskAppender.Append($"1>> \"{normStdOut}\" 2>> \"{normStdErr}\" ");
         _taskAppender.Append(
-            string.IsNullOrEmpty(preparationScript)
+            string.IsNullOrEmpty(escapedPrep)
                 ? string.Empty
-                : preparationScript.Last().Equals(';')
-                    ? preparationScript
-                    : $"{preparationScript};");
+                : escapedPrep.Last().Equals(';')
+                    ? escapedPrep
+                    : $"{escapedPrep};");
         _taskAppender.Append(
-            string.IsNullOrEmpty(commandLine)
+            string.IsNullOrEmpty(escapedCmd)
                 ? string.Empty
-                : commandLine.Last().Equals(';')
-                    ? commandLine
-                    : $"{commandLine};");
+                : escapedCmd.Last().Equals(';')
+                    ? escapedCmd
+                    : $"{escapedCmd};");
 
         _taskAppender.Append('\'');
 

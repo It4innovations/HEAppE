@@ -83,14 +83,14 @@ public abstract class FileSystemFactory : IDisposable
 
     protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
-        if (_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out var connection))
+        if (_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out var connection) && !connection.IsDisposed)
         {
             return connection;
         }
 
         lock (_schedulerConnPoolSingletons)
         {
-            if (!_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out connection))
+            if (!_schedulerConnPoolSingletons.TryGetValue(configuration.Id, out connection) || connection.IsDisposed)
             {
                 var poolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
                 
@@ -105,15 +105,16 @@ public abstract class FileSystemFactory : IDisposable
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
                     HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     configuration.Cluster.Port,
-                    logger);
+                    logger,
+                    poolSettings.ConnectionAcquireTimeoutMs);
 
-                _schedulerConnPoolSingletons.TryAdd(configuration.Id, connection);
+                _schedulerConnPoolSingletons[configuration.Id] = connection;
             }
             return connection;
         }
     }
 
-    public void InvalidateConnectionPool(long fileTransferMethodId)
+    public virtual void InvalidateConnectionPool(long fileTransferMethodId)
     {
         if (_schedulerConnPoolSingletons.TryRemove(fileTransferMethodId, out var pool))
         {
@@ -121,7 +122,7 @@ public abstract class FileSystemFactory : IDisposable
         }
     }
 
-    public void InvalidateAllConnectionPools()
+    public virtual void InvalidateAllConnectionPools()
     {
         foreach (var key in _schedulerConnPoolSingletons.Keys)
         {

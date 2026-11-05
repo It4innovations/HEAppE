@@ -15,9 +15,9 @@ public static class SshCommandUtils
 {    
     /// <summary>
     /// Maximum number of attempts for a single command execution.
-    /// Loaded from configuration (default is usually 10).
+    /// Loaded dynamically from configuration (with a safe minimum of 3).
     /// </summary>
-    private static readonly int MaxRetries = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
+    private static int MaxRetries => Math.Max(3, HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts);
     
     /// <summary>
     /// Base delay for exponential backoff in milliseconds.
@@ -123,6 +123,20 @@ public static class SshCommandUtils
                 throw new InputValidationException("GitCloneCommandError");
             }
 
+            if (IsDiskQuotaExceeded(sshCommand.Error) || IsDiskQuotaExceeded(sshCommand.Result))
+            {
+                var quotaError = !string.IsNullOrWhiteSpace(sshCommand.Error) ? sshCommand.Error.Trim() : sshCommand.Result.Trim();
+                logger.LogWarning("SSH command error (Disk quota exceeded). Error: {Error}, Exit Code: {ExitCode}", quotaError, sshCommand.ExitStatus);
+                throw new ClusterStorageQuotaExceededException("DiskQuotaExceeded", quotaError);
+            }
+
+            if (IsNoSpaceLeftOnDevice(sshCommand.Error) || IsNoSpaceLeftOnDevice(sshCommand.Result))
+            {
+                var spaceError = !string.IsNullOrWhiteSpace(sshCommand.Error) ? sshCommand.Error.Trim() : sshCommand.Result.Trim();
+                logger.LogWarning("SSH command error (No space left on device). Error: {Error}, Exit Code: {ExitCode}", spaceError, sshCommand.ExitStatus);
+                throw new ClusterStorageQuotaExceededException("NoSpaceLeftOnDevice", spaceError);
+            }
+
             // General command failure - throw exception. IsTransient will determine if we retry.
             var errMsg = !string.IsNullOrEmpty(sshCommand.Error) ? sshCommand.Error : sshCommand.Result;
             logger.LogWarning("SSH command execution failed with non-zero exit code. Error: {Error}, Result: {Result}, Exit Code: {ExitCode}", sshCommand.Error, sshCommand.Result, sshCommand.ExitStatus);
@@ -153,13 +167,35 @@ public static class SshCommandUtils
     /// <summary>
     /// Identifies if the exception is a transient network/timeout error that warrants a retry.
     /// </summary>
-    private static bool IsTransient(Exception ex)
+    private static bool IsTransient(Exception? ex)
     {
-        // Identify network-level issues where a retry might succeed
-        return ex is System.Net.Sockets.SocketException || 
-               ex is TimeoutException || 
-               ex is Renci.SshNet.Common.SshConnectionException ||
-               ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("Failed to open a channel", StringComparison.OrdinalIgnoreCase);
+        while (ex != null)
+        {
+            if (ex is System.Net.Sockets.SocketException || 
+                ex is TimeoutException || 
+                ex is Renci.SshNet.Common.SshConnectionException ||
+                ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("Failed to open a channel", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("administratively prohibited", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("channel open failed", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            ex = ex.InnerException;
+        }
+        return false;
+    }
+
+    public static bool IsDiskQuotaExceeded(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("Disk quota exceeded", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsNoSpaceLeftOnDevice(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("No space left on device", StringComparison.OrdinalIgnoreCase);
     }
 }

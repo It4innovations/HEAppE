@@ -446,4 +446,402 @@ public class QSchedulerSchedulerAdapterTests
             }
         }
     }
+
+    [Fact]
+    public async Task SubmitJobAsync_WithEnableCallbackAndLongInstanceId_SendsFullInstanceIdentifierPath()
+    {
+        // Arrange
+        var longInstanceId = "heappe-instance-identifier-longer-than-12-chars";
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" },
+                { "EnableCallback", "true" },
+                { "InstanceIdentifierPath", longInstanceId }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                }
+            }
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskDir = HEAppE.Utils.FileSystemUtils.GetTaskClusterDirectoryPath(jobSpec.Tasks.First(), longInstanceId, "HEAppE/Executions").Replace('\\', '/');
+        var payloadPath = $"{taskDir}/payload.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(payloadPath)!);
+        System.IO.File.WriteAllText(payloadPath, "{}");
+
+        try
+        {
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/projects")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("Created") });
+
+            HttpRequestMessage? capturedTaskRequest = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/tasks")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedTaskRequest = req)
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("123") });
+
+            _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+                .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+            // Act
+            var results = await _adapter.SubmitJobAsync(directConn, jobSpec, null);
+
+            // Assert
+            Assert.NotNull(capturedTaskRequest);
+            var query = capturedTaskRequest!.RequestUri!.Query;
+            Assert.Contains($"notify={longInstanceId}", query);
+            Assert.Contains("time_limit_ms=3600000", query);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(payloadPath))
+            {
+                System.IO.File.Delete(payloadPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_WithEnableCallbackAndClusterNotifier_SendsClusterNotifier()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" },
+                { "EnableCallback", "true" },
+                { "QSchedulerNotifier", "cluster_notif" }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                }
+            }
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 1800);
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskDir = HEAppE.Utils.FileSystemUtils.GetTaskClusterDirectoryPath(jobSpec.Tasks.First(), "Identifier", "HEAppE/Executions").Replace('\\', '/');
+        var payloadPath = $"{taskDir}/payload.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(payloadPath)!);
+        System.IO.File.WriteAllText(payloadPath, "{}");
+
+        try
+        {
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/projects")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("Created") });
+
+            HttpRequestMessage? capturedTaskRequest = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/tasks")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedTaskRequest = req)
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("123") });
+
+            _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+                .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+            // Act
+            var results = await _adapter.SubmitJobAsync(directConn, jobSpec, null);
+
+            // Assert
+            Assert.NotNull(capturedTaskRequest);
+            var query = capturedTaskRequest!.RequestUri!.Query;
+            Assert.Contains("notify=cluster_notif", query);
+            Assert.Contains("time_limit_ms=1800000", query);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(payloadPath))
+            {
+                System.IO.File.Delete(payloadPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_WithEnableCallbackAndInstanceId_SendsInstanceIdentifierPath()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" },
+                { "EnableCallback", "true" },
+                { "InstanceIdentifierPath", "heappe-dev" }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                }
+            }
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskDir = HEAppE.Utils.FileSystemUtils.GetTaskClusterDirectoryPath(jobSpec.Tasks.First(), "heappe-dev", "HEAppE/Executions").Replace('\\', '/');
+        var payloadPath = $"{taskDir}/payload.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(payloadPath)!);
+        System.IO.File.WriteAllText(payloadPath, "{}");
+
+        try
+        {
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/projects")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("Created") });
+
+            HttpRequestMessage? capturedTaskRequest = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/tasks")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedTaskRequest = req)
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("123") });
+
+            _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+                .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+            // Act
+            var results = await _adapter.SubmitJobAsync(directConn, jobSpec, null);
+
+            // Assert
+            Assert.NotNull(capturedTaskRequest);
+            var query = capturedTaskRequest!.RequestUri!.Query;
+            Assert.Contains("notify=heappe-dev", query);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(payloadPath))
+            {
+                System.IO.File.Delete(payloadPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_WithoutEnableCallback_DoesNotSendNotify()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" },
+                { "EnableCallback", "false" },
+                { "InstanceIdentifierPath", "heappe-dev" },
+                { "QSchedulerNotifier", "cluster_notif" }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                }
+            }
+        };
+
+        var jobSpec = CreateMockJobSpecification(cluster, project, "MachineSimulator", 3600);
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskDir = HEAppE.Utils.FileSystemUtils.GetTaskClusterDirectoryPath(jobSpec.Tasks.First(), "heappe-dev", "HEAppE/Executions").Replace('\\', '/');
+        var payloadPath = $"{taskDir}/payload.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(payloadPath)!);
+        System.IO.File.WriteAllText(payloadPath, "{}");
+
+        try
+        {
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/projects")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("Created") });
+
+            HttpRequestMessage? capturedTaskRequest = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/tasks")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedTaskRequest = req)
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("123") });
+
+            _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+                .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+            // Act
+            var results = await _adapter.SubmitJobAsync(directConn, jobSpec, null);
+
+            // Assert
+            Assert.NotNull(capturedTaskRequest);
+            var query = capturedTaskRequest!.RequestUri!.Query;
+            Assert.DoesNotContain("notify=", query);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(payloadPath))
+            {
+                System.IO.File.Delete(payloadPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task OpenSessionAsync_WithEnableCallback_SendsInstanceIdentifierPathInSessionUrl()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string>
+            {
+                { "QSchedulerPort", "3000" },
+                { "EnableCallback", "true" },
+                { "InstanceIdentifierPath", "heappe-instance-session" }
+            }
+        };
+
+        var project = new Project
+        {
+            Id = 10,
+            Name = "MyProject",
+            AccountingString = "MyProjectAcc",
+            UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
+            ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
+            {
+                new ProjectClusterNodeTypeAggregation
+                {
+                    AllocationAmount = 5000,
+                    ClusterNodeTypeAggregation = new ClusterNodeTypeAggregation { Name = "QPUSeconds" }
+                }
+            }
+        };
+
+        var directConn = new HttpConnection("http://localhost:3000");
+        HttpRequestMessage? capturedSessionRequest = null;
+
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/projects")),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("Created") });
+
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri.AbsolutePath.Contains("/sessions")),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedSessionRequest = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("777") });
+
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+        // Act
+        var sessionId = await _adapter.OpenSessionAsync(directConn, cluster, "TestMachine", project, 3600);
+
+        // Assert
+        Assert.Equal(777, sessionId);
+        Assert.NotNull(capturedSessionRequest);
+        var query = capturedSessionRequest!.RequestUri!.Query;
+        Assert.Contains("notify=heappe-instance-session", query);
+        Assert.Contains("time_limit_ms=3600000", query);
+        Assert.Contains("machine=TestMachine", query);
+        Assert.Contains("project=MyProjectAcc", query);
+    }
 }

@@ -126,6 +126,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 _httpContextKeys.Context.AdaptorUserId = user.Id; 
                 _httpContextKeys.Context.UserName = user.Username;
                 _httpContextKeys.Context.Email = user.Email;
+                _httpContextKeys.Context.CurrentUser = user;
                 
                 // Add to LogContext early so Auth logs also get the user
                 HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(user.Id, user.Username, user.Email);
