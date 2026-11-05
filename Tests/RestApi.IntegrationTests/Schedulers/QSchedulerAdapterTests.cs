@@ -166,6 +166,37 @@ public class QSchedulerAdapterTests
             .Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Theory]
+    [InlineData(null, "/machine/garnet/calibration/default")]
+    [InlineData("", "/machine/garnet/calibration/default")]
+    [InlineData("readout", "/machine/garnet/calibration/default/readout")]
+    public async Task GetMachineCalibrationAsync_EndpointIsOptional(string endpoint, string expectedPath)
+    {
+        HttpRequestMessage captured = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(() => new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHandler.Object));
+
+        var cluster = new Cluster { Id = 1, MasterNodeName = "localhost" };
+        var directConn = new HttpConnection("http://localhost:4300");
+
+        var result = await _adapter.GetMachineCalibrationAsync(directConn, cluster, "garnet", "default", endpoint);
+
+        result.Should().Be("{}");
+        captured.RequestUri!.AbsolutePath.Should().Be(expectedPath);
+    }
+
     [Fact]
     public async Task GetActualTasksInfoAsync_QueriesTaskAndMapsState()
     {

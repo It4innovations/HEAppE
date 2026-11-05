@@ -408,7 +408,8 @@ public class QSchedulerController : BaseController<QSchedulerController>
     }
 
     /// <summary>
-    ///     Get QScheduler machine calibration
+    ///     Get QScheduler machine calibration. With Endpoint, returns that calibration data set;
+    ///     without it, returns the whole calibration set (as used by IQM Pulla's compiler).
     /// </summary>
     /// <returns>JSON string with machine calibration parameters</returns>
     [HttpGet("MachineCalibration")]

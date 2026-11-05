@@ -19,17 +19,17 @@ public class GetMachineCalibrationModel : SessionCodeModel
     public long ClusterNodeTypeId { get; set; }
 
     /// <summary>
-    /// Calibration identifier
+    /// Calibration set identifier, or 'default'
     /// </summary>
     [DataMember(Name = "CalibrationId")]
-    [Description("Calibration identifier")]
+    [Description("Calibration set identifier, or 'default'")]
     public string CalibrationId { get; set; }
 
     /// <summary>
-    /// Calibration endpoint (e.g. 'readout', 'gates')
+    /// Optional calibration endpoint (e.g. 'readout', 'gates'). When omitted, the whole calibration set is returned.
     /// </summary>
-    [DataMember(Name = "Endpoint")]
-    [Description("Calibration endpoint")]
+    [DataMember(Name = "Endpoint", IsRequired = false)]
+    [Description("Optional calibration endpoint. When omitted, the whole calibration set is returned.")]
     public string Endpoint { get; set; }
 
     /// <summary>

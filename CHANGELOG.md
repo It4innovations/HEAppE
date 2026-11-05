@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **QScheduler Machine Artifacts:** Added `GET /heappe/QScheduler/MachineArtifact` endpoint that proxies QScheduler v0.2.2 `GET /machine/{machine}/artifacts/{name}` (`settings`, `chip-design-records`, `channel-properties`, `static-quantum-architectures`, `duts`). The request's `Accept` header is forwarded and the backend's `Content-Type` is returned, so IQM protobuf artifacts can be fetched with `Accept: application/protobuf`.
 
+### Changed
+- **QScheduler Machine Calibration:** `Endpoint` in `GET /heappe/QScheduler/MachineCalibration` is now optional. When it is omitted, the whole calibration set is returned via QScheduler v0.2.2 `GET /machine/{machine}/calibration/{calibration}` (`CalibrationId` may be `default`).
+
 ## V6.6.2
 
 ### Security

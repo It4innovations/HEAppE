@@ -57,9 +57,8 @@ public class ClusterInformationValidator : AbstractValidator
         else if (!safeIdentifier.IsMatch(model.CalibrationId))
             _messageBuilder.AppendLine("CalibrationId may only contain alphanumeric characters, hyphens, and underscores.");
 
-        if (string.IsNullOrEmpty(model.Endpoint))
-            _messageBuilder.AppendLine("Endpoint must be provided.");
-        else if (!safeIdentifier.IsMatch(model.Endpoint))
+        // Endpoint is optional: without it the whole calibration set is returned.
+        if (!string.IsNullOrEmpty(model.Endpoint) && !safeIdentifier.IsMatch(model.Endpoint))
             _messageBuilder.AppendLine("Endpoint may only contain alphanumeric characters, hyphens, and underscores.");
 
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();

@@ -14743,7 +14743,7 @@
         "tags": [
           "QScheduler"
         ],
-        "summary": "Get QScheduler machine calibration",
+        "summary": "Get QScheduler machine calibration. With Endpoint, returns that calibration data set;\nwithout it, returns the whole calibration set (as used by IQM Pulla's compiler).",
         "parameters": [
           {
             "name": "ClusterNodeTypeId",
@@ -14758,19 +14758,19 @@
           {
             "name": "CalibrationId",
             "in": "query",
-            "description": "Calibration identifier",
+            "description": "Calibration set identifier, or 'default'",
             "schema": {
               "type": "string",
-              "description": "Calibration identifier"
+              "description": "Calibration set identifier, or 'default'"
             }
           },
           {
             "name": "Endpoint",
             "in": "query",
-            "description": "Calibration endpoint",
+            "description": "Optional calibration endpoint. When omitted, the whole calibration set is returned.",
             "schema": {
               "type": "string",
-              "description": "Calibration endpoint"
+              "description": "Optional calibration endpoint. When omitted, the whole calibration set is returned."
             }
           },
           {
@@ -14854,7 +14854,7 @@
         "tags": [
           "QScheduler"
         ],
-        "summary": "Get QScheduler machine calibration",
+        "summary": "Get QScheduler machine calibration. With Endpoint, returns that calibration data set;\nwithout it, returns the whole calibration set (as used by IQM Pulla's compiler).",
         "parameters": [
           {
             "name": "ClusterNodeTypeId",
@@ -14869,19 +14869,19 @@
           {
             "name": "CalibrationId",
             "in": "query",
-            "description": "Calibration identifier",
+            "description": "Calibration set identifier, or 'default'",
             "schema": {
               "type": "string",
-              "description": "Calibration identifier"
+              "description": "Calibration set identifier, or 'default'"
             }
           },
           {
             "name": "Endpoint",
             "in": "query",
-            "description": "Calibration endpoint",
+            "description": "Optional calibration endpoint. When omitted, the whole calibration set is returned.",
             "schema": {
               "type": "string",
-              "description": "Calibration endpoint"
+              "description": "Optional calibration endpoint. When omitted, the whole calibration set is returned."
             }
           },
           {

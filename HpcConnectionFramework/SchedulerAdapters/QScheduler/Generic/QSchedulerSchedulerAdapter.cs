@@ -969,7 +969,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     public async Task<string> GetMachineCalibrationAsync(object connectorClient, Cluster cluster, string machineId, string calibrationId, string endpoint)
     {
         _logger.LogInformation($"GetMachineCalibrationAsync started for machine ID: {machineId}, calibration ID: {calibrationId}, endpoint: {endpoint}, cluster ID: {cluster.Id}");
-        var relativeUrl = $"machine/{machineId}/calibration/{calibrationId}/{endpoint}";
+        // Without an endpoint QScheduler returns the whole calibration set.
+        var relativeUrl = string.IsNullOrEmpty(endpoint)
+            ? $"machine/{machineId}/calibration/{calibrationId}"
+            : $"machine/{machineId}/calibration/{calibrationId}/{endpoint}";
         var result = await ExecuteRequestAsync(connectorClient, cluster, "GET", relativeUrl);
         _logger.LogDebug($"GetMachineCalibrationAsync response for machine ID {machineId}: '{result}'");
         _logger.LogInformation($"GetMachineCalibrationAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
