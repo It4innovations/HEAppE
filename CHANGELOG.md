@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V6.6.3
 
 ### Fixed
-- **QScheduler In-Memory Payload Cache for Deferred/Queued Tasks:** Fixed `DirectoryNotFoundException` when submitting deferred tasks to QScheduler upon session `open` callback in HTTP/HTTPS mode. Replaced transient `AsyncLocal` request stream with a high-performance in-memory `QSchedulerPayloadContext` holding circuit payloads in RAM indexed by `taskId` until callback submission, completely eliminating disk I/O.
+- **QScheduler In-Memory Payload Cache for Deferred/Queued Tasks:** Fixed task submission failure for queued sessions when session `open` callback is received in HTTP/HTTPS mode. Replaced transient `AsyncLocal` request stream with an in-memory `QSchedulerPayloadContext` preserving circuit payloads in RAM indexed by `taskId` until session callback submission.
 
 ## V6.6.2
 
