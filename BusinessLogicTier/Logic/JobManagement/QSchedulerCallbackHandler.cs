@@ -253,6 +253,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                     {
                         st.State = TaskState.Failed;
                         st.ErrorMessage = "Session closed in QScheduler.";
+                        HEAppE.Utils.QSchedulerPayloadContext.RemoveByTaskId(st.Id);
                     }
                 }
                 
