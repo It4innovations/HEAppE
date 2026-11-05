@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.0
+
+### Added
+- **QScheduler Machine Artifacts:** Added `GET /heappe/QScheduler/MachineArtifact` endpoint that proxies QScheduler v0.2.2 `GET /machine/{machine}/artifacts/{name}` (`settings`, `chip-design-records`, `channel-properties`, `static-quantum-architectures`, `duts`). The request's `Accept` header is forwarded and the backend's `Content-Type` is returned, so IQM protobuf artifacts can be fetched with `Accept: application/protobuf`.
+
 ## V6.6.2
 
 ### Security

@@ -20,6 +20,7 @@ public class ClusterInformationValidator : AbstractValidator
             GetMachineArchitectureModel ext => ValidateGetMachineArchitectureModel(ext),
             GetMachineInfoModel ext => ValidateGetMachineInfoModel(ext),
             GetMachineCalibrationModel ext => ValidateGetMachineCalibrationModel(ext),
+            GetMachineArtifactModel ext => ValidateGetMachineArtifactModel(ext),
             _ => string.Empty
         };
 
@@ -60,6 +61,22 @@ public class ClusterInformationValidator : AbstractValidator
             _messageBuilder.AppendLine("Endpoint must be provided.");
         else if (!safeIdentifier.IsMatch(model.Endpoint))
             _messageBuilder.AppendLine("Endpoint may only contain alphanumeric characters, hyphens, and underscores.");
+
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetMachineArtifactModel(GetMachineArtifactModel model)
+    {
+        ValidateId(model.ClusterNodeTypeId, "ClusterNodeTypeId");
+        ValidateId(model.ProjectId, "ProjectId");
+
+        // ArtifactName goes into the QScheduler URL path (and a curl command in SSH mode).
+        if (string.IsNullOrEmpty(model.ArtifactName))
+            _messageBuilder.AppendLine("ArtifactName must be provided.");
+        else if (!Regex.IsMatch(model.ArtifactName, @"^[a-zA-Z0-9_-]+$"))
+            _messageBuilder.AppendLine("ArtifactName may only contain alphanumeric characters, hyphens, and underscores.");
 
         var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);

@@ -17,6 +17,8 @@ public interface IClusterInformationLogic
 
     Task<string> GetMachineCalibrationAsync(long clusterNodeTypeId, string calibrationId, string endpoint, AdaptorUser loggedUser, long projectId);
 
+    Task<MachineArtifact> GetMachineArtifactAsync(long clusterNodeTypeId, string artifactName, string accept, AdaptorUser loggedUser, long projectId);
+
     Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath,
         AdaptorUser loggedUser);

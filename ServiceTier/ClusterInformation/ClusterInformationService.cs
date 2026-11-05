@@ -317,6 +317,19 @@ public class ClusterInformationService : IClusterInformationService
         }
     }
 
+    public async Task<MachineArtifact> GetMachineArtifact(long clusterNodeTypeId, string artifactName, string accept, long projectId, string sessionCode)
+    {
+        _logger.LogInformation($"GetMachineArtifact service tier call. clusterNodeTypeId: {clusterNodeTypeId}, artifact: {artifactName}, projectId: {projectId}");
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                _logger, AdaptorUserRoleType.Reporter, projectId, _expirioService);
+
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            return await clusterLogic.GetMachineArtifactAsync(clusterNodeTypeId, artifactName, accept, loggedUser, projectId);
+        }
+    }
+
     public async Task<string> GetMachineInfo(long clusterNodeTypeId, long projectId, string sessionCode)
     {
         _logger.LogInformation($"GetMachineInfo service tier call. clusterNodeTypeId: {clusterNodeTypeId}, projectId: {projectId}");

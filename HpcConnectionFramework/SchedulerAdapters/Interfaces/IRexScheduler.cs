@@ -71,4 +71,5 @@ public interface IRexScheduler
     Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<System.IO.Stream> GetQuantumTaskArtifactAsync(Cluster cluster, string scheduledJobId, string artifactName, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+    Task<MachineArtifact> GetMachineArtifactAsync(Cluster cluster, string machineId, string artifactName, string accept, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
 }

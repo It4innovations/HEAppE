@@ -164,6 +164,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             _underlyingStream = underlyingStream;
         }
 
+        public string ContentType => _response.Content.Headers.ContentType?.ToString();
+
         public override bool CanRead => _underlyingStream.CanRead;
         public override bool CanSeek => _underlyingStream.CanSeek;
         public override bool CanWrite => _underlyingStream.CanWrite;
@@ -194,7 +196,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         object connectorClient,
         Cluster cluster,
         string method,
-        string relativeUrl)
+        string relativeUrl,
+        string accept = null)
     {
         if (connectorClient is ConnectionPool.HttpConnection httpConn)
         {
@@ -203,6 +206,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             
             var client = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(new HttpMethod(method), url);
+            if (!string.IsNullOrWhiteSpace(accept))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", accept);
+            }
             
             HttpResponseMessage response;
             try
@@ -225,7 +232,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
         else
         {
-            var resultStr = await ExecuteRequestAsync(connectorClient, cluster, method, relativeUrl);
+            var resultStr = await ExecuteRequestAsync(connectorClient, cluster, method, relativeUrl, accept: accept);
             var byteArray = Encoding.UTF8.GetBytes(resultStr);
             return new System.IO.MemoryStream(byteArray);
         }
@@ -242,7 +249,8 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         string relativeUrl, 
         byte[] payloadBytes = null,
         System.IO.Stream payloadStream = null,
-        string payloadFilePath = null)
+        string payloadFilePath = null,
+        string accept = null)
     {
         if (connectorClient is ConnectionPool.HttpConnection httpConn)
         {
@@ -252,6 +260,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             
             using var client = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(new HttpMethod(method), url);
+            if (!string.IsNullOrWhiteSpace(accept))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", accept);
+            }
             
             if (payloadBytes != null)
             {
@@ -328,6 +340,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             {
                 var quotedPath = ShellQuotePath(payloadFilePath);
                 dataArg = $"-H \"Content-Type: application/octet-stream\" --data-binary @{quotedPath} ";
+            }
+            
+            if (!string.IsNullOrWhiteSpace(accept))
+            {
+                dataArg = "-H '" + ("Accept: " + accept).Replace("'", "'\\''") + "' " + dataArg;
             }
             
             var host = GetQSchedulerHost(cluster);
@@ -918,6 +935,17 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         _logger.LogDebug($"GetMachineArchitectureAsync response for machine ID {machineId}: '{result}'");
         _logger.LogInformation($"GetMachineArchitectureAsync completed for machine ID {machineId}. Response length: {result?.Length ?? 0} chars.");
         return result;
+    }
+
+    public async Task<MachineArtifact> GetMachineArtifactAsync(object connectorClient, Cluster cluster, string machineId, string artifactName, string accept)
+    {
+        _logger.LogInformation($"GetMachineArtifactAsync started for machine ID: {machineId}, artifact: {artifactName}, accept: '{accept}', cluster ID: {cluster.Id}");
+        var relativeUrl = $"machine/{Uri.EscapeDataString(machineId)}/artifacts/{Uri.EscapeDataString(artifactName)}";
+        var stream = await ExecuteRequestStreamAsync(connectorClient, cluster, "GET", relativeUrl, accept);
+        // In SSH mode the response comes through curl stdout, so the backend content type is not known.
+        var contentType = (stream as HttpResponseStream)?.ContentType;
+        _logger.LogInformation($"GetMachineArtifactAsync completed for machine ID {machineId}, artifact: {artifactName}, content type: '{contentType}'.");
+        return new MachineArtifact(stream, contentType);
     }
 
     public async Task<string> GetMachineInfoAsync(object connectorClient, Cluster cluster, string machineId)

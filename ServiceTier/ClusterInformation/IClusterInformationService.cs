@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.ExtModels.ClusterInformation.Models;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
@@ -21,4 +22,6 @@ public interface IClusterInformationService
     Task<string> GetMachineInfo(long clusterNodeTypeId, long projectId, string sessionCode);
 
     Task<string> GetMachineCalibration(long clusterNodeTypeId, string calibrationId, string endpoint, long projectId, string sessionCode);
+
+    Task<MachineArtifact> GetMachineArtifact(long clusterNodeTypeId, string artifactName, string accept, long projectId, string sessionCode);
 }

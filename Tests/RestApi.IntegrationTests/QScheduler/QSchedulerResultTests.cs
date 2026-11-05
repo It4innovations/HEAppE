@@ -30,6 +30,22 @@ public class QSchedulerResultTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task MachineArtifact_MissingArtifactName_ReturnsBadRequest()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/MachineArtifact?clusterNodeTypeId=1&projectId=1&sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task MachineArtifact_InvalidArtifactName_ReturnsBadRequest()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var response = await _client.GetAsync($"/heappe/QScheduler/MachineArtifact?clusterNodeTypeId=1&projectId=1&artifactName=..%2Fprojects&sessionCode={sessionCode}");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task MachineArchitecture_MissingNodeType_ReturnsBadRequestOrValidationException()
     {
         var sessionCode = await GetAdminSessionCodeAsync();

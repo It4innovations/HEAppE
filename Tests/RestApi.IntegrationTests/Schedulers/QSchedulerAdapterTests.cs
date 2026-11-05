@@ -119,6 +119,54 @@ public class QSchedulerAdapterTests
     }
 
     [Fact]
+    public async Task GetMachineArtifactAsync_ForwardsAcceptAndReturnsBackendContentType()
+    {
+        var payload = new byte[] { 0x08, 0x96, 0x01, 0xFF };
+        HttpRequestMessage captured = null;
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(() =>
+            {
+                var content = new ByteArrayContent(payload);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/protobuf");
+                return new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
+            });
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHandler.Object));
+
+        var cluster = new Cluster { Id = 1, MasterNodeName = "localhost" };
+        var directConn = new HttpConnection("http://localhost:4300");
+
+        using var artifact = await _adapter.GetMachineArtifactAsync(directConn, cluster, "garnet", "settings", "application/protobuf");
+
+        captured.RequestUri!.AbsolutePath.Should().Be("/machine/garnet/artifacts/settings");
+        captured.Headers.Accept.ToString().Should().Be("application/protobuf");
+        artifact.ContentType.Should().Be("application/protobuf");
+        using var ms = new System.IO.MemoryStream();
+        await artifact.Content.CopyToAsync(ms);
+        ms.ToArray().Should().Equal(payload);
+    }
+
+    [Fact]
+    public async Task GetMachineArtifactAsync_UnknownArtifact_ThrowsQSchedulerApiException()
+    {
+        SetupHttp(HttpStatusCode.NotFound, "Unknown artifact \"bogus\"");
+
+        var cluster = new Cluster { Id = 1, MasterNodeName = "localhost" };
+        var directConn = new HttpConnection("http://localhost:4300");
+
+        var act = () => _adapter.GetMachineArtifactAsync(directConn, cluster, "garnet", "bogus", null);
+
+        (await act.Should().ThrowAsync<QSchedulerApiException>())
+            .Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task GetActualTasksInfoAsync_QueriesTaskAndMapsState()
     {
         SetupHttp(HttpStatusCode.OK, "{\"state\": \"finished\", \"allocated_time\": 2.5}");

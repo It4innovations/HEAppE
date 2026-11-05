@@ -733,6 +733,24 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<MachineArtifact> GetMachineArtifactAsync(Cluster cluster, string machineId, string artifactName, string accept, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetMachineArtifactAsync(schedulerConnection.Connection, cluster, machineId, artifactName, accept);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+
+        throw new NotSupportedException("GetMachineArtifact is only supported by QScheduler.");
+    }
+
     private readonly ConnectionInfo DummyConnectionInfo = new ConnectionInfo { Connection = new object(), AuthCredentials = null, LastUsed = DateTime.Now };
 
     private async Task<ConnectionInfo> GetConnectionForUserAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)

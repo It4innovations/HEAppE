@@ -348,6 +348,60 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return result;
     }
 
+    public async Task<MachineArtifact> GetMachineArtifactAsync(long clusterNodeTypeId, string artifactName, string accept, AdaptorUser loggedUser, long projectId)
+    {
+        _logger.LogInformation($"GetMachineArtifactAsync logic tier call. clusterNodeTypeId: {clusterNodeTypeId}, artifact: {artifactName}, userId: {loggedUser?.Id}, projectId: {projectId}");
+
+        var nodeType = await _unitOfWork.ClusterNodeTypeRepository.GetByIdWithClusterAndProjectsAsync(clusterNodeTypeId)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", clusterNodeTypeId);
+
+        var cluster = nodeType.Cluster
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNotFound", nodeType.ClusterId);
+
+        var machineId = nodeType.Queue
+            ?? throw new InvalidRequestException("ClusterNodeTypeHasNoQueue", clusterNodeTypeId);
+
+        var project = await _unitOfWork.ProjectRepository.GetByIdWithClusterProjectsAsync(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
+            throw new InvalidRequestException("UserHasNoGroups", loggedUser);
+
+        var clusterProjectIds = cluster.ClusterProjects?
+            .Where(x => x.ProjectId == projectId)
+            .Select(y => y.ProjectId)
+            .ToList() ?? new List<long>();
+
+        var hasAccess = loggedUser.Groups
+            .Any(g => g.ProjectId.HasValue && clusterProjectIds.Contains(g.ProjectId.Value));
+
+        if (!hasAccess)
+            throw new InvalidRequestException("UserNoAccessToCluster", loggedUser, cluster.Id);
+
+        var isQSchedulerHttp = cluster.SchedulerType == SchedulerType.QScheduler &&
+            (cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https);
+
+        ClusterAuthenticationCredentials serviceAccount = null;
+        if (!isQSchedulerHttp)
+        {
+            serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, logger: _logger);
+
+            if (serviceAccount is null)
+                throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+        }
+
+        var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
+
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
+            ?? throw new InvalidOperationException("SchedulerInitializationFailed");
+
+        var result = await scheduler.GetMachineArtifactAsync(cluster, machineId, artifactName, accept, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        _logger.LogInformation($"GetMachineArtifactAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, machineId: {machineId}, artifact: {artifactName}, content type: {result.ContentType}");
+        return result;
+    }
+
     public async Task<IEnumerable<string>> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, AdaptorUser loggedUser)
     {

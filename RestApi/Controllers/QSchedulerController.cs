@@ -380,6 +380,34 @@ public class QSchedulerController : BaseController<QSchedulerController>
     }
 
     /// <summary>
+    ///     Get a QScheduler machine artifact (inputs for compiling pulse-level tasks on the client, e.g. with IQM Pulla).
+    ///     The request's Accept header is forwarded to the backend and the backend's Content-Type is returned as is;
+    ///     IQM serves settings and channel-properties as protobuf (Accept: application/protobuf).
+    /// </summary>
+    /// <returns>Raw artifact as returned by the backend</returns>
+    [HttpGet("MachineArtifact")]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> MachineArtifact([FromQuery] GetMachineArtifactModel model)
+    {
+        _logger.LogInformation($"MachineArtifact API request received. ClusterNodeTypeId: {model?.ClusterNodeTypeId}, ArtifactName: '{model?.ArtifactName}', ProjectId: {model?.ProjectId}");
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning($"MachineArtifact validation failed: {validationResult.Message}");
+            throw new InputValidationException(validationResult.Message);
+        }
+
+        var accept = Request.Headers.Accept.ToString();
+        var artifact = await _clusterService.GetMachineArtifact(model.ClusterNodeTypeId, model.ArtifactName, accept, model.ProjectId, model.SessionCode);
+        _logger.LogInformation($"MachineArtifact API request completed. ClusterNodeTypeId: {model.ClusterNodeTypeId}, ArtifactName: '{model.ArtifactName}', ContentType: '{artifact.ContentType}'");
+        return File(artifact.Content, artifact.ContentType);
+    }
+
+    /// <summary>
     ///     Get QScheduler machine calibration
     /// </summary>
     /// <returns>JSON string with machine calibration parameters</returns>
