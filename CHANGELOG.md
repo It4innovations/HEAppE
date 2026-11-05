@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.6.3
+
+### Fixed
+- **QScheduler In-Memory Payload Cache for Deferred/Queued Tasks:** Fixed `DirectoryNotFoundException` when submitting deferred tasks to QScheduler upon session `open` callback in HTTP/HTTPS mode. Replaced transient `AsyncLocal` request stream with a high-performance in-memory `QSchedulerPayloadContext` holding circuit payloads in RAM indexed by `taskId` until callback submission, completely eliminating disk I/O.
+
 ## V6.6.2
 
 ### Security

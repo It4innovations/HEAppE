@@ -601,15 +601,18 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                     if (isSessionOpen)
                     {
-                        System.IO.Stream payloadStream = null;
-                        var payloads = HEAppE.Utils.QSchedulerPayloadContext.Payloads;
-                        if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var stream))
+                        byte[] payloadBytes = null;
+                        if (QSchedulerPayloadContext.TryGetByName(taskSpec.Name, out var pBytes))
                         {
-                            payloadStream = stream;
+                            payloadBytes = pBytes;
+                        }
+                        else if (QSchedulerPayloadContext.TryGetByTaskId(taskSpec.Id, out var pBytesId))
+                        {
+                            payloadBytes = pBytesId;
                         }
 
                         string payloadPath = null;
-                        if (payloadStream == null)
+                        if (payloadBytes == null)
                         {
                             var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
                             payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
@@ -631,12 +634,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                         try
                         {
-                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
+                            var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadBytes: payloadBytes, payloadFilePath: payloadPath);
                             var taskIdStr = taskResponse.Trim();
                             if (long.TryParse(taskIdStr, out long taskId))
                             {
                                 taskInfo.ScheduledJobId = $"session:{sessionId}:task:{taskId}";
                                 _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
+                                QSchedulerPayloadContext.RemoveByTaskId(taskSpec.Id);
                             }
                             else
                             {
@@ -657,15 +661,18 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 // Submit each task in this group directly to the machine (no session)
                 foreach (var taskSpec in group)
                 {
-                    System.IO.Stream payloadStream = null;
-                    var payloads = HEAppE.Utils.QSchedulerPayloadContext.Payloads;
-                    if (payloads != null && payloads.TryGetValue(taskSpec.Name, out var stream))
+                    byte[] payloadBytes = null;
+                    if (QSchedulerPayloadContext.TryGetByName(taskSpec.Name, out var pBytes))
                     {
-                        payloadStream = stream;
+                        payloadBytes = pBytes;
+                    }
+                    else if (QSchedulerPayloadContext.TryGetByTaskId(taskSpec.Id, out var pBytesId))
+                    {
+                        payloadBytes = pBytesId;
                     }
 
                     string payloadPath = null;
-                    if (payloadStream == null)
+                    if (payloadBytes == null)
                     {
                         var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpec, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
                         payloadPath = string.IsNullOrEmpty(taskSpec.StandardInputFile)
@@ -683,13 +690,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         ("user", username),
                         ("notify", taskNotifier),
                         ("time_limit_ms", timeLimitMs));
-                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadStream: payloadStream, payloadFilePath: payloadPath);
+                    var taskResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl, payloadBytes: payloadBytes, payloadFilePath: payloadPath);
                     var taskIdStr = taskResponse.Trim();
                     if (!long.TryParse(taskIdStr, out long taskId))
                     {
                         _logger.LogError($"Failed to parse QScheduler task ID for task {taskSpec.Id}. Response: '{taskResponse}'");
                         throw new Exception($"Failed to submit QScheduler task {taskSpec.Id}. Response: {taskResponse}");
                     }
+
+                    QSchedulerPayloadContext.RemoveByTaskId(taskSpec.Id);
 
                     _logger.LogInformation($"QScheduler task {taskSpec.Id} submitted successfully. Assigned QScheduler Task ID: {taskId}, Machine: {machineId}");
                     submittedTasks.Add(new SubmittedTaskInfo
@@ -764,10 +773,26 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     {
                         // Session is active! Now submit the task payload to this session!
                         var machineId = taskInfo.Specification.ClusterNodeType.Queue;
-                        var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
-                        var payloadPath = string.IsNullOrEmpty(taskInfo.Specification.StandardInputFile)
-                            ? $"{taskDir}/payload.json"
-                            : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
+
+                        // Check in-memory payload cache first (pure RAM, zero disk I/O)
+                        byte[] payloadBytes = null;
+                        if (QSchedulerPayloadContext.TryGetByTaskId(taskInfo.Id, out var pBytes))
+                        {
+                            payloadBytes = pBytes;
+                        }
+                        else if (taskInfo.Specification != null && QSchedulerPayloadContext.TryGetByTaskId(taskInfo.Specification.Id, out var pBytesSpec))
+                        {
+                            payloadBytes = pBytesSpec;
+                        }
+
+                        string payloadPath = null;
+                        if (payloadBytes == null)
+                        {
+                            var taskDir = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, clusterConfig.InstanceIdentifierPath, clusterConfig.SubExecutionsPath).Replace('\\', '/');
+                            payloadPath = string.IsNullOrEmpty(taskInfo.Specification.StandardInputFile)
+                                ? $"{taskDir}/payload.json"
+                                : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
+                        }
 
                         var username = ResolveAuditUser(taskInfo.Specification?.JobSpecification,
                                                         taskInfo.Specification?.JobSpecification?.ClusterUser);
@@ -782,9 +807,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             ("user", username),
                             ("notify", taskNotifier),
                             ("time_limit_ms", timeLimitMs));
-                        _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId}.");
+                        _logger.LogInformation($"Submitting task {taskInfo.Id} to session {sessionId} (payload source: {(payloadBytes != null ? "in-memory" : payloadPath)}).");
                         
-                        var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadFilePath: payloadPath);
+                        var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl, payloadBytes: payloadBytes, payloadFilePath: payloadPath);
                         var taskIdStr = taskResponse.Trim();
                         if (!long.TryParse(taskIdStr, out long taskId))
                         {
@@ -794,6 +819,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
                         _logger.LogInformation($"QScheduler task {taskInfo.Id} submitted successfully to session {sessionId}. QScheduler Task ID: {taskId}");
                         
+                        // Clean up in-memory payload after successful submission
+                        QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Id);
+                        if (taskInfo.Specification != null)
+                        {
+                            QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Specification.Id);
+                        }
+
                         // Transition ScheduledJobId to include session ID and task ID
                         taskInfo.ScheduledJobId = $"session:{sessionId}:task:{taskId}";
                         taskInfo.State = TaskState.Submitted;
@@ -803,6 +835,11 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         _logger.LogError($"Session {sessionId} closed before task could be submitted.");
                         taskInfo.State = TaskState.Failed;
                         taskInfo.ErrorMessage = "Session closed before task could be submitted.";
+                        QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Id);
+                        if (taskInfo.Specification != null)
+                        {
+                            QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Specification.Id);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -870,6 +907,12 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         _logger.LogInformation($"CancelJobAsync started for QScheduler. Tasks to cancel: {submitedTasksInfo.Count()}");
         foreach (var taskInfo in submitedTasksInfo)
         {
+            QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Id);
+            if (taskInfo.Specification != null)
+            {
+                QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Specification.Id);
+            }
+
             if (string.IsNullOrEmpty(taskInfo.ScheduledJobId))
             {
                 _logger.LogWarning($"Task Info with ID {taskInfo.Id} has no ScheduledJobId. Skipping cancellation.");
