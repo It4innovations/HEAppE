@@ -311,14 +311,14 @@ public class QSchedulerAdapterTests
         var captured = CaptureTaskSubmits();
         var jobSpec = BuildDirectJobSpec(new EnvironmentVariable { Name = "HEAPPE_QSCHEDULER_TASK_KIND", Value = "pulse" });
         var payload = new byte[] { 0x0A, 0x00, 0xFF, 0x80 };
-        HEAppE.Utils.QSchedulerPayloadContext.Payloads = new Dictionary<string, System.IO.Stream> { ["t1"] = new System.IO.MemoryStream(payload) };
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByName("t1", payload);
         try
         {
             await _adapter.SubmitJobAsync(new HttpConnection("http://localhost:4300"), jobSpec, null);
         }
         finally
         {
-            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByName("t1");
         }
 
         var submit = captured.Should().ContainSingle(r => r.RequestUri!.AbsolutePath == "/tasks").Subject;
@@ -331,18 +331,39 @@ public class QSchedulerAdapterTests
     {
         var captured = CaptureTaskSubmits();
         var jobSpec = BuildDirectJobSpec();
-        HEAppE.Utils.QSchedulerPayloadContext.Payloads = new Dictionary<string, System.IO.Stream> { ["t1"] = new System.IO.MemoryStream(Encoding.UTF8.GetBytes("{}")) };
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByName("t1", Encoding.UTF8.GetBytes("{}"));
         try
         {
             await _adapter.SubmitJobAsync(new HttpConnection("http://localhost:4300"), jobSpec, null);
         }
         finally
         {
-            HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByName("t1");
         }
 
         var submit = captured.Should().ContainSingle(r => r.RequestUri!.AbsolutePath == "/tasks").Subject;
         submit.RequestUri!.Query.Should().NotContain("kind=");
         submit.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
+    }
+    [Fact]
+    public async Task SubmitJobAsync_PulseTaskInOpenSession_SendsKindPulseAndProtobufContentType()
+    {
+        var captured = CaptureTaskSubmits();
+        var jobSpec = BuildDirectJobSpec(
+            new EnvironmentVariable { Name = "HEAPPE_QSCHEDULER_SESSION_ID", Value = "5" },
+            new EnvironmentVariable { Name = "HEAPPE_QSCHEDULER_TASK_KIND", Value = "pulse" });
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByName("t1", new byte[] { 0x0A, 0xFF });
+        try
+        {
+            await _adapter.SubmitJobAsync(new HttpConnection("http://localhost:4300"), jobSpec, null);
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByName("t1");
+        }
+
+        var submit = captured.Should().ContainSingle(r => r.RequestUri!.AbsolutePath == "/tasks").Subject;
+        submit.RequestUri!.Query.Should().Contain("session_id=5").And.Contain("kind=pulse");
+        submit.Content!.Headers.ContentType!.MediaType.Should().Be("application/protobuf");
     }
 }

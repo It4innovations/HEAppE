@@ -227,28 +227,48 @@ public class QSchedulerController : BaseController<QSchedulerController>
             connectionProtocol = cluster.ConnectionProtocol;
         }
 
-        var payloads = new Dictionary<string, System.IO.Stream>();
+        var inMemoryPayloads = new Dictionary<string, byte[]>();
         HEAppE.ExtModels.JobManagement.Models.SubmittedJobInfoExt createdJob = null;
         try
         {
             if (connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Http ||
                 connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Https)
             {
-                // 2a. HTTP Mode: Read uploaded files directly as request streams (no memory buffers/RAM copy)
+                // 2a. HTTP Mode: Read uploaded files into memory buffers for ultra-fast, zero-disk dispatch
                 for (int i = 0; i < parsedModel.JobSpecification.Tasks.Length; i++)
                 {
                     var qTask = parsedModel.JobSpecification.Tasks[i];
                     if (!string.IsNullOrEmpty(qTask.PayloadPartName))
                     {
                         var file = Request.Form.Files[qTask.PayloadPartName];
-                        payloads[qTask.Name] = file.OpenReadStream();
+                        if (file != null)
+                        {
+                            using var ms = new System.IO.MemoryStream();
+                            await file.CopyToAsync(ms);
+                            var bytes = ms.ToArray();
+                            inMemoryPayloads[qTask.Name] = bytes;
+                            HEAppE.Utils.QSchedulerPayloadContext.StoreByName(qTask.Name, bytes);
+                        }
                     }
                 }
-                HEAppE.Utils.QSchedulerPayloadContext.Payloads = payloads;
             }
 
             // 3. Create the job database records (metadata only, no payload saved to DB)
             createdJob = await _jobService.CreateAndSubmitQSchedulerJob(parsedModel.JobSpecification, parsedModel.SessionCode);
+
+            if (connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Http ||
+                connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Https)
+            {
+                // Map in-memory payloads to created task IDs for deferred callback submission
+                foreach (var (taskName, bytes) in inMemoryPayloads)
+                {
+                    var createdTask = createdJob.Tasks.FirstOrDefault(t => t.Name == taskName);
+                    if (createdTask != null && createdTask.Id.HasValue)
+                    {
+                        HEAppE.Utils.QSchedulerPayloadContext.StoreByTaskId(createdTask.Id.Value, bytes);
+                    }
+                }
+            }
 
             if (connectionProtocol == HEAppE.DomainObjects.ClusterInformation.ClusterConnectionProtocol.Ssh)
             {
@@ -291,6 +311,17 @@ public class QSchedulerController : BaseController<QSchedulerController>
             _logger.LogError(submitEx, $"Automatic submission of QScheduler job failed.");
             if (createdJob != null && createdJob.Id.HasValue)
             {
+                if (createdJob.Tasks != null)
+                {
+                    foreach (var t in createdJob.Tasks)
+                    {
+                        if (t.Id.HasValue)
+                        {
+                            HEAppE.Utils.QSchedulerPayloadContext.RemoveByTaskId(t.Id.Value);
+                        }
+                    }
+                }
+
                 // Try to clean up created job if submission failed
                 try
                 {
@@ -305,15 +336,12 @@ public class QSchedulerController : BaseController<QSchedulerController>
         }
         finally
         {
-            // 5. Clean up open request streams and reset context
-            if (HEAppE.Utils.QSchedulerPayloadContext.Payloads != null)
+            // Clean up temporary name mappings for this request
+            foreach (var name in inMemoryPayloads.Keys)
             {
-                foreach (var stream in HEAppE.Utils.QSchedulerPayloadContext.Payloads.Values)
-                {
-                    stream?.Dispose();
-                }
-                HEAppE.Utils.QSchedulerPayloadContext.Payloads = null;
+                HEAppE.Utils.QSchedulerPayloadContext.RemoveByName(name);
             }
+            HEAppE.Utils.QSchedulerPayloadContext.CleanupExpired();
         }
     }
 

@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **QScheduler Machine Calibration:** `Endpoint` in `GET /heappe/QScheduler/MachineCalibration` is now optional. When it is omitted, the whole calibration set is returned via QScheduler v0.2.2 `GET /machine/{machine}/calibration/{calibration}` (`CalibrationId` may be `default`).
+## V6.6.3
+
+### Fixed
+- **QScheduler In-Memory Payload Cache for Deferred/Queued Tasks:** Fixed task submission failure for queued sessions when session `open` callback is received in HTTP/HTTPS mode. Replaced transient `AsyncLocal` request stream with an in-memory `QSchedulerPayloadContext` preserving circuit payloads in RAM indexed by `taskId` until session callback submission.
 
 ## V6.6.2
 
