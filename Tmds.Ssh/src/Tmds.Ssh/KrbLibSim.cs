@@ -94,12 +94,27 @@ public sealed class KrbLibSim
                 return;
             }
 
-            s_krb5Conf = GetConfigurationFile();
-            
-            // expects the DefaultCCacheName property to be set in krb5.conf file
-            s_ticketCachePath = s_krb5Conf.Defaults.DefaultCCacheName?.Contains(":") == true
-                ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
-                : s_krb5Conf.Defaults.DefaultCCacheName ?? "";
+            try
+            {
+                string configFilePath = GetConfigFilePath();
+                if (File.Exists(configFilePath))
+                {
+                    s_krb5Conf = GetConfigurationFile();
+                    
+                    // expects the DefaultCCacheName property to be set in krb5.conf file
+                    s_ticketCachePath = s_krb5Conf.Defaults?.DefaultCCacheName?.Contains(":") == true
+                        ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
+                        : s_krb5Conf?.Defaults?.DefaultCCacheName ?? "";
+                }
+                else
+                {
+                    s_logger?.LogWarning("Kerberos config file does not exist at '{ConfigPath}'. In-memory ticket cache will operate without system krb5.conf.", configFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                s_logger?.LogWarning(ex, "Failed to load krb5.conf during initialization; proceeding with in-memory defaults.");
+            }
                 
             s_initialized = true;
         }
@@ -136,6 +151,10 @@ public sealed class KrbLibSim
     private static string GetUserTicketCachePath(string username)
     {
         EnsureInitialized();
+        if (string.IsNullOrEmpty(s_ticketCachePath))
+        {
+            throw new InvalidOperationException("Ticket cache path is not configured in Kerberos configuration file.");
+        }
         return Path.Join(s_ticketCachePath, TICKET_CACHE_PREFIX + username);
     }
 
@@ -190,6 +209,10 @@ public sealed class KrbLibSim
     public static Auth CreateAuth(string username, string service, bool useDelegatedCredentials)
     {
         EnsureInitialized();
+        if (s_krb5Conf == null)
+        {
+            throw new InvalidOperationException($"Kerberos configuration file does not exist at location '{GetConfigFilePath()}'.");
+        }
         s_lastAccessed[username] = DateTimeOffset.UtcNow;
         return new Auth(s_krb5Conf, username, service, useDelegatedCredentials);
     }
@@ -200,14 +223,7 @@ public sealed class KrbLibSim
     /// </summary>
     public static string AddOrUpdateTicketCache(byte[] ticketCacheBytes)
     {
-        try
-        {
-            EnsureInitialized();
-        }
-        catch (Exception ex)
-        {
-            s_logger?.LogWarning(ex, "Could not ensure initialized in AddOrUpdateTicketCache.");
-        }
+        EnsureInitialized();
 
         var ticketCache = new Krb5TicketCache(ticketCacheBytes, s_loggerFactory);
         string key = GetMemoryCacheId(ticketCache);
@@ -269,20 +285,9 @@ public sealed class KrbLibSim
     /// </summary>
     public static void TryCleanCache()
     {
-        if (!s_initialized)
-        {
-            try
-            {
-                EnsureInitialized();
-            }
-            catch (Exception ex)
-            {
-                s_logger?.LogWarning(ex, "Failed to initialize KrbLibSim during TryCleanCache; skipping cleanup.");
-                return;
-            }
-        }
+        EnsureInitialized();
 
-        if (!s_initialized || s_ticketCaches == null)
+        if (s_ticketCaches == null)
         {
             return;
         }
@@ -415,6 +420,21 @@ public sealed class KrbLibSim
                 }
             }
             s_lastAccessed.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Resets initialization and configuration state for unit testing purposes.
+    /// </summary>
+    public static void ResetInitializationForTesting(Krb5Config? config = null)
+    {
+        lock (s_initLock)
+        {
+            s_krb5Conf = config;
+            s_ticketCachePath = config?.Defaults?.DefaultCCacheName?.Contains(":") == true
+                ? config.Defaults.DefaultCCacheName.Split(":")[1]
+                : config?.Defaults?.DefaultCCacheName ?? "";
+            s_initialized = true;
         }
     }
 

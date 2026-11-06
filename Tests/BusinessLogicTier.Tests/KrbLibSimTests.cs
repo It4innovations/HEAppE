@@ -9,16 +9,19 @@ using Xunit;
 
 namespace BusinessLogicTier.Tests;
 
+[Collection("KrbLibSimTests")]
 public class KrbLibSimTests : IDisposable
 {
     public KrbLibSimTests()
     {
         KrbLibSim.ClearAllTickets();
+        KrbLibSim.ResetInitializationForTesting(null);
     }
 
     public void Dispose()
     {
         KrbLibSim.ClearAllTickets();
+        KrbLibSim.ResetInitializationForTesting(null);
     }
 
     private static byte[] CreateTestTicketBytes(string username, string realm, DateTimeOffset endTime)
@@ -176,5 +179,37 @@ public class KrbLibSimTests : IDisposable
         KrbLibSim.HasCachedTicket("valid_user").Should().BeTrue();
         KrbLibSim.HasCachedTicket("expired_user").Should().BeFalse();
         KrbLibSim.HasCachedTicket("invalid_user").Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasTicket_WhenValidTicketPresent_ShouldReturnTrue()
+    {
+        byte[] validBytes = CreateTestTicketBytes("valid_user2", "EXAMPLE.COM", DateTimeOffset.UtcNow.AddHours(2));
+        KrbLibSim.AddOrUpdateTicketCache(validBytes);
+
+        KrbLibSim.HasTicket("valid_user2").Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasTicket_WhenExpiredTicketPresent_ShouldReturnFalse()
+    {
+        byte[] expiredBytes = CreateTestTicketBytes("expired_user2", "EXAMPLE.COM", DateTimeOffset.UtcNow.AddHours(-1));
+        KrbLibSim.AddOrUpdateTicketCache(expiredBytes);
+
+        KrbLibSim.HasTicket("expired_user2").Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasTicket_WhenUserNotInCache_ShouldReturnFalse()
+    {
+        KrbLibSim.HasTicket("nonexistent_user").Should().BeFalse();
+    }
+
+    [Fact]
+    public void CreateAuth_WithoutKrb5Conf_ShouldThrowInvalidOperationException()
+    {
+        KrbLibSim.ResetInitializationForTesting(null);
+        Action act = () => KrbLibSim.CreateAuth("user", "host/test", false);
+        act.Should().Throw<InvalidOperationException>();
     }
 }
