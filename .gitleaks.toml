@@ -1,0 +1,17 @@
+title = "HEAppE Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore test fixtures, mock data, test results, and documentation"
+paths = [
+    '''Tests/.*''',
+    '''CertificateGeneratorTests/.*''',
+    '''SshCaAPITests/.*''',
+    '''TestResults/.*''',
+    '''Tmds\.Ssh/test/.*''',
+    '''ci/.*''',
+    '''CHANGELOG\.md''',
+    '''SwaggerReference/.*''',
+]
