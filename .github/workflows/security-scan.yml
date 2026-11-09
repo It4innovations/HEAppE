@@ -23,7 +23,7 @@ jobs:
   # 1. Audit .NET / NuGet dependencies for known CVEs
   nuget-vulnerability-audit:
     name: NuGet Dependency Audit (CVE Check)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
   # 2. Trivy scan for Filesystem, Configs & Dockerfiles
   trivy-repo-and-dockerfiles:
     name: Trivy Repo & Dockerfile Misconfiguration Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
   # 3. Trivy scan for Built Application & Support Container Images
   trivy-container-images:
     name: Trivy Container Image Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -122,7 +122,7 @@ jobs:
   # 4. Semgrep Static Application Security Testing (SAST)
   semgrep-sast:
     name: Semgrep SAST Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: semgrep/semgrep
     steps:
@@ -142,7 +142,7 @@ jobs:
   # 5. Gitleaks Secret Detection
   gitleaks-secret-scan:
     name: Gitleaks Secret & Token Detection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

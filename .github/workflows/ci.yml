@@ -23,7 +23,7 @@ permissions:
 jobs:
   package-audit:
     name: NuGet Package Audit & Outdated Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Code
@@ -52,7 +52,7 @@ jobs:
 
   build-and-test:
     name: Build, Test & Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Code
@@ -185,7 +185,7 @@ jobs:
   publish-dev-images:
     name: Build & Publish Development Images to GHCR
     needs: build-and-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: (github.ref == 'refs/heads/develop' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.build_dev_images == true)
 
     steps:
