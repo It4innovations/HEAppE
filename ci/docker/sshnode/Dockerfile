@@ -1,6 +1,7 @@
-FROM alpine:3.19
+FROM alpine:3.21
 
-RUN apk add --no-cache \
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache \
     openssh-server \
     openssh-client \
     bash \
@@ -22,6 +23,7 @@ RUN useradd -m -s /bin/bash testuser && \
 RUN ssh-keygen -A && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    echo "PermitRootLogin prohibit-password" >> /etc/ssh/sshd_config && \
     mkdir -p /shared_keys /var/run/sshd
 
 COPY ssh-init.sh /usr/local/bin/ssh-init.sh

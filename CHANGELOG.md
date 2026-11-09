@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.6.4
+
+### Security
+- **OpenSSH Authentication Bypass Patch (SSHole / CVE-2026-123158):** Upgraded Alpine-based images (`ci/docker/pbs-mock`, `ci/docker/sshnode`, `SshAgent`) from `alpine:3.19` to `alpine:3.21`, added package upgrades (`apk upgrade`), and enforced `PermitRootLogin prohibit-password` to prevent remote password authentication bypass.
+
+### Added
+- **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
+
 ## V6.6.3
 
 ### Fixed

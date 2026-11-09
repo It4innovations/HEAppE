@@ -1,0 +1,155 @@
+name: HEAppE Security & Vulnerability Scanning
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+    branches:
+      - develop
+      - master
+  schedule:
+    # Run every Monday at 04:00 UTC to catch newly disclosed CVEs (like zero-days & base image bugs)
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # 1. Audit .NET / NuGet dependencies for known CVEs
+  nuget-vulnerability-audit:
+    name: NuGet Dependency Audit (CVE Check)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore NuGet Packages
+        run: dotnet restore "HEAppE Core.sln"
+
+      - name: Run NuGet Package Audit & Outdated Check
+        run: python3 ci/scripts/check-packages.py "HEAppE Core.sln"
+
+  # 2. Trivy scan for Filesystem, Configs & Dockerfiles
+  trivy-repo-and-dockerfiles:
+    name: Trivy Repo & Dockerfile Misconfiguration Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability & Misconfiguration Scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln,misconfig'
+
+      - name: Upload Trivy FS SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-filesystem'
+
+  # 3. Trivy scan for Built Application & Support Container Images
+  trivy-container-images:
+    name: Trivy Container Image Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build HEAppE RestApi Image
+        run: docker build -f RestApi/Dockerfile -t heappe-restapi:scan .
+
+      - name: Scan RestApi Image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'heappe-restapi:scan'
+          format: 'sarif'
+          output: 'trivy-restapi-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Build SSH Node CI Image
+        run: docker build -f ci/docker/sshnode/Dockerfile -t heappe-sshnode:scan ci/docker/sshnode
+
+      - name: Scan SSH Node Image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'heappe-sshnode:scan'
+          format: 'sarif'
+          output: 'trivy-sshnode-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload RestApi Image SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-restapi-results.sarif'
+          category: 'trivy-restapi-image'
+
+      - name: Upload SSH Node Image SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-sshnode-results.sarif'
+          category: 'trivy-sshnode-image'
+
+  # 4. Semgrep Static Application Security Testing (SAST)
+  semgrep-sast:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep OSS Scan
+        run: semgrep scan --sarif --config auto > semgrep-results.sarif
+
+      - name: Upload Semgrep SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'semgrep-results.sarif'
+          category: 'semgrep-sast'
+
+  # 5. Gitleaks Secret Detection
+  gitleaks-secret-scan:
+    name: Gitleaks Secret & Token Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
