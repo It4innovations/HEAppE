@@ -19,7 +19,7 @@ permissions:
 jobs:
   prepare-release:
     name: Parse Changelog & Extract Release Notes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       tag_name: ${{ steps.changelog.outputs.tag_name }}
       version: ${{ steps.changelog.outputs.version }}
@@ -79,7 +79,7 @@ jobs:
 
   test-suite:
     name: Execute Full E2E Test Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Code
@@ -144,7 +144,7 @@ jobs:
   create-github-release:
     name: Create GitHub Release & Git Tag
     needs: [prepare-release, test-suite]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
 
     steps:
@@ -172,7 +172,7 @@ jobs:
   publish-docker-images:
     name: Build & Publish Container Images to GHCR
     needs: [prepare-release, test-suite]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: always() && needs.test-suite.result == 'success'
 
     steps:
