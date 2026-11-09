@@ -198,24 +198,51 @@ public static class UsernameResolutionHelper
 
             if (allowJwtResolution)
             {
-                logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
-                var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
+                logger.LogWarning("ResolveUsernameFromContextAsync: Attempting preferred_username resolution.");
+
+                // 3a. From ClaimsPrincipal if present
+                if (httpContextKeys.Context.ClaimsPrincipal != null)
                 {
-                    try 
+                    username = httpContextKeys.Context.ClaimsPrincipal.FindFirst("preferred_username")?.Value
+                               ?? httpContextKeys.Context.ClaimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                    if (!string.IsNullOrEmpty(username))
                     {
-                        var decoded = JwtTokenDecoder.Decode(token);
-                        if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                            username = decoded.PreferedUsername;
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
-                        } else if (project != null) {
-                            username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
-                        }
+                        logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal resolved username: {username}");
                     }
-                    catch (Exception ex)
+                }
+
+                // 3b. From AdaptorUser.Username if user exists in DB
+                if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
+                {
+                    var user = unitOfWork.AdaptorUserRepository.GetById(adaptorUserId.Value);
+                    if (user != null && !string.IsNullOrEmpty(user.Username))
                     {
-                        logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                        username = user.Username;
+                        logger.LogWarning($"ResolveUsernameFromContextAsync: AdaptorUser.Username resolved username: {username}");
+                    }
+                }
+
+                // 3c. From decoded token
+                if (string.IsNullOrEmpty(username))
+                {
+                    var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        try 
+                        {
+                            var decoded = JwtTokenDecoder.Decode(token);
+                            if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
+                                username = decoded.PreferedUsername;
+                                logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                            } else if (project != null) {
+                                username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
+                                logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                        }
                     }
                 }
             }

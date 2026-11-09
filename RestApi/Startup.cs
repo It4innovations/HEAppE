@@ -103,6 +103,16 @@ public class Startup
         ClusterRuntimeConfiguration.GlobalConfiguration = Configuration; // enables per-cluster appsettings override at runtime
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+        var userRoleSourceSection = Configuration.GetSection("ExternalAuthenticationSettings:UserRoleSource");
+        if (userRoleSourceSection.Exists())
+        {
+            if (Enum.TryParse<UserRoleSourceType>(userRoleSourceSection["Provider"], true, out var providerType))
+            {
+                UserRoleSourceConfiguration.Provider = providerType;
+            }
+            userRoleSourceSection.GetSection("OpenIdClaims").Bind(UserRoleSourceConfiguration.OpenIdClaims);
+            userRoleSourceSection.GetSection("Database").Bind(UserRoleSourceConfiguration.Database);
+        }
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
         Configuration.Bind("MigrationSettings", new MigrationSettings());

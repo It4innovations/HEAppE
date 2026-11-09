@@ -104,6 +104,21 @@ public static class JwtIntrospectionExtensions
                             var tokenExchangeService = context.HttpContext.RequestServices.GetRequiredService<ITokenExchangeService>();
                             var requestContext = context.HttpContext.RequestServices.GetRequiredService<IHttpContextKeys>();
 
+                            requestContext.Context.ClaimsPrincipal = context.Principal;
+                            if (string.IsNullOrEmpty(requestContext.Context.IdpToken))
+                            {
+                                var authHeader = context.HttpContext.Request.Headers["Authorization"].FirstOrDefault();
+                                if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
+                                {
+                                    var rawBearer = authHeader["Bearer ".Length..].Trim();
+                                    requestContext.Context.IdpToken = rawBearer;
+                                    if (string.IsNullOrEmpty(requestContext.Context.LEXISToken))
+                                    {
+                                        requestContext.Context.LEXISToken = rawBearer;
+                                    }
+                                }
+                            }
+
                             if (tokenExchangeService.HasAutoExchangeTargets("PostAuth"))
                             {
                                 try

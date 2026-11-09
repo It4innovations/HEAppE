@@ -45,6 +45,11 @@ public interface IRequestContext
     public string? ExpirioToken { get; set; }
 
     /// <summary>
+    /// Authenticated claims principal (if Bearer token was validated via introspection or JWT).
+    /// </summary>
+    public System.Security.Claims.ClaimsPrincipal? ClaimsPrincipal { get; set; }
+
+    /// <summary>
     /// Dictionary of all exchanged tokens, keyed by target name.
     /// Used by the unified token exchange system.
     /// </summary>
@@ -108,6 +113,9 @@ public class RequestContext : IRequestContext
     public string LEXISToken { get; set; }
 
     /// <inheritdoc />
+    public System.Security.Claims.ClaimsPrincipal? ClaimsPrincipal { get; set; }
+
+    /// <inheritdoc />
     public Dictionary<string, string> ExchangedTokens { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
@@ -139,32 +147,25 @@ public class HttpContextKeys : IHttpContextKeys
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService, IExpirioService expirioService)
     {
-        _logger.LogInformation("[Authorize] Starting UserOrg authorization flow.");
+        _logger.LogInformation("[Authorize] Starting user authorization flow.");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger);
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this, expirioService, _logger);
         AdaptorUser user = null;
         try
         {
+            var provider = UserRoleSourceProviderResolver.Resolve(
+                null, userOrgService, sshCertificateAuthorityService, this, expirioService);
+
             var effectiveUserOrgToken = Context.GetExchangedToken("userorg");
-            if (JwtTokenIntrospectionConfiguration.IsEnabled)
-            {
-                bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled ||
-                                     (!string.IsNullOrEmpty(Context.LEXISToken) && Context.LEXISToken != Context.IdpToken);
-                _logger.LogInformation($"[Authorize] Using JWT introspection. UseLexisToken: {useLexisToken}");
-                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
-                {
-                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken))
-                });
-            }
-            else if (LexisAuthenticationConfiguration.UseBearerAuth)
-            {
-                _logger.LogInformation("[Authorize] Using Bearer authentication for Lexis.");
-                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
-                {
-                    OpenIdLexisAccessToken = effectiveUserOrgToken ?? Context.LEXISToken
-                });
-            }
+            bool useLexisToken = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled ||
+                                 (!string.IsNullOrEmpty(Context.LEXISToken) && Context.LEXISToken != Context.IdpToken);
+            string? rawToken = effectiveUserOrgToken ?? (useLexisToken ? Context.LEXISToken : (Context.IdpToken ?? Context.LEXISToken));
+
+            user = await provider.ResolveAndSyncUserAsync(
+                Context.ClaimsPrincipal,
+                rawToken,
+                unitOfWork,
+                _logger);
             
             if(user != null)
             {

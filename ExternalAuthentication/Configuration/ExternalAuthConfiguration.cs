@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace HEAppE.ExternalAuthentication.Configuration;
 
@@ -62,6 +62,8 @@ public class ExternalAuthConfiguration
     public static JwtTokenIntrospectionConfiguration JwtTokenIntrospectionConfiguration { get; set; } = new();
 
     public static LexisAuthenticationConfiguration LexisAuthenticationConfiguration { get; set; } = new();
+
+    public static UserRoleSourceConfiguration UserRoleSource { get; set; } = new();
 
     #endregion
 }

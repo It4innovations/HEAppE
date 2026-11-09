@@ -566,6 +566,45 @@ public class ManagementService : IManagementService
         }
     }
 
+    public async Task<CredentialResponseExt> GetOrCreatePersonalCredential(long projectId, string? sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+            var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+            var loggedUser = UserAndLimitationManagementService.AuthenticateUser(sessionCode, authLogic, _httpContextKeys);
+
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
+            bool isManager = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Manager, projectId, true);
+            bool isSubmitter = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Submitter, projectId, true);
+
+            if (!isAdministrator && !isManager && !isSubmitter)
+            {
+                _logger.LogError($"User with ID {loggedUser.Id} does not have access to project {projectId}.");
+                throw new UnauthorizedAccessException($"User '{loggedUser.Username}' does not have access to project {projectId}.");
+            }
+
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(
+                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
+
+            var result = await managementLogic.CreateCredential(
+                username: null,
+                password: null,
+                authType: null,
+                generateNewKey: true,
+                privateKey: null,
+                passphrase: null,
+                projectId: projectId,
+                adaptorUserId: loggedUser.Id);
+
+            return result.ConvertIntToExt();
+        }
+    }
+
     //public async Task<List<CredentialResponseExt>> ModifyCredential(long projectId, string sessionCode, string username, ClusterAuthenticationCredentialsAuthType authType, 
      //                                                         bool? generateNewKey, string? privateKey, string? password, string? passphrase)
     public async Task<List<CredentialResponseExt>> ModifyCredential(string oldUsername, string newUsername, string newPassword, long projectId, string sessionCode, long? adaptorUserId = null)

@@ -89,6 +89,16 @@ builder.Configuration.GetSection("HPCConnectionFrameworkSettings:ScriptsSettings
 builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+var userRoleSourceSection = builder.Configuration.GetSection("ExternalAuthenticationSettings:UserRoleSource");
+if (userRoleSourceSection.Exists())
+{
+    if (Enum.TryParse<UserRoleSourceType>(userRoleSourceSection["Provider"], true, out var providerType))
+    {
+        UserRoleSourceConfiguration.Provider = providerType;
+    }
+    userRoleSourceSection.GetSection("OpenIdClaims").Bind(UserRoleSourceConfiguration.OpenIdClaims);
+    userRoleSourceSection.GetSection("Database").Bind(UserRoleSourceConfiguration.Database);
+}
 builder.Configuration.Bind("OpenStackSettings", new OpenStackSettings());
 builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
