@@ -56,7 +56,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy Vulnerability & Misconfiguration Scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -66,7 +66,7 @@ jobs:
           scanners: 'vuln,misconfig'
 
       - name: Upload Trivy FS SARIF to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-fs-results.sarif'
@@ -87,7 +87,7 @@ jobs:
         run: docker build -f RestApi/Dockerfile -t heappe-restapi:scan .
 
       - name: Scan RestApi Image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'heappe-restapi:scan'
           format: 'sarif'
@@ -98,7 +98,7 @@ jobs:
         run: docker build -f ci/docker/sshnode/Dockerfile -t heappe-sshnode:scan ci/docker/sshnode
 
       - name: Scan SSH Node Image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'heappe-sshnode:scan'
           format: 'sarif'
@@ -106,14 +106,14 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload RestApi Image SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-restapi-results.sarif'
           category: 'trivy-restapi-image'
 
       - name: Upload SSH Node Image SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-sshnode-results.sarif'
@@ -133,7 +133,7 @@ jobs:
         run: semgrep scan --sarif --config auto > semgrep-results.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'semgrep-results.sarif'
@@ -149,7 +149,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Gitleaks
+        run: |
+          GITLEAKS_VERSION="8.24.2"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz
+          sudo install -m 755 gitleaks /usr/local/bin/gitleaks
+
+      - name: Run Gitleaks Secret Detection
+        run: |
+          gitleaks detect --source . --report-format sarif --report-path gitleaks.sarif --verbose --redact
+
+      - name: Upload Gitleaks SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        with:
+          sarif_file: 'gitleaks.sarif'
+          category: 'gitleaks-secret-scan'
