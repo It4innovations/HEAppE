@@ -71,7 +71,7 @@ jobs:
       - name: Publish Trivy FS Summary to Job Summary
         if: always()
         run: |
-          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-fs-results.sarif --title "📦 Trivy Filesystem & Dockerfile Misconfiguration Scan"
+          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-fs-results.sarif --title "Trivy Filesystem & Dockerfile Misconfiguration Scan"
 
       - name: Upload Trivy FS SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v4
@@ -116,8 +116,8 @@ jobs:
       - name: Publish Container Images Summary to Job Summary
         if: always()
         run: |
-          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-restapi-results.sarif --title "🐳 Trivy Container Scan: HEAppE RestApi Image"
-          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-sshnode-results.sarif --title "🐳 Trivy Container Scan: SSH Node CI Image"
+          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-restapi-results.sarif --title "Trivy Container Scan: HEAppE RestApi Image"
+          python3 ci/scripts/format-sarif-summary.py --tool trivy --sarif trivy-sshnode-results.sarif --title "Trivy Container Scan: SSH Node CI Image"
 
       - name: Upload RestApi Image SARIF
         uses: github/codeql-action/upload-sarif@v4
@@ -149,7 +149,7 @@ jobs:
       - name: Publish Semgrep SAST Summary to Job Summary
         if: always()
         run: |
-          python3 ci/scripts/format-sarif-summary.py --tool semgrep --sarif semgrep-results.sarif --title "🔍 Semgrep SAST Security Scan"
+          python3 ci/scripts/format-sarif-summary.py --tool semgrep --sarif semgrep-results.sarif --title "Semgrep SAST Security Scan"
 
       - name: Upload Semgrep SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v4
@@ -184,7 +184,7 @@ jobs:
       - name: Publish Gitleaks Summary to Job Summary
         if: always()
         run: |
-          python3 ci/scripts/format-sarif-summary.py --tool gitleaks --sarif gitleaks.sarif --title "🛡️ Gitleaks Secret & Token Detection" --exit-code "${{ steps.gitleaks.outputs.exit_code }}"
+          python3 ci/scripts/format-sarif-summary.py --tool gitleaks --sarif gitleaks.sarif --title "Gitleaks Secret & Token Detection" --exit-code "${{ steps.gitleaks.outputs.exit_code }}"
 
       - name: Upload Gitleaks SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v4

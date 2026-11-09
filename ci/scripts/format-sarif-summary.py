@@ -31,10 +31,10 @@ def parse_sarif(sarif_path: str) -> List[Dict[str, Any]]:
 def format_gitleaks_summary(results: List[Dict[str, Any]], title: str) -> str:
     lines = [f"### {title}\n"]
     if not results:
-        lines.append("✅ **No secrets or credentials detected across scanned commits.**\n")
+        lines.append("**Status: PASSED** - No secrets or credentials detected across scanned commits.\n")
         lines.append("> Any known test fixtures and template keys are safely covered by `.gitleaksignore` and `.gitleaks.toml`.\n")
     else:
-        lines.append(f"🚨 **Found {len(results)} potential secret(s) or exposed credential(s):**\n")
+        lines.append(f"**Status: FAILED** - Found {len(results)} potential secret(s) or exposed credential(s):\n")
         lines.append("| Rule | File | Line | Details |")
         lines.append("| :--- | :--- | :--- | :--- |")
         for r in results:
@@ -49,7 +49,7 @@ def format_gitleaks_summary(results: List[Dict[str, Any]], title: str) -> str:
                 line_num = str(ploc.get("region", {}).get("startLine", "-"))
             lines.append(f"| `{rule_id}` | `{uri}` | {line_num} | {msg} |")
         lines.append("")
-        lines.append("> 💡 *If these are intentional mock fixtures or false positives, add their fingerprints to `.gitleaksignore`.*")
+        lines.append("> Note: If these are intentional mock fixtures or false positives, add their fingerprints to `.gitleaksignore`.")
         lines.append("")
     return "\n".join(lines)
 
@@ -57,9 +57,9 @@ def format_gitleaks_summary(results: List[Dict[str, Any]], title: str) -> str:
 def format_trivy_summary(results: List[Dict[str, Any]], title: str) -> str:
     lines = [f"### {title}\n"]
     if not results:
-        lines.append("✅ **No CRITICAL or HIGH vulnerabilities or misconfigurations detected.**\n")
+        lines.append("**Status: PASSED** - No CRITICAL or HIGH vulnerabilities or misconfigurations detected.\n")
     else:
-        lines.append(f"⚠️ **Found {len(results)} finding(s):**\n")
+        lines.append(f"**Status: WARNING** - Found {len(results)} finding(s):\n")
         lines.append("| Severity | ID / Rule | Target | Message |")
         lines.append("| :--- | :--- | :--- | :--- |")
         for r in results:
@@ -81,9 +81,9 @@ def format_trivy_summary(results: List[Dict[str, Any]], title: str) -> str:
 def format_semgrep_summary(results: List[Dict[str, Any]], title: str) -> str:
     lines = [f"### {title}\n"]
     if not results:
-        lines.append("✅ **No SAST security issues or vulnerabilities detected.**\n")
+        lines.append("**Status: PASSED** - No SAST security issues or vulnerabilities detected.\n")
     else:
-        lines.append(f"⚠️ **Found {len(results)} static analysis finding(s):**\n")
+        lines.append(f"**Status: WARNING** - Found {len(results)} static analysis finding(s):\n")
         lines.append("| Severity | Rule | Location | Description |")
         lines.append("| :--- | :--- | :--- | :--- |")
         for r in results:
