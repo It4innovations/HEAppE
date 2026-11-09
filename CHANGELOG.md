@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
 
+### Fixed
+- **Kerberos Memory Leak & Ticket Cache Cleanup (`KrbLibSim`):** Resolved memory leak in `KrbLibSim` by properly disposing replaced or removed `Krb5TicketCache` instances to terminate internal background tasks, purging inactive sessions based on last accessed timestamp, fixing struct comparison and null checks for `KdcResponse`, applying expiration buffer logic, and allowing memory cache cleanup without requiring a local `krb5.conf`.
+
 ## V6.6.3
 
 ### Fixed
