@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Licensed to The .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // -----------------------------------------------------------------------
@@ -152,7 +152,7 @@ namespace Kerberos.NET.Client
             }
         }
 
-        internal byte[] Serialize()
+        public byte[] Serialize()
         {
             if (this.Version < ExpectedVersion3)
             {

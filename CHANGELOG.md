@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.6.4
+
+### Security
+- **OpenSSH Authentication Bypass Patch (SSHole / CVE-2026-123158):** Upgraded Alpine-based images (`ci/docker/pbs-mock`, `ci/docker/sshnode`, `SshAgent`) from `alpine:3.19` to `alpine:3.21`, added package upgrades (`apk upgrade`), and enforced `PermitRootLogin prohibit-password` to prevent remote password authentication bypass.
+
+### Added
+- **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
+
+### Fixed
+- **Kerberos Memory Leak & Ticket Cache Cleanup (`KrbLibSim`):** Resolved memory leak in `KrbLibSim` by properly disposing replaced or removed `Krb5TicketCache` instances to terminate internal background tasks, purging inactive sessions based on last accessed timestamp, fixing struct comparison and null checks for `KdcResponse`, applying expiration buffer logic, and allowing memory cache cleanup without requiring a local `krb5.conf`.
+
+## V6.6.3
+
+### Fixed
+- **QScheduler In-Memory Payload Cache for Deferred/Queued Tasks:** Fixed task submission failure for queued sessions when session `open` callback is received in HTTP/HTTPS mode. Replaced transient `AsyncLocal` request stream with an in-memory `QSchedulerPayloadContext` preserving circuit payloads in RAM indexed by `taskId` until session callback submission.
+
 ## V6.6.2
 
 ### Security
