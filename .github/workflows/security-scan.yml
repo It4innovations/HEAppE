@@ -157,7 +157,7 @@ jobs:
 
       - name: Run Gitleaks Secret Detection
         run: |
-          gitleaks detect --source . --report-format sarif --report-path gitleaks.sarif --verbose --redact
+          gitleaks detect --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --report-format sarif --report-path gitleaks.sarif --verbose --redact
 
       - name: Upload Gitleaks SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v4
