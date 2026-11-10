@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "py4heappe API",
-    "version": "v6.6.1"
+    "version": "v6.6.4"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -23372,6 +23372,11 @@
           "PerformanceStandby": {
             "type": "boolean",
             "description": "Vault is in performance stand by"
+          },
+          "AuthHealthy": {
+            "type": "boolean",
+            "description": "Vault authentication is healthy",
+            "nullable": true
           }
         },
         "additionalProperties": false
