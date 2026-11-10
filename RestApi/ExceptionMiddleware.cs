@@ -230,7 +230,20 @@ public class ExceptionMiddleware
                 problem.Detail = string.IsNullOrEmpty(qSchedulerApiException.ResponseContent)
                     ? GetExceptionMessage(exception)
                     : RedactErrorMessage(qSchedulerApiException.ResponseContent);
-                problem.Status = StatusCodes.Status502BadGateway;
+                // Limits the caller can act on are passed through: 402 project limit exceeded or project inactive,
+                // 413 payload too large, 429 the user's active item or payload limit (QScheduler v0.3.0+).
+                // Anything else is a gateway problem.
+                problem.Status = (int)qSchedulerApiException.StatusCode switch
+                {
+                    StatusCodes.Status402PaymentRequired => StatusCodes.Status402PaymentRequired,
+                    StatusCodes.Status413PayloadTooLarge => StatusCodes.Status413PayloadTooLarge,
+                    StatusCodes.Status429TooManyRequests => StatusCodes.Status429TooManyRequests,
+                    _ => StatusCodes.Status502BadGateway
+                };
+                if (problem.Status != StatusCodes.Status502BadGateway)
+                {
+                    logLevel = LogLevel.Warning;
+                }
                 break;
             case ExpirioBadRequestException:
                 problem.Title = "Expirio Bad Request";

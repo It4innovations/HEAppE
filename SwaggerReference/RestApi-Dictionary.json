@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "Enum Dictionary",
-    "version": "v6.7.0a2"
+    "version": "v6.7.0a3"
   },
   "paths": {
     "/heappe/Dictionary/GetClusterAuthenticationCredentialsAuthTypes": {

@@ -833,7 +833,7 @@ public class QSchedulerSchedulerAdapterTests
             .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
 
         // Act
-        var sessionId = await _adapter.OpenSessionAsync(directConn, cluster, "TestMachine", project, 3600);
+        var sessionId = await _adapter.OpenSessionAsync(directConn, cluster, "TestMachine", project, 3600, "alice");
 
         // Assert
         Assert.Equal(777, sessionId);
@@ -844,6 +844,8 @@ public class QSchedulerSchedulerAdapterTests
         Assert.Contains("machine=TestMachine", query);
         // QScheduler project names carry the instance prefix (here the notifier name from InstanceIdentifierPath).
         Assert.Contains("project=heappe-instance-session.MyProjectAcc", query);
+        // QScheduler v0.3.0 requires the session owner; it carries the same instance prefix.
+        Assert.Contains("owner=heappe-instance-session.alice", query);
     }
 
     [Fact]

@@ -2516,7 +2516,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var scheduler = HpcConnectionFramework.SchedulerAdapters.SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, loggedUser.Id, _expirioService, _expirioToken, _logger);
 
-        var sessionId = await scheduler.OpenSessionAsync(cluster, machineId, project.AccountingString, walltimeLimitSecs, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
+        var sessionId = await scheduler.OpenSessionAsync(cluster, machineId, project.AccountingString, walltimeLimitSecs, loggedUser.Username, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
         _unitOfWork.QSchedulerSessionRepository.Insert(new QSchedulerSession
         {

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.0a3
+
+### Added
+- **QScheduler v0.3.0 Support:** Sessions are opened with the `owner` QScheduler v0.3.0 requires (the HEAppE user opening the session or submitting the job). QScheduler v0.2.x ignores the parameter, so it keeps working.
+- **QScheduler Users per Instance:** The task `user` and session `owner` sent to QScheduler are `<prefix>.<username>`, with the same prefix as the project names, because QScheduler v0.3.0 schedules by fair share, limits active work and tracks consumption per user name. Users of different HEAppE instances never share them, even with the same name.
+- **QScheduler Session Owner:** The `owner` QScheduler reports for a session is read from the session info.
+
+### Changed
+- **QScheduler Error Statuses:** QScheduler `402` (project limit exceeded or inactive), `413` (payload too large) and `429` (user's active item or payload limit) are returned to the API caller with the same status instead of `502`.
+- **QScheduler Deferred Session Tasks:** A task waiting for its session to open is failed when QScheduler rejects it with `413` or `422` (a retry cannot help, e.g. a time limit above the machine maximum); after `402` or `429` it is submitted again on the next cycle.
+
+### Known limitations
+- **QScheduler v0.3.0 task time limit:** The default and maximum task time limit is now 15 minutes per machine (`max_task_time_limit_ms`). HEAppE sends the task walltime as `time_limit_ms`, so a walltime above the machine maximum is rejected with `422`. Keep `MaxWalltime` of QScheduler queues at or below the machine's `max_task_time_limit_ms`.
+
 ## V6.7.0a2
 
 ### Added

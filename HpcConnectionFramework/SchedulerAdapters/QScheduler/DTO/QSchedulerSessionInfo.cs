@@ -22,6 +22,12 @@ public class QSchedulerSessionInfo
     /// </summary>
     public string Project { get; set; }
 
+    /// <summary>
+    ///     QScheduler user owning the session (v0.3.0+), i.e. "&lt;prefix&gt;.&lt;username&gt;" for sessions opened by
+    ///     HEAppE. Null for older QScheduler versions.
+    /// </summary>
+    public string Owner { get; set; }
+
     public DateTime? OpenedAt { get; set; }
 
     public DateTime? ClosedAt { get; set; }
@@ -118,6 +124,7 @@ public class QSchedulerSessionInfo
                 Id = GetLong(root, "id") ?? 0,
                 State = GetString(root, "state")?.ToLowerInvariant(),
                 Project = GetString(root, "project"),
+                Owner = GetString(root, "owner"),
                 OpenedAt = GetDate(root, "opened_at"),
                 ClosedAt = GetDate(root, "closed_at"),
                 ExecTimeMs = GetLong(root, "exectime_ms")

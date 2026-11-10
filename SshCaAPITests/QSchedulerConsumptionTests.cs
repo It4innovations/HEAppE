@@ -550,4 +550,158 @@ public class QSchedulerConsumptionTests
     }
 
     #endregion
+
+    #region QScheduler v0.3.0 (users, session owner, per-user limits)
+
+    [Fact]
+    public void BuildQSchedulerUserName_UsesProjectPrefix()
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } });
+
+        Assert.Equal("lexis-prod.jdoe", QSchedulerSchedulerAdapter.BuildQSchedulerUserName(cluster, " jdoe "));
+    }
+
+    [Fact]
+    public void BuildQSchedulerUserName_EmptyOrTooLong_Throws()
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } });
+
+        Assert.Throws<ArgumentException>(() => QSchedulerSchedulerAdapter.BuildQSchedulerUserName(cluster, ""));
+        Assert.Throws<ArgumentException>(() => QSchedulerSchedulerAdapter.BuildQSchedulerUserName(cluster, new string('u', 250)));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.RequestEntityTooLarge, true)]
+    [InlineData(HttpStatusCode.UnprocessableEntity, true)]
+    [InlineData(HttpStatusCode.TooManyRequests, false)]
+    [InlineData(HttpStatusCode.PaymentRequired, false)]
+    [InlineData(HttpStatusCode.InternalServerError, false)]
+    public void IsPermanentSubmitRejection_OnlyForRejectionsRetryCannotFix(HttpStatusCode status, bool expected)
+    {
+        Assert.Equal(expected, QSchedulerSchedulerAdapter.IsPermanentSubmitRejection(status));
+    }
+
+    [Fact]
+    public void SessionInfo_Parse_ReadsOwner()
+    {
+        var info = QSchedulerSessionInfo.Parse("{\"id\":3,\"state\":\"open\",\"project\":\"lexis-prod.OPEN-33-12\",\"owner\":\"lexis-prod.jdoe\"}");
+
+        Assert.Equal("lexis-prod.jdoe", info.Owner);
+    }
+
+    /// <summary>
+    ///     Adapter whose QScheduler answers POST /sessions with session 3, GET /sessions/{id} with the given state
+    ///     and POST /tasks with the given status. Captures every request URL.
+    /// </summary>
+    private static (QSchedulerSchedulerAdapter Adapter, List<string> Requests) CreateV030Adapter(string sessionState, HttpStatusCode taskStatus, string taskBody = "55")
+    {
+        var requests = new List<string>();
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                requests.Add($"{req.Method} {req.RequestUri!.PathAndQuery}");
+                var path = req.RequestUri!.AbsolutePath;
+                if (req.Method == HttpMethod.Post && path.Contains("/sessions"))
+                    return new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("3") };
+                if (req.Method == HttpMethod.Get && path.Contains("/sessions/"))
+                    return new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent($"{{\"id\":3,\"state\":\"{sessionState}\",\"project\":\"lexis-prod.OPEN-33-12\",\"owner\":\"lexis-prod.jdoe\"}}") };
+                if (req.Method == HttpMethod.Post && path.Contains("/tasks"))
+                    return new HttpResponseMessage { StatusCode = taskStatus, Content = new StringContent(taskBody) };
+                return new HttpResponseMessage { StatusCode = HttpStatusCode.Created, Content = new StringContent("") };
+            });
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(handler.Object, disposeHandler: false));
+
+        return (new QSchedulerSchedulerAdapter(new Mock<ISchedulerDataConvertor>().Object, factory.Object, NullLogger.Instance), requests);
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_NewSession_SendsPrefixedOwner()
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } });
+        var jobSpec = CreateJobUsingExistingSession(cluster, CreateQpuProject(), 3);
+        jobSpec.Tasks[0].EnvironmentVariables = new List<EnvironmentVariable> { new() { Name = "HEAPPE_QSCHEDULER_USE_SESSIONS", Value = "true" } };
+        var (adapter, requests) = CreateV030Adapter("waiting", HttpStatusCode.Created);
+
+        var results = (await adapter.SubmitJobAsync(new HttpConnection("http://localhost:3000"), jobSpec, null)).ToList();
+
+        Assert.Equal("session:3", results.Single().ScheduledJobId);
+        var sessionPost = Assert.Single(requests, r => r.StartsWith("POST /sessions"));
+        Assert.Contains("owner=lexis-prod.jdoe", sessionPost);
+        Assert.Contains("project=lexis-prod.OPEN-33-12", sessionPost);
+    }
+
+    [Fact]
+    public async Task SubmitJobAsync_OwnOpenSession_SendsPrefixedUser()
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } });
+        var (adapter, requests) = CreateV030Adapter("open", HttpStatusCode.Created);
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByName("task", System.Text.Encoding.UTF8.GetBytes("{}"));
+        try
+        {
+            await adapter.SubmitJobAsync(new HttpConnection("http://localhost:3000"), CreateJobUsingExistingSession(cluster, CreateQpuProject(), 3), null);
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByName("task");
+        }
+
+        var taskPost = Assert.Single(requests, r => r.StartsWith("POST /tasks"));
+        Assert.Contains("user=lexis-prod.jdoe", taskPost);
+        Assert.Contains("session_id=3", taskPost);
+    }
+
+    private static SubmittedTaskInfo CreateDeferredSessionTask(Cluster cluster)
+    {
+        var jobSpec = CreateJobUsingExistingSession(cluster, CreateQpuProject(), 3);
+        return new SubmittedTaskInfo { Id = 100, ScheduledJobId = "session:3", State = TaskState.Submitted, Specification = jobSpec.Tasks[0] };
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.RequestEntityTooLarge)]
+    [InlineData(HttpStatusCode.UnprocessableEntity)]
+    public async Task GetActualTasksInfoAsync_DeferredSubmitRejectedPermanently_FailsTask(HttpStatusCode status)
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } }); // callbacks off
+        var (adapter, _) = CreateV030Adapter("open", status, "payload too large");
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByTaskId(100, System.Text.Encoding.UTF8.GetBytes("{}"));
+        try
+        {
+            var result = (await adapter.GetActualTasksInfoAsync(new HttpConnection("http://localhost:3000"), cluster, new[] { CreateDeferredSessionTask(cluster) }, "svc")).Single();
+
+            Assert.Equal(TaskState.Failed, result.State);
+            Assert.Contains($"({(int)status})", result.ErrorMessage);
+            Assert.False(HEAppE.Utils.QSchedulerPayloadContext.TryGetByTaskId(100, out _));
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByTaskId(100);
+        }
+    }
+
+    [Fact]
+    public async Task GetActualTasksInfoAsync_DeferredSubmitOverUserLimit_IsRetriedLater()
+    {
+        var cluster = CreateCluster(new Dictionary<string, string> { { "QSchedulerProjectPrefix", "lexis-prod" } }); // callbacks off
+        var (adapter, _) = CreateV030Adapter("open", HttpStatusCode.TooManyRequests, "active item limit");
+        HEAppE.Utils.QSchedulerPayloadContext.StoreByTaskId(100, System.Text.Encoding.UTF8.GetBytes("{}"));
+        try
+        {
+            var result = (await adapter.GetActualTasksInfoAsync(new HttpConnection("http://localhost:3000"), cluster, new[] { CreateDeferredSessionTask(cluster) }, "svc")).Single();
+
+            Assert.Equal(TaskState.Submitted, result.State);
+            Assert.Equal("session:3", result.ScheduledJobId);
+            Assert.True(HEAppE.Utils.QSchedulerPayloadContext.TryGetByTaskId(100, out _)); // kept for the next attempt
+        }
+        finally
+        {
+            HEAppE.Utils.QSchedulerPayloadContext.RemoveByTaskId(100);
+        }
+    }
+
+    #endregion
 }

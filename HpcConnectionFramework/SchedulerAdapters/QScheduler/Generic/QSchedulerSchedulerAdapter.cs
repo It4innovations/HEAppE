@@ -477,6 +477,41 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     }
 
     /// <summary>
+    ///     QScheduler limits user (session owner) names to 250 characters.
+    /// </summary>
+    internal const int MaxQSchedulerUserNameLength = 250;
+
+    /// <summary>
+    ///     Builds the QScheduler user name for a HEAppE user: "&lt;prefix&gt;.&lt;username&gt;", with the same prefix
+    ///     as the project names. QScheduler (v0.3.0+) schedules by fair share per user name, limits each user's
+    ///     active tasks, sessions and payload, and tracks consumption per user. The prefix keeps users of different
+    ///     HEAppE instances apart even when their names match.
+    /// </summary>
+    internal static string BuildQSchedulerUserName(Cluster cluster, string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException("A user name is required for QScheduler.");
+        }
+
+        var name = $"{ResolveProjectPrefix(cluster)}{ProjectNameSeparator}{username.Trim()}";
+        if (name.Length > MaxQSchedulerUserNameLength)
+        {
+            throw new ArgumentException($"QScheduler user name '{name}' is longer than {MaxQSchedulerUserNameLength} characters.");
+        }
+
+        return name;
+    }
+
+    /// <summary>
+    ///     Task submit rejections that a retry cannot fix: 413 (payload larger than the service or per-user payload
+    ///     limit) and 422 (e.g. time limit above the machine's max_task_time_limit_ms, session not open).
+    ///     402 (project limit or inactive) and 429 (user's active item or payload limit) can pass later.
+    /// </summary>
+    internal static bool IsPermanentSubmitRejection(HttpStatusCode statusCode)
+        => statusCode is HttpStatusCode.RequestEntityTooLarge or HttpStatusCode.UnprocessableEntity;
+
+    /// <summary>
     ///     The QScheduler limit for a HEAppE project: sum of its allocations (QPU seconds) in milliseconds.
     /// </summary>
     internal static long ComputeProjectLimitMs(Project project)
@@ -641,21 +676,23 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     }
 
     /// <summary>
-    ///     Resolves the "user" sent to QScheduler. QScheduler accounts per project and uses the user only
-    ///     for auditing, so the HEAppE submitter takes precedence over the cluster credential username.
+    ///     Resolves the "user" of tasks and the "owner" of sessions sent to QScheduler, with this instance's prefix
+    ///     (see <see cref="BuildQSchedulerUserName"/>). The HEAppE submitter takes precedence over the cluster
+    ///     credential username, because QScheduler (v0.3.0+) schedules and limits per user.
     /// </summary>
-    private string ResolveAuditUser(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+    private string ResolveAuditUser(Cluster cluster, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
     {
         var user = jobSpecification?.Submitter?.Username;
-        if (!string.IsNullOrEmpty(user))
-            return user;
-
-        user = credentials?.Username ?? jobSpecification?.ClusterUser?.Username;
         if (string.IsNullOrEmpty(user))
-            user = "heappe";
+        {
+            user = credentials?.Username ?? jobSpecification?.ClusterUser?.Username;
+            if (string.IsNullOrEmpty(user))
+                user = "heappe";
 
-        _logger.LogWarning($"QScheduler audit user: submitter not available for job specification {jobSpecification?.Id}; sending '{user}' instead.");
-        return user;
+            _logger.LogWarning($"QScheduler user: submitter not available for job specification {jobSpecification?.Id}; sending '{user}' instead.");
+        }
+
+        return BuildQSchedulerUserName(cluster, user);
     }
 
     public async Task<IEnumerable<SubmittedTaskInfo>> SubmitJobAsync(object connectorClient, JobSpecification jobSpecification,
@@ -742,6 +779,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     var relativeUrl = BuildUrl("sessions",
                         ("machine", machineId),
                         ("project", projectName),
+                        ("owner", ResolveAuditUser(jobSpecification.Cluster, jobSpecification, credentials)),
                         ("time_limit_ms", walltimeMs.ToString()),
                         ("notify", sessionNotifier));
                     var sessionResponse = await ExecuteRequestAsync(connectorClient, jobSpecification.Cluster, "POST", relativeUrl);
@@ -818,7 +856,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                                 : $"{taskDir}/{taskSpec.StandardInputFile}";
                         }
 
-                        var username = ResolveAuditUser(jobSpecification, credentials);
+                        var username = ResolveAuditUser(jobSpecification.Cluster, jobSpecification, credentials);
                         var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                         var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
@@ -881,7 +919,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                             : $"{taskDir}/{taskSpec.StandardInputFile}";
                     }
 
-                    var username = ResolveAuditUser(jobSpecification, credentials);
+                    var username = ResolveAuditUser(jobSpecification.Cluster, jobSpecification, credentials);
                     var taskNotifier = ResolveNotifier(jobSpecification.Cluster, clusterConfig);
                     var timeLimitMs = taskSpec.WalltimeLimit > 0 ? ((long)taskSpec.WalltimeLimit * 1000).ToString() : null;
 
@@ -998,7 +1036,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                                 : $"{taskDir}/{taskInfo.Specification.StandardInputFile}";
                         }
 
-                        var username = ResolveAuditUser(taskInfo.Specification?.JobSpecification,
+                        var username = ResolveAuditUser(cluster, taskInfo.Specification?.JobSpecification,
                                                         taskInfo.Specification?.JobSpecification?.ClusterUser);
                         var taskNotifier = ResolveNotifier(
                             cluster,
@@ -1049,8 +1087,21 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                         }
                     }
                 }
+                catch (QSchedulerApiException ex) when (IsPermanentSubmitRejection(ex.StatusCode))
+                {
+                    // Retrying cannot help (payload too large, time limit above the machine maximum, ...).
+                    _logger.LogError(ex, $"QScheduler rejected task {taskInfo.Id} for session {sessionId} with {(int)ex.StatusCode}.");
+                    taskInfo.State = TaskState.Failed;
+                    taskInfo.ErrorMessage = $"QScheduler rejected the task ({(int)ex.StatusCode}): {ex.ResponseContent}";
+                    QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Id);
+                    if (taskInfo.Specification != null)
+                    {
+                        QSchedulerPayloadContext.RemoveByTaskId(taskInfo.Specification.Id);
+                    }
+                }
                 catch (Exception ex)
                 {
+                    // Includes 429 (the user's active item or payload limit): the task is submitted again next cycle.
                     _logger.LogError(ex, $"Failed to query QScheduler session state for {sessionId}");
                 }
                 results.Add(taskInfo);
@@ -1365,7 +1416,9 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         return Task.FromResult<IEnumerable<SubmittedTaskInfo>>([]);
     }
 
-    public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, Project project, int walltimeLimitSecs)
+    /// <param name="ownerUsername">HEAppE username of the session owner. QScheduler (v0.3.0+) requires an owner and
+    ///     charges it the session's open time; it is sent with this instance's prefix.</param>
+    public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, Project project, int walltimeLimitSecs, string ownerUsername)
     {
         if (project == null)
         {
@@ -1373,6 +1426,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
 
         var projectName = BuildQSchedulerProjectName(cluster, project);
+        var owner = BuildQSchedulerUserName(cluster, ownerUsername);
         await EnsureProjectRegisteredAsync(connectorClient, cluster, project);
 
         var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
@@ -1382,6 +1436,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         var relativeUrl = BuildUrl("sessions",
             ("machine", machineId),
             ("project", projectName),
+            ("owner", owner),
             ("time_limit_ms", walltimeMs.ToString()),
             ("notify", sessionNotifier));
         var sessionResponse = await ExecuteRequestAsync(connectorClient, cluster, "POST", relativeUrl);

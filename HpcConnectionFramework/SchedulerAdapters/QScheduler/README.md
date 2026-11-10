@@ -6,10 +6,20 @@ HEAppE is the source of truth for project limits and validity. QScheduler enforc
 > [!WARNING]
 > **The QScheduler limit is the sum of ALL the project's allocations, including non-quantum ones.**
 > HEAppE sends `limit_ms = sum(AllocationAmount) × 1000` over every `ProjectClusterNodeTypeAggregation`
-> of the project. It does not check which node type aggregation an allocation belongs to.
-> If a QPU project also has, for example, a CPU allocation of 10 000 core hours, QScheduler gets
-> 10 000 extra QPU seconds. If one HEAppE has several QScheduler clusters, each of them gets the full sum.
-> **Keep only quantum (QPU seconds) allocations on projects used with QScheduler.**
+> of the project. It does not check which queue group (node type aggregation) an allocation belongs to,
+> or what that group contains.
+>
+> A queue group is not tied to one cluster. `ClusterNodeTypeAggregation` has no cluster of its own; it is
+> just a named set of queues (`ClusterNodeType`), and each queue can belong to any cluster. An administrator
+> can therefore put QScheduler queues and ordinary HPC queues (Slurm, PBS, ...) into the same group, or give
+> a QPU project other groups that hold only non-quantum queues. HEAppE counts all of these allocations
+> into the QScheduler limit:
+> - a QPU project with an extra group of CPU queues and 10 000 core hours gets 10 000 extra QPU seconds;
+> - a group mixing a QScheduler queue with Slurm queues counts its whole allocation as QPU seconds;
+> - if one HEAppE has several QScheduler clusters, each of them gets the full sum.
+>
+> **For projects used with QScheduler, keep only queue groups that contain only QScheduler queues, with
+> allocations in QPU seconds.**
 
 > [!WARNING]
 > **The background synchronization does not run when SSH certificate authority login is enabled.**
@@ -34,6 +44,67 @@ Cluster `CustomConfiguration`:
 Accounting: create an `Accounting` with the formula `exectime_ms/1000` (QPU seconds) and link it to the
 QScheduler node type aggregation. The project's `UsageType` must be `QPUSeconds`.
 
+## QScheduler versions
+
+HEAppE works with QScheduler v0.2.x and v0.3.0. Everything below about users and per-user limits applies to
+v0.3.0; v0.2.x ignores the `owner` parameter.
+
+### Users and session owners
+
+QScheduler v0.3.0 knows **users** by name. It schedules each machine's queue by fair share between users,
+limits each user's active work, and tracks consumption per user, project and machine. A user is charged
+for the sessions it owns and for its tasks outside a session.
+
+HEAppE sends the same name as the task `user` and as the session `owner` (required by v0.3.0):
+
+```
+<prefix>.<HEAppE username>
+```
+
+The prefix is the same as for project names (`QSchedulerProjectPrefix`, see [Configuration](#configuration)).
+So users of different HEAppE instances never share fair share, limits or consumption, even when their names
+match. The same person working through two instances counts as two QScheduler users.
+
+| Request | Name sent |
+|---|---|
+| Task in a job | The job's submitter. If unknown, the cluster account, then `heappe` (logged as a warning). |
+| Session opened with a job (`HEAPPE_QSCHEDULER_USE_SESSIONS`) | The job's submitter, as above |
+| Session opened with `OpenSession` | The logged-in HEAppE user |
+
+The full name must be at most 250 characters.
+
+### Per-user limits and error statuses
+
+QScheduler v0.3.0 limits each user to 2000 active items (unfinished tasks plus open sessions) and 200 MiB of
+active task payloads by default (`--max-user-active-items`, `--max-user-active-payload`). HEAppE does not
+check these limits itself; it passes QScheduler's answer on:
+
+| QScheduler status | Meaning | API caller gets | Task waiting for its session to open |
+|---|---|---|---|
+| `402` | Project limit exceeded, or project not active | `402` | Submitted again next cycle |
+| `413` | Payload larger than the service or per-user payload limit | `413` | Failed |
+| `422` | Invalid request, e.g. time limit above the machine maximum, session not open | `502` | Failed |
+| `429` | User's active item or payload limit reached | `429` | Submitted again next cycle |
+| other | | `502` | Submitted again next cycle |
+
+A task that keeps being refused is eventually failed by the walltime timeout.
+
+### Task time limit
+
+HEAppE sends the task walltime as `time_limit_ms`. In v0.3.0, a machine's default task time limit and its
+maximum (`max_task_time_limit_ms`) are both 15 minutes by default, and a task asking for more is rejected with
+`422`.
+
+> [!IMPORTANT]
+> Keep `MaxWalltime` of QScheduler queues (`ClusterNodeType`) at or below the machine's
+> `max_task_time_limit_ms`. Session time limits are not affected; they are checked against the machine's
+> `max_session_time_ms`.
+
+### Not used yet
+
+`GET /users`, `GET /users/{name}/consumption` and `GET /debug/scheduler` are not used by HEAppE. HEAppE
+keeps its own accounting per project (see below).
+
 ## What is accounted
 
 | What | Stored on | Billed |
@@ -43,6 +114,31 @@ QScheduler node type aggregation. The project's `UsageType` must be `QPUSeconds`
 | Task inside a session | `SubmittedTaskInfo.AllocatedTime` (s) only | No, the session is billed |
 
 Project reports include sessions (`QSchedulerSessions`, `QSchedulerSessionsUsage`) in the total usage.
+
+### Execution time: `exectime_ms`, `AllocatedTime` and the accounting formula
+
+QScheduler reports a task's execution time as `exectime_ms`, in milliseconds. HEAppE uses it in two
+places, and they do not depend on each other:
+
+| | Source | Unit | Used for |
+|---|---|---|---|
+| `ResourceConsumed` | Accounting formula over the raw `exectime_ms` in `AllParameters` | Whatever the formula returns (`exectime_ms/1000` → QPU seconds) | Billing |
+| `AllocatedTime` | `exectime_ms / 1000`, converted in `QSchedulerDataConvertor` | Seconds | Display only |
+
+Billing never reads `AllocatedTime`. The unit of `ResourceConsumed` is set only by the formula. For
+example, `exectime_ms/1000/3600` gives QPU hours without any code change.
+
+The code still converts `AllocatedTime` to seconds because:
+
+- **`AllocatedTime` means seconds for every scheduler.** Slurm, PBS, HyperQueue and LinuxLocal all fill
+  it from their run time in seconds. API clients read `AllocatedTime` and `TotalAllocatedTime` (the sum
+  over a job's tasks), and the admin job monitoring shows them. If HEAppE stored milliseconds there, a
+  2.5 s task would show up as 2500.
+- **Tasks inside a session have no `ResourceConsumed`** because the session is billed instead.
+  `AllocatedTime` is the only place their execution time is visible.
+
+If `exectime_ms` is missing, the convertor stores `exectime_ms=0` in `AllParameters`, so the formula
+still evaluates. `allocated_time` (seconds) is accepted as a fallback.
 
 ## Synchronization with QScheduler
 
@@ -185,7 +281,8 @@ flowchart TD
 
 ## Several HEAppE instances on one QScheduler
 
-Each instance uses its own prefix, so limits and consumption never mix. Sessions are accepted only if this
+Each instance uses its own prefix for project and user names, so limits, fair share and consumption never
+mix. Sessions are accepted only if this
 instance tracks them and QScheduler reports them for the same prefixed project. QScheduler has no
 per-client authentication, so this isolation is by convention, not access control.
 
