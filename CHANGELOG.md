@@ -12,8 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
+- **Authenticated HashiCorp Vault Health Check:** Enhanced `/heappe/Management/Health` (`HealthChecks.GetVaultHealth`) to probe `v1/auth/token/lookup-self` on Vault Agent, verifying active AppRole authentication and token validity in addition to raw endpoint reachability. Added `AuthHealthy` flag to `VaultInfo_` in `HealthExt`.
+- **Idempotent HashiCorp Vault Initialization Scripts:** Updated `HashiCorpVaultScripts/initHVault.sh` and `HashiCorpVaultScripts/DockerVersion/initHVault.sh` to idempotently configure policy (`heappe-policy`), AppRole (`heappe-role`), and agent credentials (`role_id`/`secret_id`) even when unsealing an already-initialized Vault instance.
+- **Instance Name Migration Script:** Added `scripts/migrate-instance-name.sh` to automate renaming HEAppE instances, environment variables, certificates, and Ansible Vault encrypted secrets (`HashiCorpVault_<OLD>` to `HashiCorpVault_<NEW>`).
 
 ### Fixed
+- **Job Cancellation Flagged as Failed on Slurm & FirecREST:**
+  - Fixed user-cancelled jobs and tasks erroneously transitioning to `Failed` instead of `Canceled`.
+  - Added `Cancelled` enum alias (`SlurmTaskState.Cancelled` and `FireCrestTaskState.Cancelled`) to support Slurm's standard double-L spelling (`CANCELLED`).
+  - Enhanced `SlurmJobInfo.MappingTaskState` and `FireCrestJobInfo.MappingTaskState` to recognize states starting with `CANCELLED` and `CANCELED` (such as `CANCELLED by <uid>`), and added mappings for `BOOT_FAIL` and `REVOKED`.
+  - In `SlurmSchedulerAdapter`, when `scontrol show JobId` returns `Invalid job id specified` (due to Slurm purging cancelled jobs from queue), it now queries historical accounting records via `sacct` (`GetHistoricalTasksInfoAsync`) to retrieve the actual final state before falling back.
+  - Updated `JobManagementLogic.CompleteCancelJobAsync` to guarantee that all tasks belonging to a cancelled job that are not already `Finished` are explicitly marked with `TaskState.Canceled` and have their `EndTime` recorded.
+- **HashiCorp Vault Diagnostics & Error Logging:** Enhanced `VaultConnector` to capture and log HTTP status codes and response bodies for cluster credential and secret operations (`SetClusterAuthenticationCredentialsAsync`, `DeleteClusterAuthenticationCredentialsAsync`, `SetClusterSecretAsync`, `DeleteClusterSecretsAsync`, `SetClusterSecretsAsync`), facilitating quick diagnosis of Vault permission and AppRole issues.
 - **Kerberos Memory Leak & Ticket Cache Cleanup (`KrbLibSim`):** Resolved memory leak in `KrbLibSim` by properly disposing replaced or removed `Krb5TicketCache` instances to terminate internal background tasks, purging inactive sessions based on last accessed timestamp, fixing struct comparison and null checks for `KdcResponse`, applying expiration buffer logic, and allowing memory cache cleanup without requiring a local `krb5.conf`.
 
 ## V6.6.3
