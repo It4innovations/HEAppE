@@ -12,8 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
+- **Vault Health Check & Management Tools:** Added authenticated AppRole health check probe (`v1/auth/token/lookup-self`), idempotent Vault initialization scripts (`initHVault.sh`), and instance renaming migration tool (`scripts/migrate-instance-name.sh`).
 
 ### Fixed
+- **Job Cancellation State on Slurm & FirecREST:** Fixed cancelled jobs/tasks erroneously marked as `Failed`. Supported `CANCELLED` spelling and annotations in `SlurmJobInfo`/`FireCrestJobInfo`, added `sacct` fallback for purged jobs in `SlurmSchedulerAdapter`, and guaranteed `Canceled` state transition for active tasks in `JobManagementLogic`.
+- **Vault Diagnostics & Detailed Logging:** Added HTTP status and response body logging in `VaultConnector` for credential and secret operations.
 - **Kerberos Memory Leak & Ticket Cache Cleanup (`KrbLibSim`):** Resolved memory leak in `KrbLibSim` by properly disposing replaced or removed `Krb5TicketCache` instances to terminate internal background tasks, purging inactive sessions based on last accessed timestamp, fixing struct comparison and null checks for `KdcResponse`, applying expiration buffer logic, and allowing memory cache cleanup without requiring a local `krb5.conf`.
 
 ## V6.6.3
