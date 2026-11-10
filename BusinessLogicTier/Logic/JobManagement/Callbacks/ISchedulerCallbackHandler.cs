@@ -7,7 +7,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Callbacks;
 
 internal interface ISchedulerCallbackHandler
 {
-    Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState);
+    Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState, string? rawResponse = null);
 
     Task<bool> AuthenticateTaskCallbackAsync(string token, SubmittedTaskInfo candidate, SubmittedJobInfo jobInfo, Cluster cluster);
 

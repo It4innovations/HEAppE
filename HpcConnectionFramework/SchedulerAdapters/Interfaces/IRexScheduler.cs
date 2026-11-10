@@ -69,6 +69,21 @@ public interface IRexScheduler
     Task<string> GetMachineCalibrationAsync(Cluster cluster, string machineId, string calibrationId, string endpoint, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<long> OpenSessionAsync(Cluster cluster, string machineId, string project, int walltimeLimitSecs, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task CloseSessionAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+
+    /// <summary>
+    ///     Returns the QScheduler session JSON (GET /sessions/{id}), including its consumption (exectime_ms).
+    /// </summary>
+    Task<string> GetSessionInfoAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+
+    /// <summary>
+    ///     Lists all QScheduler projects (GET /projects).
+    /// </summary>
+    Task<System.Collections.Generic.IList<QScheduler.DTO.QSchedulerProjectInfo>> ListQSchedulerProjectsAsync(Cluster cluster, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
+
+    /// <summary>
+    ///     Updates a QScheduler project's limit and/or active flag; null leaves a value unchanged.
+    /// </summary>
+    Task UpdateQSchedulerProjectAsync(Cluster cluster, string qSchedulerProjectName, long? limitMs, bool? active, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<System.IO.Stream> GetQuantumTaskArtifactAsync(Cluster cluster, string scheduledJobId, string artifactName, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);
     Task<MachineArtifact> GetMachineArtifactAsync(Cluster cluster, string machineId, string artifactName, string accept, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken);

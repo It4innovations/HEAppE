@@ -229,6 +229,7 @@ public class QSchedulerAdapterTests
         {
             Id = 1,
             Name = "QProj",
+            AccountingString = "QProj",
             UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
             ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
             {
@@ -265,11 +266,17 @@ public class QSchedulerAdapterTests
         return new JobSpecification
         {
             Id = 1,
-            Cluster = new Cluster { Id = 1, MasterNodeName = "localhost" },
+            Cluster = new Cluster
+            {
+                Id = 1,
+                MasterNodeName = "localhost",
+                CustomConfiguration = new Dictionary<string, string> { { "QSchedulerProjectPrefix", "test" } }
+            },
             Project = new Project
             {
                 Id = 1,
                 Name = "QProjKind", // distinct name: the adapter caches registered projects statically
+                AccountingString = "QProjKind",
                 UsageType = HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds,
                 ProjectClusterNodeTypeAggregations = new List<ProjectClusterNodeTypeAggregation>
                 {
@@ -299,7 +306,14 @@ public class QSchedulerAdapterTests
         _mockHandler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured.Add(req))
-            .ReturnsAsync(() => new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("7") });
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) => new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                // An existing session is checked to belong to this instance's project before tasks are submitted into it.
+                Content = new StringContent(req.Method == HttpMethod.Get && req.RequestUri!.AbsolutePath.StartsWith("/sessions/")
+                    ? "{\"id\":5,\"state\":\"open\",\"project\":\"test.QProjKind\"}"
+                    : "7")
+            });
         _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(() => new HttpClient(_mockHandler.Object));
         return captured;

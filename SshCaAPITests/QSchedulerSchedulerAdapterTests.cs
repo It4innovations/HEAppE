@@ -842,7 +842,8 @@ public class QSchedulerSchedulerAdapterTests
         Assert.Contains("notify=heappe-instance-session", query);
         Assert.Contains("time_limit_ms=3600000", query);
         Assert.Contains("machine=TestMachine", query);
-        Assert.Contains("project=MyProjectAcc", query);
+        // QScheduler project names carry the instance prefix (here the notifier name from InstanceIdentifierPath).
+        Assert.Contains("project=heappe-instance-session.MyProjectAcc", query);
     }
 
     [Fact]

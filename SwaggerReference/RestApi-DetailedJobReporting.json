@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "Detailed Job Reporting",
-    "version": "v6.7.0"
+    "version": "v6.7.0a2"
   },
   "paths": {
     "/heappe/JobReporting/AggregatedUserGroupResourceUsageReport": {
@@ -610,6 +610,19 @@
             "format": "double",
             "nullable": true
           },
+          "QSchedulerSessionsUsage": {
+            "type": "number",
+            "description": "Usage of QScheduler sessions (included in the total usage)",
+            "format": "double"
+          },
+          "QSchedulerSessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QSchedulerSessionReportExt"
+            },
+            "description": "QScheduler sessions in the report period",
+            "nullable": true
+          },
           "UsageType": {
             "$ref": "#/components/schemas/UsageTypeExt"
           },
@@ -661,6 +674,19 @@
             "format": "double",
             "nullable": true
           },
+          "QSchedulerSessionsUsage": {
+            "type": "number",
+            "description": "Usage of QScheduler sessions (included in the total usage)",
+            "format": "double"
+          },
+          "QSchedulerSessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QSchedulerSessionReportExt"
+            },
+            "description": "QScheduler sessions in the report period",
+            "nullable": true
+          },
           "UsageType": {
             "$ref": "#/components/schemas/UsageTypeExt"
           },
@@ -681,6 +707,53 @@
             },
             "description": "List of cluster detailed reports",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "QSchedulerSessionReportExt": {
+        "type": "object",
+        "properties": {
+          "SessionId": {
+            "type": "integer",
+            "description": "QScheduler session id",
+            "format": "int64"
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster id",
+            "format": "int64"
+          },
+          "UserId": {
+            "type": "integer",
+            "description": "Id of the user who owns the session",
+            "format": "int64"
+          },
+          "State": {
+            "type": "string",
+            "description": "Session state",
+            "nullable": true
+          },
+          "OpenedAt": {
+            "type": "string",
+            "description": "When the session opened",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ClosedAt": {
+            "type": "string",
+            "description": "When the session closed",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Usage": {
+            "type": "number",
+            "description": "Usage (session open time in QPU seconds)",
+            "format": "double"
+          },
+          "IsFinal": {
+            "type": "boolean",
+            "description": "True once the session is closed and its final usage is known"
           }
         },
         "additionalProperties": false

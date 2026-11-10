@@ -21,7 +21,7 @@ internal class DefaultCallbackHandler : ISchedulerCallbackHandler
         _logger = logger;
     }
 
-    public Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState)
+    public Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState, string? rawResponse = null)
     {
         _logger.LogWarning($"ProcessSessionCallbackAsync called on DefaultCallbackHandler for session '{scheduledJobId}'. This is not supported.");
         return Task.FromResult(0L);

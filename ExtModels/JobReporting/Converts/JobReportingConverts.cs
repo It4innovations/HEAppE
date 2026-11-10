@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -186,6 +187,24 @@ public static class JobReportingConverts
     }
 
 
+    public static List<QSchedulerSessionReportExt> ConvertIntToExt(this IEnumerable<QSchedulerSessionReport> reports)
+    {
+        return reports?
+            .Where(x => x.Session != null)
+            .Select(x => new QSchedulerSessionReportExt
+            {
+                SessionId = x.Session.SessionId,
+                ClusterId = x.Session.ClusterId,
+                UserId = x.Session.UserId,
+                State = x.Session.State.ToString(),
+                OpenedAt = x.Session.OpenedAt,
+                ClosedAt = x.Session.ClosedAt,
+                Usage = x.Usage,
+                IsFinal = x.Session.IsConsumptionFinal
+            })
+            .ToList() ?? new List<QSchedulerSessionReportExt>();
+    }
+
     public static ProjectReportExt ConvertIntToExt(this ProjectReport report)
     {
         var convert = new ProjectReportExt
@@ -195,7 +214,9 @@ public static class JobReportingConverts
             AccountingString = report.Project.AccountingString,
             Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
             TotalUsage = report.TotalUsage,
-            UsageType = report.Project.UsageType.ConvertIntToExt()
+            UsageType = report.Project.UsageType.ConvertIntToExt(),
+            QSchedulerSessionsUsage = report.QSchedulerSessionsUsage,
+            QSchedulerSessions = report.QSchedulerSessions.ConvertIntToExt()
         };
 
         return convert;
@@ -210,7 +231,8 @@ public static class JobReportingConverts
             Description = report.Project.Description,
             AccountingString = report.Project.AccountingString,
             Clusters = report.Clusters.Select(x => x.ConvertIntToExtendedExt()).ToList(),
-            TotalUsage = report.TotalUsage
+            TotalUsage = report.TotalUsage,
+            QSchedulerSessionsUsage = report.QSchedulerSessionsUsage
         };
 
         return convert;
@@ -226,7 +248,9 @@ public static class JobReportingConverts
             TotalUsage = report.TotalUsage,
             UsageType = report.Project.UsageType.ConvertIntToExt(),
             SubProjects = report.SubProjects.Select(x => x.ConvertIntToExt()).ToList(),
-            Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList()
+            Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
+            QSchedulerSessionsUsage = report.QSchedulerSessionsUsage,
+            QSchedulerSessions = report.QSchedulerSessions.ConvertIntToExt()
         };
 
         return convert;
@@ -294,6 +318,8 @@ public static class JobReportingConverts
             AccountingString = report.Project.AccountingString,
             Clusters = report.Clusters.Select(x => x.ConvertIntToDetailedExt()).ToList(),
             TotalUsage = report.TotalUsage,
+            QSchedulerSessionsUsage = report.QSchedulerSessionsUsage,
+            QSchedulerSessions = report.QSchedulerSessions.ConvertIntToExt(),
             UsageType = report.Project.UsageType.ConvertIntToExt(),
             StartDate = report.Project.StartDate,
             EndDate = report.Project.EndDate

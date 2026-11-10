@@ -350,6 +350,20 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
     
+    /// <summary>
+    ///     Refuses work in a project that has not started yet (StartDate in the future).
+    ///     The end date and deletion are already checked by the role check.
+    /// </summary>
+    /// <exception cref="InvalidRequestException">is thrown when the project starts later.</exception>
+    public static void CheckProjectHasStarted(IUnitOfWork unitOfWork, long projectId)
+    {
+        var project = unitOfWork.ProjectRepository.GetById(projectId);
+        if (project != null && project.StartDate > DateTime.UtcNow)
+        {
+            throw new InvalidRequestException("ProjectNotStarted", project.AccountingString, project.StartDate.ToString("u"));
+        }
+    }
+
     public static bool CheckIfUserHasRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId,
         bool overrideProjectValidityCheck = false)
     {

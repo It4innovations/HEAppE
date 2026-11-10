@@ -585,4 +585,13 @@
   <data name="ClusterStorageQuotaExceededException_NoSpaceLeftOnDevice" xml:space="preserve">
     <value>Na HPC clusteru došlo volné místo na disku: {0}</value>
   </data>
+  <data name="InvalidRequestException_QSchedulerSessionNotOwnedByInstance" xml:space="preserve">
+    <value>QScheduler session {0} není spravována touto instancí HEAppE a nelze ji použít.</value>
+  </data>
+  <data name="InvalidRequestException_QSchedulerSessionProjectMismatch" xml:space="preserve">
+    <value>QScheduler session {0} patří k jinému projektu než job.</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNotStarted" xml:space="preserve">
+    <value>Projekt {0} ještě nezačal. Lze jej použít od {1}.</value>
+  </data>
 </root>

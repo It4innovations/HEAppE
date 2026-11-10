@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.0a2
+
+### Added
+- **QScheduler Consumption:** Task execution time (`exectime_ms`) is stored as `AllocatedTime` and turned into consumed resources on callbacks and polling (formula e.g. `exectime_ms/1000` for QPU seconds).
+- **QScheduler Lost Callback Recovery:** With callbacks enabled, tasks without a state change for 10 minutes (QScheduler's notification retries last about 6-7 minutes), or about to time out, are queried directly in QScheduler (at most every 5 minutes per task). Finished tasks get their real state and consumption instead of being failed by the timeout; tasks QScheduler no longer knows are failed; unreachable QScheduler leaves tasks unchanged.
+- **QScheduler Session Billing:** Sessions store their own consumption (whole open time, as QScheduler charges it), refreshed from callbacks and a background sync. Tasks inside a session keep their execution time for information only. Project reports include session usage.
+
+### Changed
+- **QScheduler Project Prefix:** QScheduler project names are `<prefix>.<AccountingString>` (prefix from `QSchedulerProjectPrefix`, else the notifier name), so several HEAppE instances can share one QScheduler. Existing projects need a one-off rename, see `QSchedulerScripts/ProjectPrefixMigration`.
+- **QScheduler Sessions:** Sessions not tracked by this HEAppE instance, or of another project, are rejected. Session lookups use the cluster, as session IDs are unique only per QScheduler instance.
+- **QScheduler Project Sync:** Every 5 minutes HEAppE compares its QScheduler projects with HEAppE (source of truth) and corrects them: limit = sum of allocations, active only between the project's start and end date. Projects of this instance that HEAppE no longer has are deactivated; values set directly in QScheduler by other clients are overwritten.
+- **Project Start Date:** Creating, submitting and opening QScheduler sessions are refused before the project's start date (`ProjectNotStarted`), in addition to the existing end date check.
+
+### Known limitations
+- **QScheduler limit includes non-quantum allocations:** The limit sent to QScheduler is the sum of *all* the project's allocations. Keep only QPU allocations on QScheduler projects.
+- **No background sync with SSH CA login:** The project sync, session consumption sync and lost-callback check run in the job-polling background service, which is disabled when SSH certificate authority login is on.
+
+See `HpcConnectionFramework/SchedulerAdapters/QScheduler/README.md`.
+
 ## V6.7.0
 
 ### Added

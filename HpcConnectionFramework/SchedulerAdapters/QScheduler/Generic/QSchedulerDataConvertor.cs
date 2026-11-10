@@ -179,34 +179,40 @@ public class QSchedulerDataConvertor : SchedulerDataConvertor
             var endTime = ParseDateTime(json["end_time"] ?? json["finished_at"] ?? json["finished"] ?? json["endTime"]);
             var startTime = ParseDateTime(json["start_time"] ?? json["started_at"] ?? json["started"] ?? json["startTime"]);
 
-            var execTimeMsToken = json["exectime_ms"] ?? json["exec_time_ms"] ?? json["exectimeMs"];
-            if (execTimeMsToken != null && execTimeMsToken.Type != JTokenType.Null && endTime != null)
+            // QScheduler reports the backend execution time as exectime_ms. It is present only once the task has
+            // ended (finished, failed or cancelled); a task that never ran on the backend has none.
+            double? execTimeMs = null;
+            var execTimeMsToken = json["exectime_ms"] ?? json["exec_time_ms"] ?? json["exectimeMs"] ?? json["billable_time_ms"];
+            if (execTimeMsToken != null && execTimeMsToken.Type != JTokenType.Null &&
+                double.TryParse(execTimeMsToken.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var ms))
             {
-                if (double.TryParse(execTimeMsToken.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var ms))
-                {
-                    startTime = endTime.Value.AddMilliseconds(-ms);
-                }
+                execTimeMs = ms;
             }
 
-            double? allocatedTime = null;
-            var allocatedTimeToken = json["allocated_time"] ?? json["allocatedTime"] ?? json["qpu_seconds"] ?? json["billable_time_ms"];
-            if (allocatedTimeToken != null && allocatedTimeToken.Type != JTokenType.Null)
+            // started_at is sent by QScheduler; derive it from the execution time only when it is missing.
+            if (startTime == null && execTimeMs.HasValue && endTime != null)
             {
-                try
-                {
-                    allocatedTime = allocatedTimeToken.Value<double>();
-                }
-                catch
-                {
-                    var strVal = allocatedTimeToken.ToString().Replace(',', '.');
-                    if (double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var atVal))
-                    {
-                        allocatedTime = atVal;
-                    }
-                }
+                startTime = endTime.Value.AddMilliseconds(-execTimeMs.Value);
+            }
+
+            // AllocatedTime is in seconds, as for the other schedulers. exectime_ms is what QScheduler sends;
+            // the other names are kept as a fallback for compatibility.
+            double? allocatedTime = execTimeMs.HasValue ? Math.Round(execTimeMs.Value / 1000.0, 3) : null;
+            var allocatedTimeToken = json["allocated_time"] ?? json["allocatedTime"] ?? json["qpu_seconds"];
+            if (allocatedTime == null && allocatedTimeToken != null && allocatedTimeToken.Type != JTokenType.Null &&
+                double.TryParse(allocatedTimeToken.ToString().Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var allocatedSeconds))
+            {
+                allocatedTime = allocatedSeconds;
             }
 
             var allParamsStr = GetAllParametersString(json);
+
+            // Accounting formulas for QScheduler use exectime_ms (e.g. "exectime_ms/1000" for QPU seconds).
+            // Always provide it, so a formula evaluates to 0 instead of failing while the task has not ended yet.
+            if (!execTimeMs.HasValue)
+            {
+                allParamsStr = string.IsNullOrEmpty(allParamsStr) ? "exectime_ms=0" : $"{allParamsStr} exectime_ms=0";
+            }
 
             var taskInfo = new SubmittedTaskInfo
             {

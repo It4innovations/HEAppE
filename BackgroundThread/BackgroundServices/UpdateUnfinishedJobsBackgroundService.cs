@@ -64,6 +64,36 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
                 {
                     _logger.LogError(ex, "An error occured during execution of the UpdateUnfinishedJobs background service.");
                 }
+
+                try
+                {
+                    // Separate unit of work, so a failure here never affects job state updates.
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
+                    IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+
+                    await LogicFactory.GetLogicFactory()
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
+                        .SyncQSchedulerSessionsConsumptionAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occured while refreshing QScheduler session consumption.");
+                }
+
+                try
+                {
+                    // HEAppE is the source of truth for QScheduler project limits and active flags.
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork(_logger);
+                    IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+
+                    await LogicFactory.GetLogicFactory()
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService, _logger)
+                        .SyncQSchedulerProjectsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occured while synchronizing QScheduler projects.");
+                }
             }
 
             try

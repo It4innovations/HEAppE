@@ -693,6 +693,61 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
+    public async Task<string> GetSessionInfoAsync(Cluster cluster, long sessionId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.GetSessionInfoAsync(schedulerConnection.Connection, cluster, sessionId);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+
+        throw new NotSupportedException("GetSessionInfo is only supported by QScheduler.");
+    }
+
+    public async Task<IList<QScheduler.DTO.QSchedulerProjectInfo>> ListQSchedulerProjectsAsync(Cluster cluster, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                return await qScheduler.ListProjectsAsync(schedulerConnection.Connection, cluster);
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+
+        throw new NotSupportedException("ListQSchedulerProjects is only supported by QScheduler.");
+    }
+
+    public async Task UpdateQSchedulerProjectAsync(Cluster cluster, string qSchedulerProjectName, long? limitMs, bool? active, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
+    {
+        if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)
+        {
+            var schedulerConnection = await GetConnectionForUserAsync(credentials, cluster, sshCaToken, lexisToken);
+            try
+            {
+                await qScheduler.UpdateProjectAsync(schedulerConnection.Connection, cluster, qSchedulerProjectName, limitMs, active);
+                return;
+            }
+            finally
+            {
+                await ReturnConnectionAsync(schedulerConnection);
+            }
+        }
+
+        throw new NotSupportedException("UpdateQSchedulerProject is only supported by QScheduler.");
+    }
+
     public async Task<System.IO.Stream> GetQuantumTaskResultAsync(Cluster cluster, string scheduledJobId, ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         if (_adapter is QScheduler.Generic.QSchedulerSchedulerAdapter qScheduler)

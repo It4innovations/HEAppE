@@ -30,6 +30,28 @@ public class QSchedulerSession : IdentifiableDbEntity
 
     public DateTime? ClosedAt { get; set; }
 
+    /// <summary>
+    ///     When QScheduler opened the session (reported by QScheduler).
+    /// </summary>
+    public DateTime? OpenedAt { get; set; }
+
+    /// <summary>
+    ///     Time the session has been open, in milliseconds, as reported by QScheduler (session exectime_ms).
+    ///     This is the time charged to the project: the whole open time, not the run time of the tasks in the session.
+    /// </summary>
+    public long? ConsumedMs { get; set; }
+
+    /// <summary>
+    ///     When ConsumedMs was last refreshed from QScheduler.
+    /// </summary>
+    public DateTime? ConsumptionUpdatedAt { get; set; }
+
+    /// <summary>
+    ///     True once the session is closed and its final consumption has been read from QScheduler.
+    /// </summary>
+    [Required]
+    public bool IsConsumptionFinal { get; set; } = false;
+
     [Required]
     [ForeignKey("AdaptorUser")]
     public long UserId { get; set; }

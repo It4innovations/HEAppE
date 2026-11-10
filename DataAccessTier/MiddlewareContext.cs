@@ -447,6 +447,10 @@ public class MiddlewareContext : DbContext
         modelBuilder.Entity<QSchedulerSession>()
             .HasIndex(s => s.SessionId);
 
+        // Session IDs are unique only within one QScheduler instance (cluster).
+        modelBuilder.Entity<QSchedulerSession>()
+            .HasIndex(s => new { s.ClusterId, s.SessionId });
+
         modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
             .HasIndex("ClusterAuthenticationCredentialsId");
 

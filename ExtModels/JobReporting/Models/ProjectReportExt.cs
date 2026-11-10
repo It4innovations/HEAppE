@@ -40,6 +40,20 @@ public class ProjectReportExt
     public double? TotalUsage { get; set; }
 
     /// <summary>
+    /// Usage of QScheduler sessions (included in the total usage)
+    /// </summary>
+    [DataMember]
+    [Description("Usage of QScheduler sessions (included in the total usage)")]
+    public double QSchedulerSessionsUsage { get; set; }
+
+    /// <summary>
+    /// QScheduler sessions in the report period
+    /// </summary>
+    [DataMember]
+    [Description("QScheduler sessions in the report period")]
+    public List<QSchedulerSessionReportExt> QSchedulerSessions { get; set; } = new();
+
+    /// <summary>
     /// Usage type
     /// </summary>
     [DataMember]

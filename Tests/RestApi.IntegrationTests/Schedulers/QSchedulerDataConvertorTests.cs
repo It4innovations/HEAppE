@@ -60,7 +60,8 @@ public class QSchedulerDataConvertorTests
         var results = _convertor.ReadParametersFromResponse(null, response).ToList();
 
         results.Should().ContainSingle();
-        results[0].AllocatedTime.Should().Be(2500);
+        // billable_time_ms is milliseconds; AllocatedTime is seconds.
+        results[0].AllocatedTime.Should().Be(2.5);
     }
 
     [Fact]

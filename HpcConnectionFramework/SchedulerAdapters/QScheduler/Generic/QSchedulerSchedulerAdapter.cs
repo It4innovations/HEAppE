@@ -13,6 +13,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.QScheduler.DTO;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
@@ -406,15 +407,187 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     #region ISchedulerAdapter Members
 
+    /// <summary>
+    ///     Separator between the instance prefix and the HEAppE accounting string in QScheduler project names.
+    /// </summary>
+    internal const char ProjectNameSeparator = '.';
+
+    /// <summary>
+    ///     QScheduler limits project names to 250 characters.
+    /// </summary>
+    internal const int MaxQSchedulerProjectNameLength = 250;
+
+    /// <summary>
+    ///     Resolves the prefix that makes this HEAppE instance's projects unique in a QScheduler shared with other instances.
+    ///     Order: cluster CustomConfiguration["QSchedulerProjectPrefix"], then ["QSchedulerNotifier"], then InstanceIdentifierPath.
+    ///     The prefix must stay stable: changing it points HEAppE to different QScheduler projects with zero consumption.
+    /// </summary>
+    internal static string ResolveProjectPrefix(Cluster cluster)
+    {
+        string prefix = null;
+        if (cluster?.CustomConfiguration != null)
+        {
+            if (cluster.CustomConfiguration.TryGetValue("QSchedulerProjectPrefix", out var configuredPrefix) && !string.IsNullOrWhiteSpace(configuredPrefix))
+            {
+                prefix = configuredPrefix;
+            }
+            else if (cluster.CustomConfiguration.TryGetValue("QSchedulerNotifier", out var notifier) && !string.IsNullOrWhiteSpace(notifier))
+            {
+                prefix = notifier;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(prefix))
+        {
+            prefix = ClusterRuntimeConfiguration.For(cluster?.CustomConfiguration).InstanceIdentifierPath;
+        }
+
+        prefix = prefix?.Trim();
+        if (string.IsNullOrEmpty(prefix))
+        {
+            throw new ArgumentException("QScheduler project prefix is not configured. Set cluster CustomConfiguration 'QSchedulerProjectPrefix' (or 'QSchedulerNotifier').");
+        }
+
+        if (prefix.Contains(ProjectNameSeparator))
+        {
+            throw new ArgumentException($"QScheduler project prefix '{prefix}' must not contain '{ProjectNameSeparator}'. Set cluster CustomConfiguration 'QSchedulerProjectPrefix' to a value without it.");
+        }
+
+        return prefix;
+    }
+
+    /// <summary>
+    ///     Builds the QScheduler project name for a HEAppE project: "&lt;prefix&gt;.&lt;AccountingString&gt;".
+    ///     The prefix exists only in QScheduler; HEAppE keeps the plain accounting string everywhere else.
+    /// </summary>
+    internal static string BuildQSchedulerProjectName(Cluster cluster, Project project)
+    {
+        if (string.IsNullOrWhiteSpace(project?.AccountingString))
+        {
+            throw new ArgumentException($"Project '{project?.Name}' has no accounting string, which is required for QScheduler.");
+        }
+
+        var name = $"{ResolveProjectPrefix(cluster)}{ProjectNameSeparator}{project.AccountingString.Trim()}";
+        if (name.Length > MaxQSchedulerProjectNameLength)
+        {
+            throw new ArgumentException($"QScheduler project name '{name}' is longer than {MaxQSchedulerProjectNameLength} characters. Use a shorter 'QSchedulerProjectPrefix'.");
+        }
+
+        return name;
+    }
+
+    /// <summary>
+    ///     The QScheduler limit for a HEAppE project: sum of its allocations (QPU seconds) in milliseconds.
+    /// </summary>
+    internal static long ComputeProjectLimitMs(Project project)
+    {
+        var totalAllocation = project?.ProjectClusterNodeTypeAggregations?
+            .Where(a => a.ClusterNodeTypeAggregation != null)
+            .Sum(a => a.AllocationAmount) ?? 0;
+        return totalAllocation * 1000;
+    }
+
+    /// <summary>
+    ///     A project may be used in QScheduler only between its start and end date, and while it is not deleted.
+    /// </summary>
+    internal static bool IsProjectActiveAt(Project project, DateTime now)
+    {
+        return project != null && !project.IsDeleted && project.StartDate <= now && project.EndDate >= now;
+    }
+
+    /// <summary>
+    ///     Lists all QScheduler projects (GET /projects). QScheduler has no per-client filtering;
+    ///     callers keep only names with their own prefix.
+    /// </summary>
+    public async Task<IList<QSchedulerProjectInfo>> ListProjectsAsync(object connectorClient, Cluster cluster)
+    {
+        var json = await ExecuteRequestAsync(connectorClient, cluster, "GET", "projects");
+        return QSchedulerProjectInfo.ParseList(json);
+    }
+
+    /// <summary>
+    ///     Updates a QScheduler project's limit and/or active flag (PATCH /projects/{name}); null leaves a value unchanged.
+    ///     Keeps the submit-time limit cache in line, so the next submit does not repeat the update.
+    /// </summary>
+    public async Task UpdateProjectAsync(object connectorClient, Cluster cluster, string qSchedulerProjectName, long? limitMs, bool? active)
+    {
+        var fields = new List<string>();
+        if (limitMs.HasValue) fields.Add($"\"limit_ms\":{limitMs.Value}");
+        if (active.HasValue) fields.Add($"\"active\":{(active.Value ? "true" : "false")}");
+        if (fields.Count == 0) return;
+
+        var payload = "{" + string.Join(",", fields) + "}";
+        await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{Uri.EscapeDataString(qSchedulerProjectName)}", Encoding.UTF8.GetBytes(payload));
+
+        var cacheKey = $"{cluster.Id}:{qSchedulerProjectName}";
+        if (active == false)
+        {
+            // The next submit (after the project becomes valid again) must re-send active=true.
+            _projectLimitCache.TryRemove(cacheKey, out _);
+        }
+        else if (limitMs.HasValue)
+        {
+            _projectLimitCache[cacheKey] = limitMs.Value;
+        }
+    }
+
+    /// <summary>
+    ///     Forgets the submit-time limit cache for a project, so the next submit sends the limit again.
+    /// </summary>
+    internal static void ForgetCachedProjectLimit(Cluster cluster, string qSchedulerProjectName)
+    {
+        _projectLimitCache.TryRemove($"{cluster.Id}:{qSchedulerProjectName}", out _);
+    }
+
+    /// <summary>
+    ///     Reads a session from QScheduler (GET /sessions/{id}) and returns its JSON.
+    /// </summary>
+    public async Task<string> GetSessionInfoAsync(object connectorClient, Cluster cluster, long sessionId)
+    {
+        return await ExecuteRequestAsync(connectorClient, cluster, "GET", $"sessions/{sessionId}");
+    }
+
+    /// <summary>
+    ///     Makes sure an existing session (passed by the user via HEAPPE_QSCHEDULER_SESSION_ID) belongs to this
+    ///     instance's project in QScheduler. Sessions of other HEAppE instances or of other projects are rejected.
+    ///     Returns the session state reported by QScheduler.
+    /// </summary>
+    private async Task<string> VerifySessionOwnershipAsync(object connectorClient, Cluster cluster, long sessionId, string expectedProjectName)
+    {
+        var sessionJson = await GetSessionInfoAsync(connectorClient, cluster, sessionId);
+        string sessionProject = null;
+        string sessionState = null;
+        try
+        {
+            using var doc = JsonDocument.Parse(sessionJson);
+            if (doc.RootElement.TryGetProperty("project", out var projectProp))
+            {
+                sessionProject = projectProp.GetString();
+            }
+            if (doc.RootElement.TryGetProperty("state", out var stateProp))
+            {
+                sessionState = stateProp.GetString()?.ToLowerInvariant();
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, $"Cannot parse QScheduler session {sessionId} response: '{sessionJson}'");
+        }
+
+        if (!string.Equals(sessionProject, expectedProjectName, StringComparison.Ordinal))
+        {
+            _logger.LogError($"QScheduler session {sessionId} belongs to project '{sessionProject}', expected '{expectedProjectName}'. Rejecting.");
+            throw new InvalidRequestException("QSchedulerSessionNotOwnedByInstance", sessionId);
+        }
+
+        return sessionState;
+    }
+
     private async Task EnsureProjectRegisteredAsync(object connectorClient, Cluster cluster, Project project)
     {
         if (project == null) return;
 
-        var projectName = project.AccountingString;
-        if (string.IsNullOrEmpty(projectName))
-        {
-            projectName = project.Name;
-        }
+        var projectName = BuildQSchedulerProjectName(cluster, project);
 
         if (project.UsageType != HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
         {
@@ -432,7 +605,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
         }
 
         var totalAllocation = aggregations.Sum(a => a.AllocationAmount);
-        var limitMs = totalAllocation * 1000;
+        var limitMs = ComputeProjectLimitMs(project);
 
         var cacheKey = $"{cluster.Id}:{projectName}";
         if (_projectLimitCache.TryGetValue(cacheKey, out var cachedLimitMs) && cachedLimitMs == limitMs)
@@ -452,7 +625,7 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             var patchPayload = $"{{\"limit_ms\":{limitMs},\"active\":true}}";
             try
             {
-                await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{projectName}", Encoding.UTF8.GetBytes(patchPayload));
+                await ExecuteRequestAsync(connectorClient, cluster, "PATCH", $"projects/{Uri.EscapeDataString(projectName)}", Encoding.UTF8.GetBytes(patchPayload));
                 _projectLimitCache[cacheKey] = limitMs;
             }
             catch (QSchedulerApiException ex) when (ex.StatusCode == HttpStatusCode.MethodNotAllowed || ex.StatusCode == HttpStatusCode.NotFound)
@@ -490,17 +663,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
     {
         _logger.LogInformation($"SubmitJobAsync started for QScheduler. Cluster ID: {jobSpecification.Cluster?.Id}");
         
-        var projectName = jobSpecification.Project?.AccountingString;
-        if (string.IsNullOrEmpty(projectName))
+        if (jobSpecification.Project == null)
         {
-            projectName = jobSpecification.Project?.Name;
+            throw new ArgumentException($"Job specification {jobSpecification.Id} has no project, which is required for QScheduler.");
         }
 
+        var projectName = BuildQSchedulerProjectName(jobSpecification.Cluster, jobSpecification.Project);
+
         // 1. Dynamic Project Registration
-        if (jobSpecification.Project != null)
-        {
-            await EnsureProjectRegisteredAsync(connectorClient, jobSpecification.Cluster, jobSpecification.Project);
-        }
+        await EnsureProjectRegisteredAsync(connectorClient, jobSpecification.Cluster, jobSpecification.Project);
 
         // 2. Task Submission
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
@@ -586,8 +757,15 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 bool isSessionOpen = false;
                 if (existingSessionId.HasValue)
                 {
-                    // Existing session provided by caller is already active; skip redundant HTTP GET round-trip
-                    isSessionOpen = true;
+                    // A session passed by the caller must belong to this instance's project in QScheduler.
+                    // This rejects sessions opened by other HEAppE instances (or other projects) even though
+                    // QScheduler itself would accept the task.
+                    var existingState = await VerifySessionOwnershipAsync(connectorClient, jobSpecification.Cluster, sessionId, projectName);
+                    isSessionOpen = existingState is "open" or "opened" or "running";
+                    if (existingState == "closed")
+                    {
+                        throw new InvalidRequestException("SessionAlreadyClosed");
+                    }
                 }
                 else
                 {
@@ -901,8 +1079,24 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     continue;
                 }
 
-                // Call active polling
+                // Call active polling. The result is a new object (like the other adapters return), so the caller
+                // can see what changed, merge it into the DB record and compute the task's accounting.
                 _logger.LogInformation($"Querying QScheduler task {taskId} status.");
+                var polledTask = new SubmittedTaskInfo
+                {
+                    Id = taskInfo.Id,
+                    Name = taskInfo.Name,
+                    ScheduledJobId = taskInfo.ScheduledJobId,
+                    Specification = taskInfo.Specification,
+                    State = taskInfo.State,
+                    ErrorMessage = taskInfo.ErrorMessage,
+                    Reason = taskInfo.Reason,
+                    StartTime = taskInfo.StartTime,
+                    EndTime = taskInfo.EndTime,
+                    AllocatedTime = taskInfo.AllocatedTime,
+                    AllParameters = taskInfo.AllParameters,
+                    TaskAllocationNodes = new List<SubmittedTaskAllocationNodeInfo>()
+                };
                 try
                 {
                     var taskResponse = await ExecuteRequestAsync(connectorClient, cluster, "GET", $"tasks/{taskId}");
@@ -910,21 +1104,32 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                     var parsed = _convertor.ReadParametersFromResponse(cluster, taskResponse).FirstOrDefault();
                     if (parsed != null)
                     {
-                        _logger.LogInformation($"Parsed task {taskId} state: {parsed.State}, ErrorMessage: '{parsed.ErrorMessage}'");
-                        taskInfo.State = parsed.State;
-                        taskInfo.ErrorMessage = parsed.ErrorMessage;
+                        _logger.LogInformation($"Parsed task {taskId} state: {parsed.State}, ErrorMessage: '{parsed.ErrorMessage}', exec time: {parsed.AllocatedTime}s");
+                        polledTask.State = parsed.State;
+                        polledTask.ErrorMessage = parsed.ErrorMessage;
+                        polledTask.StartTime = parsed.StartTime ?? polledTask.StartTime;
+                        polledTask.EndTime = parsed.EndTime ?? polledTask.EndTime;
+                        polledTask.AllocatedTime = parsed.AllocatedTime ?? polledTask.AllocatedTime;
+                        polledTask.AllParameters = parsed.AllParameters ?? polledTask.AllParameters;
                     }
                     else
                     {
                         _logger.LogWarning($"QScheduler converter returned empty results for task {taskId} response.");
                     }
                 }
+                catch (Exception ex) when (taskInfo.ForceStatusQuery)
+                {
+                    // A forced query (reconciliation of a task whose callback may be lost) must not fail the task
+                    // because of a transient error; the caller decides what to do.
+                    _logger.LogWarning(ex, $"Forced status query of QScheduler task {taskId} failed.");
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Failed to query QScheduler task state for {taskId}");
-                    taskInfo.State = TaskState.Failed;
+                    polledTask.State = TaskState.Failed;
                 }
-                results.Add(taskInfo);
+                results.Add(polledTask);
             }
         }
         _logger.LogInformation("GetActualTasksInfoAsync finished for QScheduler.");
@@ -1162,16 +1367,13 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
 
     public async Task<long> OpenSessionAsync(object connectorClient, Cluster cluster, string machineId, Project project, int walltimeLimitSecs)
     {
-        if (project != null)
+        if (project == null)
         {
-            await EnsureProjectRegisteredAsync(connectorClient, cluster, project);
+            throw new ArgumentException("A project is required to open a QScheduler session.");
         }
 
-        var projectName = project?.AccountingString;
-        if (string.IsNullOrEmpty(projectName))
-        {
-            projectName = project?.Name;
-        }
+        var projectName = BuildQSchedulerProjectName(cluster, project);
+        await EnsureProjectRegisteredAsync(connectorClient, cluster, project);
 
         var clusterConfig = ClusterRuntimeConfiguration.For(cluster.CustomConfiguration);
         var sessionNotifier = ResolveNotifier(cluster, clusterConfig);

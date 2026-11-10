@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "HEAppE Web API",
-    "version": "v6.7.0"
+    "version": "v6.7.0a2"
   },
   "paths": {
     "/heappe/ClusterInformation/ListAvailableClusters": {
@@ -13381,7 +13381,7 @@
           "QScheduler"
         ],
         "summary": "Create a QScheduler job with simplified specification and optional multipart payload upload per task, and submit it immediately.",
-        "description": "Sample JSON structure to enter into the 'model' form field:\n\n    {\n      \"SessionCode\": \"your-heappe-session-code\",\n      \"JobSpecification\": {\n        \"Name\": \"QuantumJob\",\n        \"ClusterId\": 1,\n        \"ProjectId\": 1,\n        \"Tasks\": [\n          {\n            \"Name\": \"GroverTask\",\n            \"MachineId\": \"iqm_simulator\",\n            \"WalltimeLimitSecs\": 3600,\n            \"PayloadPartName\": \"circuit1\",\n            \"UseSessions\": false\n          }\n        ]\n      }\n    }\n\nNote: Attach your circuit payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').",
+        "description": "Sample JSON structure to enter into the 'model' form field:\n\n    {\n      \"SessionCode\": \"your-heappe-session-code\",\n      \"JobSpecification\": {\n        \"Name\": \"QuantumJob\",\n        \"ClusterId\": 1,\n        \"ProjectId\": 1,\n        \"Tasks\": [\n          {\n            \"Name\": \"GroverTask\",\n            \"MachineId\": \"iqm_simulator\",\n            \"WalltimeLimitSecs\": 3600,\n            \"PayloadPartName\": \"circuit1\",\n            \"UseSessions\": false,\n            \"Kind\": \"circuit\"\n          }\n        ]\n      }\n    }\n\nNote: Attach your payload file in the multipart/form-data request using the key name specified in 'PayloadPartName' (e.g. 'circuit1').\n\nKind is optional: \"circuit\" (default) for a JSON circuit, or \"pulse\" for a protobuf RunDefinition\n(e.g. compiled with IQM Pulla from GetMachineArtifact and GetMachineCalibration). Pulse tasks are only\naccepted by machines with pulse access; fetch their results with the \"sweep_results\" artifact.",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -20744,6 +20744,11 @@
             "format": "double",
             "nullable": true
           },
+          "QSchedulerSessionsUsage": {
+            "type": "number",
+            "description": "Usage of QScheduler sessions (included in the total usage)",
+            "format": "double"
+          },
           "Clusters": {
             "type": "array",
             "items": {
@@ -20853,6 +20858,19 @@
             "type": "number",
             "description": "Total usage",
             "format": "double",
+            "nullable": true
+          },
+          "QSchedulerSessionsUsage": {
+            "type": "number",
+            "description": "Usage of QScheduler sessions (included in the total usage)",
+            "format": "double"
+          },
+          "QSchedulerSessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QSchedulerSessionReportExt"
+            },
+            "description": "QScheduler sessions in the report period",
             "nullable": true
           },
           "UsageType": {
@@ -20980,10 +20998,75 @@
             "type": "string",
             "format": "date-time"
           },
+          "OpenedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "ClosedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "ConsumedMs": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ConsumedQpuSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "IsConsumptionFinal": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QSchedulerSessionReportExt": {
+        "type": "object",
+        "properties": {
+          "SessionId": {
+            "type": "integer",
+            "description": "QScheduler session id",
+            "format": "int64"
+          },
+          "ClusterId": {
+            "type": "integer",
+            "description": "Cluster id",
+            "format": "int64"
+          },
+          "UserId": {
+            "type": "integer",
+            "description": "Id of the user who owns the session",
+            "format": "int64"
+          },
+          "State": {
+            "type": "string",
+            "description": "Session state",
+            "nullable": true
+          },
+          "OpenedAt": {
+            "type": "string",
+            "description": "When the session opened",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ClosedAt": {
+            "type": "string",
+            "description": "When the session closed",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Usage": {
+            "type": "number",
+            "description": "Usage (session open time in QPU seconds)",
+            "format": "double"
+          },
+          "IsFinal": {
+            "type": "boolean",
+            "description": "True once the session is closed and its final usage is known"
           }
         },
         "additionalProperties": false

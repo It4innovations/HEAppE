@@ -51,6 +51,16 @@ public interface IJobManagementLogic
     Task<IEnumerable<SubmittedTaskInfo>> GetAllFinishedTaskInfosAsync(IEnumerable<long> taskIds);
     Task UpdateCurrentStateOfUnfinishedJobs();
 
+    /// <summary>
+    ///     Refreshes consumption of QScheduler sessions that are still open or not yet final.
+    /// </summary>
+    Task SyncQSchedulerSessionsConsumptionAsync();
+
+    /// <summary>
+    ///     Brings QScheduler project limits and active flags in line with HEAppE (source of truth).
+    /// </summary>
+    Task SyncQSchedulerProjectsAsync();
+
     Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
     Task<(SubmittedJobInfo JobInfo, ClusterProject ClusterProject)> PrepareCopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser);
 

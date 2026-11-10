@@ -1952,7 +1952,19 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("ConsumedMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ConsumptionUpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsConsumptionFinal")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("OpenedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<long>("ProjectId")
@@ -1972,6 +1984,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("SessionId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("ClusterId", "SessionId");
 
                     b.ToTable("QSchedulerSession");
                 });

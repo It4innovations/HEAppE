@@ -735,4 +735,13 @@
   <data name="ClusterStorageQuotaExceededException_NoSpaceLeftOnDevice" xml:space="preserve">
     <value>No space left on device on the HPC cluster: {0}</value>
   </data>
+  <data name="InvalidRequestException_QSchedulerSessionNotOwnedByInstance" xml:space="preserve">
+    <value>QScheduler session {0} is not managed by this HEAppE instance and cannot be used.</value>
+  </data>
+  <data name="InvalidRequestException_QSchedulerSessionProjectMismatch" xml:space="preserve">
+    <value>QScheduler session {0} belongs to a different project than the job.</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNotStarted" xml:space="preserve">
+    <value>Project {0} has not started yet. It can be used from {1}.</value>
+  </data>
 </root>

@@ -21,6 +21,14 @@ public static class ResourceAccountingUtils
             return;
         }
 
+        if (IsBilledThroughQSchedulerSession(dbTaskInfo))
+        {
+            // QScheduler charges a session's whole open time to the project, not the run time of its tasks.
+            // The session is billed on its own record; the task keeps its execution time only for information.
+            logger?.LogInformation($"SubmittedTaskInfo {dbTaskInfo.Id} ran in QScheduler session ({dbTaskInfo.ScheduledJobId}); it is billed through the session. Skipping task accounting.");
+            return;
+        }
+
         if (!submittedTaskInfo.StartTime.HasValue)
         {
             logger?.LogInformation($"SubmittedTaskInfo {dbTaskInfo.Id} has not started yet. Skipping resource accounting calculation.");
@@ -71,6 +79,14 @@ public static class ResourceAccountingUtils
         dbTaskInfo.ResourceConsumed.Value = resourceAccountingValue;
         dbTaskInfo.ResourceConsumed.LastUpdatedAt = DateTime.UtcNow;
         dbTaskInfo.ResourceConsumed.Accounting = accounting;
+    }
+
+    /// <summary>
+    ///     True for QScheduler tasks that run inside a session (ScheduledJobId "session:{id}" or "session:{id}:task:{id}").
+    /// </summary>
+    public static bool IsBilledThroughQSchedulerSession(SubmittedTaskInfo taskInfo)
+    {
+        return taskInfo?.ScheduledJobId?.StartsWith("session:", StringComparison.Ordinal) == true;
     }
 
     private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILogger logger)

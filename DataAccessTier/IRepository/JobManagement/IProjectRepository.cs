@@ -20,6 +20,11 @@ public interface IProjectRepository : IRepository<Project>
     Project GetByIdWithSubProjects(long id);
     Task<Project> GetByIdWithSubProjectsAsync(long id);
     Task<Project> GetByIdWithAggregationsAsync(long id);
+
+    /// <summary>
+    ///     Not deleted QPU-seconds projects assigned to the cluster, with their allocations (used to sync QScheduler).
+    /// </summary>
+    Task<IList<Project>> GetQpuProjectsForClusterWithAggregationsAsync(long clusterId);
     Project GetByIdWithAccountingStates(long id);
     Task<Project> GetByIdWithAccountingStatesAsync(long id);
 }

@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.QScheduler.DTO;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -29,87 +30,109 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
         _logic = logic;
     }
 
-    public async Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState)
+    public async Task<long> ProcessSessionCallbackAsync(string scheduledJobId, string token, string? qSchedulerState, string? rawResponse = null)
     {
-        if (long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
+        if (!long.TryParse(scheduledJobId.Substring("session:".Length), out var sessionId))
         {
-            var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
-            if (dbSession != null)
+            return 0L;
+        }
+
+        // Session IDs are unique only per QScheduler instance. If several clusters track the same ID,
+        // the callback token tells which cluster (QScheduler instance) sent it.
+        var candidateSessions = (await _unitOfWork.QSchedulerSessionRepository.GetAllBySessionIdAsync(sessionId)).ToList();
+        if (candidateSessions.Count == 0)
+        {
+            return 0L;
+        }
+
+        QSchedulerSession? dbSession = null;
+        foreach (var candidate in candidateSessions)
+        {
+            var candidateCluster = await _unitOfWork.ClusterRepository.GetByIdAsync(candidate.ClusterId);
+            if (candidateCluster != null && await IsValidClusterTokenAsync(candidateCluster, token))
             {
-                var targetCluster = await _unitOfWork.ClusterRepository.GetByIdAsync(dbSession.ClusterId);
-                if (targetCluster != null)
+                dbSession = candidate;
+                break;
+            }
+        }
+
+        if (dbSession == null)
+        {
+            throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
+        }
+
+        // Token is valid! Update the session state!
+        var oldState = dbSession.State;
+        var newState = oldState;
+        if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
+        {
+            newState = QSchedulerSessionState.Open;
+        }
+        else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
+        {
+            newState = QSchedulerSessionState.Closed;
+            dbSession.ClosedAt ??= DateTime.UtcNow;
+        }
+        else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
+        {
+            newState = QSchedulerSessionState.Waiting;
+        }
+
+        // The callback carries the session's consumption (exectime_ms) and timestamps.
+        var consumptionChanged = JobManagementLogic.ApplyQSchedulerSessionConsumption(dbSession, QSchedulerSessionInfo.Parse(rawResponse));
+        if (dbSession.State == QSchedulerSessionState.Closed)
+        {
+            // A closed session never reopens, whatever the event state says.
+            newState = QSchedulerSessionState.Closed;
+        }
+
+        if (oldState != newState || consumptionChanged)
+        {
+            dbSession.State = newState;
+            await _unitOfWork.SaveAsync();
+
+            if (oldState != newState)
+            {
+                var stateStr = newState == QSchedulerSessionState.Open ? "Open" : 
+                               newState == QSchedulerSessionState.Closed ? "Closed" : "Waiting";
+
+                await _logic.PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
                 {
-                    bool isAuthenticated = false;
-                    bool toggled = targetCluster.CustomConfigurationVaultToggles != null &&
-                                   targetCluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
-                                   toggledValue;
-                    bool storeInVault = toggled;
-
-                    string? expectedToken = null;
-                    if (storeInVault)
-                    {
-                        var vaultConnector = new VaultConnector(_logger);
-                        expectedToken = await vaultConnector.GetClusterSecretAsync(targetCluster.Id, "QSchedulerNotifyToken");
-                    }
-                    else
-                    {
-                        if (targetCluster.CustomConfiguration != null)
-                        {
-                            targetCluster.CustomConfiguration.TryGetValue("QSchedulerNotifyToken", out expectedToken);
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(expectedToken))
-                    {
-                        expectedToken = await _logic.GetMasterCallbackTokenAsync(targetCluster);
-                    }
-
-                    if (!string.IsNullOrEmpty(expectedToken) && expectedToken == token)
-                    {
-                        isAuthenticated = true;
-                    }
-
-                    if (!isAuthenticated)
-                    {
-                        throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
-                    }
-
-                    // Token is valid! Update the session state!
-                    var oldState = dbSession.State;
-                    var newState = oldState;
-                    if (string.Equals(qSchedulerState, "open", StringComparison.OrdinalIgnoreCase) || 
-                        string.Equals(qSchedulerState, "opened", StringComparison.OrdinalIgnoreCase))
-                    {
-                        newState = QSchedulerSessionState.Open;
-                    }
-                    else if (string.Equals(qSchedulerState, "closed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        newState = QSchedulerSessionState.Closed;
-                        dbSession.ClosedAt = DateTime.UtcNow;
-                    }
-                    else if (string.Equals(qSchedulerState, "waiting", StringComparison.OrdinalIgnoreCase))
-                    {
-                        newState = QSchedulerSessionState.Waiting;
-                    }
-
-                    if (dbSession.State != newState)
-                    {
-                        dbSession.State = newState;
-                        await _unitOfWork.SaveAsync();
-
-                        var stateStr = newState == QSchedulerSessionState.Open ? "Open" : 
-                                       newState == QSchedulerSessionState.Closed ? "Closed" : "Waiting";
-
-                        await _logic.PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
-                        {
-                            sessionId = scheduledJobId,
-                            state = stateStr
-                        });
-                    }
-                }
+                    sessionId = scheduledJobId,
+                    state = stateStr
+                });
             }
         }
         return 0L;
+    }
+
+    /// <summary>
+    ///     Checks the callback token against the cluster's QScheduler notify token (or the master callback token).
+    /// </summary>
+    private async Task<bool> IsValidClusterTokenAsync(Cluster cluster, string token)
+    {
+        bool storeInVault = cluster.CustomConfigurationVaultToggles != null &&
+                            cluster.CustomConfigurationVaultToggles.TryGetValue("QSchedulerNotifyToken", out bool toggledValue) &&
+                            toggledValue;
+
+        string? expectedToken = null;
+        if (storeInVault)
+        {
+            var vaultConnector = new VaultConnector(_logger);
+            expectedToken = await vaultConnector.GetClusterSecretAsync(cluster.Id, "QSchedulerNotifyToken");
+        }
+        else
+        {
+            cluster.CustomConfiguration?.TryGetValue("QSchedulerNotifyToken", out expectedToken);
+        }
+
+        if (string.IsNullOrEmpty(expectedToken))
+        {
+            expectedToken = await _logic.GetMasterCallbackTokenAsync(cluster);
+        }
+
+        return !string.IsNullOrEmpty(expectedToken) && expectedToken == token;
     }
 
     public async Task<bool> AuthenticateTaskCallbackAsync(string token, SubmittedTaskInfo candidate, SubmittedJobInfo jobInfo, Cluster cluster)
@@ -203,11 +226,12 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 // Update session state in DB to Open
                 if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
                 {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, cluster.Id);
                     if (dbSession != null && dbSession.State != QSchedulerSessionState.Open)
                     {
                         dbSession.State = QSchedulerSessionState.Open;
                     }
+                    JobManagementLogic.ApplyQSchedulerSessionConsumption(dbSession, QSchedulerSessionInfo.Parse(rawResponse));
                 }
                 
                 JobManagementLogic.UpdateJobStateByTasks(jobInfo);
@@ -237,12 +261,14 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 // Update session state in DB to Closed
                 if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
                 {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, cluster.Id);
                     if (dbSession != null && dbSession.State != QSchedulerSessionState.Closed)
                     {
                         dbSession.State = QSchedulerSessionState.Closed;
                         dbSession.ClosedAt = DateTime.UtcNow;
                     }
+                    // The close event carries the final consumption; QScheduler's closed_at replaces ours if present.
+                    JobManagementLogic.ApplyQSchedulerSessionConsumption(dbSession, QSchedulerSessionInfo.Parse(rawResponse));
                 }
 
                 // Fail all candidate tasks that belong to this session but haven't finished yet
@@ -280,7 +306,7 @@ internal class QSchedulerCallbackHandler : ISchedulerCallbackHandler
                 // Update session state in DB to Waiting
                 if (long.TryParse(dbTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
                 {
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, cluster.Id);
                     if (dbSession != null && dbSession.State != QSchedulerSessionState.Waiting)
                     {
                         dbSession.State = QSchedulerSessionState.Waiting;

@@ -81,6 +81,7 @@ public class JobManagementService : IJobManagementService
         {
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
+            UserAndLimitationManagementService.CheckProjectHasStarted(unitOfWork, specification.ProjectId);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             SubProject subProject = null;
 
@@ -145,6 +146,7 @@ public class JobManagementService : IJobManagementService
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, job.Project.Id, _expirioService);
+            UserAndLimitationManagementService.CheckProjectHasStarted(unitOfWork, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             (jobInfo, isWaiting) = await jobLogic.PrepareJobForSubmitAsync(createdJobInfoId, loggedUser);
             if (isWaiting)
@@ -834,6 +836,7 @@ public class JobManagementService : IJobManagementService
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, projectId, _expirioService);
+            UserAndLimitationManagementService.CheckProjectHasStarted(unitOfWork, projectId);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             return await jobLogic.OpenQSchedulerSessionAsync(clusterId, projectId, machineId, walltimeLimitSecs, loggedUser);
         }
@@ -859,15 +862,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
 
             var session = await jobLogic.GetQSchedulerSessionInfoAsync(sessionId, loggedUser);
-            return new QSchedulerSessionInfoExt
-            {
-                SessionId = session.SessionId,
-                ClusterId = session.ClusterId,
-                ProjectId = session.ProjectId,
-                State = session.State.ToString(),
-                CreatedAt = session.CreatedAt,
-                ClosedAt = session.ClosedAt
-            };
+            return QSchedulerSessionInfoExt.FromDomain(session);
         }
     }
 
@@ -877,6 +872,7 @@ public class JobManagementService : IJobManagementService
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 _logger, AdaptorUserRoleType.Submitter, specification.ProjectId, _expirioService);
+            UserAndLimitationManagementService.CheckProjectHasStarted(unitOfWork, specification.ProjectId);
 
             // Auto-resolve NodeType for the specified cluster
             var nodeType = await unitOfWork.ClusterNodeTypeRepository.GetFirstByClusterIdAsync(specification.ClusterId)
@@ -975,15 +971,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService, _logger);
             var sessions = await jobLogic.ListQSchedulerSessionsAsync(loggedUser, parsedState, clusterId, projectId);
 
-            return sessions.Select(s => new QSchedulerSessionInfoExt
-            {
-                SessionId = s.SessionId,
-                ClusterId = s.ClusterId,
-                ProjectId = s.ProjectId,
-                State = s.State.ToString(),
-                CreatedAt = s.CreatedAt,
-                ClosedAt = s.ClosedAt
-            });
+            return sessions.Select(QSchedulerSessionInfoExt.FromDomain);
         }
     }
 

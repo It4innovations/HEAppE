@@ -27,6 +27,7 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.QScheduler.DTO;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
@@ -399,6 +400,8 @@ internal class JobManagementLogic : IJobManagementLogic
 
         var jobsToPoll = new List<SubmittedJobInfo>();
         bool dbStateUpdated = false;
+        var changedCallbackJobs = new List<(SubmittedJobInfo Job, Dictionary<long, TaskState> PreviousTaskStates, JobState PreviousJobState)>();
+        ForgetReconciledTasksNoLongerUnfinished(allUnfinishedJobs);
 
         foreach (var job in allUnfinishedJobs)
         {
@@ -407,51 +410,43 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 if (job.SubmitTime.HasValue)
                 {
-                     var elapsedSeconds = DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds;
-                     bool isNeedUpdateJobState = false;
-                     foreach (var task in job.Tasks.Where(t => t.State is > TaskState.Configuring and < TaskState.Finished))
-                     {
-                         var walltimeLimit = task.Specification?.WalltimeLimit ?? 0;
-                         if (walltimeLimit > 0)
-                         {
-                             bool isTimeout = false;
-                             string errorMsg = "";
+                    var previousTaskStates = job.Tasks.ToDictionary(t => t.Id, t => t.State);
+                    var previousJobState = job.State;
+                    bool isNeedUpdateJobState = false;
 
-                             if (task.State == TaskState.Running && task.StartTime.HasValue)
-                             {
-                                 var runningSeconds = DateTime.UtcNow.Subtract(task.StartTime.Value).TotalSeconds;
-                                 if (runningSeconds > walltimeLimit + 60) // walltime + 60s grace buffer
-                                 {
-                                     isTimeout = true;
-                                     errorMsg = $"Task timed out (exceeded walltime limit of {walltimeLimit}s on compute node by more than 60s).";
-                                 }
-                             }
-                             else if (elapsedSeconds > 3 * walltimeLimit)
-                             {
-                                 isTimeout = true;
-                                 errorMsg = $"Task timed out (exceeded 3x walltime limit of {walltimeLimit}s from submission time without starting/completing).";
-                             }
+                    // Callbacks can be lost (QScheduler gives up after ~16 retries). Ask QScheduler directly about
+                    // tasks that have not changed for a while, or that are about to be timed out, so a finished task
+                    // gets its real state and consumption instead of being failed by the timeout below.
+                    if (job.Specification.Cluster.SchedulerType == SchedulerType.QScheduler)
+                    {
+                        isNeedUpdateJobState |= await ReconcileStaleQSchedulerTasksAsync(job);
+                    }
 
-                             if (isTimeout)
-                             {
-                                 _logger.LogWarning($"HPC task {task.Id} (Job {job.Id}) timed out. {errorMsg}");
-                                 task.State = TaskState.Failed;
-                                 task.ErrorMessage = errorMsg;
-                                 task.EndTime = DateTime.UtcNow;
-                                 if (task.CallbackSecret != null)
-                                 {
-                                     task.CallbackSecret = null;
-                                 }
-                                 isNeedUpdateJobState = true;
-                                 dbStateUpdated = true;
-                             }
-                         }
-                     }
+                    foreach (var task in job.Tasks.Where(t => t.State is > TaskState.Configuring and < TaskState.Finished))
+                    {
+                        var errorMsg = GetCallbackTimeoutMessage(task, job, DateTime.UtcNow);
+                        if (errorMsg != null)
+                        {
+                            _logger.LogWarning($"HPC task {task.Id} (Job {job.Id}) timed out. {errorMsg}");
+                            task.State = TaskState.Failed;
+                            task.ErrorMessage = errorMsg;
+                            task.EndTime = DateTime.UtcNow;
+                            QSchedulerPayloadContext.RemoveByTaskId(task.Id);
+                            if (task.CallbackSecret != null)
+                            {
+                                task.CallbackSecret = null;
+                            }
+                            isNeedUpdateJobState = true;
+                        }
+                    }
+
                     if (isNeedUpdateJobState)
                     {
                         UpdateJobStateByTasks(job);
                         _unitOfWork.SubmittedJobInfoRepository.Update(job);
                         JobCacheManager.InvalidateJobCache(job.Id);
+                        dbStateUpdated = true;
+                        changedCallbackJobs.Add((job, previousTaskStates, previousJobState));
                     }
                 }
                 continue; // Skip active polling for this job
@@ -463,6 +458,12 @@ internal class JobManagementLogic : IJobManagementLogic
         if (dbStateUpdated)
         {
             await _unitOfWork.SaveAsync();
+
+            foreach (var (job, previousTaskStates, previousJobState) in changedCallbackJobs)
+            {
+                await PublishStateChangesAsync(job, previousTaskStates, previousJobState);
+                await CheckAndCloseQSchedulerSessionsAsync(job);
+            }
         }
 
         var serviceAccountsCache = new Dictionary<(long ClusterId, long ProjectId), ClusterAuthenticationCredentials>();
@@ -705,6 +706,9 @@ internal class JobManagementLogic : IJobManagementLogic
                                             submittedTask.ErrorMessage = updatedTask.ErrorMessage ?? submittedTask.ErrorMessage;
                                             submittedTask.StartTime = updatedTask.StartTime ?? submittedTask.StartTime;
                                             submittedTask.EndTime = updatedTask.EndTime ?? submittedTask.EndTime;
+                                            submittedTask.AllocatedTime = updatedTask.AllocatedTime ?? submittedTask.AllocatedTime;
+                                            submittedTask.AllParameters = updatedTask.AllParameters ?? submittedTask.AllParameters;
+                                            ComputeTaskAccountingFromStoredParameters(submittedTask);
                                             isNeedUpdateJobState = true;
                                             continue;
                                         }
@@ -757,7 +761,7 @@ internal class JobManagementLogic : IJobManagementLogic
                             {
                                 if (long.TryParse(submittedTask.ScheduledJobId.Substring("session:".Length), out var sessionId))
                                 {
-                                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, cluster.Id);
                                     if (dbSession != null && dbSession.State != QSchedulerSessionState.Open)
                                     {
                                         dbSession.State = QSchedulerSessionState.Open;
@@ -803,6 +807,173 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         await _unitOfWork.SaveAsync();
+    }
+
+    /// <summary>
+    ///     A QScheduler task with callbacks is checked directly once its state has not changed for this long.
+    ///     It is longer than QScheduler's notification retry window (~16 retries, about 6-7 minutes).
+    /// </summary>
+    internal static readonly TimeSpan QSchedulerReconcileAfter = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    ///     How often the same stale task is checked again (e.g. a task that legitimately runs for hours).
+    /// </summary>
+    internal static readonly TimeSpan QSchedulerReconcileEvery = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    ///     When each task was last checked directly in QScheduler (task id → time). In memory only;
+    ///     after a restart every stale task is simply checked once more.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, DateTime> _qSchedulerLastReconciledAt = new();
+
+    /// <summary>
+    ///     Returns the timeout message if a task on a cluster with callbacks has run (or waited) too long, else null.
+    /// </summary>
+    internal static string GetCallbackTimeoutMessage(SubmittedTaskInfo task, SubmittedJobInfo job, DateTime now)
+    {
+        var walltimeLimit = task.Specification?.WalltimeLimit ?? 0;
+        if (walltimeLimit <= 0 || !job.SubmitTime.HasValue)
+        {
+            return null;
+        }
+
+        if (task.State == TaskState.Running && task.StartTime.HasValue)
+        {
+            var runningSeconds = now.Subtract(task.StartTime.Value).TotalSeconds;
+            return runningSeconds > walltimeLimit + 60 // walltime + 60s grace buffer
+                ? $"Task timed out (exceeded walltime limit of {walltimeLimit}s on compute node by more than 60s)."
+                : null;
+        }
+
+        var elapsedSeconds = now.Subtract(job.SubmitTime.Value).TotalSeconds;
+        return elapsedSeconds > 3 * walltimeLimit
+            ? $"Task timed out (exceeded 3x walltime limit of {walltimeLimit}s from submission time without starting/completing)."
+            : null;
+    }
+
+    /// <summary>
+    ///     True when a QScheduler task should be checked directly: it is about to be timed out, or its state has not
+    ///     changed for <see cref="QSchedulerReconcileAfter"/> and it was not checked in the last <see cref="QSchedulerReconcileEvery"/>.
+    /// </summary>
+    internal static bool IsQSchedulerReconcileDue(SubmittedTaskInfo task, SubmittedJobInfo job, DateTime now, DateTime? lastReconciledAt)
+    {
+        if (GetCallbackTimeoutMessage(task, job, now) != null)
+        {
+            return true;
+        }
+
+        var lastStateChange = task.StateUpdatedAt ?? job.SubmitTime ?? now;
+        if (now - lastStateChange < QSchedulerReconcileAfter)
+        {
+            return false;
+        }
+
+        return !lastReconciledAt.HasValue || now - lastReconciledAt.Value >= QSchedulerReconcileEvery;
+    }
+
+    private static void ForgetReconciledTasksNoLongerUnfinished(IEnumerable<SubmittedJobInfo> unfinishedJobs)
+    {
+        if (_qSchedulerLastReconciledAt.IsEmpty)
+        {
+            return;
+        }
+
+        var unfinishedTaskIds = unfinishedJobs
+            .SelectMany(j => j.Tasks)
+            .Where(t => t.State < TaskState.Finished)
+            .Select(t => t.Id)
+            .ToHashSet();
+
+        foreach (var taskId in _qSchedulerLastReconciledAt.Keys)
+        {
+            if (!unfinishedTaskIds.Contains(taskId))
+            {
+                _qSchedulerLastReconciledAt.TryRemove(taskId, out _);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asks QScheduler directly (GET /tasks/{id}, or GET /sessions/{id} for tasks still waiting for their session)
+    ///     about tasks whose callback may have been lost, and merges the answer: state, times, execution time and
+    ///     consumption. A task QScheduler no longer knows is failed; a task that cannot be queried is left unchanged.
+    ///     Returns true when any task changed.
+    /// </summary>
+    private async Task<bool> ReconcileStaleQSchedulerTasksAsync(SubmittedJobInfo job)
+    {
+        var now = DateTime.UtcNow;
+        var dueTasks = job.Tasks
+            .Where(t => t.State is > TaskState.Configuring and < TaskState.Finished && !string.IsNullOrEmpty(t.ScheduledJobId))
+            .Where(t => IsQSchedulerReconcileDue(t, job, now,
+                _qSchedulerLastReconciledAt.TryGetValue(t.Id, out var last) ? last : null))
+            .ToList();
+
+        if (dueTasks.Count == 0)
+        {
+            return false;
+        }
+
+        var cluster = job.Specification.Cluster;
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, job.Project, _sshCertificateAuthorityService,
+                cluster.UpdateJobStateByServiceAccount == true ? null : job.Submitter?.Id, _expirioService, _expirioToken, _logger);
+
+        var changed = false;
+        foreach (var task in dueTasks)
+        {
+            _qSchedulerLastReconciledAt[task.Id] = now;
+            var stateBefore = task.State;
+            var scheduledJobIdBefore = task.ScheduledJobId;
+
+            _logger.LogInformation($"Reconciling QScheduler task {task.Id} ({task.ScheduledJobId}, job {job.Id}): no state change since {task.StateUpdatedAt ?? job.SubmitTime:O}. Querying QScheduler directly.");
+            task.ForceStatusQuery = true;
+            try
+            {
+                var result = (await scheduler.GetActualTasksInfoAsync(new List<SubmittedTaskInfo> { task }, job.Specification.ClusterUser,
+                        _httpContextKeys.Context.SshCaToken, _expirioToken))
+                    ?.FirstOrDefault(r => r.Id == task.Id);
+
+                // Tasks waiting for their session are updated in place; direct tasks come back as a new object to merge.
+                if (result != null && !ReferenceEquals(result, task))
+                {
+                    CombineSubmittedTaskInfoFromCluster(task, result);
+                }
+            }
+            catch (QSchedulerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning($"QScheduler does not know task {task.Id} ({task.ScheduledJobId}). Marking it as failed.");
+                task.State = TaskState.Failed;
+                task.ErrorMessage = "Task not found in QScheduler.";
+                task.EndTime = now;
+                QSchedulerPayloadContext.RemoveByTaskId(task.Id);
+            }
+            catch (Exception ex)
+            {
+                // QScheduler unreachable or another transient error: keep the task as it is and try again later.
+                _logger.LogWarning(ex, $"Could not reconcile QScheduler task {task.Id} ({task.ScheduledJobId}). Keeping its current state.");
+            }
+            finally
+            {
+                task.ForceStatusQuery = false;
+            }
+
+            if (task.State != stateBefore || task.ScheduledJobId != scheduledJobIdBefore)
+            {
+                _logger.LogInformation($"QScheduler task {task.Id} reconciled: {stateBefore} → {task.State} ({task.ScheduledJobId}).");
+                task.StateSource = JobStateSource.BackgroundPoll;
+                task.StateUpdatedAt = now;
+                changed = true;
+            }
+
+            if (task.State >= TaskState.Finished)
+            {
+                _qSchedulerLastReconciledAt.TryRemove(task.Id, out _);
+                // The circuit payload is no longer needed once the task has ended.
+                QSchedulerPayloadContext.RemoveByTaskId(task.Id);
+            }
+        }
+
+        return changed;
     }
 
     public async Task CopyJobDataToTempAsync(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
@@ -1229,6 +1400,18 @@ internal class JobManagementLogic : IJobManagementLogic
         return false;
     }
 
+    /// <summary>
+    ///     Computes the task's consumed resources from the data already stored on it (AllParameters, StartTime).
+    ///     Used where the task record was updated directly instead of being merged from a scheduler response.
+    /// </summary>
+    private void ComputeTaskAccountingFromStoredParameters(SubmittedTaskInfo dbTask)
+    {
+        // Parameters may have changed since they were last parsed; parse them again from AllParameters.
+        dbTask.ParsedParameters = null;
+        ResourceAccountingUtils.ComputeAccounting(dbTask, dbTask, _logger,
+            taskId => _unitOfWork.SubmittedTaskInfoRepository.GetResourceConsumed(taskId));
+    }
+
     protected SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
         SubmittedTaskInfo clusterTaskInfo)
     {
@@ -1390,8 +1573,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 var sessionIdVar = task.Specification.EnvironmentVariables.FirstOrDefault(e => e.Name == "HEAPPE_QSCHEDULER_SESSION_ID");
                 if (sessionIdVar != null && long.TryParse(sessionIdVar.Value, out var sid))
                 {
-                    await VerifySessionOwnerAsync(sid, loggedUser);
-                    var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sid);
+                    var session = await VerifySessionOwnerAsync(sid, loggedUser, jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId);
                     if (session != null && session.State == QSchedulerSessionState.Closed)
                     {
                         throw new InvalidRequestException("SessionAlreadyClosed");
@@ -1507,7 +1689,7 @@ internal class JobManagementLogic : IJobManagementLogic
                     var parts = task.ScheduledJobId.Split(':');
                     if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
                     {
-                        var existingSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                        var existingSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, jobInfo.Specification.ClusterId);
                         if (existingSession == null)
                         {
                             _logger.LogInformation($"CompleteJobSubmitAsync: Auto-registering QScheduler session {sessionId} into QSchedulerSession table for task {task.Id}.");
@@ -1794,20 +1976,20 @@ internal class JobManagementLogic : IJobManagementLogic
             if (scheduledJobId.StartsWith("session:"))
             {
                 var sessionHandler = _callbackHandlers[SchedulerType.QScheduler];
-                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState);
+                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState, rawResponse);
             }
 
             _logger.LogWarning($"ProcessTaskCallbackAsync: Session callback received for '{scheduledJobId}' but no matching task or session found in DB. Acknowledging with success.");
             return 0;
         }
 
-        QSchedulerSession? dbSession = null;
+        long? callbackSessionId = null;
         if (scheduledJobId.StartsWith("session:"))
         {
             var parts = scheduledJobId.Split(':');
             if (parts.Length >= 2 && long.TryParse(parts[1], out var sessionId))
             {
-                dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                callbackSessionId = sessionId;
             }
         }
 
@@ -1835,6 +2017,10 @@ internal class JobManagementLogic : IJobManagementLogic
                 continue;
             }
 
+            // Session IDs are unique only per QScheduler instance, so look the session up on the candidate's cluster.
+            var dbSession = callbackSessionId.HasValue
+                ? await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(callbackSessionId.Value, job.Specification.ClusterId)
+                : null;
             if (dbSession != null && (job.SubmitTime == null || job.SubmitTime < dbSession.CreatedAt - TimeSpan.FromSeconds(10)))
             {
                 _logger.LogInformation($"ProcessTaskCallbackAsync: Skipping candidate task {candidate.Id} because job {job.Id} submit time ({job.SubmitTime:O}) is older than session creation time ({dbSession.CreatedAt:O}).");
@@ -1863,7 +2049,7 @@ internal class JobManagementLogic : IJobManagementLogic
             if (scheduledJobId.StartsWith("session:"))
             {
                 var sessionHandler = _callbackHandlers[SchedulerType.QScheduler];
-                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState);
+                return await sessionHandler.ProcessSessionCallbackAsync(scheduledJobId, token, qSchedulerState, rawResponse);
             }
 
             throw new UnauthorizedAccessException("Authentication failed: Invalid callback token.");
@@ -1908,6 +2094,10 @@ internal class JobManagementLogic : IJobManagementLogic
                 dbTask.EndTime = result.EndTime ?? DateTime.UtcNow;
                 dbTask.StartTime = result.StartTime ?? dbTask.StartTime ?? jobInfo.SubmitTime ?? DateTime.UtcNow;
             }
+
+            // The callback carries the task's execution time; turn it into consumed resources now,
+            // so no manual ComputeAccounting run is needed.
+            ComputeTaskAccountingFromStoredParameters(dbTask);
 
             UpdateJobStateByTasks(jobInfo);
             jobInfo.StateSource = JobStateSource.Callback;
@@ -2006,7 +2196,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
                     _logger.LogInformation($"Successfully requested QScheduler session '{sessionId}' closure.");
 
-                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+                    var dbSession = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, jobInfo.Specification.ClusterId);
                     if (dbSession != null && dbSession.State != QSchedulerSessionState.Closed)
                     {
                         dbSession.State = QSchedulerSessionState.Closed;
@@ -2086,14 +2276,26 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
-    private async Task VerifySessionOwnerAsync(long sessionId, AdaptorUser loggedUser)
+    /// <summary>
+    ///     Checks that a QScheduler session can be used by the user: it must be tracked by this HEAppE instance,
+    ///     on the same cluster and project, owned by the user, who must be a Submitter in that project.
+    ///     Sessions opened by other HEAppE instances (or directly in QScheduler) are rejected, because their time
+    ///     is charged to a project this instance does not manage.
+    /// </summary>
+    private async Task<QSchedulerSession> VerifySessionOwnerAsync(long sessionId, AdaptorUser loggedUser, long clusterId, long projectId)
     {
-        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, clusterId);
 
         if (session == null)
         {
-            _logger.LogWarning($"Session {sessionId} has no tracking record in HEAppE database.");
-            return;
+            _logger.LogError($"User {loggedUser.Id} attempted to use QScheduler session {sessionId} on cluster {clusterId}, which is not managed by this HEAppE instance.");
+            throw new Exceptions.External.InvalidRequestException("QSchedulerSessionNotOwnedByInstance", sessionId);
+        }
+
+        if (session.ProjectId != projectId)
+        {
+            _logger.LogError($"User {loggedUser.Id} attempted to use QScheduler session {sessionId} of project {session.ProjectId} for project {projectId}.");
+            throw new Exceptions.External.InvalidRequestException("QSchedulerSessionProjectMismatch", sessionId);
         }
 
         if (session.UserId != loggedUser.Id)
@@ -2111,6 +2313,184 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             _logger.LogError($"User {loggedUser.Id} does not have Submitter role in project {session.ProjectId} of session {sessionId}.");
             throw new Exceptions.External.InvalidRequestException("InsufficientRoleForSessionProject");
+        }
+
+        return session;
+    }
+
+    /// <summary>
+    ///     Copies the consumption reported by QScheduler onto the tracked session.
+    ///     Returns true when anything changed.
+    /// </summary>
+    internal static bool ApplyQSchedulerSessionConsumption(QSchedulerSession dbSession, QSchedulerSessionInfo sessionInfo)
+    {
+        return sessionInfo?.ApplyTo(dbSession) ?? false;
+    }
+
+    /// <summary>
+    ///     Refreshes the consumption of all QScheduler sessions that are still open or whose final consumption
+    ///     has not been read yet. This covers callbacks that were lost or disabled.
+    /// </summary>
+    public async Task SyncQSchedulerSessionsConsumptionAsync()
+    {
+        var pendingSessions = (await _unitOfWork.QSchedulerSessionRepository.GetSessionsWithPendingConsumptionAsync()).ToList();
+        if (pendingSessions.Count == 0)
+        {
+            return;
+        }
+
+        _logger.LogInformation($"Refreshing consumption of {pendingSessions.Count} QScheduler session(s).");
+        var anyChanged = false;
+
+        foreach (var clusterSessions in pendingSessions.GroupBy(s => s.ClusterId))
+        {
+            var cluster = await _unitOfWork.ClusterRepository.GetByIdAsync(clusterSessions.Key);
+            if (cluster == null || cluster.SchedulerType != SchedulerType.QScheduler)
+            {
+                continue;
+            }
+
+            var isHttp = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https;
+
+            foreach (var dbSession in clusterSessions)
+            {
+                try
+                {
+                    var project = await _unitOfWork.ProjectRepository.GetByIdAsync(dbSession.ProjectId);
+                    if (project == null)
+                    {
+                        continue;
+                    }
+
+                    ClusterAuthenticationCredentials credentials = null;
+                    if (!isHttp)
+                    {
+                        credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                            cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: dbSession.UserId, _logger);
+                    }
+
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, project, _sshCertificateAuthorityService, dbSession.UserId, _expirioService, _expirioToken, _logger);
+
+                    var sessionJson = await scheduler.GetSessionInfoAsync(cluster, dbSession.SessionId, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
+                    var sessionInfo = QSchedulerSessionInfo.Parse(sessionJson);
+                    if (sessionInfo == null)
+                    {
+                        _logger.LogWarning($"Cannot read QScheduler session {dbSession.SessionId} on cluster {cluster.Id}. Response: '{sessionJson}'");
+                        continue;
+                    }
+
+                    var wasClosed = dbSession.State == QSchedulerSessionState.Closed;
+                    if (ApplyQSchedulerSessionConsumption(dbSession, sessionInfo))
+                    {
+                        anyChanged = true;
+                        _unitOfWork.QSchedulerSessionRepository.Update(dbSession);
+
+                        if (!wasClosed && dbSession.State == QSchedulerSessionState.Closed)
+                        {
+                            await PublishEventAsync(dbSession.UserId, "org.heappe.session.state-changed", "/heappe/sessions", new
+                            {
+                                sessionId = $"session:{dbSession.SessionId}",
+                                state = "Closed"
+                            });
+                        }
+                    }
+                }
+                catch (QSchedulerApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // QScheduler no longer knows the session; nothing more can be read.
+                    _logger.LogWarning($"QScheduler session {dbSession.SessionId} not found on cluster {cluster.Id}. Marking its consumption as final ({dbSession.ConsumedMs ?? 0} ms).");
+                    dbSession.ConsumedMs ??= 0;
+                    dbSession.IsConsumptionFinal = true;
+                    dbSession.ConsumptionUpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.QSchedulerSessionRepository.Update(dbSession);
+                    anyChanged = true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to refresh consumption of QScheduler session {dbSession.SessionId} on cluster {cluster.Id}.");
+                }
+            }
+        }
+
+        if (anyChanged)
+        {
+            await _unitOfWork.SaveAsync();
+        }
+    }
+
+    /// <summary>
+    ///     How often project limits and active flags are compared with QScheduler.
+    /// </summary>
+    internal static readonly TimeSpan QSchedulerProjectSyncInterval = TimeSpan.FromMinutes(5);
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, DateTime> _qSchedulerProjectsLastSyncedAt = new();
+
+    /// <summary>
+    ///     Keeps QScheduler projects in line with HEAppE, which is the source of truth: limit (sum of allocations)
+    ///     and active flag (start/end date, deleted). Also corrects values another client set directly in QScheduler.
+    ///     Runs at most every <see cref="QSchedulerProjectSyncInterval"/> per cluster.
+    /// </summary>
+    public async Task SyncQSchedulerProjectsAsync()
+    {
+        var now = DateTime.UtcNow;
+        var clusters = (await _unitOfWork.ClusterRepository.GetAllAsync())
+            .Where(c => c.SchedulerType == SchedulerType.QScheduler && !c.IsDeleted)
+            .ToList();
+
+        foreach (var cluster in clusters)
+        {
+            if (_qSchedulerProjectsLastSyncedAt.TryGetValue(cluster.Id, out var lastSync) && now - lastSync < QSchedulerProjectSyncInterval)
+            {
+                continue;
+            }
+            _qSchedulerProjectsLastSyncedAt[cluster.Id] = now;
+
+            try
+            {
+                var prefix = QSchedulerProjectSync.ResolvePrefix(cluster);
+                var heappeProjects = await _unitOfWork.ProjectRepository.GetQpuProjectsForClusterWithAggregationsAsync(cluster.Id);
+
+                // Any project of the cluster can provide the connection; QScheduler itself is shared.
+                var connectionProject = heappeProjects.FirstOrDefault();
+                if (connectionProject == null)
+                {
+                    _logger.LogDebug($"QScheduler project sync: cluster {cluster.Id} has no QPU projects. Skipping.");
+                    continue;
+                }
+
+                ClusterAuthenticationCredentials credentials = null;
+                var isHttp = cluster.ConnectionProtocol == ClusterConnectionProtocol.Http || cluster.ConnectionProtocol == ClusterConnectionProtocol.Https;
+                if (!isHttp)
+                {
+                    credentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        cluster.Id, connectionProject.Id, requireIsInitialized: true, adaptorUserId: null, _logger);
+                }
+
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, connectionProject, _sshCertificateAuthorityService, null, _expirioService, _expirioToken, _logger);
+
+                var qSchedulerProjects = await scheduler.ListQSchedulerProjectsAsync(cluster, credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
+                var updates = QSchedulerProjectSync.Plan(prefix, qSchedulerProjects, heappeProjects, now);
+
+                foreach (var update in updates)
+                {
+                    try
+                    {
+                        _logger.LogWarning($"QScheduler project '{update.QSchedulerProjectName}' on cluster {cluster.Id} differs from HEAppE ({update.Reason}). Updating QScheduler.");
+                        await scheduler.UpdateQSchedulerProjectAsync(cluster, update.QSchedulerProjectName, update.LimitMs, update.Active,
+                            credentials, _httpContextKeys.Context.SshCaToken, _expirioToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Failed to update QScheduler project '{update.QSchedulerProjectName}' on cluster {cluster.Id}.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"QScheduler project sync failed for cluster {cluster.Id}.");
+            }
         }
     }
 
@@ -2170,14 +2550,14 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new Exceptions.External.InvalidRequestException("ClusterIsNotQScheduler");
         }
 
-        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId);
+        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId, clusterId);
         if (session != null && session.State == QSchedulerSessionState.Closed)
         {
             _logger.LogInformation($"CloseQSchedulerSessionAsync: Session {sessionId} is already closed in database. Skipping close request.");
             return;
         }
 
-        await VerifySessionOwnerAsync(sessionId, loggedUser);
+        await VerifySessionOwnerAsync(sessionId, loggedUser, clusterId, projectId);
 
         ClusterAuthenticationCredentials credentials = null;
         if (cluster.ConnectionProtocol != ClusterConnectionProtocol.Http && cluster.ConnectionProtocol != ClusterConnectionProtocol.Https)
@@ -2200,7 +2580,8 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<QSchedulerSession> GetQSchedulerSessionInfoAsync(long sessionId, AdaptorUser loggedUser)
     {
-        var session = await _unitOfWork.QSchedulerSessionRepository.GetBySessionIdAsync(sessionId)
+        var sessionsWithId = (await _unitOfWork.QSchedulerSessionRepository.GetAllBySessionIdAsync(sessionId)).ToList();
+        var session = sessionsWithId.FirstOrDefault(s => s.UserId == loggedUser.Id) ?? sessionsWithId.FirstOrDefault()
             ?? throw new Exceptions.External.RequestedObjectDoesNotExistException("NotExistingQSchedulerSession", sessionId);
 
         if (session.UserId != loggedUser.Id)

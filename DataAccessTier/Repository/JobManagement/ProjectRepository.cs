@@ -204,5 +204,16 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
+    public async Task<IList<Project>> GetQpuProjectsForClusterWithAggregationsAsync(long clusterId)
+    {
+        return await _dbSet
+            .AsSplitQuery()
+            .Include(p => p.ProjectClusterNodeTypeAggregations)
+                .ThenInclude(pcna => pcna.ClusterNodeTypeAggregation)
+            .Where(p => p.UsageType == HEAppE.DomainObjects.JobReporting.Enums.UsageType.QPUSeconds)
+            .Where(p => p.ClusterProjects.Any(cp => cp.ClusterId == clusterId && !cp.IsDeleted))
+            .ToListAsync();
+    }
+
     #endregion
 }

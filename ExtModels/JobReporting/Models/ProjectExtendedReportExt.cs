@@ -47,6 +47,13 @@ public class ProjectExtendedReportExt
     public double? TotalUsage { get; set; }
 
     /// <summary>
+    /// Usage of QScheduler sessions (included in the total usage)
+    /// </summary>
+    [DataMember]
+    [Description("Usage of QScheduler sessions (included in the total usage)")]
+    public double QSchedulerSessionsUsage { get; set; }
+
+    /// <summary>
     /// List of cluster extended reports
     /// </summary>
     [DataMember]

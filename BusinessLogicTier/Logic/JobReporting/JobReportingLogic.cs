@@ -53,12 +53,16 @@ internal class JobReportingLogic : IJobReportingLogic
         
         var pIds = filteredGroups.Where(g => g.Project != null).Select(g => g.Project.Id).Distinct().ToList();
         var subProjects = enumerable.Where(p => p.SubProjects != null).SelectMany(p => p.SubProjects).Select(sp => sp.Identifier).ToArray();
-        var jobsLookup = GetJobsLookup(pIds, DateTime.UtcNow.AddDays(-90), DateTime.UtcNow, subProjects);
+        var listFrom = DateTime.UtcNow.AddDays(-90);
+        var listTo = DateTime.UtcNow;
+        var jobsLookup = GetJobsLookup(pIds, listFrom, listTo, subProjects);
+        var sessionsLookup = GetQSchedulerSessionsLookup(pIds, listFrom, listTo);
 
         return filteredGroups.Select(g => new UserGroupListReport
         {
             AdaptorUserGroup = g,
-            Project = BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()),
+            Project = BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>(),
+                g.Project != null ? sessionsLookup[g.Project.Id] : null),
             UsageType = g.Project?.UsageType ?? 0
         }).ToList();
     }
@@ -149,7 +153,13 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
 
         var jobsLookup = GetJobsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, subProjects, limit, offset, clusterId, userId);
 
-        return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>()))
+        // Sessions cannot be assigned to a sub-project, so they are left out of sub-project filtered reports.
+        var sessionsLookup = subProjects?.Any() == true
+            ? Enumerable.Empty<QSchedulerSession>().ToLookup(s => s.ProjectId)
+            : GetQSchedulerSessionsLookup(pIds, timeFrom ?? DateTime.MinValue, timeTo ?? DateTime.UtcNow, clusterId, userId);
+
+        return groups.Select(g => BuildProjectReport(g.Project, (g.Project != null && jobsLookup.Contains(g.Project.Id)) ? jobsLookup[g.Project.Id] : Enumerable.Empty<SubmittedJobInfo>(),
+                         g.Project != null ? sessionsLookup[g.Project.Id] : null))
                      .Where(r => r != null).ToList();
     }
 
@@ -211,7 +221,10 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         {
             Project = group.Project,
             SubProjects = subProjectsReports,
-            Clusters = BuildClusterAggregatedReports(group.Project, jobs)
+            Clusters = BuildClusterAggregatedReports(group.Project, jobs),
+            QSchedulerSessions = GetQSchedulerSessionsLookup(new[] { group.Project.Id }, startTime, endTime, clusterId, userId)[group.Project.Id]
+                .Select(session => new QSchedulerSessionReport { Session = session })
+                .ToList()
         };
     }
 
@@ -371,13 +384,26 @@ public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> rep
         }
     }
 
-    private ProjectReport BuildProjectReport(Project project, IEnumerable<SubmittedJobInfo> jobs)
+    /// <summary>
+    ///     QScheduler sessions per project for the report period. Sessions are billed for their whole open time,
+    ///     separately from jobs (tasks that ran in a session have no usage of their own).
+    /// </summary>
+    private ILookup<long, QSchedulerSession> GetQSchedulerSessionsLookup(IEnumerable<long> projectIds, DateTime start, DateTime end,
+        long? clusterId = null, long? userId = null)
+    {
+        return _unitOfWork.QSchedulerSessionRepository
+            .GetSessionsForReport(projectIds, start, end, clusterId, userId)
+            .ToLookup(s => s.ProjectId);
+    }
+
+    private ProjectReport BuildProjectReport(Project project, IEnumerable<SubmittedJobInfo> jobs, IEnumerable<QSchedulerSession> sessions = null)
     {
         if (project == null) return null;
         var jobsList = jobs?.ToList() ?? new List<SubmittedJobInfo>();
 
         return new ProjectReport {
             Project = project,
+            QSchedulerSessions = sessions?.Select(session => new QSchedulerSessionReport { Session = session }).ToList() ?? new List<QSchedulerSessionReport>(),
             Clusters = project.ClusterProjects?.Select(cp => cp.Cluster).Where(c => c != null).Distinct().Select(cluster => new ClusterReport {
                 Cluster = cluster,
                 ClusterNodeTypes = cluster.NodeTypes?.Select(nt => new ClusterNodeTypeReport {
