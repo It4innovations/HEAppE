@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -264,10 +264,31 @@ public class SlurmJobInfo : ISchedulerJobInfo
     /// <returns></returns>
     private static SlurmTaskState MappingTaskState(string state)
     {
-        state = state.Replace("_", string.Empty)
-            .Trim()
-            .ToLower();
-        return Enum.TryParse(state, true, out SlurmTaskState taskState)
+        if (string.IsNullOrWhiteSpace(state))
+        {
+            return SlurmTaskState.Failed;
+        }
+
+        state = state.Trim();
+
+        if (state.StartsWith("CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+            state.StartsWith("CANCELED", StringComparison.OrdinalIgnoreCase))
+        {
+            return SlurmTaskState.Canceled;
+        }
+
+        if (state.StartsWith("BOOT_FAIL", StringComparison.OrdinalIgnoreCase))
+        {
+            return SlurmTaskState.BootFailed;
+        }
+
+        if (state.StartsWith("REVOKED", StringComparison.OrdinalIgnoreCase))
+        {
+            return SlurmTaskState.Revoked;
+        }
+
+        var normalizedState = state.Replace("_", string.Empty).ToLower();
+        return Enum.TryParse(normalizedState, true, out SlurmTaskState taskState)
             ? taskState
             : SlurmTaskState.Failed;
     }
