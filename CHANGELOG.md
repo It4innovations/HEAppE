@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.0
+
+### Added
+- **OpenID Claims User Role Source Provider (`OpenIdClaimsUserRoleSourceProvider`):** Introduced pluggable user role source architecture (`IUserRoleSourceProvider`, `UserRoleSourceProviderResolver`) supporting `OpenIdClaims`, `Database`, and `UserOrg`. Enables dynamic extraction of user project memberships and roles directly from JWT token claims (e.g. `groups`, `preferred_username`, `email`), automatic user provisioning (`AutoCreateUser`), configurable default roles, and Slurm Trust mode (`AssignToAllActiveProjects`).
+- **Terrabyte & Flexible Group Mapping Notation:** Added native support for Terrabyte/HPDA group conventions (`/hpda/heappe-<project>-<role>`), standard project paths (`/projects/<project>/<role>`), custom regex patterns with named groups, and simplified notation patterns (`{root}/{project}-{role}`).
+- **Personal 1:1 Cluster Credentials Management:** Added `POST /heappe/Credentials/GetOrCreatePersonalCredential` endpoint allowing authenticated users to retrieve or generate dedicated ED25519 SSH keypairs per cluster, with automatic and secure storage in HashiCorp Vault.
+- **Database Role Management Mode (`DatabaseUserRoleSourceProvider`):** Added mode where user identity is authenticated via OpenID Connect token introspection, while project authorizations and roles remain managed locally in the HEAppE database.
+- **OIDC Integration Testing Tool:** Added `scripts/test-oidc.sh` CLI script for end-to-end validation of Keycloak token acquisition, JWT claims inspection, user info retrieval, and credential creation.
+
 ## V6.6.4
 
 ### Security
