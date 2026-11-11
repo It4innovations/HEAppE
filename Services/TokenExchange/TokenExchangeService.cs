@@ -57,8 +57,7 @@ public class TokenExchangeService : ITokenExchangeService
         string? cacheKey = null;
         if (target.EnableCaching && _memoryCache != null)
         {
-            string tokenHash = !string.IsNullOrEmpty(subjectToken) ? ComputeSha256(subjectToken) : "no_token";
-            cacheKey = $"token_exchange:{target.Name}:{tokenHash}";
+            cacheKey = BuildCacheKey(target, subjectToken);
 
             if (_memoryCache.TryGetValue(cacheKey, out TokenExchangeResult? cachedResult) && cachedResult != null)
             {
@@ -277,11 +276,33 @@ public class TokenExchangeService : ITokenExchangeService
     {
         if (_memoryCache != null)
         {
+            var userId = GetUserId(subjectToken);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                _memoryCache.Remove($"token_exchange:{targetName}:user:{userId}");
+            }
+
             string tokenHash = !string.IsNullOrEmpty(subjectToken) ? ComputeSha256(subjectToken) : "no_token";
-            string cacheKey = $"token_exchange:{targetName}:{tokenHash}";
-            _memoryCache.Remove(cacheKey);
+            _memoryCache.Remove($"token_exchange:{targetName}:token:{tokenHash}");
+            _memoryCache.Remove($"token_exchange:{targetName}:{tokenHash}");
+
             _logger.LogDebug("[TokenExchange] Evicted cache for target '{TargetName}'.", targetName);
         }
+    }
+
+    private string BuildCacheKey(TokenExchangeTargetConfiguration target, string subjectToken)
+    {
+        if (target.CacheByUser)
+        {
+            var userId = GetUserId(subjectToken);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                return $"token_exchange:{target.Name}:user:{userId}";
+            }
+        }
+
+        string tokenHash = !string.IsNullOrEmpty(subjectToken) ? ComputeSha256(subjectToken) : "no_token";
+        return $"token_exchange:{target.Name}:token:{tokenHash}";
     }
 
     private TimeSpan CalculateCacheTtl(
@@ -294,7 +315,6 @@ public class TokenExchangeService : ITokenExchangeService
             return TimeSpan.FromSeconds(target.CacheDurationSeconds.Value);
         }
 
-        DateTime? subjectExp = GetTokenExpiration(subjectToken);
         DateTime? exchangedExp = null;
         if (result.ExpiresIn > 0)
         {
@@ -305,18 +325,26 @@ public class TokenExchangeService : ITokenExchangeService
             exchangedExp = GetTokenExpiration(result.AccessToken);
         }
 
+        DateTime? subjectExp = GetTokenExpiration(subjectToken);
+
         DateTime expirationTime;
-        if (subjectExp.HasValue && exchangedExp.HasValue)
+        if (target.CacheByUser && exchangedExp.HasValue)
+        {
+            // When caching per user identity, the exchanged token is valid until the exchanged token itself expires.
+            // Any incoming request is already validated by the authentication middleware before reaching token exchange.
+            expirationTime = exchangedExp.Value;
+        }
+        else if (subjectExp.HasValue && exchangedExp.HasValue)
         {
             expirationTime = subjectExp.Value < exchangedExp.Value ? subjectExp.Value : exchangedExp.Value;
-        }
-        else if (subjectExp.HasValue)
-        {
-            expirationTime = subjectExp.Value;
         }
         else if (exchangedExp.HasValue)
         {
             expirationTime = exchangedExp.Value;
+        }
+        else if (subjectExp.HasValue)
+        {
+            expirationTime = subjectExp.Value;
         }
         else
         {
@@ -332,15 +360,43 @@ public class TokenExchangeService : ITokenExchangeService
         return Convert.ToHexString(bytes);
     }
 
+    private static string? GetUserId(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var cleanToken = token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? token.Substring(7).Trim()
+                : token.Trim();
+
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(cleanToken))
+            {
+                var jwt = handler.ReadJwtToken(cleanToken);
+                var sub = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                if (!string.IsNullOrEmpty(sub)) return sub;
+            }
+        }
+        catch
+        {
+            // Ignore parsing exceptions for opaque or non-JWT tokens
+        }
+        return null;
+    }
+
     private static DateTime? GetTokenExpiration(string? token)
     {
         if (string.IsNullOrWhiteSpace(token)) return null;
         try
         {
+            var cleanToken = token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? token.Substring(7).Trim()
+                : token.Trim();
+
             var handler = new JwtSecurityTokenHandler();
-            if (handler.CanReadToken(token))
+            if (handler.CanReadToken(cleanToken))
             {
-                var jwt = handler.ReadJwtToken(token);
+                var jwt = handler.ReadJwtToken(cleanToken);
                 if (jwt.ValidTo != DateTime.MinValue && jwt.ValidTo != DateTime.MaxValue)
                 {
                     return jwt.ValidTo;

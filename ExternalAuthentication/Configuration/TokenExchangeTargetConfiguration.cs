@@ -191,4 +191,11 @@ public class TokenExchangeTargetConfiguration
     /// Optional fixed cache duration in seconds. If not set, TTL is calculated adaptively from token expiration.
     /// </summary>
     public int? CacheDurationSeconds { get; set; }
+
+    /// <summary>
+    /// Whether to cache exchanged tokens per user identity ('sub' claim in JWT) instead of per access token.
+    /// When true, multiple clients or refreshed tokens from the same user share the cached exchanged token.
+    /// Defaults to true.
+    /// </summary>
+    public bool CacheByUser { get; set; } = true;
 }
