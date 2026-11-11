@@ -633,4 +633,55 @@ public class TokenExchangeServiceTests
         exchanged2["userorg"].Should().Be("exchanged-userorg-token");
         strategyMock.Verify(s => s.ExchangeAsync(target, "bearer-token", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ExchangeAsync_ConcurrentRequestsWithSameToken_OnlyExecutesStrategyOnce()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true
+        };
+
+        int invocationCount = 0;
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "shared-token", It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                Interlocked.Increment(ref invocationCount);
+                await Task.Delay(50); // Simulate network latency to Keycloak
+                return TokenExchangeResult.Succeeded("userorg", "exchanged-shared-token", expiresIn: 3600);
+            });
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act - 10 concurrent requests arrive simultaneously with the same token
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => service.ExchangeAsync("userorg", "shared-token"))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert - all 10 got the token, but strategy was executed exactly ONCE
+        results.Should().HaveCount(10);
+        foreach (var res in results)
+        {
+            res.Success.Should().BeTrue();
+            res.AccessToken.Should().Be("exchanged-shared-token");
+        }
+
+        invocationCount.Should().Be(1);
+        strategyMock.Verify(s => s.ExchangeAsync(target, "shared-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

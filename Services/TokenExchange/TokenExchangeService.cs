@@ -21,6 +21,7 @@ public class TokenExchangeService : ITokenExchangeService
     private readonly IConfiguration _configuration;
     private readonly ILogger<TokenExchangeService> _logger;
     private readonly IMemoryCache? _memoryCache;
+    private readonly AsyncKeyedLock<string> _keyedLock = new();
 
     public TokenExchangeService(
         IEnumerable<ITokenExchangeStrategy> strategies,
@@ -66,6 +67,31 @@ public class TokenExchangeService : ITokenExchangeService
             }
         }
 
+        if (cacheKey != null)
+        {
+            using (await _keyedLock.LockAsync(cacheKey, cancellationToken).ConfigureAwait(false))
+            {
+                // Double-checked locking: check cache again in case another concurrent request completed the exchange while we waited
+                if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out TokenExchangeResult? cachedResult) && cachedResult != null)
+                {
+                    _logger.LogDebug("[TokenExchange] Cache hit after lock for target '{TargetName}'.", targetName);
+                    return cachedResult.Clone();
+                }
+
+                return await ExecuteExchangeInternalAsync(target, subjectToken, cacheKey, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return await ExecuteExchangeInternalAsync(target, subjectToken, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<TokenExchangeResult> ExecuteExchangeInternalAsync(
+        TokenExchangeTargetConfiguration target,
+        string subjectToken,
+        string? cacheKey,
+        CancellationToken cancellationToken)
+    {
+        string targetName = target.Name;
         if (!_strategies.TryGetValue(target.Strategy, out var strategy))
         {
             _logger.LogError("Strategy '{Strategy}' for target '{TargetName}' is not registered.", target.Strategy, targetName);
