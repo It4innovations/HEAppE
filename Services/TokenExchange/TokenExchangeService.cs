@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Utils;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -15,17 +20,20 @@ public class TokenExchangeService : ITokenExchangeService
     private readonly IReadOnlyDictionary<string, TokenExchangeTargetConfiguration> _targets;
     private readonly IConfiguration _configuration;
     private readonly ILogger<TokenExchangeService> _logger;
+    private readonly IMemoryCache? _memoryCache;
 
     public TokenExchangeService(
         IEnumerable<ITokenExchangeStrategy> strategies,
         IEnumerable<TokenExchangeTargetConfiguration> targets,
         IConfiguration configuration,
-        ILogger<TokenExchangeService> logger)
+        ILogger<TokenExchangeService> logger,
+        IMemoryCache? memoryCache = null)
     {
         _strategies = strategies.ToDictionary(s => s.StrategyName, s => s, StringComparer.OrdinalIgnoreCase);
         _targets = targets.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
         _configuration = configuration;
         _logger = logger;
+        _memoryCache = memoryCache;
     }
 
     public async Task<TokenExchangeResult> ExchangeAsync(
@@ -43,6 +51,19 @@ public class TokenExchangeService : ITokenExchangeService
         {
             _logger.LogInformation("Token exchange target '{TargetName}' is disabled.", targetName);
             return TokenExchangeResult.Failed(targetName, $"Target '{targetName}' is disabled.");
+        }
+
+        string? cacheKey = null;
+        if (target.EnableCaching && _memoryCache != null)
+        {
+            string tokenHash = !string.IsNullOrEmpty(subjectToken) ? ComputeSha256(subjectToken) : "no_token";
+            cacheKey = $"token_exchange:{target.Name}:{tokenHash}";
+
+            if (_memoryCache.TryGetValue(cacheKey, out TokenExchangeResult? cachedResult) && cachedResult != null)
+            {
+                _logger.LogDebug("[TokenExchange] Cache hit for target '{TargetName}'.", targetName);
+                return cachedResult.Clone();
+            }
         }
 
         if (!_strategies.TryGetValue(target.Strategy, out var strategy))
@@ -70,7 +91,19 @@ public class TokenExchangeService : ITokenExchangeService
         }
 
         _logger.LogDebug("Executing token exchange for target '{TargetName}' using strategy '{Strategy}'.", targetName, strategy.StrategyName);
-        return await strategy.ExchangeAsync(target, subjectToken, cancellationToken);
+        var result = await strategy.ExchangeAsync(target, subjectToken, cancellationToken);
+
+        if (result.Success && !string.IsNullOrEmpty(result.AccessToken) && target.EnableCaching && _memoryCache != null && cacheKey != null)
+        {
+            var ttl = CalculateCacheTtl(target, subjectToken, result);
+            if (ttl > TimeSpan.FromSeconds(5))
+            {
+                _memoryCache.Set(cacheKey, result.Clone(), ttl);
+                _logger.LogDebug("[TokenExchange] Cached exchanged token for target '{TargetName}' for {TtlSeconds}s.", targetName, (int)ttl.TotalSeconds);
+            }
+        }
+
+        return result;
     }
 
     public async Task<Dictionary<string, TokenExchangeResult>> ExecuteAutoExchangesAsync(
@@ -212,5 +245,86 @@ public class TokenExchangeService : ITokenExchangeService
         }
 
         return sorted;
+    }
+
+    public void InvalidateCache(string targetName, string subjectToken)
+    {
+        if (_memoryCache != null)
+        {
+            string tokenHash = !string.IsNullOrEmpty(subjectToken) ? ComputeSha256(subjectToken) : "no_token";
+            string cacheKey = $"token_exchange:{targetName}:{tokenHash}";
+            _memoryCache.Remove(cacheKey);
+            _logger.LogDebug("[TokenExchange] Evicted cache for target '{TargetName}'.", targetName);
+        }
+    }
+
+    private TimeSpan CalculateCacheTtl(
+        TokenExchangeTargetConfiguration target,
+        string subjectToken,
+        TokenExchangeResult result)
+    {
+        if (target.CacheDurationSeconds.HasValue && target.CacheDurationSeconds.Value > 0)
+        {
+            return TimeSpan.FromSeconds(target.CacheDurationSeconds.Value);
+        }
+
+        DateTime? subjectExp = GetTokenExpiration(subjectToken);
+        DateTime? exchangedExp = null;
+        if (result.ExpiresIn > 0)
+        {
+            exchangedExp = DateTime.UtcNow.AddSeconds(result.ExpiresIn);
+        }
+        if (!exchangedExp.HasValue && !string.IsNullOrEmpty(result.AccessToken))
+        {
+            exchangedExp = GetTokenExpiration(result.AccessToken);
+        }
+
+        DateTime expirationTime;
+        if (subjectExp.HasValue && exchangedExp.HasValue)
+        {
+            expirationTime = subjectExp.Value < exchangedExp.Value ? subjectExp.Value : exchangedExp.Value;
+        }
+        else if (subjectExp.HasValue)
+        {
+            expirationTime = subjectExp.Value;
+        }
+        else if (exchangedExp.HasValue)
+        {
+            expirationTime = exchangedExp.Value;
+        }
+        else
+        {
+            expirationTime = DateTime.UtcNow.AddMinutes(10);
+        }
+
+        return CacheUtils.CalculateAdaptiveTtl(expirationTime);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static DateTime? GetTokenExpiration(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (jwt.ValidTo != DateTime.MinValue && jwt.ValidTo != DateTime.MaxValue)
+                {
+                    return jwt.ValidTo;
+                }
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+        return null;
     }
 }

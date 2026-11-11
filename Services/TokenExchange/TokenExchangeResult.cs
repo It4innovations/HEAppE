@@ -60,4 +60,18 @@ public class TokenExchangeResult
         AccessToken = accessToken,
         ExpiresIn = expiresIn
     };
+
+    /// <summary>
+    /// Creates a shallow clone of this result.
+    /// </summary>
+    public TokenExchangeResult Clone() => new()
+    {
+        Success = Success,
+        AccessToken = AccessToken,
+        RefreshToken = RefreshToken,
+        ExpiresIn = ExpiresIn,
+        IssuedTokenType = IssuedTokenType,
+        Error = Error,
+        TargetName = TargetName
+    };
 }

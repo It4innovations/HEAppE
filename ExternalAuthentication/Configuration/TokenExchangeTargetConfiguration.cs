@@ -179,4 +179,16 @@ public class TokenExchangeTargetConfiguration
     /// Connection timeout in seconds.
     /// </summary>
     public double ConnectionTimeoutSeconds { get; set; } = 15;
+
+    // === Caching Settings ===
+
+    /// <summary>
+    /// Whether to cache exchanged tokens in memory. Defaults to true.
+    /// </summary>
+    public bool EnableCaching { get; set; } = true;
+
+    /// <summary>
+    /// Optional fixed cache duration in seconds. If not set, TTL is calculated adaptively from token expiration.
+    /// </summary>
+    public int? CacheDurationSeconds { get; set; }
 }
