@@ -3,6 +3,7 @@ using System.Net;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
+using Microsoft.Extensions.Caching.Memory;
 using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
@@ -145,7 +146,8 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
     sp.GetRequiredService<IHttpClientFactory>(),
     SshCaSettings.BaseUri,
     SshCaSettings.CAName,
-    SshCaSettings.ConnectionTimeoutInSeconds
+    SshCaSettings.ConnectionTimeoutInSeconds,
+    sp.GetService<IMemoryCache>()
 ));
 
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();

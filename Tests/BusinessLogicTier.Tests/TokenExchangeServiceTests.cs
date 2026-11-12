@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using FluentAssertions;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.TokenExchange;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -432,5 +434,350 @@ public class TokenExchangeServiceTests
             s => s.ExchangeAsync(It.IsAny<TokenExchangeTargetConfiguration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         service.HasPreIntrospectionConfigured("PreAuth").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_WhenCachingEnabled_CachesResultAndReusesOnSubsequentCall()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true
+        };
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "subject-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-userorg-token", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act - First call should invoke strategy and cache result
+        var result1 = await service.ExchangeAsync("userorg", "subject-token");
+
+        // Act - Second call should hit cache
+        var result2 = await service.ExchangeAsync("userorg", "subject-token");
+
+        // Assert
+        result1.Success.Should().BeTrue();
+        result1.AccessToken.Should().Be("exchanged-userorg-token");
+
+        result2.Success.Should().BeTrue();
+        result2.AccessToken.Should().Be("exchanged-userorg-token");
+
+        strategyMock.Verify(
+            s => s.ExchangeAsync(target, "subject-token", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_WhenCachingDisabled_DoesNotCache()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = false
+        };
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "subject-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-userorg-token", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act
+        await service.ExchangeAsync("userorg", "subject-token");
+        await service.ExchangeAsync("userorg", "subject-token");
+
+        // Assert - Strategy invoked twice since caching is disabled
+        strategyMock.Verify(
+            s => s.ExchangeAsync(target, "subject-token", It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_WithDifferentSubjectTokens_CachesSeparately()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "sshca",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true
+        };
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "token-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("sshca", "exchanged-token-1", expiresIn: 3600));
+        strategyMock.Setup(s => s.ExchangeAsync(target, "token-2", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("sshca", "exchanged-token-2", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act
+        var res1 = await service.ExchangeAsync("sshca", "token-1");
+        var res2 = await service.ExchangeAsync("sshca", "token-2");
+        var res1Cached = await service.ExchangeAsync("sshca", "token-1");
+
+        // Assert
+        res1.AccessToken.Should().Be("exchanged-token-1");
+        res2.AccessToken.Should().Be("exchanged-token-2");
+        res1Cached.AccessToken.Should().Be("exchanged-token-1");
+
+        strategyMock.Verify(s => s.ExchangeAsync(target, "token-1", It.IsAny<CancellationToken>()), Times.Once);
+        strategyMock.Verify(s => s.ExchangeAsync(target, "token-2", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InvalidateCache_EvictsCachedToken()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "expirio",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true
+        };
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "token-a", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("expirio", "exchanged-expirio-token", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act
+        await service.ExchangeAsync("expirio", "token-a");
+        service.InvalidateCache("expirio", "token-a");
+        await service.ExchangeAsync("expirio", "token-a");
+
+        // Assert - Eviction caused strategy to be invoked again
+        strategyMock.Verify(s => s.ExchangeAsync(target, "token-a", It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ExecuteAutoExchangesAsync_ReusesCachedTokensAcrossCalls()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            SubjectTokenSource = "incoming",
+            AutoExchange = true,
+            AutoExchangePhase = "PostAuth",
+            EnableCaching = true
+        };
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "bearer-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-userorg-token", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        var exchanged1 = new Dictionary<string, string>();
+        var exchanged2 = new Dictionary<string, string>();
+
+        // Act
+        await service.ExecuteAutoExchangesAsync("PostAuth", "bearer-token", exchanged1);
+        await service.ExecuteAutoExchangesAsync("PostAuth", "bearer-token", exchanged2);
+
+        // Assert
+        exchanged1["userorg"].Should().Be("exchanged-userorg-token");
+        exchanged2["userorg"].Should().Be("exchanged-userorg-token");
+        strategyMock.Verify(s => s.ExchangeAsync(target, "bearer-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_ConcurrentRequestsWithSameToken_OnlyExecutesStrategyOnce()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true
+        };
+
+        int invocationCount = 0;
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, "shared-token", It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                Interlocked.Increment(ref invocationCount);
+                await Task.Delay(50); // Simulate network latency to Keycloak
+                return TokenExchangeResult.Succeeded("userorg", "exchanged-shared-token", expiresIn: 3600);
+            });
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act - 10 concurrent requests arrive simultaneously with the same token
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => service.ExchangeAsync("userorg", "shared-token"))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert - all 10 got the token, but strategy was executed exactly ONCE
+        results.Should().HaveCount(10);
+        foreach (var res in results)
+        {
+            res.Success.Should().BeTrue();
+            res.AccessToken.Should().Be("exchanged-shared-token");
+        }
+
+        invocationCount.Should().Be(1);
+        strategyMock.Verify(s => s.ExchangeAsync(target, "shared-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_CacheByUser_MultipleDifferentTokensForSameUser_SharesCache()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true,
+            CacheByUser = true
+        };
+
+        var token1 = CreateTestJwt("user-abc-123", DateTime.UtcNow.AddMinutes(10));
+        var token2 = CreateTestJwt("user-abc-123", DateTime.UtcNow.AddMinutes(20)); // Different token string, same user sub
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, token1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-token-for-user", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act - Client 1 makes request with token1
+        var result1 = await service.ExchangeAsync("userorg", token1);
+
+        // Act - Client 2 (or refreshed token) makes request with token2 for the SAME user
+        var result2 = await service.ExchangeAsync("userorg", token2);
+
+        // Assert - Both receive the exchanged token, but strategy was only invoked ONCE
+        result1.Success.Should().BeTrue();
+        result1.AccessToken.Should().Be("exchanged-token-for-user");
+        result2.Success.Should().BeTrue();
+        result2.AccessToken.Should().Be("exchanged-token-for-user");
+
+        strategyMock.Verify(s => s.ExchangeAsync(target, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExchangeAsync_CacheByUserDisabled_DifferentTokensForSameUser_DoesNotShareCache()
+    {
+        // Arrange
+        var target = new TokenExchangeTargetConfiguration
+        {
+            Name = "userorg",
+            IsEnabled = true,
+            Strategy = "Rfc8693",
+            EnableCaching = true,
+            CacheByUser = false // Disabled: strictly cache by raw token
+        };
+
+        var token1 = CreateTestJwt("user-xyz", DateTime.UtcNow.AddMinutes(10));
+        var token2 = CreateTestJwt("user-xyz", DateTime.UtcNow.AddMinutes(20));
+
+        var strategyMock = new Mock<ITokenExchangeStrategy>();
+        strategyMock.Setup(s => s.StrategyName).Returns("Rfc8693");
+        strategyMock.Setup(s => s.ExchangeAsync(target, token1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-1", expiresIn: 3600));
+        strategyMock.Setup(s => s.ExchangeAsync(target, token2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TokenExchangeResult.Succeeded("userorg", "exchanged-2", expiresIn: 3600));
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var config = CreateConfiguration(new());
+        var service = new TokenExchangeService(
+            new[] { strategyMock.Object },
+            new[] { target },
+            config,
+            _loggerMock.Object,
+            memoryCache);
+
+        // Act
+        var result1 = await service.ExchangeAsync("userorg", token1);
+        var result2 = await service.ExchangeAsync("userorg", token2);
+
+        // Assert - Strategy called twice because CacheByUser is false
+        result1.AccessToken.Should().Be("exchanged-1");
+        result2.AccessToken.Should().Be("exchanged-2");
+        strategyMock.Verify(s => s.ExchangeAsync(target, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    private static string CreateTestJwt(string sub, DateTime? exp = null)
+    {
+        var token = new JwtSecurityToken(
+            claims: new[] { new System.Security.Claims.Claim("sub", sub) },
+            expires: exp ?? DateTime.UtcNow.AddMinutes(30));
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
