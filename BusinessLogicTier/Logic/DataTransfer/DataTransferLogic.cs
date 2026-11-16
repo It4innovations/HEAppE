@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using RestSharp;
 using SshCaAPI;
 using HEAppE.Utils;
+using AsyncKeyedLock;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer;
 
@@ -39,7 +40,7 @@ public class DataTransferLogic : IDataTransferLogic
     private readonly IExpirioService _expirioService;
 
     private static readonly ConcurrentDictionary<long, List<ActiveTunnelState>> _activeTunnels = new();
-    private static readonly AsyncKeyedLock<long> _taskLocks = new();
+    private static readonly AsyncKeyedLocker<long> _taskLocks = new();
     private static readonly HttpClient _nodeStreamHttpClient = new(new SocketsHttpHandler
     {
         PooledConnectionLifetime = TimeSpan.FromMinutes(5)

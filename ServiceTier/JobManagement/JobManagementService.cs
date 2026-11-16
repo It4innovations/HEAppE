@@ -36,6 +36,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Configuration;
 using SshCaAPI.Configuration;
 using HEAppE.Utils;
+using AsyncKeyedLock;
 
 namespace HEAppE.ServiceTier.JobManagement;
 
@@ -50,7 +51,7 @@ public class JobManagementService : IJobManagementService
     private readonly IExpirioService _expirioService;
     private readonly IMemoryCache _cache;
     
-    private static readonly AsyncKeyedLock<long> _jobLocks = new();
+    private static readonly AsyncKeyedLocker<long> _jobLocks = new();
 
     #endregion
 
