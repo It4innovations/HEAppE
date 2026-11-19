@@ -157,7 +157,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
                 credential,
                 clusterProjectCredential.IsServiceAccount,
                 _httpContextKeys.Context.SshCaToken, 
-                _httpContextKeys.Context.LEXISToken);
+                _expirioToken);
 
             if (isInitialized)
             {
@@ -191,7 +191,7 @@ public class CredentialProvisioningLogic : ICredentialProvisioningLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 }

@@ -977,4 +977,129 @@ public class QSchedulerSchedulerAdapterTests
         HEAppE.Utils.QSchedulerPayloadContext.CleanupExpired(TimeSpan.FromSeconds(0)); // immediate expiry
         Assert.False(HEAppE.Utils.QSchedulerPayloadContext.TryGetByTaskId(taskId, out _));
     }
+
+    [Fact]
+    public async Task CancelJobAsync_SessionTask_CancelsSpecificTaskEndpoint()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string> { { "QSchedulerPort", "3000" } }
+        };
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskInfo = new SubmittedTaskInfo
+        {
+            Id = 100,
+            ScheduledJobId = "session:448:task:389",
+            NodeType = new ClusterNodeType { Cluster = cluster }
+        };
+
+        HttpRequestMessage? capturedDeleteRequest = null;
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedDeleteRequest = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("") });
+
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+        // Act
+        await _adapter.CancelJobAsync(directConn, new[] { taskInfo }, "Job cancelled manually");
+
+        // Assert
+        Assert.NotNull(capturedDeleteRequest);
+        Assert.Equal("/tasks/389", capturedDeleteRequest.RequestUri?.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task CancelJobAsync_WaitingSessionTask_CancelsSessionEndpoint()
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string> { { "QSchedulerPort", "3000" } }
+        };
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskInfo = new SubmittedTaskInfo
+        {
+            Id = 101,
+            ScheduledJobId = "session:448",
+            NodeType = new ClusterNodeType { Cluster = cluster }
+        };
+
+        HttpRequestMessage? capturedDeleteRequest = null;
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedDeleteRequest = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("") });
+
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+        // Act
+        await _adapter.CancelJobAsync(directConn, new[] { taskInfo }, "Job cancelled manually");
+
+        // Assert
+        Assert.NotNull(capturedDeleteRequest);
+        Assert.Equal("/sessions/448", capturedDeleteRequest.RequestUri?.AbsolutePath);
+    }
+
+    [Theory]
+    [InlineData("task:389", "/tasks/389")]
+    [InlineData("389", "/tasks/389")]
+    public async Task CancelJobAsync_DirectTask_CancelsTaskEndpoint(string scheduledJobId, string expectedPath)
+    {
+        // Arrange
+        var cluster = new Cluster
+        {
+            Id = 1,
+            MasterNodeName = "localhost",
+            Port = 3000,
+            ConnectionProtocol = ClusterConnectionProtocol.Http,
+            CustomConfiguration = new Dictionary<string, string> { { "QSchedulerPort", "3000" } }
+        };
+        var directConn = new HttpConnection("http://localhost:3000");
+        var taskInfo = new SubmittedTaskInfo
+        {
+            Id = 102,
+            ScheduledJobId = scheduledJobId,
+            NodeType = new ClusterNodeType { Cluster = cluster }
+        };
+
+        HttpRequestMessage? capturedDeleteRequest = null;
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedDeleteRequest = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("") });
+
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(_mockHttpMessageHandler.Object, disposeHandler: false));
+
+        // Act
+        await _adapter.CancelJobAsync(directConn, new[] { taskInfo }, "Job cancelled manually");
+
+        // Assert
+        Assert.NotNull(capturedDeleteRequest);
+        Assert.Equal(expectedPath, capturedDeleteRequest.RequestUri?.AbsolutePath);
+    }
 }

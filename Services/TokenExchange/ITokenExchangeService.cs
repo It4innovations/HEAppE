@@ -56,4 +56,9 @@ public interface ITokenExchangeService
     /// Check if any enabled auto-exchange target for the specified phase is configured to perform token introspection.
     /// </summary>
     bool HasPreIntrospectionConfigured(string phase);
+
+    /// <summary>
+    /// Evict a cached token for the specified target and subject token.
+    /// </summary>
+    void InvalidateCache(string targetName, string subjectToken);
 }

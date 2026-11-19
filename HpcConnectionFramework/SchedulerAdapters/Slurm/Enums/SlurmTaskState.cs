@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
 
 /// <summary>
 ///     Slurm states
@@ -15,6 +15,7 @@ internal enum SlurmTaskState
     ///     Job was explicitly cancelled by the user or system administrator. The job may or may not have been initiated.
     /// </summary>
     Canceled = 2,
+    Cancelled = 2,
 
     /// <summary>
     ///     Job has terminated all processes on all nodes with an exit code of zero.

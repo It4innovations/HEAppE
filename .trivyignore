@@ -1,0 +1,8 @@
+# Trivy ignore rules for Dockerfile misconfigurations in mock test containers and daemon
+# DS-0002 / AVD-DS-0002: Image user should not be 'root' (SSHD and SSH agent require root)
+DS-0002
+AVD-DS-0002
+
+# DS-0026 / AVD-DS-0026: No HEALTHCHECK defined (healthchecks configured in docker-compose.yml)
+DS-0026
+AVD-DS-0026

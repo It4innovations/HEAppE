@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.6.4
+
+### Security
+- **OpenSSH Authentication Bypass Patch (SSHole / CVE-2026-123158):** Upgraded Alpine-based images (`ci/docker/pbs-mock`, `ci/docker/sshnode`, `SshAgent`) from `alpine:3.19` to `alpine:3.21`, added package upgrades (`apk upgrade`), and enforced `PermitRootLogin prohibit-password` to prevent remote password authentication bypass.
+
+### Added
+- **Security & Vulnerability Scanning Pipeline:** Added automated GitHub Actions workflow (`.github/workflows/security-scan.yml`) with Trivy container/filesystem CVE scanning, Semgrep SAST code analysis, Gitleaks secret detection, and scheduled weekly scans.
+- **Vault Health Check & Management Tools:** Added authenticated AppRole health check probe (`v1/auth/token/lookup-self`), idempotent Vault initialization scripts (`initHVault.sh`), and instance renaming migration tool (`scripts/migrate-instance-name.sh`).
+
+### Fixed
+- **Expirio Token Propagation in Credential Provisioning, Cluster Logic & FirecREST Resolution:** Fixed HTTP 401 Unauthorized errors during Kerberos ticket and secret exchanges with Expirio on clusters like Zenith (MetaCentrum) and FirecREST. Resolved issue where `CredentialProvisioningLogic.InitializeClusterCredentials` passed the raw unexchanged `_httpContextKeys.Context.LEXISToken` to `scheduler.InitializeClusterScriptDirectoryAsync` and `UsernameResolutionHelper` passed raw `IdpToken`/`LEXISToken` to `expirioService.ExchangeFirecrestCredentialsAsync` instead of the exchanged token for the `expirio` target. Updated `_expirioToken` property to reference `_httpContextKeys.Context.ExpirioToken` across `CredentialProvisioningLogic`, `ClusterInformationLogic`, `DataTransferLogic`, and `UsernameResolutionHelper`, ensuring all scheduler and credential operations propagate the exchanged Expirio token correctly.
+- **QScheduler Task Cancellation in Sessions:** Fixed cancellation failure (502) for jobs in a session by parsing `session:{sessionId}:task:{taskId}` to cancel only the specific task (`DELETE tasks/{taskId}`) instead of sending the compound ID to `DELETE sessions/{id}` and terminating shared sessions.
+- **Unified Token Exchange In-Memory Caching & Concurrency Protection (`TokenExchangeService`):** Fixed redundant token exchanges hitting Keycloak on every incoming HTTP request and prevented cache stampedes during concurrent requests. Injected `IMemoryCache` into `TokenExchangeService`, integrated `AsyncKeyedLock<string>` with double-checked locking to serialize parallel token exchanges per target and token/user, and implemented adaptive TTL caching (`token_exchange:{target}:user:{sub}` / `token:{tokenHash}`) using `CacheUtils.CalculateAdaptiveTtl`. Added `CacheByUser` (defaults to `true` to allow multiple clients or refreshed tokens of the same user to share exchanged tokens), `EnableCaching`, and `CacheDurationSeconds` to `TokenExchangeTargetConfiguration`, `InvalidateCache` method to `ITokenExchangeService`, and `Clone()` to `TokenExchangeResult` to ensure isolated cache returns.
+- **SSH CA API Memory Cache in DataStagingAPI:** Fixed missing `IMemoryCache` injection in `DataStagingAPI/Program.cs` for `SshCertificateAuthorityService`, ensuring certificate signing responses are cached across requests.
+- **Job Cancellation State on Slurm & FirecREST:** Fixed cancelled jobs/tasks erroneously marked as `Failed`. Supported `CANCELLED` spelling and annotations in `SlurmJobInfo`/`FireCrestJobInfo`, added `sacct` fallback for purged jobs in `SlurmSchedulerAdapter`, and guaranteed `Canceled` state transition for active tasks in `JobManagementLogic`.
+- **Vault Diagnostics & Detailed Logging:** Added HTTP status and response body logging in `VaultConnector` for credential and secret operations.
+- **Kerberos Memory Leak & Ticket Cache Cleanup (`KrbLibSim`):** Resolved memory leak in `KrbLibSim` by properly disposing replaced or removed `Krb5TicketCache` instances to terminate internal background tasks, purging inactive sessions based on last accessed timestamp, fixing struct comparison and null checks for `KdcResponse`, applying expiration buffer logic, and allowing memory cache cleanup without requiring a local `krb5.conf`.
+
 ## V6.6.3
 
 ### Fixed

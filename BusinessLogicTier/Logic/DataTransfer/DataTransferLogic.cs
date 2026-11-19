@@ -127,7 +127,7 @@ public class DataTransferLogic : IDataTransferLogic
                 }
             }
 
-            await scheduler.CreateTunnelAsync(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            await scheduler.CreateTunnelAsync(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
             var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
                 .OrderByDescending(t => t.LocalPort)
@@ -186,7 +186,7 @@ public class DataTransferLogic : IDataTransferLogic
         
             await SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-                .RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+                .RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _expirioToken);
 
             tunnels.Remove(tunnel);
         
@@ -290,7 +290,7 @@ public class DataTransferLogic : IDataTransferLogic
             var submitterId = taskInfo.Specification.JobSpecification.Submitter?.Id ?? 0;
             var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
                 .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: submitterId, _expirioService, _expirioToken, _logger);
-            await scheduler.RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+            await scheduler.RemoveTunnelAsync(taskInfo, _httpContextKeys.Context.SshCaToken, _expirioToken);
             _activeTunnels.TryRemove(taskInfo.Id, out _);
         }
     }
@@ -298,7 +298,7 @@ public class DataTransferLogic : IDataTransferLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 }

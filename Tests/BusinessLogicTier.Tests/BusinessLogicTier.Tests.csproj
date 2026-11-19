@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\..\Exceptions\Exceptions.csproj" />
     <ProjectReference Include="..\..\ExtModels\ExtModels.csproj" />
+    <ProjectReference Include="..\..\Tmds.Ssh\src\Tmds.Ssh\Tmds.Ssh.csproj" />
   </ItemGroup>
 
   <ItemGroup>

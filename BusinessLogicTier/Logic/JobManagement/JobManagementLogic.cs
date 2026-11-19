@@ -1636,7 +1636,16 @@ internal class JobManagementLogic : IJobManagementLogic
         foreach (var task in jobInfo.Tasks)
         {
             if (task.ScheduledJobId != null && schedulerTaskByJobId.TryGetValue(task.ScheduledJobId, out var clusterTask))
+            {
                 CombineSubmittedTaskInfoFromCluster(task, clusterTask);
+            }
+
+            // In CancelJob workflow, any task that was not already Finished prior to cancellation must be marked as Canceled
+            if (task.State != TaskState.Finished)
+            {
+                task.State = TaskState.Canceled;
+                task.EndTime ??= DateTime.UtcNow;
+            }
         }
 
         UpdateJobStateByTasks(jobInfo);
