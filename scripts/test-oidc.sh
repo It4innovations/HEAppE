@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# Konfigurace
+# Configuration (can be overridden via environment variables)
 KEYCLOAK_URL="${KEYCLOAK_URL:-https://keycloak.example.com}"
 REALM="${REALM:-example-realm}"
 CLIENT_ID="${CLIENT_ID:-example-client}"
@@ -14,17 +14,17 @@ echo " Keycloak: ${KEYCLOAK_URL}/realms/${REALM}"
 echo " HEAppE:   ${HEAPPE_URL}"
 echo "=================================================="
 
-# 1. Ziskani tokenu
+# 1. Token acquisition
 TOKEN="${1:-$TOKEN}"
 
 if [ -z "$TOKEN" ]; then
     echo ""
-    echo "Nebyl predan zadny token. Pokus o ziskani tokenu pres password grant..."
-    read -p "Zadejte Keycloak username: " KC_USER
-    read -s -p "Zadejte Keycloak heslo: " KC_PASS
+    echo "No token provided. Attempting to acquire token via password grant..."
+    read -p "Enter Keycloak username: " KC_USER
+    read -s -p "Enter Keycloak password: " KC_PASS
     echo ""
     if [ -z "$CLIENT_SECRET" ]; then
-        read -s -p "Zadejte Keycloak client secret: " CLIENT_SECRET
+        read -s -p "Enter Keycloak client secret: " CLIENT_SECRET
         echo ""
     fi
 
@@ -40,20 +40,20 @@ if [ -z "$TOKEN" ]; then
     TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
 
     if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-        echo "Chyba pri ziskavani tokenu z Keycloaku:"
+        echo "Error acquiring token from Keycloak:"
         echo "$TOKEN_RESPONSE" | jq . 2>/dev/null || echo "$TOKEN_RESPONSE"
         echo ""
-        echo "Tip: Pokud neni povolen password grant (Direct Access Grants), predejte ziskany token jako parametr:"
-        echo "  ./scripts/test-oidc.sh <VAS_ACCESS_TOKEN>"
+        echo "Tip: If password grant (Direct Access Grants) is not enabled, pass an acquired token as argument:"
+        echo "  ./scripts/test-oidc.sh <YOUR_ACCESS_TOKEN>"
         exit 1
     fi
-    echo "Token uspesne ziskan z Keycloaku."
+    echo "Token successfully acquired from Keycloak."
 fi
 
-# 2. Inspekce token claims
+# 2. Token claims inspection
 echo ""
 echo "--- Token Payload (Decoded JWT) ---"
-echo "$TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq '{preferred_username, email, groups}' 2>/dev/null || echo "(Nelze dekodovat base64 payload)"
+echo "$TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq '{preferred_username, email, groups}' 2>/dev/null || echo "(Unable to decode base64 payload)"
 
 # 3. Test: CurrentUserInfo
 echo ""
@@ -97,5 +97,6 @@ fi
 
 echo ""
 echo "=================================================="
-echo " Testy dokonceny."
+echo " Tests completed."
 echo "=================================================="
+
