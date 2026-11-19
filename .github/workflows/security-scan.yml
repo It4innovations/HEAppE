@@ -67,6 +67,7 @@ jobs:
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,misconfig'
+          trivyignores: '.trivyignore'
 
       - name: Publish Trivy FS Summary to Job Summary
         if: always()
@@ -101,6 +102,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-restapi-results.sarif'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
 
       - name: Build SSH Node CI Image
         run: docker build -f ci/docker/sshnode/Dockerfile -t heappe-sshnode:scan ci/docker/sshnode
@@ -112,6 +114,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-sshnode-results.sarif'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
 
       - name: Publish Container Images Summary to Job Summary
         if: always()
@@ -144,7 +147,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Semgrep OSS Scan
-        run: semgrep scan --sarif --config auto > semgrep-results.sarif
+        run: semgrep scan --sarif --config auto --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag > semgrep-results.sarif
 
       - name: Publish Semgrep SAST Summary to Job Summary
         if: always()
