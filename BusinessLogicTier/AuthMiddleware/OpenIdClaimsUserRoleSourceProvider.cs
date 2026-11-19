@@ -324,7 +324,7 @@ public class OpenIdClaimsUserRoleSourceProvider : IUserRoleSourceProvider
             return new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
-        // Default regex covering Terrabyte (/hpda/heappe-pr74qo-Submitter or /heappe/pr74qo-Submitter) and standard (/projects/PRJ/Role)
+        // Default regex covering custom group prefix (/hpda/heappe-proj01-Submitter or /heappe/proj01-Submitter) and standard (/projects/PRJ/Role)
         return new Regex(@"^/(?:hpda/|heappe/)?(?:heappe-)?(?<project>[a-zA-Z0-9_-]+)-(?<role>[a-zA-Z0-9]+)$|^/(?:projects/|dss/)?(?<project>[a-zA-Z0-9_-]+)(?:/(?<role>[a-zA-Z0-9]+))?$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
     }

@@ -2,10 +2,10 @@
 set -eo pipefail
 
 # Konfigurace
-KEYCLOAK_URL="https://earth.terrabyte.lrz.de:8443"
-REALM="terrabyte"
-CLIENT_ID="de.lrz.terrabyte.heappe"
-CLIENT_SECRET="ISE4hB0bokSBmASo15DAjd7eCyD57VRvCKoAPJESqsQ6KMLykIsQzLoREs0Am3HOvHBGUU1JvQoM6nmL3BUZzH"
+KEYCLOAK_URL="${KEYCLOAK_URL:-https://keycloak.example.com}"
+REALM="${REALM:-example-realm}"
+CLIENT_ID="${CLIENT_ID:-example-client}"
+CLIENT_SECRET="${CLIENT_SECRET:-}"
 HEAPPE_URL="${HEAPPE_URL:-http://localhost:5001}"
 
 echo "=================================================="
@@ -23,6 +23,10 @@ if [ -z "$TOKEN" ]; then
     read -p "Zadejte Keycloak username: " KC_USER
     read -s -p "Zadejte Keycloak heslo: " KC_PASS
     echo ""
+    if [ -z "$CLIENT_SECRET" ]; then
+        read -s -p "Zadejte Keycloak client secret: " CLIENT_SECRET
+        echo ""
+    fi
 
     TOKEN_RESPONSE=$(curl -k -s -X POST "${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token" \
         -H "Content-Type: application/x-www-form-urlencoded" \

@@ -141,31 +141,31 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim("preferred_username", "di35dal"),
-            new Claim("email", "dzung.nguyen@lrz.de"),
+            new Claim("preferred_username", "testuser01"),
+            new Claim("email", "testuser@example.com"),
             new Claim("sub", "keycloak-user-guid-1234"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 101, 201);
+        SetupMockProjectAndGroup("proj01", 101, 201);
 
         _mockUserRepo.Setup(r => r.GetByIdpSidIgnoreQueryFiltersAsync("keycloak-user-guid-1234"))
             .ReturnsAsync((AdaptorUser?)null);
-        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("di35dal"))
+        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("testuser01"))
             .ReturnsAsync((AdaptorUser?)null);
-        _mockUserRepo.Setup(r => r.GetByEmailIgnoreQueryFiltersAsync("dzung.nguyen@lrz.de"))
+        _mockUserRepo.Setup(r => r.GetByEmailIgnoreQueryFiltersAsync("testuser@example.com"))
             .ReturnsAsync((AdaptorUser?)null);
 
         var provider = new OpenIdClaimsUserRoleSourceProvider();
         var user = await provider.ResolveAndSyncUserAsync(principal, null, _mockUnitOfWork.Object, _mockLogger.Object);
 
         user.Should().NotBeNull();
-        user.Username.Should().Be("di35dal");
-        user.Email.Should().Be("dzung.nguyen@lrz.de");
+        user.Username.Should().Be("testuser01");
+        user.Email.Should().Be("testuser@example.com");
         user.IdpSid.Should().Be("keycloak-user-guid-1234");
         user.UserType.Should().Be(AdaptorUserType.OpenId);
 
-        _mockUserRepo.Verify(r => r.Insert(It.Is<AdaptorUser>(u => u.Username == "di35dal")), Times.Once);
+        _mockUserRepo.Verify(r => r.Insert(It.Is<AdaptorUser>(u => u.Username == "testuser01")), Times.Once);
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.AtLeastOnce);
     }
 
@@ -174,24 +174,24 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim("email", "testuser@lrz.de"),
+            new Claim("email", "fallbackuser@example.com"),
             new Claim("sub", "sub-guid-123"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 101, 201);
+        SetupMockProjectAndGroup("proj01", 101, 201);
 
         _mockUserRepo.Setup(r => r.GetByIdpSidIgnoreQueryFiltersAsync("sub-guid-123"))
             .ReturnsAsync((AdaptorUser?)null);
-        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("testuser@lrz.de"))
+        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("fallbackuser@example.com"))
             .ReturnsAsync((AdaptorUser?)null);
-        _mockUserRepo.Setup(r => r.GetByEmailIgnoreQueryFiltersAsync("testuser@lrz.de"))
+        _mockUserRepo.Setup(r => r.GetByEmailIgnoreQueryFiltersAsync("fallbackuser@example.com"))
             .ReturnsAsync((AdaptorUser?)null);
 
         var provider = new OpenIdClaimsUserRoleSourceProvider();
         var user = await provider.ResolveAndSyncUserAsync(principal, null, _mockUnitOfWork.Object, _mockLogger.Object);
 
-        user.Username.Should().Be("testuser@lrz.de");
+        user.Username.Should().Be("fallbackuser@example.com");
     }
 
     [Fact]
@@ -200,10 +200,10 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("sub", "sub-guid-456"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 101, 201);
+        SetupMockProjectAndGroup("proj01", 101, 201);
 
         _mockUserRepo.Setup(r => r.GetByIdpSidIgnoreQueryFiltersAsync("sub-guid-456"))
             .ReturnsAsync((AdaptorUser?)null);
@@ -235,7 +235,7 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("preferred_username", "unknown_user"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
         _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("unknown_user"))
@@ -253,7 +253,7 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("preferred_username", "blocked_user"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
         var blockedUser = new AdaptorUser
@@ -281,10 +281,10 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
             new Claim("preferred_username", "existing_user"),
             new Claim("email", "new_email@example.com"),
             new Claim("sub", "new-sub-guid"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 101, 201);
+        SetupMockProjectAndGroup("proj01", 101, 201);
 
         var existingUser = new AdaptorUser
         {
@@ -313,12 +313,12 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
     #region OpenIdClaims Role & Project Synchronization Tests
 
     [Theory]
-    [InlineData("/hpda/heappe-pr74qo-Submitter", "pr74qo", AdaptorUserRoleType.Submitter)]
-    [InlineData("/heappe/pr74qo-Manager", "pr74qo", AdaptorUserRoleType.Manager)]
-    [InlineData("/heappe-pr74qo-Reporter", "pr74qo", AdaptorUserRoleType.Reporter)]
-    [InlineData("/projects/TERRABYTE-00/Submitter", "TERRABYTE-00", AdaptorUserRoleType.Submitter)]
-    [InlineData("/dss/TERRABYTE-01/Manager", "TERRABYTE-01", AdaptorUserRoleType.Manager)]
-    public async Task ResolveAndSyncUserAsync_TerrabyteGroupConventions_AssignsExpectedProjectAndRole(
+    [InlineData("/hpda/heappe-proj01-Submitter", "proj01", AdaptorUserRoleType.Submitter)]
+    [InlineData("/heappe/proj01-Manager", "proj01", AdaptorUserRoleType.Manager)]
+    [InlineData("/heappe-proj01-Reporter", "proj01", AdaptorUserRoleType.Reporter)]
+    [InlineData("/projects/PROJECT-00/Submitter", "PROJECT-00", AdaptorUserRoleType.Submitter)]
+    [InlineData("/dss/PROJECT-01/Manager", "PROJECT-01", AdaptorUserRoleType.Manager)]
+    public async Task ResolveAndSyncUserAsync_PrefixedGroupConventions_AssignsExpectedProjectAndRole(
         string groupClaim, string expectedProject, AdaptorUserRoleType expectedRole)
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -353,21 +353,21 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim("preferred_username", "di35dal"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Manager")
+            new Claim("preferred_username", "testuser01"),
+            new Claim("groups", "/hpda/heappe-proj01-Submitter"),
+            new Claim("groups", "/hpda/heappe-proj01-Manager")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 101, 201);
+        SetupMockProjectAndGroup("proj01", 101, 201);
 
         var existingUser = new AdaptorUser
         {
             Id = 1,
-            Username = "di35dal",
+            Username = "testuser01",
             AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>()
         };
 
-        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("di35dal"))
+        _mockUserRepo.Setup(r => r.GetByNameIgnoreQueryFiltersAsync("testuser01"))
             .ReturnsAsync(existingUser);
 
         var provider = new OpenIdClaimsUserRoleSourceProvider();
@@ -418,10 +418,10 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("preferred_username", "testuser"),
-            new Claim("groups", "/projects/pr74qo/member")
+            new Claim("groups", "/projects/proj01/member")
         }));
 
-        SetupMockProjectAndGroup("pr74qo", 10, 20);
+        SetupMockProjectAndGroup("proj01", 10, 20);
 
         var existingUser = new AdaptorUser
         {
@@ -486,10 +486,10 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("preferred_username", "testuser"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Submitter")
+            new Claim("groups", "/hpda/heappe-proj01-Submitter")
         }));
 
-        var (_, group) = SetupMockProjectAndGroup("pr74qo", 10, 20);
+        var (_, group) = SetupMockProjectAndGroup("proj01", 10, 20);
 
         var existingUser = new AdaptorUser
         {
@@ -515,10 +515,10 @@ public class OpenIdClaimsUserRoleSourceProviderTests : IDisposable
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim("preferred_username", "testuser"),
-            new Claim("groups", "/hpda/heappe-pr74qo-Manager")
+            new Claim("groups", "/hpda/heappe-proj01-Manager")
         }));
 
-        var (_, group) = SetupMockProjectAndGroup("pr74qo", 10, 20);
+        var (_, group) = SetupMockProjectAndGroup("proj01", 10, 20);
 
         var existingUser = new AdaptorUser
         {
