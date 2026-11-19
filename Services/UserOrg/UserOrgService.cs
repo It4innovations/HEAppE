@@ -21,6 +21,7 @@ public class UserOrgService : IUserOrgService
 {
     private readonly UserOrgV1Service _v1Service;
     private readonly UserOrgV2Service _v2Service;
+    private readonly NullUserOrgService _nullService = new();
 
     public UserOrgService(IHttpClientFactory httpClientFactory)
     {
@@ -30,6 +31,11 @@ public class UserOrgService : IUserOrgService
 
     private IUserOrgService ResolveService()
     {
+        if (string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
+        {
+            return _nullService;
+        }
+
         string apiVersion = LexisAuthenticationConfiguration.ApiVersion?.ToLowerInvariant();
         if (apiVersion == "v1")
         {
@@ -40,6 +46,11 @@ public class UserOrgService : IUserOrgService
 
     public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId, ILogger logger)
     {
+        if (string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
+        {
+            return await _nullService.GetUserInfoAsync(accessToken, instanceId, logger);
+        }
+
         string apiVersion = LexisAuthenticationConfiguration.ApiVersion?.ToLowerInvariant();
         if (apiVersion == "auto")
         {
@@ -60,6 +71,11 @@ public class UserOrgService : IUserOrgService
 
     public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId, ILogger logger)
     {
+        if (string.IsNullOrWhiteSpace(LexisAuthenticationConfiguration.BaseAddress))
+        {
+            return await _nullService.GetCommandTemplatePermissionsAsync(accessToken, heappeInstanceIdentifier, instanceId, logger);
+        }
+
         string apiVersion = LexisAuthenticationConfiguration.ApiVersion?.ToLowerInvariant();
         if (apiVersion == "auto")
         {
