@@ -44,7 +44,7 @@ public static class UsernameResolutionHelper
         if (firecrestClusterProject != null)
         {
             logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
-            var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
+            var token = httpContextKeys.Context.ExpirioToken;
             if (!string.IsNullOrEmpty(token))
             {
                 try
