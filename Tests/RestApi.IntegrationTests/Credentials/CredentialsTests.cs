@@ -34,4 +34,31 @@ public class CredentialsTests : IntegrationTestBase
         var response = await _client.GetAsync($"/heappe/Credentials/GetCredentials?projectId=999999&sessionCode={sessionCode}");
         response.StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task GetOrCreatePersonalCredential_WithoutSessionCode_ReturnsBadRequestOrUnauthorized()
+    {
+        var request = new
+        {
+            ProjectId = 1L,
+            SessionCode = ""
+        };
+
+        var response = await _client.PostJsonAsync("/heappe/Credentials/GetOrCreatePersonalCredential", request);
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetOrCreatePersonalCredential_InvalidProject_ReturnsError()
+    {
+        var sessionCode = await GetAdminSessionCodeAsync();
+        var request = new
+        {
+            ProjectId = 999999L,
+            SessionCode = sessionCode
+        };
+
+        var response = await _client.PostJsonAsync("/heappe/Credentials/GetOrCreatePersonalCredential", request);
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
 }
