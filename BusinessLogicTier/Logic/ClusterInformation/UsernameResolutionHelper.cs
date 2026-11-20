@@ -206,8 +206,12 @@ public static class UsernameResolutionHelper
                     {
                         var decoded = JwtTokenDecoder.Decode(token);
                         if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                            username = decoded.PreferedUsername;
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                            if (!decoded.PreferedUsername.Contains('@')) {
+                                username = decoded.PreferedUsername;
+                                logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                            } else {
+                                logger.LogWarning($"ResolveUsernameFromContextAsync: JWT preferred_username '{decoded.PreferedUsername}' contains '@' and is not a valid cluster POSIX username. Ignoring.");
+                            }
                         } else if (project != null) {
                             username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
                             logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
