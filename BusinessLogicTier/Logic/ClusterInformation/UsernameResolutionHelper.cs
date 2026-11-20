@@ -202,18 +202,26 @@ public static class UsernameResolutionHelper
                 // 3a. From ClaimsPrincipal if present
                 if (httpContextKeys.Context.ClaimsPrincipal != null)
                 {
-                    username = httpContextKeys.Context.ClaimsPrincipal.FindFirst("preferred_username")?.Value
+                    var principalUsername = httpContextKeys.Context.ClaimsPrincipal.FindFirst("preferred_username")?.Value
                                ?? httpContextKeys.Context.ClaimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
-                    if (!string.IsNullOrEmpty(username))
+                    if (!string.IsNullOrEmpty(principalUsername))
                     {
-                        logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal resolved username: {username}");
+                        if (!principalUsername.Contains('@'))
+                        {
+                            username = principalUsername;
+                            logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal resolved username: {username}");
+                        }
+                        else
+                        {
+                            logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal preferred_username '{principalUsername}' contains '@' and is not a valid cluster POSIX username. Ignoring.");
+                        }
                     }
                 }
 
                 // 3b. From AdaptorUser.Username if user exists in DB
                 if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
                 {
-                    var user = unitOfWork.AdaptorUserRepository.GetById(adaptorUserId.Value);
+                    var user = unitOfWork.AdaptorUserRepository?.GetById(adaptorUserId.Value);
                     if (user != null && !string.IsNullOrEmpty(user.Username))
                     {
                         username = user.Username;
@@ -231,8 +239,12 @@ public static class UsernameResolutionHelper
                         {
                             var decoded = JwtTokenDecoder.Decode(token);
                             if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                                username = decoded.PreferedUsername;
-                                logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                                if (!decoded.PreferedUsername.Contains('@')) {
+                                    username = decoded.PreferedUsername;
+                                    logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                                } else {
+                                    logger.LogWarning($"ResolveUsernameFromContextAsync: JWT preferred_username '{decoded.PreferedUsername}' contains '@' and is not a valid cluster POSIX username. Ignoring.");
+                                }
                             } else if (project != null) {
                                 username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
                                 logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
