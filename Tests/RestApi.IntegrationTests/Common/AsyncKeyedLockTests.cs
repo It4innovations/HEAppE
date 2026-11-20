@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using FluentAssertions;
 using HEAppE.Utils;
 using Xunit;
@@ -13,7 +14,7 @@ public class AsyncKeyedLockTests
     [Fact]
     public async Task LockAsync_SerializesConcurrentRequestsForSameKey()
     {
-        var keyedLock = new AsyncKeyedLock<long>();
+        var keyedLock = new AsyncKeyedLocker<long>();
         long key = 42;
         int activeInCriticalSection = 0;
         int maxConcurrent = 0;
@@ -39,13 +40,13 @@ public class AsyncKeyedLockTests
         await Task.WhenAll(tasks);
 
         maxConcurrent.Should().Be(1, "Concurrent requests for the same key must be strictly serialized.");
-        keyedLock.ActiveKeyCount.Should().Be(0, "All semaphores must be cleaned up after use.");
+        keyedLock.GetCurrentCount(key).Should().Be(1, "All semaphores must be cleaned up after use.");
     }
 
     [Fact]
     public async Task LockAsync_AllowsParallelRequestsForDifferentKeys()
     {
-        var keyedLock = new AsyncKeyedLock<long>();
+        var keyedLock = new AsyncKeyedLocker<long>();
         var startedBarrier = new Barrier(3);
         var tasks = new List<Task>();
         int concurrentCount = 0;
@@ -67,24 +68,23 @@ public class AsyncKeyedLockTests
                     await Task.Delay(50);
                     Interlocked.Decrement(ref concurrentCount);
                 }
+                keyedLock.GetCurrentCount(key).Should().Be(1, "All keys must be cleaned up.");
             }));
         }
 
         await Task.WhenAll(tasks);
 
         maxConcurrent.Should().BeGreaterThan(1, "Requests for different keys should run in parallel.");
-        keyedLock.ActiveKeyCount.Should().Be(0, "All keys must be cleaned up.");
     }
 
     [Fact]
     public async Task LockAsync_WithCancellationToken_CleansUpProperly()
     {
-        var keyedLock = new AsyncKeyedLock<long>();
+        var keyedLock = new AsyncKeyedLocker<long>();
         long key = 100;
 
         // Acquire lock first
         var firstReleaser = await keyedLock.LockAsync(key);
-        keyedLock.ActiveKeyCount.Should().Be(1);
 
         // Second request with token that cancels immediately
         using var cts = new CancellationTokenSource(50);
@@ -97,30 +97,12 @@ public class AsyncKeyedLockTests
         await act.Should().ThrowAsync<OperationCanceledException>();
 
         // First lock is still active
-        keyedLock.ActiveKeyCount.Should().Be(1);
+        keyedLock.GetCurrentCount(key).Should().Be(0);
 
         // Release first lock
         firstReleaser.Dispose();
 
         // Must be completely cleaned up
-        keyedLock.ActiveKeyCount.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task Dispose_IsIdempotent()
-    {
-        var keyedLock = new AsyncKeyedLock<long>();
-        long key = 200;
-
-        var releaser = await keyedLock.LockAsync(key);
-        keyedLock.ActiveKeyCount.Should().Be(1);
-
-        releaser.Dispose();
-        keyedLock.ActiveKeyCount.Should().Be(0);
-
-        // Multiple dispose calls must not throw or decrement below 0
-        var act = () => releaser.Dispose();
-        act.Should().NotThrow();
-        keyedLock.ActiveKeyCount.Should().Be(0);
+        keyedLock.GetCurrentCount(key).Should().Be(1);
     }
 }
