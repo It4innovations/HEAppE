@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.1
+
+### Fixed
+- **Ignore Scoped Identities with `@` in Username Resolution (`UsernameResolutionHelper`):** Ignored identity provider tokens with scoped identities containing `@` in `preferred_username` (e.g. `guid@myaccessid.org`) during cluster username resolution, preventing them from being treated as valid POSIX cluster usernames when resolving identities from JWT tokens and ClaimsPrincipal.
+
 ## V6.7.0
 
 ### Added
