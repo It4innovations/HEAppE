@@ -133,7 +133,13 @@ public class VaultConnector : IVaultConnector
             using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
-            RecordVaultTelemetry("SetClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path);
+            string? errorMessage = null;
+            if (!success)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}. Status: {(int)result.StatusCode} {result.StatusCode}, Response: {errorMessage}");
+            }
+            RecordVaultTelemetry("SetClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : (errorMessage ?? "Non-success status"), path);
 
             if (success)
             {
@@ -142,7 +148,6 @@ public class VaultConnector : IVaultConnector
                 return true;
             }
 
-            _logger.LogWarning($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
             return false;
         }
         catch (Exception ex)
@@ -167,16 +172,18 @@ public class VaultConnector : IVaultConnector
             using var result = await _httpClient.DeleteAsync(path);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
-            RecordVaultTelemetry("DeleteClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path);
+            string? errorMessage = null;
+            if (!success)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to delete vault ClusterProjectCredential with ID: {id}. Status: {(int)result.StatusCode} {result.StatusCode}, Response: {errorMessage}");
+            }
+            RecordVaultTelemetry("DeleteClusterAuthenticationCredentials", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : (errorMessage ?? "Non-success status"), path);
 
             if (success)
             {
                 _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
                 _credentialsCache.TryRemove(id, out _);
-            }
-            else
-            {
-                _logger.LogWarning($"Failed to delete vault ClusterProjectCredential with ID: {id}");
             }
         }
         catch (Exception ex)
@@ -317,7 +324,13 @@ public class VaultConnector : IVaultConnector
             using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
-            RecordVaultTelemetry("SetClusterSecret", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);
+            string? errorMessage = null;
+            if (!success)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to set vault ClusterSecret for cluster ID: {clusterId}, key: {secretKey}. Status: {(int)result.StatusCode} {result.StatusCode}, Response: {errorMessage}");
+            }
+            RecordVaultTelemetry("SetClusterSecret", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : (errorMessage ?? "Non-success status"), path, clusterId);
             return success;
         }
         catch (Exception ex)
@@ -337,15 +350,17 @@ public class VaultConnector : IVaultConnector
             using var result = await _httpClient.DeleteAsync(path);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
-            RecordVaultTelemetry("DeleteClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);
+            string? errorMessage = null;
+            if (!success)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to delete vault ClusterSecrets with ID: {clusterId}. Status: {(int)result.StatusCode} {result.StatusCode}, Response: {errorMessage}");
+            }
+            RecordVaultTelemetry("DeleteClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : (errorMessage ?? "Non-success status"), path, clusterId);
 
             if (success)
             {
                 _logger.LogDebug($"Deleted vault ClusterSecrets with ID: {clusterId}");
-            }
-            else
-            {
-                _logger.LogWarning($"Failed to delete vault ClusterSecrets with ID: {clusterId}");
             }
         }
         catch (Exception ex)
@@ -408,7 +423,13 @@ public class VaultConnector : IVaultConnector
             using var result = await _httpClient.PostAsync(path, payload);
             sw.Stop();
             var success = result.IsSuccessStatusCode;
-            RecordVaultTelemetry("SetClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : "Non-success status", path, clusterId);
+            string? errorMessage = null;
+            if (!success)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to set all vault ClusterSecrets for cluster ID: {clusterId}. Status: {(int)result.StatusCode} {result.StatusCode}, Response: {errorMessage}");
+            }
+            RecordVaultTelemetry("SetClusterSecrets", sw.ElapsedMilliseconds, success, ((int)result.StatusCode).ToString(), success ? null : (errorMessage ?? "Non-success status"), path, clusterId);
             return success;
         }
         catch (Exception ex)

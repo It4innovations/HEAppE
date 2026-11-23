@@ -78,9 +78,9 @@ fi
 
 echo "=========================================================="
 if [ "$TEST_FAILED" = true ]; then
-    echo "❌ Some tests failed!"
+    echo "[FAILED] Some tests failed!"
     exit 1
 else
-    echo "✅ All tests passed successfully!"
+    echo "[PASSED] All tests passed successfully!"
 fi
 echo "=========================================================="

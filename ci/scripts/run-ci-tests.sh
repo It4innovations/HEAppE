@@ -75,10 +75,10 @@ run_phase() {
     set -e
 
     if [ $exit_code -ne 0 ]; then
-        echo -e "\033[1;31m❌ Phase '${phase_title}' FAILED (Exit Code: $exit_code)\033[0m"
+        echo -e "\033[1;31m[FAILED] Phase '${phase_title}' FAILED (Exit Code: $exit_code)\033[0m"
         OVERALL_EXIT_CODE=$exit_code
     else
-        echo -e "\033[1;32m✅ Phase '${phase_title}' PASSED\033[0m"
+        echo -e "\033[1;32m[PASSED] Phase '${phase_title}' PASSED\033[0m"
     fi
     end_section "$phase_id"
 }
@@ -121,8 +121,8 @@ chmod -R 777 /workspace/TestResults 2>/dev/null || true
 rm -rf /workspace/.nuget 2>/dev/null || true
 
 if [ $OVERALL_EXIT_CODE -ne 0 ]; then
-    echo -e "\033[1;31m❌ Test suite failed with exit code $OVERALL_EXIT_CODE\033[0m"
+    echo -e "\033[1;31m[FAILED] Test suite failed with exit code $OVERALL_EXIT_CODE\033[0m"
     exit $OVERALL_EXIT_CODE
 else
-    echo -e "\033[1;32m🎉 All test phases completed successfully!\033[0m"
+    echo -e "\033[1;32m[PASSED] All test phases completed successfully!\033[0m"
 fi

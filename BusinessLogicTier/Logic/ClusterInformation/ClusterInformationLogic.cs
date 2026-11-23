@@ -103,7 +103,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id, _expirioService, _expirioToken, _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        return await scheduler.GetCurrentClusterNodeUsageAsync(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        return await scheduler.GetCurrentClusterNodeUsageAsync(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
     }
 
     public async Task<string> GetMachineArchitectureAsync(long clusterNodeTypeId, AdaptorUser loggedUser, long projectId)
@@ -158,7 +158,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        var result = await scheduler.GetMachineArchitectureAsync(cluster, machineId, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var result = await scheduler.GetMachineArchitectureAsync(cluster, machineId, serviceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
         _logger.LogInformation($"GetMachineArchitectureAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, machineId: {machineId}, response size: {result?.Length ?? 0} characters.");
         return result;
     }
@@ -222,13 +222,13 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 machineId,
                 serviceAccount,
                 _httpContextKeys.Context.SshCaToken,
-                _httpContextKeys.Context.LEXISToken);
+                _expirioToken);
 
             var qschedulerVersionResponse = await scheduler.GetQSchedulerVersionAsync(
                 cluster,
                 serviceAccount,
                 _httpContextKeys.Context.SshCaToken,
-                _httpContextKeys.Context.LEXISToken);
+                _expirioToken);
 
             if (string.IsNullOrWhiteSpace(machineInfoResponse))
             {
@@ -343,7 +343,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        var result = await scheduler.GetMachineCalibrationAsync(cluster, machineId, calibrationId, endpoint, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
+        var result = await scheduler.GetMachineCalibrationAsync(cluster, machineId, calibrationId, endpoint, serviceAccount, _httpContextKeys.Context.SshCaToken, _expirioToken);
         _logger.LogInformation($"GetMachineCalibrationAsync logic tier completed. clusterNodeTypeId: {clusterNodeTypeId}, machineId: {machineId}, response size: {result?.Length ?? 0} characters.");
         return result;
     }
@@ -379,7 +379,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             var commandTemplateParameters = new List<string> { scriptPath };
             var scriptParams = (await SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService, _expirioToken, _logger)
-                .GetParametersFromGenericUserScriptAsync(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken)).ToList();
+                .GetParametersFromGenericUserScriptAsync(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken, _expirioToken)).ToList();
             commandTemplateParameters.AddRange(scriptParams);
             return commandTemplateParameters;
         }
@@ -792,7 +792,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 #pragma warning disable IDE1006
     private string _expirioToken
     {
-        get => !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken) ? _httpContextKeys.Context.LEXISToken : _httpContextKeys.Context.IdpToken;
+        get => _httpContextKeys.Context.ExpirioToken;
     }
 #pragma warning restore IDE1006
 }

@@ -138,6 +138,7 @@ public class CredentialValidator : AbstractValidator
         {
             CreateCredentialModel ext => ValidateCreateCredentialModel(ext),
             GetCredentialsModel ext => ValidateGetCredentialsModel(ext),
+            GetOrCreatePersonalCredentialModel ext => ValidateGetOrCreatePersonalCredentialModel(ext),
             ModifyCredentialModel ext => ValidateModifyCredentialModel(ext),
             RemoveCredentialModel ext => ValidateRemoveCredentialModel(ext),
             _ => string.Empty
@@ -209,6 +210,16 @@ public class CredentialValidator : AbstractValidator
         if (ext.AdaptorUserId.HasValue)
             ValidateId(ext.AdaptorUserId.Value, "AdaptorUserId");
 
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateGetOrCreatePersonalCredentialModel(GetOrCreatePersonalCredentialModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) 
+            _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(ext.ProjectId, "ProjectId");
         return _messageBuilder.ToString();
     }
 

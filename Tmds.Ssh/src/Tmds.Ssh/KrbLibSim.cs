@@ -41,7 +41,8 @@ public sealed class KrbLibSim
     private static Krb5Config s_krb5Conf;
     private static string s_ticketCachePath;
     
-    private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
+    private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches = new();
+    private static readonly ConcurrentDictionary<string, DateTimeOffset> s_lastAccessed = new();
     private static ILoggerFactory s_loggerFactory;
     private static ILogger s_logger;
     private static int s_ticketValidityBufferSeconds = 300; // invalidates ticket, on HasTicket(), if less than this seconds remain.
@@ -53,6 +54,7 @@ public sealed class KrbLibSim
     public const bool USE_MEMORY_CACHE = true; // true: the ticket cache is in memory; false: ticket cache is in file.
     public const bool ENABLED = true; // enable or disable this library.
     public const int CLEAN_CACHE_INTERVAL_MINUTES = 60; // cache cleaning interval, in minutes; 0: no background cleaning task.
+    public const int INACTIVE_TICKET_TIMEOUT_HOURS = 4; // cache eviction after hours of inactivity; 0: disabled.
     /********************************/
 
     #region constructor
@@ -66,7 +68,6 @@ public sealed class KrbLibSim
 
         if(USE_MEMORY_CACHE)
         {
-            s_ticketCaches = new ConcurrentDictionary<string, Krb5TicketCache>();
             // start the cleaning background task
             if(CLEAN_CACHE_INTERVAL_MINUTES > 0)
             {
@@ -93,12 +94,27 @@ public sealed class KrbLibSim
                 return;
             }
 
-            s_krb5Conf = GetConfigurationFile();
-            
-            // expects the DefaultCCacheName property to be set in krb5.conf file
-            s_ticketCachePath = s_krb5Conf.Defaults.DefaultCCacheName?.Contains(":") == true
-                ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
-                : s_krb5Conf.Defaults.DefaultCCacheName ?? "";
+            try
+            {
+                string configFilePath = GetConfigFilePath();
+                if (File.Exists(configFilePath))
+                {
+                    s_krb5Conf = GetConfigurationFile();
+                    
+                    // expects the DefaultCCacheName property to be set in krb5.conf file
+                    s_ticketCachePath = s_krb5Conf.Defaults?.DefaultCCacheName?.Contains(":") == true
+                        ? s_krb5Conf.Defaults.DefaultCCacheName.Split(":")[1]
+                        : s_krb5Conf?.Defaults?.DefaultCCacheName ?? "";
+                }
+                else
+                {
+                    s_logger?.LogWarning("Kerberos config file does not exist at '{ConfigPath}'. In-memory ticket cache will operate without system krb5.conf.", configFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                s_logger?.LogWarning(ex, "Failed to load krb5.conf during initialization; proceeding with in-memory defaults.");
+            }
                 
             s_initialized = true;
         }
@@ -135,6 +151,10 @@ public sealed class KrbLibSim
     private static string GetUserTicketCachePath(string username)
     {
         EnsureInitialized();
+        if (string.IsNullOrEmpty(s_ticketCachePath))
+        {
+            throw new InvalidOperationException("Ticket cache path is not configured in Kerberos configuration file.");
+        }
         return Path.Join(s_ticketCachePath, TICKET_CACHE_PREFIX + username);
     }
 
@@ -173,7 +193,7 @@ public sealed class KrbLibSim
             }
             catch (Exception ex)
             {
-                s_logger.LogError(ex, "Error during TryCleanCache in background loop");
+                s_logger?.LogError(ex, "Error during TryCleanCache in background loop");
             }
             await Task.Delay(s_cleanCacheInterval).ConfigureAwait(false);
         }
@@ -189,6 +209,11 @@ public sealed class KrbLibSim
     public static Auth CreateAuth(string username, string service, bool useDelegatedCredentials)
     {
         EnsureInitialized();
+        if (s_krb5Conf == null)
+        {
+            throw new InvalidOperationException($"Kerberos configuration file does not exist at location '{GetConfigFilePath()}'.");
+        }
+        s_lastAccessed[username] = DateTimeOffset.UtcNow;
         return new Auth(s_krb5Conf, username, service, useDelegatedCredentials);
     }
 
@@ -198,8 +223,27 @@ public sealed class KrbLibSim
     /// </summary>
     public static string AddOrUpdateTicketCache(byte[] ticketCacheBytes)
     {
+        EnsureInitialized();
+
         var ticketCache = new Krb5TicketCache(ticketCacheBytes, s_loggerFactory);
-        s_ticketCaches[GetMemoryCacheId(ticketCache)] = ticketCache;
+        string key = GetMemoryCacheId(ticketCache);
+        s_ticketCaches.AddOrUpdate(
+            key,
+            ticketCache,
+            (k, existing) =>
+            {
+                try
+                {
+                    existing.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    s_logger?.LogWarning(ex, "Error disposing replaced ticket cache");
+                }
+                return ticketCache;
+            });
+
+        s_lastAccessed[key] = DateTimeOffset.UtcNow;
         return ticketCache.Krb5Cache.DefaultPrincipalName.FullyQualifiedName; // username
     }
 
@@ -213,11 +257,21 @@ public sealed class KrbLibSim
         {
             if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
             {
-                var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
-                if (cacheEntry == null)
+                string realm = !string.IsNullOrEmpty(ticketCache.DefaultDomain)
+                    ? ticketCache.DefaultDomain
+                    : s_krb5Conf?.Defaults?.DefaultRealm;
+                var cacheEntry = !string.IsNullOrEmpty(realm)
+                    ? ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{realm}")
+                    : default;
+                if (cacheEntry.KdcResponse == null)
                     return false;
                 // returns true if the ticket is valid, false if not (anticipates the expiration by buffer seconds)
-                return DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(s_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
+                bool isValid = DateTimeOffset.Compare(DateTimeOffset.Now.AddSeconds(s_ticketValidityBufferSeconds), cacheEntry.EndTime) < 0;
+                if (isValid)
+                {
+                    s_lastAccessed[username] = DateTimeOffset.UtcNow;
+                }
+                return isValid;
             }
             else
                 return false;
@@ -227,24 +281,93 @@ public sealed class KrbLibSim
     }
 
     /// <summary>
-    /// Removes expired tickets.
+    /// Removes expired tickets and inactive sessions from memory cache.
     /// </summary>
     public static void TryCleanCache()
     {
-        if (!s_initialized)
+        EnsureInitialized();
+
+        if (s_ticketCaches == null)
         {
             return;
         }
 
-        foreach(string user in s_ticketCaches.Keys.ToList())
+        string defaultRealm = s_krb5Conf?.Defaults?.DefaultRealm;
+        DateTimeOffset now = DateTimeOffset.Now;
+        DateTimeOffset nowWithBuffer = now.AddSeconds(s_ticketValidityBufferSeconds);
+
+        foreach (string user in s_ticketCaches.Keys.ToList())
         {
-            if(s_ticketCaches.TryGetValue(user, out Krb5TicketCache ticketCache))
+            try
             {
-                var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
-                if(DateTimeOffset.Compare(DateTimeOffset.Now, cacheEntry.EndTime) > 0)
+                if (!s_ticketCaches.TryGetValue(user, out Krb5TicketCache ticketCache))
                 {
-                    s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(user, ticketCache));
+                    continue;
                 }
+
+                bool shouldRemove = false;
+                string reason = string.Empty;
+
+                string realm = !string.IsNullOrEmpty(ticketCache.DefaultDomain)
+                    ? ticketCache.DefaultDomain
+                    : defaultRealm;
+                var cacheEntry = !string.IsNullOrEmpty(realm)
+                    ? ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{realm}")
+                    : default;
+
+                if (cacheEntry.KdcResponse == null)
+                {
+                    shouldRemove = true;
+                    reason = "missing or invalid krbtgt entry";
+                }
+                else if (DateTimeOffset.Compare(nowWithBuffer, cacheEntry.EndTime) >= 0)
+                {
+                    shouldRemove = true;
+                    reason = $"expired (EndTime: {cacheEntry.EndTime}, buffer: {s_ticketValidityBufferSeconds}s)";
+                }
+                else if (INACTIVE_TICKET_TIMEOUT_HOURS > 0 &&
+                         s_lastAccessed.TryGetValue(user, out var lastAccess) &&
+                         DateTimeOffset.UtcNow - lastAccess > TimeSpan.FromHours(INACTIVE_TICKET_TIMEOUT_HOURS))
+                {
+                    shouldRemove = true;
+                    reason = $"inactive for over {INACTIVE_TICKET_TIMEOUT_HOURS} hours";
+                }
+
+                if (shouldRemove)
+                {
+                    if (s_ticketCaches.TryRemove(new KeyValuePair<string, Krb5TicketCache>(user, ticketCache)))
+                    {
+                        try
+                        {
+                            ticketCache.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            s_logger?.LogWarning(ex, $"Error disposing ticket cache for user '{user}'.");
+                        }
+
+                        s_lastAccessed.TryRemove(user, out _);
+                        s_logger?.LogDebug($"Cleaned up Kerberos ticket cache for user '{user}': {reason}.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                s_logger?.LogWarning(ex, $"Failed to inspect ticket cache for user '{user}', removing entry.");
+                if (s_ticketCaches.TryRemove(user, out var corruptCache))
+                {
+                    try { corruptCache.Dispose(); } catch { }
+                }
+                s_lastAccessed.TryRemove(user, out _);
+            }
+        }
+
+        // Clean up orphan lastAccessed entries
+        foreach (string user in s_lastAccessed.Keys.ToList())
+        {
+            if (!s_ticketCaches.ContainsKey(user))
+            {
+                s_lastAccessed.TryRemove(user, out _);
             }
         }
     }
@@ -256,8 +379,62 @@ public sealed class KrbLibSim
     {
         if (s_ticketCaches != null && !string.IsNullOrEmpty(username))
         {
-            s_ticketCaches.TryRemove(username, out _);
+            if (s_ticketCaches.TryRemove(username, out var ticketCache))
+            {
+                try
+                {
+                    ticketCache.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    s_logger?.LogWarning(ex, $"Error disposing ticket cache for user '{username}' during invalidation.");
+                }
+            }
+            s_lastAccessed.TryRemove(username, out _);
             s_logger?.LogInformation($"Invalidated Kerberos ticket cache for user '{username}'.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the count of cached user tickets in memory.
+    /// </summary>
+    public static int CachedTicketsCount => s_ticketCaches?.Count ?? 0;
+
+    /// <summary>
+    /// Checks if ticket cache exists in memory for the given user.
+    /// </summary>
+    public static bool HasCachedTicket(string username) => s_ticketCaches != null && !string.IsNullOrEmpty(username) && s_ticketCaches.ContainsKey(username);
+
+    /// <summary>
+    /// Clears and disposes all ticket caches in memory.
+    /// </summary>
+    public static void ClearAllTickets()
+    {
+        if (s_ticketCaches != null)
+        {
+            foreach (var key in s_ticketCaches.Keys.ToList())
+            {
+                if (s_ticketCaches.TryRemove(key, out var ticketCache))
+                {
+                    try { ticketCache.Dispose(); } catch { }
+                }
+            }
+            s_lastAccessed.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Resets initialization and configuration state for unit testing purposes.
+    /// </summary>
+    public static void ResetInitializationForTesting(Krb5Config? config = null)
+    {
+        lock (s_initLock)
+        {
+            s_krb5Conf = config;
+            s_ticketCachePath = config?.Defaults?.DefaultCCacheName?.Contains(":") == true
+                ? config.Defaults.DefaultCCacheName.Split(":")[1]
+                : config?.Defaults?.DefaultCCacheName ?? "";
+            s_initialized = true;
         }
     }
 

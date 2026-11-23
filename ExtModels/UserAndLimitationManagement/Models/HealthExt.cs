@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -81,9 +81,13 @@ public class HealthExt
                 [Description("Vault is in performance stand by")]
                 public bool PerformanceStandby { get; set; }
 
+                [DataMember(Name = "AuthHealthy")]
+                [Description("Vault authentication is healthy")]
+                public bool? AuthHealthy { get; set; }
+
                 public override string ToString()
                 {
-                    return $"VaultInfo_(Initialized={Initialized}; Sealed={@Sealed}; StandBy={StandBy},PerformanceStandby={PerformanceStandby})";
+                    return $"VaultInfo_(Initialized={Initialized}; Sealed={@Sealed}; StandBy={StandBy}; PerformanceStandby={PerformanceStandby}; AuthHealthy={AuthHealthy})";
                 }
             }
         }

@@ -1,0 +1,36 @@
+# Gitleaks baseline / ignored findings
+# Mock seed configs with dev test passwords
+288420030d031b7236a51c68c8840b44a85ce47f:deploy/helm/heappe/seed.njson:generic-api-key:7
+288420030d031b7236a51c68c8840b44a85ce47f:seed.ci.njson:generic-api-key:7
+4171bfae4689ef57be8aec42106a4d73d4d33809:app/confs/seed.njson:generic-api-key:7
+
+# Test scripts
+46d7c696e3281737d2738be1912d37593af7ac78:Scripts/test.sh:generic-api-key:3
+
+# Historical dummy test tokens in LexisTokenExchangeMiddleware (already removed in HEAD)
+e4c54b5500059ae42fb641dd5f4be56d3fd473cc:BusinessLogicTier/AuthMiddleware/LexisTokenExchangeMiddleware.cs:jwt:51
+651111dacde76988b8e8bfde769021789628bb57:BusinessLogicTier/AuthMiddleware/LexisTokenExchangeMiddleware.cs:jwt:42
+3bae0cf60e740af222f07f4d90025b78b346db59:BusinessLogicTier/AuthMiddleware/LexisTokenExchangeMiddleware.cs:jwt:42
+8f8424410402fd1645ea022348f42d5a9e055938:BusinessLogicTier/AuthMiddleware/LexisTokenExchangeMiddleware.cs:jwt:41
+0f6fb1733b61b1fddecb9f2e3314cbd605ecef56:BusinessLogicTier/AuthMiddleware/LexisTokenExchangeMiddleware.cs:jwt:41
+
+# Tmds.Ssh key exchange packet protocol structure fields (false positives)
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeOutput.cs:generic-api-key:15
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeOutput.cs:generic-api-key:18
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeInput.cs:generic-api-key:30
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeInput.cs:generic-api-key:31
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeInput.cs:generic-api-key:32
+ab085af6a86b848278333d677796f44cb2a3b7ce:Tmds.Ssh/src/Tmds.Ssh/KeyExchangeInput.cs:generic-api-key:33
+
+# Historical dummy clientSecret in FireCrestSchedulerAdapter (already removed in HEAD)
+44b5db97d457314a0ffcac1b80ca3cae97160bca:HpcConnectionFramework/SchedulerAdapters/FireCrest/Generic/FireCrestSchedulerAdapter.cs:generic-api-key:221
+afa547edec9bfc782b1c929655ff74bad88e32f5:HpcConnectionFramework/SchedulerAdapters/FireCrest/Generic/FireCrestSchedulerAdapter.cs:generic-api-key:107
+
+# CertificateGenerator PEM template headers (false positives)
+2cd6b262f750d184a14395d3bb07e09f6818be60:CertificateGenerator/Generators/v2/EdDSACertGeneratorV2.cs:private-key:95
+de87b13806666c9c9997e0bf11884fe9d6a4bd78:CertificateGenerator/Generators/RSACertGenerator.cs:private-key:79
+de87b13806666c9c9997e0bf11884fe9d6a4bd78:CertificateGenerator/Generators/ECDsaCertGenerator.cs:private-key:107
+9853e521ea7d1ac69f181671b0d39f87f48d61b6:CertificateGenerator/RSACertGenerator.cs:private-key:60
+9853e521ea7d1ac69f181671b0d39f87f48d61b6:CertificateGenerator/ECDsaCertGenerator.cs:private-key:92
+c6037ed4e69d3a6b5e80306b8daa425fdf72f461:CertificateGenerator/CertificateGenerator.cs:private-key:265
+1057dbcc4cc3f25ae5eece3c45b651a9f52c7ae0:CertificateGenerator/CertificateGenerator.cs:private-key:265

@@ -264,10 +264,28 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 catch (SlurmException taskEx) when ((taskEx.CommandError != null && taskEx.CommandError.Contains("Invalid job id specified")) || (taskEx.Message != null && taskEx.Message.Contains("Invalid job id specified")))
                 {
                     _logger.LogWarning(
-                        $"Scheduled Job id: \"{task.ScheduledJobId}\" is not in Slurm scheduler database (Invalid job id specified). This job will be skipped in active query result (and marked as Failed).");
+                        $"Scheduled Job id: \"{task.ScheduledJobId}\" is not in Slurm active database (Invalid job id specified). Checking sacct for historical state...");
+                    try
+                    {
+                        var historicalTasks = (await GetHistoricalTasksInfoAsync(connectorClient, new List<SubmittedTaskInfo> { task }, null))?.ToList();
+                        var histTask = historicalTasks?.FirstOrDefault(f => f.ScheduledJobId == task.ScheduledJobId);
+                        if (histTask != null && histTask.State != TaskState.Unknown)
+                        {
+                            _logger.LogInformation($"Retrieved historical state for job \"{task.ScheduledJobId}\" from sacct: {histTask.State}");
+                            task.State = histTask.State;
+                            validTasks.Add(task);
+                            continue;
+                        }
+                    }
+                    catch (Exception histEx)
+                    {
+                        _logger.LogWarning(histEx, $"Failed to query sacct for job \"{task.ScheduledJobId}\".");
+                    }
+
+                    _logger.LogWarning(
+                        $"Scheduled Job id: \"{task.ScheduledJobId}\" could not be found in sacct. Marking as Failed.");
                     task.State = TaskState.Failed;
                     validTasks.Add(task);
-                    
                 }
             }
             return validTasks;
