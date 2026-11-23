@@ -43,5 +43,8 @@ EOF
     chown -R "$user:$user" "$user_home"
 done
 
+echo "Ensuring host keys..."
+ssh-keygen -A
+
 echo "Starting SSH daemon..."
 /usr/sbin/sshd -D

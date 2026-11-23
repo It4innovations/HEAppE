@@ -20,8 +20,7 @@ RUN useradd -m -s /bin/bash testuser && \
     echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/testuser
 
 # Configure SSH
-RUN ssh-keygen -A && \
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
     echo "PermitRootLogin prohibit-password" >> /etc/ssh/sshd_config && \
     mkdir -p /shared_keys /var/run/sshd

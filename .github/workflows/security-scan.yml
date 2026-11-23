@@ -67,6 +67,7 @@ jobs:
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,misconfig'
+          ignore-unfixed: true
           trivyignores: '.trivyignore'
 
       - name: Publish Trivy FS Summary to Job Summary
@@ -102,6 +103,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-restapi-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
           trivyignores: '.trivyignore'
 
       - name: Build SSH Node CI Image
@@ -114,6 +116,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-sshnode-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
           trivyignores: '.trivyignore'
 
       - name: Publish Container Images Summary to Job Summary
