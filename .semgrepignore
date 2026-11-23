@@ -5,3 +5,7 @@
 Dockerfile
 **/Dockerfile
 *Dockerfile*
+
+# Exclude third-party test fixtures and test mock credentials
+Tmds.Ssh/test/
+**/Tmds.Ssh.Tests/**

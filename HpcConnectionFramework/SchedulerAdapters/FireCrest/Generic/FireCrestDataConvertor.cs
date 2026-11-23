@@ -140,7 +140,7 @@ public class FirecRestDataConvertor : SchedulerDataConvertor
             }
         }
 
-        var match = Regex.Match(responseMessage, "\"job(?:I|i)d\"\\s*:\\s*(\\d+)");
+        var match = Regex.Match(responseMessage, "\"job(?:I|i)d\"\\s*:\\s*(\\d+)", RegexOptions.None, TimeSpan.FromSeconds(2));
         if (match.Success && match.Groups.Count > 1)
         {
             return new List<string> { match.Groups[1].Value };
