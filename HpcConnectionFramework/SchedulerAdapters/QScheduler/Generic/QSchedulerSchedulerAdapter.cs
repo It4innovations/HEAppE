@@ -1204,9 +1204,10 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
                 continue;
             }
 
-            if (taskInfo.ScheduledJobId.StartsWith("session:"))
+            var id = taskInfo.ScheduledJobId;
+            if (id.StartsWith("session:") && !id.Contains(":task:"))
             {
-                var sessionId = taskInfo.ScheduledJobId.Substring("session:".Length);
+                var sessionId = id.Substring("session:".Length);
                 _logger.LogInformation($"Cancelling QScheduler session {sessionId}.");
                 try
                 {
@@ -1221,9 +1222,17 @@ internal class QSchedulerSchedulerAdapter : ISchedulerAdapter
             }
             else
             {
-                var taskId = taskInfo.ScheduledJobId.StartsWith("task:") 
-                    ? taskInfo.ScheduledJobId.Substring("task:".Length) 
-                    : taskInfo.ScheduledJobId;
+                string taskId;
+                if (id.StartsWith("session:") && id.Contains(":task:"))
+                {
+                    taskId = id.Split(new[] { ":task:" }, StringSplitOptions.None)[1];
+                }
+                else
+                {
+                    taskId = id.StartsWith("task:") 
+                        ? id.Substring("task:".Length) 
+                        : id;
+                }
                 _logger.LogInformation($"Cancelling QScheduler task {taskId}.");
                 try
                 {

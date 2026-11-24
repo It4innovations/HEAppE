@@ -155,28 +155,38 @@ init_status=$(docker compose exec vault vault status -format=json | jq -r '.init
 if [ "$init_status" == "true" ]; then
     echo -e "${GREEN}Vault is already initialized. Running vault unseal procedure.${NC}"
     ./unsealHVault.sh $VAULT_PASSWORD --path $VAULT_FILE --instance-name $INSTANCE_NAME
-    exit 0
+    
+    # Extract root token from Ansible Vault file to ensure policies and AppRole credentials are synchronized
+    echo "Extracting root token from Ansible Vault to verify configuration..."
+    PASSWORD_FILE=$(mktemp)
+    echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
+    DECRYPTED_CONTENT=$(ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" "$VAULT_FILE" --output=- 2>/dev/null)
+    rm -f "$PASSWORD_FILE"
+    root_token=$(echo "$DECRYPTED_CONTENT" | jq -r ".HashiCorpVault_$INSTANCE_NAME.Initial_Root_Token // empty")
+    
+    if [ -z "$root_token" ]; then
+        echo -e "${YELLOW}Warning:${NC} Could not extract root token from $VAULT_FILE for instance $INSTANCE_NAME. Skipping policy/AppRole sync."
+        exit 0
+    fi
 else
     echo -e "${YELLOW}Vault is not initialized.${NC} Initializing Vault..."
-fi
+    # Initialize the Vault
+    init_response=$(docker compose exec vault vault operator init -format=json)
 
-# Initialize the Vault
-init_response=$(docker compose exec vault vault operator init -format=json)
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error:${NC} Vault initialization failed. Exiting."
+        exit 1
+    fi
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Error:${NC} Vault initialization failed. Exiting."
-    exit 1
-fi
+    # Extract the Unseal Keys and Initial Root Token from the response
+    unseal_keys=$(echo "$init_response" | jq -r '.unseal_keys_b64[]')
+    root_token=$(echo "$init_response" | jq -r '.root_token')
 
-# Extract the Unseal Keys and Initial Root Token from the response
-unseal_keys=$(echo "$init_response" | jq -r '.unseal_keys_b64[]')
-root_token=$(echo "$init_response" | jq -r '.root_token')
+    # Convert unseal_keys into a JSON array
+    unseal_keys_json=$(echo "$unseal_keys" | jq -R . | jq -s .)
 
-# Convert unseal_keys into a JSON array
-unseal_keys_json=$(echo "$unseal_keys" | jq -R . | jq -s .)
-
-# Create JSON formatted data
-json_data=$(cat <<EOF
+    # Create JSON formatted data
+    json_data=$(cat <<EOF
 {
   "HashiCorpVault_$INSTANCE_NAME": {
     "Unseal_Keys": $unseal_keys_json,
@@ -186,40 +196,45 @@ json_data=$(cat <<EOF
 EOF
 )
 
-# Append the data to the Ansible Vault file
-sh ./appendToAnsibleVault.sh "$VAULT_PASSWORD" --path "$VAULT_FILE" --data "$json_data"
+    # Append the data to the Ansible Vault file
+    sh ./appendToAnsibleVault.sh "$VAULT_PASSWORD" --path "$VAULT_FILE" --data "$json_data"
 
-# Check if the script failed
-if [ $? -ne 0 ]; then
-  echo -e "${RED}Error:${NC} Failed to append data to Ansible Vault. Exiting."
-  exit 1
+    # Check if the script failed
+    if [ $? -ne 0 ]; then
+      echo -e "${RED}Error:${NC} Failed to append data to Ansible Vault. Exiting."
+      exit 1
+    fi
+
+    # Unsealing Vault
+    echo "Unsealing Vault..."
+    sleep 1s
+
+    # Take the first, second, and third lines and call vault unseal command
+    unseal_key_1=$(echo "$unseal_keys" | sed -n '1p')
+    unseal_key_2=$(echo "$unseal_keys" | sed -n '2p')
+    unseal_key_3=$(echo "$unseal_keys" | sed -n '3p')
+
+    docker compose exec vault vault operator unseal "$unseal_key_1"
+    docker compose exec vault vault operator unseal "$unseal_key_2"
+    docker compose exec vault vault operator unseal "$unseal_key_3"
+
+    echo "Vault unsealed"
 fi
-
-# Unsealing Vault
-echo "Unsealing Vault..."
-sleep 1s
-
-# Take the first, second, and third lines and call vault unseal command
-unseal_key_1=$(echo "$unseal_keys" | sed -n '1p')
-unseal_key_2=$(echo "$unseal_keys" | sed -n '2p')
-unseal_key_3=$(echo "$unseal_keys" | sed -n '3p')
-
-docker compose exec vault vault operator unseal "$unseal_key_1"
-docker compose exec vault vault operator unseal "$unseal_key_2"
-docker compose exec vault vault operator unseal "$unseal_key_3"
-
-echo "Vault unsealed"
 
 echo "Preparing vault..."
 
-docker compose exec -e VAULT_TOKEN=$root_token vault vault secrets enable kv-v2 
-docker compose exec -e VAULT_TOKEN=$root_token vault vault secrets enable -version=2 -path=HEAppE kv-v2
+docker compose exec -e VAULT_TOKEN=$root_token vault vault secrets enable kv-v2 2>/dev/null || true
+docker compose exec -e VAULT_TOKEN=$root_token vault vault secrets enable -version=2 -path=HEAppE kv-v2 2>/dev/null || true
 
-docker compose exec -e VAULT_TOKEN=$root_token vault vault auth enable approle
+docker compose exec -e VAULT_TOKEN=$root_token vault vault auth enable approle 2>/dev/null || true
 
 docker compose exec -e VAULT_TOKEN=$root_token vault sh -c "vault policy write heappe-policy - << EOF
 # List, create, update, and delete key/value secrets
 path \"HEAppE/*\"
+{
+  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"]
+}
+path \"HEAppE/data/*\"
 {
   capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"]
 }
@@ -229,16 +244,16 @@ docker compose exec -e VAULT_TOKEN=$root_token vault vault write auth/approle/ro
     secret_id_ttl=0 \
     token_policies="heappe-policy" \
     token_num_uses=0 \
-    token_ttl=5m \
-    token_max_ttl=10m \
+    token_ttl=1h \
+    token_max_ttl=4h \
     secret_id_num_uses=0
 
-role_id=$(docker compose exec -e VAULT_TOKEN=$root_token vault vault read auth/approle/role/heappe-role/role-id | awk '/role_id/{print $2}')
+role_id=$(docker compose exec -e VAULT_TOKEN=$root_token vault vault read -field=role_id auth/approle/role/heappe-role/role-id)
 sleep 1s
-secret_id=$(docker compose exec -e VAULT_TOKEN=$root_token vault vault write -f auth/approle/role/heappe-role/secret-id | awk '/secret_id/{print $2; exit}')
+secret_id=$(docker compose exec -e VAULT_TOKEN=$root_token vault vault write -f -field=secret_id auth/approle/role/heappe-role/secret-id)
 
-echo $role_id > $BASE_PATH/vault/agent/role_id 
-echo $secret_id > $BASE_PATH/vault/agent/secret_id
+echo "$role_id" > $BASE_PATH/vault/agent/role_id 
+echo "$secret_id" > $BASE_PATH/vault/agent/secret_id
 
 echo "Vault is ready for use"
 

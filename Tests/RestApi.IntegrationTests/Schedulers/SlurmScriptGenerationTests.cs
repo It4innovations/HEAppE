@@ -4,6 +4,7 @@ using System.Text;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using Xunit;
 using FluentAssertions;
@@ -324,5 +325,27 @@ public class SlurmScriptGenerationTests
         var cmd = adapter.AllocationCmd.ToString();
 
         cmd.Should().Contain("echo '\\''preparing job'\\'';echo '\\''running job'\\'';'");
+    }
+
+    [Theory]
+    [InlineData("CANCELLED", TaskState.Canceled)]
+    [InlineData("CANCELLED by 1000", TaskState.Canceled)]
+    [InlineData("CANCELED", TaskState.Canceled)]
+    [InlineData("cancelled by user", TaskState.Canceled)]
+    [InlineData("RUNNING", TaskState.Running)]
+    [InlineData("COMPLETED", TaskState.Finished)]
+    [InlineData("FAILED", TaskState.Failed)]
+    [InlineData("TIMEOUT", TaskState.Failed)]
+    [InlineData("PREEMPTED", TaskState.Failed)]
+    [InlineData("BOOT_FAIL", TaskState.Failed)]
+    [InlineData("REVOKED", TaskState.Failed)]
+    [InlineData("PENDING", TaskState.Queued)]
+    [InlineData("CONFIGURING", TaskState.Queued)]
+    public void SlurmJobInfo_StateMapping_CorrectlyMapsToDomainTaskState(string rawState, TaskState expectedDomainState)
+    {
+        var jobInfo = new SlurmJobInfo(string.Empty, new Dictionary<string, string>());
+        jobInfo.StateName = rawState;
+
+        jobInfo.TaskState.Should().Be(expectedDomainState);
     }
 }

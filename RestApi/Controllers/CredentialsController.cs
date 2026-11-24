@@ -100,6 +100,27 @@ public class CredentialsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets existing personal credentials or automatically generates new 1:1 credentials if missing for a project.
+    /// </summary>
+    [HttpPost("GetOrCreatePersonalCredential")]
+    [RequestSizeLimit(2000)]
+    [ProducesResponseType(typeof(CredentialResponseExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrCreatePersonalCredential([FromBody] GetOrCreatePersonalCredentialModel model)
+    {
+        var validationResult = new CredentialValidator(model).Validate();
+        if (!validationResult.IsValid)
+            throw new InputValidationException(validationResult.Message);
+
+        var result = await _managementService.GetOrCreatePersonalCredential(model.ProjectId, model.SessionCode);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Modifies credential for a project.
     /// </summary>
     [HttpPut("ModifyCredential")]

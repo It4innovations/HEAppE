@@ -29,12 +29,23 @@ public class HEAppEHealth
         HealthExt.HealthComponent_.Vault_.VaultInfo_ result = null;
         if (vaultInfo != null)
             try {
+                bool? authHealthy = null;
+                try
+                {
+                    authHealthy = (bool?)vaultInfo.auth_healthy;
+                }
+                catch
+                {
+                    authHealthy = null;
+                }
+
                 result = new()
                 {
                     Initialized = vaultInfo.initialized,
                     Sealed = vaultInfo.@sealed,
                     StandBy = vaultInfo.standby,
-                    PerformanceStandby = vaultInfo.performance_standby
+                    PerformanceStandby = vaultInfo.performance_standby,
+                    AuthHealthy = authHealthy
                 };
             } catch {
                 result = null;
@@ -84,7 +95,18 @@ public class HEAppEHealth
         if (taskGetVaultHealth.IsCompletedSuccessfully)
         {
             vaultInfo = taskGetVaultHealth.Result;
-            if (vaultInfo != null && vaultInfo.initialized == true && vaultInfo.@sealed == false && vaultInfo.standby == false && vaultInfo.performance_standby == false)
+            bool authHealthy = true;
+            try
+            {
+                if (vaultInfo != null && vaultInfo.auth_healthy != null)
+                    authHealthy = (bool)vaultInfo.auth_healthy;
+            }
+            catch
+            {
+                authHealthy = true;
+            }
+
+            if (vaultInfo != null && vaultInfo.initialized == true && vaultInfo.@sealed == false && vaultInfo.standby == false && vaultInfo.performance_standby == false && authHealthy)
                 vaultIsHealthy = true;
         }
 
@@ -230,7 +252,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
                 vaultInfo = _cacheEntry["vaultInfo"];
             }
 
-            if (vaultInfo != null && vaultInfo.Initialized == true && vaultInfo.@Sealed == false && vaultInfo.StandBy == false && vaultInfo.PerformanceStandby == false)
+            if (vaultInfo != null && vaultInfo.Initialized == true && vaultInfo.@Sealed == false && vaultInfo.StandBy == false && vaultInfo.PerformanceStandby == false && (vaultInfo.AuthHealthy == null || vaultInfo.AuthHealthy == true))
                 result = HealthCheckResult.Healthy(null, _cacheEntry);
             else
                 result = HealthCheckResult.Unhealthy(null, null, _cacheEntry);
@@ -259,6 +281,23 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
             var result = await response.Content.ReadAsStringAsync(cts.Token);
             var responseObj = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
             logger.LogInformation("Obtained health information");
+
+            if (responseObj != null)
+            {
+                var dict = (IDictionary<string, object>)responseObj;
+                try
+                {
+                    var tokenUri = new Uri(baseUri, "v1/auth/token/lookup-self");
+                    using var tokenRequest = new HttpRequestMessage(HttpMethod.Get, tokenUri);
+                    using var tokenResponse = await _healthHttpClient.SendAsync(tokenRequest, cts.Token);
+                    dict["auth_healthy"] = tokenResponse.IsSuccessStatusCode;
+                }
+                catch
+                {
+                    dict["auth_healthy"] = false;
+                }
+            }
+
             return responseObj;
         }
         catch (Exception e)

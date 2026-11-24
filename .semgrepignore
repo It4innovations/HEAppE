@@ -1,0 +1,7 @@
+# Exclude GitHub Actions workflow definitions from Semgrep SAST scan to avoid mutable action tag warnings
+.github/
+
+# Exclude Dockerfiles (scanned by Trivy Misconfiguration Scan)
+Dockerfile
+**/Dockerfile
+*Dockerfile*

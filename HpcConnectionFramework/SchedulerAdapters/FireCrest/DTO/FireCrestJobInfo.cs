@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -248,10 +248,31 @@ public class FirecRestJobInfo : ISchedulerJobInfo
     /// <returns></returns>
     private static FirecRestTaskState MappingTaskState(string state)
     {
-        state = state.Replace("_", string.Empty)
-            .Trim()
-            .ToLower();
-        return Enum.TryParse(state, true, out FirecRestTaskState taskState)
+        if (string.IsNullOrWhiteSpace(state))
+        {
+            return FirecRestTaskState.Failed;
+        }
+
+        state = state.Trim();
+
+        if (state.StartsWith("CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+            state.StartsWith("CANCELED", StringComparison.OrdinalIgnoreCase))
+        {
+            return FirecRestTaskState.Canceled;
+        }
+
+        if (state.StartsWith("BOOT_FAIL", StringComparison.OrdinalIgnoreCase))
+        {
+            return FirecRestTaskState.BootFailed;
+        }
+
+        if (state.StartsWith("REVOKED", StringComparison.OrdinalIgnoreCase))
+        {
+            return FirecRestTaskState.Revoked;
+        }
+
+        var normalizedState = state.Replace("_", string.Empty).ToLower();
+        return Enum.TryParse(normalizedState, true, out FirecRestTaskState taskState)
             ? taskState
             : FirecRestTaskState.Failed;
     }

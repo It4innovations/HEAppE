@@ -44,7 +44,7 @@ public static class UsernameResolutionHelper
         if (firecrestClusterProject != null)
         {
             logger.LogWarning($"ResolveUsernameFromContextAsync: Firecrest cluster detected for project {project.Id} (Cluster: {firecrestClusterProject.Cluster.Name}). Bypassing SSH CA resolution.");
-            var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
+            var token = httpContextKeys.Context.ExpirioToken;
             if (!string.IsNullOrEmpty(token))
             {
                 try
@@ -160,8 +160,7 @@ public static class UsernameResolutionHelper
                 if (attemptKerberos)
                 {
                     logger.LogWarning("ResolveUsernameFromContextAsync: Attempting Kerberos enriched username resolution.");
-                    var token = httpContextKeys.Context.GetExchangedToken("expirio")
-                        ?? (!string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken);
+                    var token = httpContextKeys.Context.ExpirioToken;
                     if (!string.IsNullOrEmpty(token))
                     {
                         try
@@ -198,24 +197,63 @@ public static class UsernameResolutionHelper
 
             if (allowJwtResolution)
             {
-                logger.LogWarning("ResolveUsernameFromContextAsync: Attempting JWT preferred_username resolution.");
-                var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
-                if (!string.IsNullOrEmpty(token))
+                logger.LogWarning("ResolveUsernameFromContextAsync: Attempting preferred_username resolution.");
+
+                // 3a. From ClaimsPrincipal if present
+                if (httpContextKeys.Context.ClaimsPrincipal != null)
                 {
-                    try 
+                    var principalUsername = httpContextKeys.Context.ClaimsPrincipal.FindFirst("preferred_username")?.Value
+                               ?? httpContextKeys.Context.ClaimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                    if (!string.IsNullOrEmpty(principalUsername))
                     {
-                        var decoded = JwtTokenDecoder.Decode(token);
-                        if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
-                            username = decoded.PreferedUsername;
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
-                        } else if (project != null) {
-                            username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                        if (!principalUsername.Contains('@'))
+                        {
+                            username = principalUsername;
+                            logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal resolved username: {username}");
+                        }
+                        else
+                        {
+                            logger.LogWarning($"ResolveUsernameFromContextAsync: ClaimsPrincipal preferred_username '{principalUsername}' contains '@' and is not a valid cluster POSIX username. Ignoring.");
                         }
                     }
-                    catch (Exception ex)
+                }
+
+                // 3b. From AdaptorUser.Username if user exists in DB
+                if (string.IsNullOrEmpty(username) && adaptorUserId.HasValue)
+                {
+                    var user = unitOfWork.AdaptorUserRepository?.GetById(adaptorUserId.Value);
+                    if (user != null && !string.IsNullOrEmpty(user.Username))
                     {
-                        logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                        username = user.Username;
+                        logger.LogWarning($"ResolveUsernameFromContextAsync: AdaptorUser.Username resolved username: {username}");
+                    }
+                }
+
+                // 3c. From decoded token
+                if (string.IsNullOrEmpty(username))
+                {
+                    var token = !string.IsNullOrEmpty(httpContextKeys.Context.IdpToken) ? httpContextKeys.Context.IdpToken : httpContextKeys.Context.LEXISToken;
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        try 
+                        {
+                            var decoded = JwtTokenDecoder.Decode(token);
+                            if (!string.IsNullOrEmpty(decoded.PreferedUsername)) {
+                                if (!decoded.PreferedUsername.Contains('@')) {
+                                    username = decoded.PreferedUsername;
+                                    logger.LogWarning($"ResolveUsernameFromContextAsync: JWT resolved username: {username}");
+                                } else {
+                                    logger.LogWarning($"ResolveUsernameFromContextAsync: JWT preferred_username '{decoded.PreferedUsername}' contains '@' and is not a valid cluster POSIX username. Ignoring.");
+                                }
+                            } else if (project != null) {
+                                username = StringUtils.GenerateUsername(adaptorUserId ?? 0, project.AccountingString);
+                                logger.LogWarning($"ResolveUsernameFromContextAsync: StringUtils.GenerateUsername resolved username: {username}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to decode JWT token for username resolution.");
+                        }
                     }
                 }
             }
