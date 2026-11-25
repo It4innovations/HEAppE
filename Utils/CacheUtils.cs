@@ -26,6 +26,47 @@ public static class CacheUtils
     public static CancellationToken UserPermissionsResetToken => _userPermissionsResetToken.Token;
 
     /// <summary>
+    /// Returns the memory cache key for an AdaptorUser cached by user ID.
+    /// </summary>
+    public static string GetUserByIdCacheKey(long userId)
+    {
+        return $"UserById_{userId}";
+    }
+
+    /// <summary>
+    /// Returns the memory cache key for an AdaptorUser cached by username.
+    /// </summary>
+    public static string GetUserByNameCacheKey(string username)
+    {
+        return $"UserByName_{username.ToLowerInvariant()}";
+    }
+
+    /// <summary>
+    /// Evicts cached AdaptorUser entries by user ID and, when provided, by username.
+    /// </summary>
+    public static void EvictUserCache(IMemoryCache cache, long userId, string username = null, ILogger logger = null)
+    {
+        if (cache == null) return;
+
+        try
+        {
+            if (userId > 0)
+            {
+                cache.Remove(GetUserByIdCacheKey(userId));
+            }
+
+            if (!string.IsNullOrEmpty(username))
+            {
+                cache.Remove(GetUserByNameCacheKey(username));
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogDebug(ex, "Failed to evict user cache for user {UserId} ({Username})", userId, username);
+        }
+    }
+
+    /// <summary>
     /// Removes a specific key from the cache with logging.
     /// </summary>
     public static void RemoveKeyFromCache(this IMemoryCache _cacheProvider, ILogger _logger, string key,

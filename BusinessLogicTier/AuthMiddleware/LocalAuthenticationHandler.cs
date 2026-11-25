@@ -85,7 +85,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
                 _logger.LogDebug($"[LocalAuth] Looking up user: {username}");
                 
-                string userCacheKey = $"UserByName_{username}";
+                string userCacheKey = HEAppE.Utils.CacheUtils.GetUserByNameCacheKey(username);
                 if (!_cache.TryGetValue(userCacheKey, out AdaptorUser user))
                 {
                     user = unitOfWork.AdaptorUserRepository.GetByName(username);
