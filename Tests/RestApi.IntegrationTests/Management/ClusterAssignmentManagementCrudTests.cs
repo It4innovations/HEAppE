@@ -147,6 +147,7 @@ public class ClusterAssignmentManagementCrudTests : ManagementTestBase
             fetchedAssignment.Should().NotBeNull();
             fetchedAssignment.ProjectId.Should().Be(projectId);
             fetchedAssignment.ClusterId.Should().Be(clusterId);
+            fetchedAssignment.PreferredAuthType.Should().Be(ClusterAuthenticationCredentialsAuthTypeExt.Password);
 
             // List Assignments for Project
             var projectAssignments = await _client.GetJsonAsync<List<ClusterProjectExt>>(

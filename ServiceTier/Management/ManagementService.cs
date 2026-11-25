@@ -293,7 +293,7 @@ public class ManagementService : IManagementService
         string sessionCode)
     {
         _logger.LogInformation(
-            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
+            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}, PreferredAuthType: {preferredAuthType}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -308,7 +308,7 @@ public class ManagementService : IManagementService
         string sessionCode)
     {
         _logger.LogInformation(
-            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
+            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}, PreferredAuthType: {preferredAuthType}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
