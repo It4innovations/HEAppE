@@ -16,70 +16,103 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
+    private static readonly TimeSpan _credentialsCacheTtl = TimeSpan.FromMinutes(30);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (Lazy<Task<ClusterProjectCredentialVaultPart>> Task, DateTime ExpiresAtUtc)> _credentialsCache =
+        new();
+
+    private readonly HttpClient _httpClient;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, (Lazy<Task<ClusterProjectCredentialVaultPart>> Task, DateTime ExpiresAtUtc)> _cache;
+    private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
+    private readonly ILogger _logger;
+
     public VaultConnector() : this(Microsoft.Extensions.Logging.Abstractions.NullLogger<VaultConnector>.Instance)
     {
     }
 
-    public VaultConnector(ILogger logger)
+    public VaultConnector(ILogger logger) : this(logger, _sharedHttpClient, _credentialsCache)
     {
-        _logger = logger;
+    }
+
+    internal VaultConnector(
+        ILogger logger,
+        HttpClient httpClient,
+        System.Collections.Concurrent.ConcurrentDictionary<long, (Lazy<Task<ClusterProjectCredentialVaultPart>> Task, DateTime ExpiresAtUtc)> cache = null)
+    {
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<VaultConnector>.Instance;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _cache = cache ?? _credentialsCache;
     }
 
     // Static HttpClient prevents Socket Exhaustion issues
-    private static readonly HttpClient _httpClient = new HttpClient {
+    private static readonly HttpClient _sharedHttpClient = new HttpClient {
         BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress),
         Timeout = TimeSpan.FromSeconds(VaultConnectorSettings.ConnectionTimeoutInSeconds)
     };
 
-    private static readonly TimeSpan _credentialsCacheTtl = TimeSpan.FromMinutes(30);
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (Task<ClusterProjectCredentialVaultPart> Task, DateTime ExpiresAtUtc)> _credentialsCache =
-        new System.Collections.Concurrent.ConcurrentDictionary<long, (Task<ClusterProjectCredentialVaultPart> Task, DateTime ExpiresAtUtc)>();
-
-    private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
-    private readonly ILogger _logger;
+    private void RemoveCacheEntryIfMatches(
+        long id,
+        (Lazy<Task<ClusterProjectCredentialVaultPart>> Task, DateTime ExpiresAtUtc) entry)
+    {
+        _cache.TryRemove(
+            new KeyValuePair<long, (Lazy<Task<ClusterProjectCredentialVaultPart>> Task, DateTime ExpiresAtUtc)>(id, entry));
+    }
 
     /// <summary>
     /// Get cluster authentication credentials with cache support.
     /// Uses a static cache shared across all instances of the connector.
+    /// Empty (failed/not-found) results are never retained in the cache so subsequent requests retry Vault.
     /// </summary>
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
         _logger.LogDebug($"Fetching credentials for ID: {id} from Vault.");
-        
-        if (_credentialsCache.TryGetValue(id, out var entry))
+
+        if (_cache.TryGetValue(id, out var entry))
         {
             if (DateTime.UtcNow < entry.ExpiresAtUtc)
             {
                 try
                 {
-                    return await entry.Task;
+                    var cached = await entry.Task.Value;
+                    if (cached != ClusterProjectCredentialVaultPart.Empty)
+                    {
+                        return cached;
+                    }
+
+                    RemoveCacheEntryIfMatches(id, entry);
                 }
                 catch
                 {
-                    _credentialsCache.TryRemove(id, out _);
+                    RemoveCacheEntryIfMatches(id, entry);
                     throw;
                 }
             }
             else
             {
-                _credentialsCache.TryRemove(id, out _);
+                RemoveCacheEntryIfMatches(id, entry);
             }
         }
 
         var expiresAt = DateTime.UtcNow.Add(_credentialsCacheTtl);
-        var newTask = GetClusterAuthenticationCredentialsInternal(id);
-        var newEntry = _credentialsCache.AddOrUpdate(id,
-            _ => (newTask, expiresAt),
-            (_, existing) => DateTime.UtcNow < existing.ExpiresAtUtc ? existing : (newTask, expiresAt));
+        var lazyTask = new Lazy<Task<ClusterProjectCredentialVaultPart>>(() => GetClusterAuthenticationCredentialsInternal(id));
+        var newEntry = (Task: lazyTask, ExpiresAtUtc: expiresAt);
+        var activeEntry = _cache.AddOrUpdate(
+            id,
+            _ => newEntry,
+            (_, existing) => DateTime.UtcNow < existing.ExpiresAtUtc ? existing : newEntry);
 
         try
         {
-            return await newEntry.Task;
+            var result = await activeEntry.Task.Value;
+            if (result == ClusterProjectCredentialVaultPart.Empty)
+            {
+                RemoveCacheEntryIfMatches(id, activeEntry);
+            }
+            return result;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to fetch credentials for ID {id} from Vault: {ex.Message}");
-            _credentialsCache.TryRemove(id, out _);
+            RemoveCacheEntryIfMatches(id, activeEntry);
             throw;
         }
     }
@@ -144,7 +177,16 @@ public class VaultConnector : IVaultConnector
             if (success)
             {
                 _logger.LogDebug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
-                _credentialsCache[data.Id] = (Task.FromResult(data), DateTime.UtcNow.Add(_credentialsCacheTtl));
+                if (data != ClusterProjectCredentialVaultPart.Empty)
+                {
+                    var cachedValue = new Lazy<Task<ClusterProjectCredentialVaultPart>>(() => Task.FromResult(data));
+                    _ = cachedValue.Value;
+                    _cache[data.Id] = (cachedValue, DateTime.UtcNow.Add(_credentialsCacheTtl));
+                }
+                else
+                {
+                    _cache.TryRemove(data.Id, out _);
+                }
                 return true;
             }
 
@@ -183,7 +225,7 @@ public class VaultConnector : IVaultConnector
             if (success)
             {
                 _logger.LogDebug($"Deleted vault ClusterProjectCredential with ID: {id}");
-                _credentialsCache.TryRemove(id, out _);
+                _cache.TryRemove(id, out _);
             }
         }
         catch (Exception ex)

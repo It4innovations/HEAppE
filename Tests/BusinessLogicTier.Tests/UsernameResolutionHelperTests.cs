@@ -13,6 +13,7 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Services.Expirio;
+using HEAppE.Services.Expirio.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
@@ -160,5 +161,85 @@ public class UsernameResolutionHelperTests
             project: project);
 
         resolved.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResolveUsernameFromContextAsync_WhenKerberosExpirioFails_ShouldThrowAndNotFallbackToJwt()
+    {
+        var validToken = CreateJwtToken("posixuser");
+        _mockRequestContext.Setup(x => x.IdpToken).Returns(validToken);
+        _mockRequestContext.Setup(x => x.ExpirioToken).Returns("expirio-token");
+
+        var project = new Project
+        {
+            Id = 59,
+            IsOneToOneMapping = true,
+            AccountingString = "proj59"
+        };
+
+        _mockClusterProjectRepo.Setup(x => x.AsQueryable()).Returns(new List<ClusterProject>
+        {
+            new()
+            {
+                ProjectId = 59,
+                IsDeleted = false,
+                PreferredAuthType = ClusterAuthenticationCredentialsAuthType.Kerberos
+            }
+        }.AsQueryable());
+
+        _mockExpirioService
+            .Setup(x => x.GetEnrichedUsernameAsync("expirio-token", _mockLogger.Object, default))
+            .ThrowsAsync(new ExpirioUpstreamException("Bad Gateway on Expirio Kerberos ticket exchange request"));
+
+        var act = () => UsernameResolutionHelper.ResolveUsernameFromContextAsync(
+            _mockUnitOfWork.Object,
+            _mockSshCaService.Object,
+            _mockHttpContextKeys.Object,
+            _mockExpirioService.Object,
+            _mockLogger.Object,
+            adaptorUserId: 3,
+            project: project);
+
+        await act.Should().ThrowAsync<ExpirioUpstreamException>();
+    }
+
+    [Fact]
+    public async Task ResolveUsernameFromContextAsync_WhenKerberosExpirioReturnsNull_ShouldFallbackToJwt()
+    {
+        var validToken = CreateJwtToken("posixuser");
+        _mockRequestContext.Setup(x => x.IdpToken).Returns(validToken);
+        _mockRequestContext.Setup(x => x.ExpirioToken).Returns("expirio-token");
+
+        var project = new Project
+        {
+            Id = 59,
+            IsOneToOneMapping = true,
+            AccountingString = "proj59"
+        };
+
+        _mockClusterProjectRepo.Setup(x => x.AsQueryable()).Returns(new List<ClusterProject>
+        {
+            new()
+            {
+                ProjectId = 59,
+                IsDeleted = false,
+                PreferredAuthType = ClusterAuthenticationCredentialsAuthType.Kerberos
+            }
+        }.AsQueryable());
+
+        _mockExpirioService
+            .Setup(x => x.GetEnrichedUsernameAsync("expirio-token", _mockLogger.Object, default))
+            .ReturnsAsync((string?)null);
+
+        var resolved = await UsernameResolutionHelper.ResolveUsernameFromContextAsync(
+            _mockUnitOfWork.Object,
+            _mockSshCaService.Object,
+            _mockHttpContextKeys.Object,
+            _mockExpirioService.Object,
+            _mockLogger.Object,
+            adaptorUserId: 3,
+            project: project);
+
+        resolved.Should().Be("posixuser");
     }
 }
