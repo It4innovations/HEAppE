@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.2
+
+### Fixed
+- **User Cache Eviction (`CacheUtils`, `ManagementLogic`):** Fixed intermittent `403 Forbidden` after project creation with `X-API-Key` auth by also evicting `UserByName_` cache after transaction commit.
+- **Preserve `PreferredAuthType = Unknown` (`MiddlewareContext`, `ClusterInformationConverts`):** Fixed `POST /heappe/Management/ProjectAssignmentToCluster` overwriting `Unknown` (`0`) with `PrivateKey` (`4`) via EF Core sentinel `-1`, and added `PrivateKeyInVaultAndInSshAgent` conversion.
+- **Vault Cache Poisoning (`VaultConnector`, `docker-compose.yml`):** Stopped caching empty/failed Vault responses for 30 minutes and added optional `vaultagent` health dependency in `docker-compose.yml`.
+- **Expirio Error Propagation (`UsernameResolutionHelper`, `ExpirioService`, `ExceptionMiddleware`):** Stopped swallowing Expirio errors during Kerberos username resolution, wrapping upstream failures in `ExpirioUpstreamException` mapped to `502 Bad Gateway`.
+
 ## V6.7.1
 
 ### Fixed
