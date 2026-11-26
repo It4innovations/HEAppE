@@ -61,11 +61,20 @@ public static partial class SensitiveDataRedactor
     }
 
     /// <summary>
+    /// Removes CR/LF characters from a value before writing it to logs to prevent log forging.
+    /// </summary>
+    public static string SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
+        return value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+    }
+
+    /// <summary>
     /// Redacts sensitive JSON properties or sensitive key=value / Bearer patterns in a logged HTTP body.
     /// </summary>
     public static string RedactBody(string? body)
     {
-        if (string.IsNullOrWhiteSpace(body)) return body ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(body)) return SanitizeForLog(body);
 
         var trimmed = body.TrimStart();
         if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
@@ -79,7 +88,7 @@ public static partial class SensitiveDataRedactor
                     WriteRedactedElement(writer, doc.RootElement);
                 }
 
-                return Encoding.UTF8.GetString(buffer.WrittenSpan);
+                return SanitizeForLog(Encoding.UTF8.GetString(buffer.WrittenSpan));
             }
             catch (JsonException)
             {
@@ -87,7 +96,7 @@ public static partial class SensitiveDataRedactor
             }
         }
 
-        return RedactPlainText(body);
+        return SanitizeForLog(RedactPlainText(body));
     }
 
     private static void WriteRedactedElement(Utf8JsonWriter writer, JsonElement element)
