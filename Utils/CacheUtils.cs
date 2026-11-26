@@ -62,7 +62,8 @@ public static class CacheUtils
         }
         catch (Exception ex)
         {
-            logger?.LogDebug(ex, "Failed to evict user cache for user {UserId} ({Username})", userId, username);
+            logger?.LogDebug(ex, "Failed to evict user cache for user {UserId} ({Username})", userId,
+                username?.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
     }
 
