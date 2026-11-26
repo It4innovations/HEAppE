@@ -148,115 +148,28 @@ public class DataStagingEndpoint : IApiRoute
             .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
 
         group.MapPost("UploadFilesToProjectDir",
-                async (
-                    [FromQuery(Name = "SessionCode")] string? sessionCode,
-                    [FromQuery(Name = "ProjectId")] long projectId,
-                    [FromQuery(Name = "ClusterId")] long clusterId,
-                    [FromForm] IFormFileCollection files,
-                    [FromServices] ILogger<DataStagingEndpoint> logger,
-                    [FromServices] IValidator<UploadFileToClusterModel> validator,
-                    [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                    [FromServices] IHttpContextKeys httpContextKeys,
-                    [FromServices] IUserOrgService userOrgService,
-                    [FromServices] IExpirioService expirioService
-                ) =>
+                () =>
                 {
-                    CheckClusterNotQScheduler(clusterId, logger);
-                    var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
-                    validator.ValidateAndThrow(model);
-                    logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
-
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager, expirioService);
-
-                    var result = new List<FileUploadResultExt>();
-                    foreach (var file in files)
-                    {
-                        var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false };
-                        result.Add(item);
-
-                        try
-                        {
-                            using (var stream = file.OpenReadStream())
-                            {
-                                var transferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
-                                dynamic tr = await transferService.UploadFileToProjectDirAsync(stream, file.FileName, projectId, clusterId, sessionCode);
-                                if (tr != null)
-                                {
-                                    item.Succeeded = tr["Succeeded"];
-                                    item.Path = tr["Path"];
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, $"Failed to upload file '{file.FileName}' sequentially.");
-                        }
-                    }
-                    return Results.Ok(result);
+                    throw new NotAllowedException("FileUploadNotAllowed");
                 })
             .Accepts<IFormFileCollection>("multipart/form-data")
             .Produces<ICollection<FileUploadResultExt>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .DisableRequestTimeout()
-            .RequestSizeLimit(2_200_000_000)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .DisableAntiforgery()
             .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
 
         group.MapPost("UploadJobScriptsToProjectDir",
-                async (
-                    [FromQuery(Name = "SessionCode")] string? sessionCode,
-                    [FromQuery(Name = "ProjectId")] long projectId,
-                    [FromQuery(Name = "ClusterId")] long clusterId,
-                    [FromForm] IFormFileCollection files,
-                    [FromServices] ILogger<DataStagingEndpoint> logger,
-                    [FromServices] IValidator<UploadJobScriptsToClusterProjectDirModel> validator,
-                    [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                    [FromServices] IHttpContextKeys httpContextKeys,
-                    [FromServices] IUserOrgService userOrgService,
-                    [FromServices] IExpirioService expirioService
-                ) =>
+                () =>
                 {
-                    CheckClusterNotQScheduler(clusterId, logger);
-                    var model = new UploadJobScriptsToClusterProjectDirModel() { SessionCode = sessionCode };
-                    validator.ValidateAndThrow(model);
-                    logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """, model);
-
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager, expirioService);
-
-                    var result = new List<JobUploadResultExt>();
-                    foreach (var file in files)
-                    {
-                        var item = new JobUploadResultExt() { FileName = file.FileName, Succeeded = false };
-                        result.Add(item);
-
-                        try
-                        {
-                            using (var stream = file.OpenReadStream())
-                            {
-                                var transferService = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
-                                dynamic tr = await transferService.UploadJobScriptToProjectDirAsync(stream, file.FileName, projectId, clusterId, sessionCode);
-                                if (tr != null)
-                                {
-                                    item.Succeeded = tr["Succeeded"];
-                                    item.Path = tr["Path"];
-                                    if (tr.TryGetValue("AttributesSet", out dynamic? val)) item.AttributesSet = val;
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, $"Failed to upload job script '{file.FileName}' sequentially.");
-                        }
-                    }
-                    return Results.Ok(result);
+                    throw new NotAllowedException("FileUploadNotAllowed");
                 })
             .Accepts<IFormFileCollection>("multipart/form-data")
-            .Produces<ICollection<FileUploadResultExt>>()
+            .Produces<ICollection<JobUploadResultExt>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .DisableRequestTimeout()
-            .RequestSizeLimit(2_200_000_000)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .DisableAntiforgery()
             .WithMetadata(new LogBehaviorAttribute(LoggingBehavior.HeadersOnly));
     }
