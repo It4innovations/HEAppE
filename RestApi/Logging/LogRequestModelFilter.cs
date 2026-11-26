@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.RestUtils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -22,32 +23,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
 {
     private readonly ILogger<LogRequestModelFilter> _logger;
 
-    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SessionCode", "Password", "Token", "Secret", "Key", "sessionCode", "password", "token",
-        "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
-    };
-
-    private static readonly string[] SensitiveSubstrings =
-    {
-        "token", "password", "secret", "passphrase", "sessioncode", "privatekey", "signature"
-    };
-
-    private static bool IsSensitiveKey(string key)
-    {
-        if (string.IsNullOrEmpty(key)) return false;
-        if (SensitiveKeys.Contains(key)) return true;
-
-        foreach (var substring in SensitiveSubstrings)
-        {
-            if (key.Contains(substring, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool IsSensitiveKey(string key) => SensitiveDataRedactor.IsSensitiveKey(key);
 
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 

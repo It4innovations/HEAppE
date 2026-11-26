@@ -29,8 +29,13 @@ public class OAuth2IntrospectionUtils
             claims["roles"] = user.FindAll("role").Select(c => c.Value).ToArray();
             claims["permissions"] = user.FindAll("permission").Select(c => c.Value).ToArray();
         
-            // Log extracted claims for debugging
-            logger.LogDebug($"Extracted introspection claims: {string.Join(", ", claims.Where(kv => kv.Value != null).Select(kv => $"{kv.Key}: {kv.Value}"))}");
+            // Log safe non-PII metadata only when Debug is enabled
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug(
+                    "Extracted introspection metadata: sub={Sub}, client_id={ClientId}, scope={Scope}, active={Active}",
+                    claims["sub"], claims["client_id"], claims["scope"], claims["active"]);
+            }
         }
         else
         {

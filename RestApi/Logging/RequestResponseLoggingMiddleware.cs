@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestUtils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -73,7 +74,7 @@ namespace HEAppE.RestApi.Logging
                     {
                         var body = await reader.ReadToEndAsync();
                         context.Request.Body.Position = 0;
-                        _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                        _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {SensitiveDataRedactor.RedactBody(body)}");
                     }
                 }
                 catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
@@ -99,7 +100,7 @@ namespace HEAppE.RestApi.Logging
                         {
                             var responseText = await reader.ReadToEndAsync();
                             _logger.LogDebug(
-                                $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+                                $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {SensitiveDataRedactor.RedactBody(responseText)}");
                         }
                     }
                     catch (Exception ex)
@@ -217,7 +218,7 @@ namespace HEAppE.RestApi.Logging
                 {
                     var body = await reader.ReadToEndAsync();
                     context.Request.Body.Position = 0;
-                    _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                    _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {SensitiveDataRedactor.RedactBody(body)}");
                 }
             }
             catch (Exception ex)
@@ -233,7 +234,7 @@ namespace HEAppE.RestApi.Logging
                 {
                     var responseText = await reader.ReadToEndAsync();
                     _logger.LogDebug(
-                        $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+                        $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {SensitiveDataRedactor.RedactBody(responseText)}");
                 }
             }
             catch (Exception ex)

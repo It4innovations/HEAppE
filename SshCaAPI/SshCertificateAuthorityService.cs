@@ -154,7 +154,10 @@ namespace SshCaAPI
             var request = new RestRequest("signJSON", Method.Post)
                 .AddStringBody(requestBody, DataFormat.Json);
 
-            logger?.LogDebug($"[SignService Request] POST {_basicRestClient.BuildUri(request)} | Body: {requestBody}");
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug($"[SignService Request] POST {_basicRestClient.BuildUri(request)} | Body: {SensitiveDataRedactor.RedactBody(requestBody)}");
+            }
 
             var response = await _basicRestClient.ExecuteAsync(request);
 
@@ -166,11 +169,15 @@ namespace SshCaAPI
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                logger?.LogError($"[SignService Error] Unexpected status={response.StatusCode}, Content={response.Content}");
-                throw new SshCAServiceTypeException("SignUnexpectedStatus", response.StatusCode) { Details = $"HTTP status={response.StatusCode}. Content: {response.Content}" };
+                var redactedContent = SensitiveDataRedactor.RedactBody(response.Content);
+                logger?.LogError($"[SignService Error] Unexpected status={response.StatusCode}, Content={redactedContent}");
+                throw new SshCAServiceTypeException("SignUnexpectedStatus", response.StatusCode) { Details = $"HTTP status={response.StatusCode}. Content: {redactedContent}" };
             }
 
-            logger?.LogDebug($"[SignService Response] Success ({response.StatusCode}). Content: {response.Content}");
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug($"[SignService Response] Success ({response.StatusCode}). Content: {SensitiveDataRedactor.RedactBody(response.Content)}");
+            }
 
             var json = JsonConvert.DeserializeObject<SignResponse>(response.Content ?? "{}");
 
