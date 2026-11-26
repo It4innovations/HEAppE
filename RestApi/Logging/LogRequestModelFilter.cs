@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi.Logging;
@@ -26,6 +27,27 @@ public class LogRequestModelFilter : IAsyncActionFilter
         "SessionCode", "Password", "Token", "Secret", "Key", "sessionCode", "password", "token",
         "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
+
+    private static readonly string[] SensitiveSubstrings =
+    {
+        "token", "password", "secret", "passphrase", "sessioncode", "privatekey", "signature"
+    };
+
+    private static bool IsSensitiveKey(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        if (SensitiveKeys.Contains(key)) return true;
+
+        foreach (var substring in SensitiveSubstrings)
+        {
+            if (key.Contains(substring, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 
@@ -69,7 +91,8 @@ public class LogRequestModelFilter : IAsyncActionFilter
         {
             var actionName = context.ActionDescriptor.DisplayName ?? "UnknownAction";
             var headersJson = SerializeHeadersFast(context.HttpContext.Request.Headers);
-            var argumentsJson = SerializeArgumentsFast(context.ActionArguments);
+            var serviceParameterNames = GetServiceParameterNames(context);
+            var argumentsJson = SerializeArgumentsFast(context.ActionArguments, serviceParameterNames);
 
             _logger.LogInformation("Action: {Action}, Headers: {Headers}, Arguments: {Arguments}",
                 actionName, headersJson, argumentsJson);
@@ -91,7 +114,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
 
         foreach (var (key, value) in headers)
         {
-            if (SensitiveKeys.Contains(key))
+            if (IsSensitiveKey(key))
             {
                 writer.WriteString(key, "***REDACTED***");
             }
@@ -107,7 +130,21 @@ public class LogRequestModelFilter : IAsyncActionFilter
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private static string SerializeArgumentsFast(IDictionary<string, object?> arguments)
+    private static HashSet<string>? GetServiceParameterNames(ActionExecutingContext context)
+    {
+        HashSet<string>? serviceParams = null;
+        foreach (var param in context.ActionDescriptor.Parameters)
+        {
+            if (param.BindingInfo?.BindingSource == BindingSource.Services)
+            {
+                serviceParams ??= new HashSet<string>(StringComparer.Ordinal);
+                serviceParams.Add(param.Name);
+            }
+        }
+        return serviceParams;
+    }
+
+    private static string SerializeArgumentsFast(IDictionary<string, object?> arguments, HashSet<string>? serviceParameterNames)
     {
         if (arguments == null || arguments.Count == 0) return "{}";
 
@@ -118,6 +155,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
         foreach (var (key, value) in arguments)
         {
             if (value == null) continue;
+            if (serviceParameterNames != null && serviceParameterNames.Contains(key)) continue;
             if (IsUnsafeType(value)) continue;
 
             writer.WritePropertyName(key);
@@ -136,7 +174,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
 
         foreach (var property in typeInfo.Properties)
         {
-            if (SensitiveKeys.Contains(property.Name))
+            if (IsSensitiveKey(property.Name))
             {
                 property.CustomConverter = new StaticMaskConverter();
             }

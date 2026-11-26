@@ -14,6 +14,27 @@ public class LogRequestEndpointFilter : IEndpointFilter
         "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
+    private static readonly string[] SensitiveSubstrings =
+    {
+        "token", "password", "secret", "passphrase", "sessioncode", "privatekey", "signature"
+    };
+
+    private static bool IsSensitiveKey(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        if (SensitiveKeys.Contains(key)) return true;
+
+        foreach (var substring in SensitiveSubstrings)
+        {
+            if (key.Contains(substring, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private readonly JsonSerializerOptions _jsonOptions;
 
     public LogRequestEndpointFilter(ILogger<LogRequestEndpointFilter> logger)
@@ -113,7 +134,7 @@ public class LogRequestEndpointFilter : IEndpointFilter
 
         foreach (var header in headers)
         {
-            if (SensitiveKeys.Contains(header.Key))
+            if (IsSensitiveKey(header.Key))
             {
                 result.Add(header.Key, "***REDACTED***");
             }
@@ -132,7 +153,7 @@ public class LogRequestEndpointFilter : IEndpointFilter
 
         foreach (var property in typeInfo.Properties)
         {
-            if (SensitiveKeys.Contains(property.Name))
+            if (IsSensitiveKey(property.Name))
             {
                 property.CustomConverter = new StaticMaskConverter();
             }

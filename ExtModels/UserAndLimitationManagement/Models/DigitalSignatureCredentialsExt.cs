@@ -26,6 +26,6 @@ public class DigitalSignatureCredentialsExt : AuthenticationCredentialsExt
 
     public override string ToString()
     {
-        return $"DigitalSignatureCredentialsExt({base.ToString()}; noise={Noise}; digitalSignature={DigitalSignature})";
+        return $"DigitalSignatureCredentialsExt({base.ToString()}; noise=***REDACTED***; digitalSignature=***REDACTED***)";
     }
 }

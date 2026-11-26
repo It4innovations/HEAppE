@@ -21,6 +21,6 @@ public class LexisCredentialsExt : AuthenticationCredentialsExt
 
     public override string ToString()
     {
-        return $"LexisCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";
+        return $"LexisCredentialsExt({base.ToString()}; access_token='***REDACTED***')";
     }
 }

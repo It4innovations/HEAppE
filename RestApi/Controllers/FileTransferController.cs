@@ -36,6 +36,9 @@ public class FileTransferController : BaseController<FileTransferController>
 
     private readonly IFileTransferService _service;
     private readonly IUserOrgService _userOrgService;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
 
     #endregion
 
@@ -53,6 +56,9 @@ public class FileTransferController : BaseController<FileTransferController>
         memoryCache)
     {
         _userOrgService = userOrgService;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
         _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService, logger);
     }
 
@@ -200,8 +206,6 @@ public class FileTransferController : BaseController<FileTransferController>
     /// </summary>
     /// <param name="sessionCode">sessionCode</param>
     /// <param name="files">files</param>
-    /// <param name="sshCertificateAuthorityService">sshCertificateAuthorityService</param>
-    /// <param name="httpContextKeys">httpContextKeys</param>
     /// <param name="taskId"></param>
     /// <param name="jobId"></param>
     /// <returns></returns>
@@ -219,10 +223,7 @@ public class FileTransferController : BaseController<FileTransferController>
         [FromQuery(Name = "SessionCode")] string sessionCode,
         [FromQuery(Name = "JobId")] long jobId,
         [FromQuery(Name = "TaskId")] long? taskId,
-        [FromForm] IFormFileCollection files,
-        [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-        [FromServices] IHttpContextKeys httpContextKeys,
-        [FromServices] IExpirioService expirioService
+        [FromForm] IFormFileCollection files
     )
     {
         var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
@@ -238,8 +239,8 @@ public class FileTransferController : BaseController<FileTransferController>
                 if (job.Tasks.Any(t => t.Id == taskId.Value) == false)
                     throw new InputValidationException("TaskDoesNotBelongToJob", taskId.Value);
             }
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
-                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, expirioService);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId, _expirioService);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new AdaptorUserNotAuthorizedForJobException("ClusterOperationRequiresOwner", loggedUser.GetLogIdentification(), job.Id);
         }
