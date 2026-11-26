@@ -198,7 +198,7 @@ public class FileSystemUtils
     {
         var result = fileName;
         foreach (var c in Path.GetInvalidFileNameChars())
-            result = fileName.Replace(c, '_');
+            result = result.Replace(c, '_');
         return result;
     }
 

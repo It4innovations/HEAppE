@@ -2622,6 +2622,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="passphrase">Optional passphrase for encryption</param>
     /// <returns>Encrypted binary package file</returns>
     [HttpPost("ExportMigrationPackage")]
+    [Authentication.LocalhostOnly]
     [LogBehavior(LoggingBehavior.HeadersOnly)]
     [RequestSizeLimit(1000)]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
