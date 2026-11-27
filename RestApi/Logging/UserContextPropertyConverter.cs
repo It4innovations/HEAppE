@@ -21,18 +21,20 @@ public class UserContextPropertyConverter : PatternLayoutConverter
         var userId = loggingEvent.LookupProperty("userId");
         var userName = loggingEvent.LookupProperty("userName");
         var userEmail = loggingEvent.LookupProperty("userEmail");
+        var userSub = loggingEvent.LookupProperty("userSub");
         var jobId = loggingEvent.LookupProperty("jobId");
 
         var isUserAction = loggingEvent.LookupProperty("isUserAction");
         bool isUser = isUserAction != null && isUserAction.ToString().Equals("true", StringComparison.OrdinalIgnoreCase);
 
-        if (userId != null || userName != null || userEmail != null)
+        if (userId != null || userName != null || userEmail != null || userSub != null)
         {
             string uId = userId?.ToString() ?? "0";
             string uEmail = userEmail?.ToString() ?? "ANONYMOUS";
+            string uSub = userSub?.ToString() ?? uEmail;
             string uName = userName?.ToString() ?? (uEmail != "ANONYMOUS" ? uEmail : "ANONYMOUS");
-            
-            writer.Write($"{uId} {uName} {uEmail}");
+
+            writer.Write($"{uId} {uName} {uSub}");
         }
         else if (isUser)
         {

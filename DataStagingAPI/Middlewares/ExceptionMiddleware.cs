@@ -228,11 +228,12 @@ public class ExceptionMiddleware
         long? userId = context.Items.TryGetValue("UserId", out var uIdObj) && uIdObj is long uId ? uId : null;
         string? userName = context.Items.TryGetValue("UserName", out var uNameObj) ? uNameObj?.ToString() : null;
         string? email = context.Items.TryGetValue("UserEmail", out var uEmailObj) ? uEmailObj?.ToString() : null;
+        string? userSub = context.Items.TryGetValue("UserSub", out var uSubObj) ? uSubObj?.ToString() : null;
         long? jobId = context.Items.TryGetValue("JobId", out var jIdObj) && jIdObj is long jId ? jId : null;
 
-        if (userId.HasValue || !string.IsNullOrEmpty(userName) || !string.IsNullOrEmpty(email))
+        if (userId.HasValue || !string.IsNullOrEmpty(userName) || !string.IsNullOrEmpty(email) || !string.IsNullOrEmpty(userSub))
         {
-            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(userId ?? 0, userName, email);
+            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(userId ?? 0, userName, email, userSub);
         }
         if (jobId.HasValue)
         {

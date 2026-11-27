@@ -55,7 +55,8 @@ public class TokenExchangeService : ITokenExchangeService
         }
 
         string? cacheKey = null;
-        if (target.EnableCaching && _memoryCache != null)
+        bool isIntrospectionStrategy = string.Equals(target.Strategy, "Introspection", StringComparison.OrdinalIgnoreCase);
+        if (target.EnableCaching && _memoryCache != null && !isIntrospectionStrategy)
         {
             cacheKey = BuildCacheKey(target, subjectToken);
 

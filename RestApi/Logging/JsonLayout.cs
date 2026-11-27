@@ -22,6 +22,7 @@ namespace HEAppE.RestApi.Logging
                 requestId = loggingEvent.LookupProperty("requestId")?.ToString(),
                 userId = loggingEvent.LookupProperty("userId")?.ToString(),
                 userName = loggingEvent.LookupProperty("userName")?.ToString(),
+                userSub = loggingEvent.LookupProperty("userSub")?.ToString(),
                 exception = loggingEvent.GetExceptionString()
             };
 

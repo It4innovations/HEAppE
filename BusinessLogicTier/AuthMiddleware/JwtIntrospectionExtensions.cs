@@ -71,8 +71,7 @@ public static class JwtIntrospectionExtensions
                     options.Authority = JwtTokenIntrospectionConfiguration.Authority;
                     options.ClientId = JwtTokenIntrospectionConfiguration.ClientId;
                     options.ClientSecret = JwtTokenIntrospectionConfiguration.ClientSecret;
-                    options.EnableCaching = true;
-                    options.CacheDuration = TimeSpan.FromMinutes(5);
+                    options.EnableCaching = false;
                     options.DiscoveryPolicy = new DiscoveryPolicy
                     {
                         ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
@@ -193,7 +192,10 @@ public static class JwtIntrospectionExtensions
                                 log.LogDebug("[Introspection] Internal Authorization Success");
 
                                 HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
-                                    requestContext.Context.AdaptorUserId, requestContext.Context.UserName, requestContext.Context.Email);
+                                    requestContext.Context.AdaptorUserId,
+                                    requestContext.Context.UserName,
+                                    requestContext.Context.Email,
+                                    sub ?? requestContext.Context.CurrentUser?.IdpSid);
                             }
                             catch (Exception ex)
                             {
