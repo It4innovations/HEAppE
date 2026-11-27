@@ -87,7 +87,7 @@ public class LexisTokenExchangeMiddleware
                     {
                         _logger.LogError(
                             "LexisTokenExchangeMiddleware: PreAuth token exchange failed for target '{Target}'. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Error}",
-                            failedResult.TargetName, JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), failedResult.Error);
+                            failedResult.TargetName, JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), JwtIntrospectionExtensions.SanitizeLogValue(failedResult.Error));
 
                         var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                         {
@@ -235,7 +235,7 @@ public class LexisTokenExchangeMiddleware
     private async Task WriteTokenExchangeErrorResponseAsync(HttpContext context, Exception ex)
     {
         _logger.LogError(ex, "LexisTokenExchangeMiddleware: Exchange failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
-            JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), ex.Message);
+            JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), JwtIntrospectionExtensions.SanitizeLogValue(ex.Message));
 
         var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
         {

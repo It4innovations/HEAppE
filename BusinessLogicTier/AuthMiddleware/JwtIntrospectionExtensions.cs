@@ -112,7 +112,7 @@ public static class JwtIntrospectionExtensions
                             var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                                 .CreateLogger(nameof(JwtIntrospectionExtensions));
                             log.LogError("[Introspection] Auth Failed (Keycloak). Error: {Error}. IP: {ClientIp}, Method: {Method}, Path: {Path}",
-                                context.Error, GetClientIp(context.HttpContext), context.HttpContext.Request.Method, SanitizeLogValue(context.HttpContext.Request.Path));
+                                SanitizeLogValue(context.Error), GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path));
                             context.HttpContext.Items["IntrospectionError"] = context.Error;
                             context.Fail($"Authentication failed (Keycloak): {context.Error}");
                             return Task.CompletedTask;
@@ -178,7 +178,7 @@ public static class JwtIntrospectionExtensions
                                 catch (Exception ex)
                                 {
                                     log.LogError(ex, "[Introspection] PostAuth token exchange failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
-                                        GetClientIp(context.HttpContext), context.HttpContext.Request.Method, SanitizeLogValue(context.HttpContext.Request.Path), ex.Message);
+                                        GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path), SanitizeLogValue(ex.Message));
 
                                     var problem = new ProblemDetails
                                     {
@@ -225,7 +225,7 @@ public static class JwtIntrospectionExtensions
                             {
                                 string serviceInfo = ex is HEAppE.Exceptions.AbstractTypes.ExternalException ee && !string.IsNullOrEmpty(ee.ServiceName) ? $" ({ee.ServiceName})" : "";
                                 log.LogError("[Introspection] Internal Authorization Failed{ServiceInfo}. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
-                                    serviceInfo, GetClientIp(context.HttpContext), context.HttpContext.Request.Method, SanitizeLogValue(context.HttpContext.Request.Path), ex.Message);
+                                    serviceInfo, GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path), SanitizeLogValue(ex.Message));
 
                                 var problem = new ProblemDetails
                                 {

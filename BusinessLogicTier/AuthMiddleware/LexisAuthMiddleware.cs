@@ -63,7 +63,7 @@ public class LexisAuthMiddleware
                     : "Token introspection failed: token is invalid or not active.";
 
                 _logger.LogWarning("AuthMiddleware: OAuth2 introspection failed for Bearer token. IP: {ClientIp}, Method: {Method}, Path: {Path}",
-                    JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path));
+                    JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path));
 
                 var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                 {
@@ -126,7 +126,7 @@ public class LexisAuthMiddleware
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AuthMiddleware: Internal Authorize failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
-                    JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), ex.Message);
+                    JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), JwtIntrospectionExtensions.SanitizeLogValue(ex.Message));
 
                 var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                 {
