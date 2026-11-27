@@ -45,11 +45,26 @@ public class LexisTokenExchangeMiddleware
         bool isBearer = context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
                         authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
 
-        if (isBearer)
+        try
         {
-            var incomingToken = authHeader.ToString()["Bearer ".Length..].Trim();
-            var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
-            contextKeysService.Context.LEXISToken = incomingToken;
+            if (isBearer)
+            {
+                var incomingToken = authHeader.ToString()["Bearer ".Length..].Trim();
+                var contextKeysService = context.RequestServices.GetRequiredService<IHttpContextKeys>();
+                contextKeysService.Context.LEXISToken = incomingToken;
+
+                var offlineSub = GetOfflineSub(incomingToken);
+                if (!string.IsNullOrEmpty(offlineSub))
+                {
+                    HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(0, null, null, $"{offlineSub} (offline)");
+                    _logger.LogDebug("LexisTokenExchangeMiddleware: Offline (unverified) token sub: {Sub}", offlineSub);
+                }
+                else if (!string.IsNullOrEmpty(incomingToken))
+                {
+                    var tokenFingerprint = ComputeSha256(incomingToken)[..12];
+                    HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(0, null, null, $"token_fp:{tokenFingerprint} (offline, non-jwt)");
+                    _logger.LogDebug("LexisTokenExchangeMiddleware: Incoming Bearer token has no readable JWT sub; fingerprint: {Fingerprint}", tokenFingerprint);
+                }
 
             // === New unified token exchange: PreAuth phase ===
             if (tokenExchangeService.HasAutoExchangeTargets("PreAuth"))
@@ -71,8 +86,8 @@ public class LexisTokenExchangeMiddleware
                     if (failedResult != null)
                     {
                         _logger.LogError(
-                            "LexisTokenExchangeMiddleware: PreAuth token exchange failed for target '{Target}': {Error}",
-                            failedResult.TargetName, failedResult.Error);
+                            "LexisTokenExchangeMiddleware: PreAuth token exchange failed for target '{Target}'. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Error}",
+                            failedResult.TargetName, JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), failedResult.Error);
 
                         var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                         {
@@ -207,11 +222,20 @@ public class LexisTokenExchangeMiddleware
             }
         }
         await _next(context);
+        }
+        finally
+        {
+            if (isBearer)
+            {
+                HEAppE.Utils.LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
+            }
+        }
     }
 
     private async Task WriteTokenExchangeErrorResponseAsync(HttpContext context, Exception ex)
     {
-        _logger.LogError(ex, $"LexisTokenExchangeMiddleware: Exchange failed: {ex.Message}");
+        _logger.LogError(ex, "LexisTokenExchangeMiddleware: Exchange failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
+            JwtIntrospectionExtensions.GetClientIp(context), context.Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), ex.Message);
 
         var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
         {
@@ -241,6 +265,25 @@ public class LexisTokenExchangeMiddleware
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes);
+    }
+
+    private static string? GetOfflineSub(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                return jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            }
+        }
+        catch
+        {
+            // Ignore malformed tokens during best-effort pre-auth logging
+        }
+        return null;
     }
 
     private static DateTime? GetTokenExpiration(string? token)

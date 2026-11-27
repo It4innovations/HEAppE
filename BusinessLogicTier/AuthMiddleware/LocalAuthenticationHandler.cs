@@ -77,7 +77,8 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 var match = Regex.Match(extractedApiKey, @"^([^:]+):(.+)$");
                 if (!match.Success) 
                 {
-                    _logger.LogWarning("[LocalAuth] API Key format is invalid (expected 'user:key').");
+                    _logger.LogWarning("[LocalAuth] API Key format is invalid (expected 'user:key'). IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.GetClientIp(Context), Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid API Key format");
                 }
 
@@ -98,7 +99,8 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 
                 if (user == null)
                 {
-                    _logger.LogInformation($"[LocalAuth] User '{username}' not found in database.");
+                    _logger.LogInformation("[LocalAuth] User '{Username}' not found in database. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.SanitizeLogValue(username), JwtIntrospectionExtensions.GetClientIp(Context), Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
 
@@ -108,7 +110,8 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
                 if (!string.Equals(passwordHash, user.Password, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation($"[LocalAuth] API Key hash mismatch for user '{username}'.");
+                    _logger.LogInformation("[LocalAuth] API Key hash mismatch for user '{Username}'. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.SanitizeLogValue(username), JwtIntrospectionExtensions.GetClientIp(Context), Request.Method, JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
                 

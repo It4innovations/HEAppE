@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Token Introspection & Auth Logging (`JwtIntrospectionExtensions`, `TokenExchangeService`, `LexisAuthMiddleware`, `LocalAuthenticationHandler`):** Disabled token introspection caching so every incoming bearer token is validated on every request, reduced repetitive `INFO` log entries on anonymous endpoints and local API key authentication, and replaced email with `userSub` in the log user context output.
+- **Auth Failure Audit Context (`LexisTokenExchangeMiddleware`, `JwtIntrospectionExtensions`, `LexisAuthMiddleware`, `LocalAuthenticationHandler`):** Logged client IP, HTTP method, and request path on authentication/authorization failures, pre-populated offline JWT `sub` (or a SHA-256 token fingerprint for non-JWT/malformed tokens) before introspection, and updated `userSub` with the verified `sub` immediately upon token validation.
 - **Log Sanitization (`RequestResponseLoggingMiddleware`, `LogRequestModelFilter`):** Sanitized newline characters in logged request paths, payloads, and log entries.
 
 ### Changed
