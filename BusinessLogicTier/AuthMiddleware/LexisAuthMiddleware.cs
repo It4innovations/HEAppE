@@ -39,7 +39,7 @@ public class LexisAuthMiddleware
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
-            _logger.LogInformation("AuthMiddleware: Anonymous endpoint detected.");
+            _logger.LogDebug("AuthMiddleware: Anonymous endpoint detected.");
             await _next(context);
             return;
         }
@@ -62,7 +62,8 @@ public class LexisAuthMiddleware
                     ? $"Authentication failed (Keycloak): {errStr}"
                     : "Token introspection failed: token is invalid or not active.";
 
-                _logger.LogWarning("AuthMiddleware: OAuth2 introspection failed for Bearer token.");
+                _logger.LogWarning("AuthMiddleware: OAuth2 introspection failed for Bearer token. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                    JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path));
 
                 var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                 {
@@ -79,7 +80,10 @@ public class LexisAuthMiddleware
 
             _logger.LogInformation("AuthMiddleware: Bearer token validated and authorized via OAuth2Introspection.");
             HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
-                keys.Context.AdaptorUserId, keys.Context.UserName, keys.Context.Email);
+                keys.Context.AdaptorUserId,
+                keys.Context.UserName,
+                keys.Context.Email,
+                keys.Context.CurrentUser?.IdpSid ?? keys.Context.ClaimsPrincipal?.FindFirst("sub")?.Value);
         }
         else if (LexisAuthenticationConfiguration.UseBearerAuth && isBearer)
         {
@@ -114,11 +118,15 @@ public class LexisAuthMiddleware
 
                 // Add to LogContext early so Auth logs also get the user
                 HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
-                    keys.Context.AdaptorUserId, keys.Context.UserName, keys.Context.Email);
+                    keys.Context.AdaptorUserId,
+                    keys.Context.UserName,
+                    keys.Context.Email,
+                    keys.Context.CurrentUser?.IdpSid ?? keys.Context.ClaimsPrincipal?.FindFirst("sub")?.Value);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"AuthMiddleware: Internal Authorize failed: {ex.Message}");
+                _logger.LogError(ex, "AuthMiddleware: Internal Authorize failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
+                    JwtIntrospectionExtensions.GetClientIp(context), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(context.Request.Path), JwtIntrospectionExtensions.SanitizeLogValue(ex.Message));
 
                 var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
                 {
@@ -154,7 +162,7 @@ public class LexisAuthMiddleware
         }
         else if (context.User?.Identity?.IsAuthenticated != true && !context.Request.Headers.ContainsKey("X-API-Key"))
         {
-            _logger.LogInformation("AuthMiddleware: Falling back to LocalScheme.");
+            _logger.LogDebug("AuthMiddleware: Falling back to LocalScheme.");
             var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
             context.User = new ClaimsPrincipal(identity);
         }

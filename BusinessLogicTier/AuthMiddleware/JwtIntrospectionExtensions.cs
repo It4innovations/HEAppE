@@ -31,6 +31,26 @@ public static class JwtIntrospectionExtensions
         "sub", "iss", "azp", "client_id", "scope", "exp", "groups", "roles", "role"
     };
 
+    internal static string SanitizeLogValue(string? value)
+        => string.IsNullOrEmpty(value) ? string.Empty : value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+    internal static string GetClientIp(HttpContext context)
+    {
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwardedFor))
+        {
+            var firstIp = forwardedFor.Split(',')[0].Trim();
+            if (!string.IsNullOrEmpty(firstIp))
+                return SanitizeLogValue(firstIp);
+        }
+
+        var realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(realIp))
+            return SanitizeLogValue(realIp.Trim());
+
+        return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         if (true)
@@ -71,8 +91,7 @@ public static class JwtIntrospectionExtensions
                     options.Authority = JwtTokenIntrospectionConfiguration.Authority;
                     options.ClientId = JwtTokenIntrospectionConfiguration.ClientId;
                     options.ClientSecret = JwtTokenIntrospectionConfiguration.ClientSecret;
-                    options.EnableCaching = true;
-                    options.CacheDuration = TimeSpan.FromMinutes(5);
+                    options.EnableCaching = false;
                     options.DiscoveryPolicy = new DiscoveryPolicy
                     {
                         ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
@@ -92,7 +111,8 @@ public static class JwtIntrospectionExtensions
                         {
                             var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                                 .CreateLogger(nameof(JwtIntrospectionExtensions));
-                            log.LogError("[Introspection] Auth Failed (Keycloak). Error: {Error}. Path: {Path}", context.Error, context.HttpContext.Request.Path);
+                            log.LogError("[Introspection] Auth Failed (Keycloak). Error: {Error}. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                                SanitizeLogValue(context.Error), GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path));
                             context.HttpContext.Items["IntrospectionError"] = context.Error;
                             context.Fail($"Authentication failed (Keycloak): {context.Error}");
                             return Task.CompletedTask;
@@ -104,6 +124,8 @@ public static class JwtIntrospectionExtensions
                             var sub = context.Principal?.FindFirst("sub")?.Value;
                             log.LogInformation("[Introspection] Token Validated. User: {User}, Sub: {Sub}",
                                 context.Principal?.Identity?.Name, sub);
+                            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                                0, context.Principal?.Identity?.Name, null, sub);
 
                             if (log.IsEnabled(LogLevel.Debug))
                             {
@@ -155,7 +177,8 @@ public static class JwtIntrospectionExtensions
                                 }
                                 catch (Exception ex)
                                 {
-                                    log.LogError(ex, "[Introspection] PostAuth token exchange failed: {Message}", ex.Message);
+                                    log.LogError(ex, "[Introspection] PostAuth token exchange failed. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
+                                        GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path), SanitizeLogValue(ex.Message));
 
                                     var problem = new ProblemDetails
                                     {
@@ -193,12 +216,16 @@ public static class JwtIntrospectionExtensions
                                 log.LogDebug("[Introspection] Internal Authorization Success");
 
                                 HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
-                                    requestContext.Context.AdaptorUserId, requestContext.Context.UserName, requestContext.Context.Email);
+                                    requestContext.Context.AdaptorUserId,
+                                    requestContext.Context.UserName,
+                                    requestContext.Context.Email,
+                                    sub ?? requestContext.Context.CurrentUser?.IdpSid);
                             }
                             catch (Exception ex)
                             {
                                 string serviceInfo = ex is HEAppE.Exceptions.AbstractTypes.ExternalException ee && !string.IsNullOrEmpty(ee.ServiceName) ? $" ({ee.ServiceName})" : "";
-                                log.LogError("[Introspection] Internal Authorization Failed{ServiceInfo}: {Message}", serviceInfo, ex.Message);
+                                log.LogError("[Introspection] Internal Authorization Failed{ServiceInfo}. IP: {ClientIp}, Method: {Method}, Path: {Path}, Error: {Message}",
+                                    serviceInfo, GetClientIp(context.HttpContext), SanitizeLogValue(context.HttpContext.Request.Method), SanitizeLogValue(context.HttpContext.Request.Path), SanitizeLogValue(ex.Message));
 
                                 var problem = new ProblemDetails
                                 {

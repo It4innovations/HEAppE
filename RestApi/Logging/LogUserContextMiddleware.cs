@@ -42,6 +42,7 @@ namespace HEAppE.RestApi.Logging
             ApplyRequestSizeLimit(context);
 
             var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
+            var userSub = httpContextKeys.Context.CurrentUser?.IdpSid ?? httpContextKeys.Context.ClaimsPrincipal?.FindFirst("sub")?.Value;
             var jobId = await ExtractJobId(context);
 
             if (userId <= 0 && string.IsNullOrEmpty(userName))
@@ -52,9 +53,10 @@ namespace HEAppE.RestApi.Logging
             if (userId > 0) context.Items["UserId"] = userId;
             if (!string.IsNullOrEmpty(userName)) context.Items["UserName"] = userName;
             if (!string.IsNullOrEmpty(email)) context.Items["UserEmail"] = email;
+            if (!string.IsNullOrEmpty(userSub)) context.Items["UserSub"] = userSub;
             if (jobId.HasValue) context.Items["JobId"] = jobId.Value;
 
-            LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
+            LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email, userSub);
             if (jobId.HasValue)
             {
                 LoggingUtils.AddJobIdToLogThreadContext(jobId.Value);

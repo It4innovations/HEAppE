@@ -305,58 +305,19 @@
         "tags": [
           "DataStaging"
         ],
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ClusterId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "required": [
-                  "files"
-                ],
-                "type": "object",
-                "properties": {
-                  "files": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "binary"
-                    }
-                  }
-                }
-              },
-              "encoding": {
-                "files": {
-                  "style": "form"
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -391,6 +352,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -400,58 +371,19 @@
         "tags": [
           "DataStaging"
         ],
-        "parameters": [
-          {
-            "name": "SessionCode",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ProjectId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "ClusterId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "required": [
-                  "files"
-                ],
-                "type": "object",
-                "properties": {
-                  "files": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "binary"
-                    }
-                  }
-                }
-              },
-              "encoding": {
-                "files": {
-                  "style": "form"
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -461,7 +393,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FileUploadResultExt"
+                    "$ref": "#/components/schemas/JobUploadResultExt"
                   }
                 }
               }
@@ -479,6 +411,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -822,6 +764,31 @@
             "type": "integer",
             "description": "Submitted task info id",
             "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobUploadResultExt": {
+        "type": "object",
+        "properties": {
+          "FileName": {
+            "type": "string",
+            "description": "Original file name",
+            "nullable": true
+          },
+          "Succeeded": {
+            "type": "boolean",
+            "description": "True if file upload succeeded, false otherwise"
+          },
+          "Path": {
+            "type": "string",
+            "description": "Path where the file was uploaded",
+            "nullable": true
+          },
+          "AttributesSet": {
+            "type": "boolean",
+            "description": "True if attributess were set successfully, false in case of error, null if endpoint does not set them",
             "nullable": true
           }
         },

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.3
+
+### Fixed
+- **Token Introspection & Auth Logging (`JwtIntrospectionExtensions`, `TokenExchangeService`, `LexisAuthMiddleware`, `LocalAuthenticationHandler`):** Disabled token introspection caching so every incoming bearer token is validated on every request, reduced repetitive `INFO` log entries on anonymous endpoints and local API key authentication, and replaced email with `userSub` in the log user context output.
+- **Auth Failure Audit Context (`LexisTokenExchangeMiddleware`, `JwtIntrospectionExtensions`, `LexisAuthMiddleware`, `LocalAuthenticationHandler`):** Logged client IP, HTTP method, and request path on authentication/authorization failures, pre-populated offline JWT `sub` (or a SHA-256 token fingerprint for non-JWT/malformed tokens) before introspection, and updated `userSub` with the verified `sub` immediately upon token validation.
+- **Log Sanitization (`RequestResponseLoggingMiddleware`, `LogRequestModelFilter`):** Sanitized newline characters in logged request paths, payloads, and log entries.
+
+### Changed
+- **UserOrg & Credentials (`UserOrgV1Service`, `UserOrgV2Service`, `ManagementLogic`, `DataStagingEndpoint`):** Stopped sending `X-Api-Token` header to UserOrg API, aligned credential repository update lifecycle handling, and refined DataStaging project transfer route behavior and endpoint access constraints.
+
 ## V6.7.2
 
 ### Fixed

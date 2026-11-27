@@ -11,6 +11,7 @@ using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -45,7 +46,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         if (!Request.Headers.ContainsKey(ApiKeyHeaderName))
         {
-            _logger.LogInformation($"[LocalAuth] No {ApiKeyHeaderName} header found. Path: {Request.Path}");
+            _logger.LogDebug("[LocalAuth] No {HeaderName} header found. Path: {Path}", ApiKeyHeaderName, JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
             // Create claims based on the authenticated service user
             var claims = new[]
             {
@@ -72,11 +73,12 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         {
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork(_logger))
             {
-                _logger.LogInformation("[LocalAuth] Attempting Service API Key authentication.");
+                _logger.LogDebug("[LocalAuth] Attempting Service API Key authentication.");
                 var match = Regex.Match(extractedApiKey, @"^([^:]+):(.+)$");
                 if (!match.Success) 
                 {
-                    _logger.LogWarning("[LocalAuth] API Key format is invalid (expected 'user:key').");
+                    _logger.LogWarning("[LocalAuth] API Key format is invalid (expected 'user:key'). IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.GetClientIp(Context), JwtIntrospectionExtensions.SanitizeLogValue(Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid API Key format");
                 }
 
@@ -97,7 +99,8 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 
                 if (user == null)
                 {
-                    _logger.LogInformation($"[LocalAuth] User '{username}' not found in database.");
+                    _logger.LogInformation("[LocalAuth] User '{Username}' not found in database. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.SanitizeLogValue(username), JwtIntrospectionExtensions.GetClientIp(Context), JwtIntrospectionExtensions.SanitizeLogValue(Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
 
@@ -107,7 +110,8 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
                 if (!string.Equals(passwordHash, user.Password, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation($"[LocalAuth] API Key hash mismatch for user '{username}'.");
+                    _logger.LogInformation("[LocalAuth] API Key hash mismatch for user '{Username}'. IP: {ClientIp}, Method: {Method}, Path: {Path}",
+                        JwtIntrospectionExtensions.SanitizeLogValue(username), JwtIntrospectionExtensions.GetClientIp(Context), JwtIntrospectionExtensions.SanitizeLogValue(Request.Method), JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
                 
@@ -129,9 +133,17 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 _httpContextKeys.Context.CurrentUser = user;
                 
                 // Add to LogContext early so Auth logs also get the user
-                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(user.Id, user.Username, user.Email);
+                HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(user.Id, user.Username, user.Email, user.IdpSid);
                 
-                _logger.LogInformation("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, user.Username, Request.Path);
+                var isAnonymousEndpoint = Context.GetEndpoint()?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() != null;
+                if (isAnonymousEndpoint)
+                {
+                    _logger.LogDebug("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, JwtIntrospectionExtensions.SanitizeLogValue(user.Username), JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
+                }
+                else
+                {
+                    _logger.LogInformation("[LocalAuth] Success for user {userID}({username}). Path: {path}", user.Id, JwtIntrospectionExtensions.SanitizeLogValue(user.Username), JwtIntrospectionExtensions.SanitizeLogValue(Request.Path));
+                }
 
                 return AuthenticateResult.Success(ticket);
             }
