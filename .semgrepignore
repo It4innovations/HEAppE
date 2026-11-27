@@ -5,3 +5,6 @@
 Dockerfile
 **/Dockerfile
 *Dockerfile*
+
+# Exclude vendored Tmds.Ssh test fixtures (test SSH keys)
+Tmds.Ssh/test/
