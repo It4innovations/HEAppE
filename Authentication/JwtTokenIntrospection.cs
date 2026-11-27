@@ -84,7 +84,7 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogError(ex, "Failed to deserialize introspection result. Content: {Content}", content);
+                    _logger.LogError(ex, "Failed to deserialize introspection result (length: {Length}).", content?.Length ?? 0);
                     return new TokenIntrospectionResult { Active = false };
                 }
             }

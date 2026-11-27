@@ -21,6 +21,6 @@ public class OpenIdCredentialsExt : AuthenticationCredentialsExt
 
     public override string ToString()
     {
-        return $"OpenIdCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";
+        return $"OpenIdCredentialsExt({base.ToString()}; access_token='***REDACTED***')";
     }
 }

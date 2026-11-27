@@ -26,6 +26,11 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public static class JwtIntrospectionExtensions
 {
+    private static readonly System.Collections.Generic.HashSet<string> SafeDiagnosticClaimTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "sub", "iss", "azp", "client_id", "scope", "exp", "groups", "roles", "role"
+    };
+
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         if (true)
@@ -96,9 +101,18 @@ public static class JwtIntrospectionExtensions
                         {
                             var log = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                                 .CreateLogger(nameof(JwtIntrospectionExtensions));
-                            log.LogInformation("[Introspection] Token Validated. User: {User}. Claims: {Claims}",
-                                context.Principal?.Identity?.Name,
-                                string.Join(", ", context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}")));
+                            var sub = context.Principal?.FindFirst("sub")?.Value;
+                            log.LogInformation("[Introspection] Token Validated. User: {User}, Sub: {Sub}",
+                                context.Principal?.Identity?.Name, sub);
+
+                            if (log.IsEnabled(LogLevel.Debug))
+                            {
+                                var safeClaims = context.Principal?.Claims
+                                    .Where(c => SafeDiagnosticClaimTypes.Contains(c.Type))
+                                    .Select(c => $"{c.Type}={c.Value}");
+                                log.LogDebug("[Introspection] Safe diagnostic claims: {Claims}",
+                                    safeClaims != null ? string.Join(", ", safeClaims) : string.Empty);
+                            }
 
                             // === PostAuth token exchanges (unified service) ===
                             var tokenExchangeService = context.HttpContext.RequestServices.GetRequiredService<ITokenExchangeService>();

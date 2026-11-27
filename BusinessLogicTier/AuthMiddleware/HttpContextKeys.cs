@@ -68,6 +68,7 @@ public class RequestContext : IRequestContext
     private string? _userOrgToken;
     private string? _expirioToken;
 
+    [JsonIgnore]
     public AdaptorUser? CurrentUser { get; set; }
     public long AdaptorUserId { get; set; } 
     public string UserName { get; set; }
@@ -77,6 +78,7 @@ public class RequestContext : IRequestContext
     /// <summary>
     /// SSH CA token – backed by ExchangedTokens["sshca"] for backward compatibility.
     /// </summary>
+    [JsonIgnore]
     public string SshCaToken
     {
         get => GetExchangedToken("sshca") ?? _sshCaToken;
@@ -86,6 +88,7 @@ public class RequestContext : IRequestContext
     /// <summary>
     /// IdP / FIP token – backed by ExchangedTokens["idp"] or ExchangedTokens["fip"] for backward compatibility.
     /// </summary>
+    [JsonIgnore]
     public string IdpToken
     {
         get => GetExchangedToken("idp") ?? GetExchangedToken("fip") ?? _idpToken;
@@ -95,6 +98,7 @@ public class RequestContext : IRequestContext
     /// <summary>
     /// UserOrg token – backed by ExchangedTokens["userorg"] if present.
     /// </summary>
+    [JsonIgnore]
     public string? UserOrgToken
     {
         get => GetExchangedToken("userorg") ?? _userOrgToken;
@@ -104,18 +108,22 @@ public class RequestContext : IRequestContext
     /// <summary>
     /// Expirio token – backed by ExchangedTokens["expirio"] if present, otherwise falls back to LEXISToken or IdpToken.
     /// </summary>
+    [JsonIgnore]
     public string? ExpirioToken
     {
         get => GetExchangedToken("expirio") ?? _expirioToken ?? (!string.IsNullOrEmpty(LEXISToken) ? LEXISToken : IdpToken);
         set { _expirioToken = value; if (value != null) ExchangedTokens["expirio"] = value; }
     }
 
+    [JsonIgnore]
     public string LEXISToken { get; set; }
 
     /// <inheritdoc />
+    [JsonIgnore]
     public System.Security.Claims.ClaimsPrincipal? ClaimsPrincipal { get; set; }
 
     /// <inheritdoc />
+    [JsonIgnore]
     public Dictionary<string, string> ExchangedTokens { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />

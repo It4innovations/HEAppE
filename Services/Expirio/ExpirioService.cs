@@ -67,7 +67,7 @@ public class ExpirioService : IExpirioService
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
         try 
         {
-            using var response = await client.SendAsync(httpRequest, cancellationToken);
+            using var response = await SendExpirioRequestAsync(client, httpRequest, url, logger, cancellationToken);
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -86,11 +86,6 @@ public class ExpirioService : IExpirioService
                 HandleErrorResponse(response, content, "Kerberos ticket exchange", logger);
                 return null; 
             }
-        }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, $"[Expirio Timeout] Request to {url} timed out.");
-            throw new ExpirioUpstreamException("Request to Expirio timed out", ex, "Connection to Expirio service timed out.");
         }
         catch (JsonException ex)
         {
@@ -125,51 +120,71 @@ public class ExpirioService : IExpirioService
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+        using var response = await SendExpirioRequestAsync(client, httpRequest, url, logger, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var exchangedToken = ParseTokenResponse(content, logger);
+            logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {HEAppE.Utils.StringUtils.MaskToken(exchangedToken)}");
+
+            if (_memoryCache != null && !string.IsNullOrEmpty(exchangedToken))
+            {
+                var incomingExp = GetTokenExpiration(token);
+                var exchangedExp = GetTokenExpiration(exchangedToken);
+
+                DateTime expirationTime;
+                if (incomingExp.HasValue && exchangedExp.HasValue)
+                    expirationTime = incomingExp.Value < exchangedExp.Value ? incomingExp.Value : exchangedExp.Value;
+                else if (incomingExp.HasValue)
+                    expirationTime = incomingExp.Value;
+                else if (exchangedExp.HasValue)
+                    expirationTime = exchangedExp.Value;
+                else
+                    expirationTime = DateTime.UtcNow.AddMinutes(10);
+
+                var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expirationTime);
+                if (ttl > TimeSpan.FromSeconds(5))
+                {
+                    _memoryCache.Set(cacheKey, exchangedToken, ttl);
+                    logger.LogDebug("[Expirio] Cached exchanged token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
+                }
+            }
+
+            return exchangedToken;
+        }
+        else
+        {
+            HandleErrorResponse(response, content, "data", logger);
+            return null;
+        }
+    }
+
+    private static async Task<HttpResponseMessage> SendExpirioRequestAsync(
+        HttpClient client,
+        HttpRequestMessage httpRequest,
+        string url,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            using var response = await client.SendAsync(httpRequest, cancellationToken);
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var exchangedToken = ParseTokenResponse(content, logger);
-                logger.LogDebug($"[Expirio Response] Success ({response.StatusCode}). Content: {HEAppE.Utils.StringUtils.MaskToken(exchangedToken)}");
-
-                if (_memoryCache != null && !string.IsNullOrEmpty(exchangedToken))
-                {
-                    var incomingExp = GetTokenExpiration(token);
-                    var exchangedExp = GetTokenExpiration(exchangedToken);
-
-                    DateTime expirationTime;
-                    if (incomingExp.HasValue && exchangedExp.HasValue)
-                        expirationTime = incomingExp.Value < exchangedExp.Value ? incomingExp.Value : exchangedExp.Value;
-                    else if (incomingExp.HasValue)
-                        expirationTime = incomingExp.Value;
-                    else if (exchangedExp.HasValue)
-                        expirationTime = exchangedExp.Value;
-                    else
-                        expirationTime = DateTime.UtcNow.AddMinutes(10);
-
-                    var ttl = HEAppE.Utils.CacheUtils.CalculateAdaptiveTtl(expirationTime);
-                    if (ttl > TimeSpan.FromSeconds(5))
-                    {
-                        _memoryCache.Set(cacheKey, exchangedToken, ttl);
-                        logger.LogDebug("[Expirio] Cached exchanged token for {TtlSeconds}s.", (int)ttl.TotalSeconds);
-                    }
-                }
-
-                return exchangedToken;
-            }
-            else
-            {
-                HandleErrorResponse(response, content, "data", logger);
-                return null;
-            }
+            return await client.SendAsync(httpRequest, cancellationToken);
         }
         catch (TaskCanceledException ex)
         {
             logger.LogError(ex, $"[Expirio Timeout] Request to {url} timed out.");
             throw new ExpirioUpstreamException("Request to Expirio timed out", ex, "Connection to Expirio service timed out.");
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, $"[Expirio Network Error] Request to {url} failed: {ex.Message}");
+            throw new ExpirioUpstreamException("Connection to Expirio service failed", ex, ex.Message);
+        }
+        catch (Exception ex) when (ex.GetType().FullName?.StartsWith("Polly.CircuitBreaker.BrokenCircuitException") == true)
+        {
+            logger.LogError(ex, $"[Expirio Circuit Open] Request to {url} blocked by circuit breaker.");
+            throw new ExpirioUpstreamException("Expirio service is temporarily unavailable", ex, ex.Message);
         }
     }
 
@@ -274,7 +289,7 @@ public class ExpirioService : IExpirioService
         httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        using var response = await SendExpirioRequestAsync(client, httpRequest, httpUrl, logger, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (response.IsSuccessStatusCode)
         {

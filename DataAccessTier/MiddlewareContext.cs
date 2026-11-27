@@ -278,7 +278,8 @@ public class MiddlewareContext : DbContext
 
         modelBuilder.Entity<ClusterProject>()
             .Property(p => p.PreferredAuthType)
-            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey);
+            .HasDefaultValue(ClusterAuthenticationCredentialsAuthType.PrivateKey)
+            .HasSentinel((ClusterAuthenticationCredentialsAuthType)(-1));
 
         modelBuilder.Entity<ClusterProjectCredential>()
             .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });

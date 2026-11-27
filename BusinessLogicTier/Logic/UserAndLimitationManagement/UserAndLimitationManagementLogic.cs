@@ -223,7 +223,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             try
             {
-                string userCacheKey = $"UserById_{id}";
+                string userCacheKey = CacheUtils.GetUserByIdCacheKey(id);
                 if (cache.TryGetValue(userCacheKey, out AdaptorUser cachedUser))
                 {
                     _logger.LogDebug("Returning cached user for ID {UserId}", id);
@@ -251,7 +251,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         {
             try
             {
-                string userCacheKey = $"UserById_{id}";
+                string userCacheKey = CacheUtils.GetUserByIdCacheKey(id);
                 cache.Set(userCacheKey, user, TimeSpan.FromSeconds(10));
             }
             catch (Exception ex)
@@ -867,15 +867,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private void EvictUserCache(AdaptorUser user)
     {
         if (user == null) return;
-        try
-        {
-            var cache = LogicFactory.GetService<IMemoryCache>();
-            cache?.Remove($"UserById_{user.Id}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to evict user from cache");
-        }
+        CacheUtils.EvictUserCache(LogicFactory.GetService<IMemoryCache>(), user.Id, user.Username, _logger);
     }
 
 

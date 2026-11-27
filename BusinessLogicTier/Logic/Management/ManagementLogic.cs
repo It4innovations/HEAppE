@@ -379,6 +379,8 @@ public class ManagementLogic : IManagementLogic
         var openIdAdaptorUserGroup =
             CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
+        AdaptorUser userToUpdate = null;
+
         _unitOfWork.ExecuteExecutionStrategy(() =>
         {
             using (TransactionScope transactionScope = new(
@@ -404,7 +406,7 @@ public class ManagementLogic : IManagementLogic
                 RoleAssignmentConfiguration.LoadDynamicRoleAssignments(dynamicAssignments);
                 RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
 
-                var userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
+                userToUpdate = _unitOfWork.AdaptorUserRepository.GetById(loggedUser.Id) ?? loggedUser;
 
                 var adaptorUserGroup = userToUpdate.UserType switch
                 {
@@ -423,17 +425,19 @@ public class ManagementLogic : IManagementLogic
                 _unitOfWork.AdaptorUserRepository.Update(userToUpdate);
                 _unitOfWork.Save();
                 
-                // Evict the in-memory user cache so the next request (e.g. CreateProjectAssignmentToCluster)
-                // loads a fresh AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
-                // Without this, the 10-second UserById cache would return a stale snapshot and the role check
-                // for the brand-new project would fail with a 403 Forbidden.
-                EvictUserCache(userToUpdate.Id);
-                
                 _logger.LogInformation($"Created project with id {project.Id}.");
                 _logger.LogInformation($"Assigned user '{userToUpdate.Username}' to project '{project.Name}' with roles: {string.Join(", ", userToUpdate.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
                 transactionScope.Complete();
             }
         });
+
+        // Evict the in-memory user caches (both UserById_ and UserByName_ used by LocalAuthenticationHandler)
+        // after the transaction commits so the next request (e.g. CreateProjectAssignmentToCluster) loads a fresh
+        // AdaptorUser that includes the newly assigned ManagementAdmin role for this project.
+        if (userToUpdate != null)
+        {
+            EvictUserCache(userToUpdate.Id, userToUpdate.Username);
+        }
 
         return project;
     }
@@ -3510,7 +3514,11 @@ public class ManagementLogic : IManagementLogic
         adaptorUser.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
+        if (!string.Equals(oldUsername, adaptorUser.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            EvictUserCache(0, oldUsername);
+        }
 
         var adaptorUserCreated = new AdaptorUserCreated
         {
@@ -3530,7 +3538,7 @@ public class ManagementLogic : IManagementLogic
         adaptorUser.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         _logger.LogInformation($"SetAdaptorUserBlockStatus: User '{username}' block status set to {isBlocked}.");
 
@@ -3553,7 +3561,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Delete(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
         return modelUsername;
     }
 
@@ -3599,7 +3607,7 @@ public class ManagementLogic : IManagementLogic
 
                 _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
                 _unitOfWork.Save();
-                EvictUserCache(adaptorUser.Id);
+                EvictUserCache(adaptorUser.Id, adaptorUser.Username);
                 return adaptorUser;
             }
 
@@ -3625,7 +3633,7 @@ public class ManagementLogic : IManagementLogic
         
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         return adaptorUser;
     }
@@ -3650,7 +3658,7 @@ public class ManagementLogic : IManagementLogic
         
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         return adaptorUser;
     }
@@ -3765,7 +3773,7 @@ public class ManagementLogic : IManagementLogic
                 existingAssignment.CreatedAt = DateTime.UtcNow;
                 _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
                 _unitOfWork.Save();
-                EvictUserCache(adaptorUser.Id);
+                EvictUserCache(adaptorUser.Id, adaptorUser.Username);
                 return adaptorUser;
             }
 
@@ -3783,7 +3791,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
         return adaptorUser;
     }
 
@@ -3811,7 +3819,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         return adaptorUser;
     }
@@ -4735,7 +4743,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
 
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         return new SystemRoleAssignment
         {
@@ -4778,7 +4786,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.Save();
 
-        EvictUserCache(adaptorUser.Id);
+        EvictUserCache(adaptorUser.Id, adaptorUser.Username);
 
         return new SystemRoleAssignment
         {
@@ -4815,17 +4823,9 @@ public class ManagementLogic : IManagementLogic
     }
 #pragma warning restore IDE1006
 
-    private void EvictUserCache(long userId)
+    private void EvictUserCache(long userId, string username = null)
     {
-        try
-        {
-            var userCache = LogicFactory.GetService<IMemoryCache>();
-            userCache?.Remove($"UserById_{userId}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to evict UserById from cache for user {UserId}", userId);
-        }
+        CacheUtils.EvictUserCache(LogicFactory.GetService<IMemoryCache>(), userId, username, _logger);
     }
 
     #endregion

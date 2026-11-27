@@ -6,6 +6,7 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
+using HEAppE.RestApi.Logging;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
@@ -26,6 +27,7 @@ namespace HEAppE.RestApi.Controllers;
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
+[LogBehavior(LoggingBehavior.HeadersOnly)]
 public class UserAndLimitationManagementController : BaseController<UserAndLimitationManagementController>
 {
     #region Instances

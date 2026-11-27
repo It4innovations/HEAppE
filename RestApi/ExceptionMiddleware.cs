@@ -250,6 +250,13 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status404NotFound;
                 logLevel = LogLevel.Warning;
                 break;
+            case ExpirioUpstreamException:
+            case ExpirioServerException:
+            case ExpirioException:
+                problem.Title = "Expirio Service Error";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case ConnectionPoolExhaustedException:
                 problem.Title = "Connection Pool Exhausted";
                 problem.Detail = GetExceptionMessage(exception);

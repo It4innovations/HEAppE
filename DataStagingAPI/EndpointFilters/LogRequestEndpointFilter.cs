@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using HEAppE.RestUtils;
 
 namespace HEAppE.DataStagingAPI.EndpointFilters;
 
@@ -8,11 +9,7 @@ public class LogRequestEndpointFilter : IEndpointFilter
 {
     private readonly ILogger<LogRequestEndpointFilter> _logger;
 
-    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SessionCode", "Password", "Token", "Secret", "Key", "sessionCode", "password", "token",
-        "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
-    };
+    private static bool IsSensitiveKey(string key) => SensitiveDataRedactor.IsSensitiveKey(key);
 
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -113,7 +110,7 @@ public class LogRequestEndpointFilter : IEndpointFilter
 
         foreach (var header in headers)
         {
-            if (SensitiveKeys.Contains(header.Key))
+            if (IsSensitiveKey(header.Key))
             {
                 result.Add(header.Key, "***REDACTED***");
             }
@@ -132,7 +129,7 @@ public class LogRequestEndpointFilter : IEndpointFilter
 
         foreach (var property in typeInfo.Properties)
         {
-            if (SensitiveKeys.Contains(property.Name))
+            if (IsSensitiveKey(property.Name))
             {
                 property.CustomConverter = new StaticMaskConverter();
             }

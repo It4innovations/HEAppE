@@ -163,15 +163,8 @@ public static class UsernameResolutionHelper
                     var token = httpContextKeys.Context.ExpirioToken;
                     if (!string.IsNullOrEmpty(token))
                     {
-                        try
-                        {
-                            username = await expirioService.GetEnrichedUsernameAsync(token, logger);
-                            logger.LogWarning($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogWarning(ex, "Kerberos enriched username resolution failed, falling back to JWT.");
-                        }
+                        username = await expirioService.GetEnrichedUsernameAsync(token, logger);
+                        logger.LogWarning($"ResolveUsernameFromContextAsync: Kerberos enriched resolved username: {username}");
                     }
                 }
             }

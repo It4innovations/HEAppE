@@ -21,6 +21,6 @@ public class PasswordCredentialsExt : AuthenticationCredentialsExt
 
     public override string ToString()
     {
-        return $"PasswordCredentialsExt({base.ToString()}; password={Password})";
+        return $"PasswordCredentialsExt({base.ToString()}; password=***REDACTED***)";
     }
 }

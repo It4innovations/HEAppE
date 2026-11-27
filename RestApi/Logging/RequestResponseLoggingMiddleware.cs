@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestUtils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -73,7 +74,9 @@ namespace HEAppE.RestApi.Logging
                     {
                         var body = await reader.ReadToEndAsync();
                         context.Request.Body.Position = 0;
-                        _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                        var safePath = context.Request.Path.Value?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+                        var safeBody = SensitiveDataRedactor.RedactBody(body).Replace("\r", string.Empty).Replace("\n", string.Empty);
+                        _logger.LogDebug($"[HEAppE Request] Path: {safePath}, Body: {safeBody}");
                     }
                 }
                 catch (BadHttpRequestException ex) when (ex.Message.Contains("Unexpected end of request content", StringComparison.OrdinalIgnoreCase))
@@ -98,8 +101,10 @@ namespace HEAppE.RestApi.Logging
                         using (var reader = new StreamReader(responseBody, leaveOpen: true))
                         {
                             var responseText = await reader.ReadToEndAsync();
+                            var safePath = context.Request.Path.Value?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+                            var safeResponse = SensitiveDataRedactor.RedactBody(responseText).Replace("\r", string.Empty).Replace("\n", string.Empty);
                             _logger.LogDebug(
-                                $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+                                $"[HEAppE Response] Path: {safePath}, Status: {context.Response.StatusCode}, Body: {safeResponse}");
                         }
                     }
                     catch (Exception ex)
@@ -217,7 +222,9 @@ namespace HEAppE.RestApi.Logging
                 {
                     var body = await reader.ReadToEndAsync();
                     context.Request.Body.Position = 0;
-                    _logger.LogDebug($"[HEAppE Request] Path: {context.Request.Path}, Body: {body}");
+                    var safePath = context.Request.Path.Value?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+                    var safeBody = SensitiveDataRedactor.RedactBody(body).Replace("\r", string.Empty).Replace("\n", string.Empty);
+                    _logger.LogDebug($"[HEAppE Request] Path: {safePath}, Body: {safeBody}");
                 }
             }
             catch (Exception ex)
@@ -232,8 +239,10 @@ namespace HEAppE.RestApi.Logging
                 using (var reader = new StreamReader(responseBodyStream, leaveOpen: true))
                 {
                     var responseText = await reader.ReadToEndAsync();
+                    var safePath = context.Request.Path.Value?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+                    var safeResponse = SensitiveDataRedactor.RedactBody(responseText).Replace("\r", string.Empty).Replace("\n", string.Empty);
                     _logger.LogDebug(
-                        $"[HEAppE Response] Path: {context.Request.Path}, Status: {context.Response.StatusCode}, Body: {responseText}");
+                        $"[HEAppE Response] Path: {safePath}, Status: {context.Response.StatusCode}, Body: {safeResponse}");
                 }
             }
             catch (Exception ex)

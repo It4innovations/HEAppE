@@ -618,6 +618,19 @@ public class FileTransferLogic : IFileTransferLogic
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         VerifyOwner(jobInfo, loggedUser);
 
+        if (jobInfo.State != JobState.Configuring)
+        {
+            throw new NotAllowedException("UploadNotAllowedInCurrentJobState");
+        }
+
+        var sanitizedFileName = FileSystemUtils.SanitizeFileName(fileName);
+        var executeCmdScriptName = HPCConnectionFrameworkConfiguration.ScriptsSettings?.CommandScriptsPathSettings?.ExecuteCmdScriptName;
+        if (!string.IsNullOrEmpty(executeCmdScriptName) &&
+            string.Equals(sanitizedFileName, executeCmdScriptName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotAllowedException("PathAccessDenied");
+        }
+
         var jobSpecification = jobInfo.Specification;
         var clusterConfig = ClusterRuntimeConfiguration.For(jobSpecification.Cluster.CustomConfiguration);
         var jobClusterDirectoryPath = FileSystemUtils
@@ -651,6 +664,17 @@ public class FileTransferLogic : IFileTransferLogic
         var fileManager = CreateFileSystemManager(jobSpecification);
         var succeeded = await fileManager.UploadFileToClusterByAbsolutePathAsync(fileStream, absoluteFilePath, jobSpecification.ClusterUser, jobSpecification.Cluster, 
                                                                          _httpContextKeys.Context.SshCaToken, _expirioToken);
+        if (succeeded)
+        {
+            await fileManager.ModifyAbsolutePathFileAttributesAsync(
+                absoluteFilePath,
+                jobSpecification.ClusterUser,
+                jobSpecification.Cluster,
+                _httpContextKeys.Context.SshCaToken,
+                _expirioToken,
+                ownerCanExecute: false,
+                groupCanExecute: false);
+        }
         result.Add("Succeeded", succeeded);
         result.Add("Path", succeeded ? absoluteFilePath : null);
         return result;

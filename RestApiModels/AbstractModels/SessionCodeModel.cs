@@ -22,7 +22,7 @@ public abstract class SessionCodeModel
 
     public override string ToString()
     {
-        return $"SessionCodeModel(SessionCode: {SessionCode})";
+        return "SessionCodeModel(SessionCode: ***REDACTED***)";
     }
 }
 

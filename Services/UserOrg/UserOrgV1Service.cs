@@ -72,7 +72,6 @@ public class UserOrgV1Service(IHttpClientFactory httpClientFactory) : IUserOrgSe
     private HttpRequestMessage CreateRequest(ILogger logger, HttpMethod method, string relativeUri, string accessToken, string instanceId, object body = null)
     {
         var request = new HttpRequestMessage(method, relativeUri);
-        request.Headers.Add("X-Api-Token", accessToken);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         
         string rawVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
