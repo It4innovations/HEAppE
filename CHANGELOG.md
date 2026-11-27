@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Sensitive Data Redaction in Logs:** Redacted sensitive action parameters and dictionary keys in `LogRequestModelFilter`, enforced `HeadersOnly` under `Trace` logging, and removed password/hash/session leaks from auth, proxy, and cache warnings.
+- **Docker & SAST Hardening:** Combined `apt-get` layers with `--no-install-recommends` and `apt-get upgrade` in `RestApi`/`DataStagingAPI` Dockerfiles, added regex timeout in `FireCrestDataConvertor`, and ignored CI mock SSH port in `.trivyignore`.
 
 ## V6.7.4
 

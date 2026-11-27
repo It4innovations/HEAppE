@@ -4,7 +4,7 @@ RUN mkdir /sftp
 RUN chmod 700 /sftp
 
 # install OpenTelemetry .NET Automatic Instrumentation requirements and tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     openssh-client \
     git \
