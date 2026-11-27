@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.4
+
+### Fixed
+- **Auth Log Context Propagation (`LexisAuthMiddleware`):** Synchronized `LoggingUtils.AddUserPropertiesToLogThreadContext` from `IHttpContextKeys` at the start of `LexisAuthMiddleware` when `HttpContext.User` is already authenticated, preventing `(offline)` from persisting in `log4net.LogicalThreadContext` across the `await AuthenticateAsync()` boundary.
+- **Log Timestamp Precision (`log4net.config`, `log4netDocker.config`):** Added millisecond precision (`.fff`) to `%utcdate` in `RestApi` and `DataStagingAPI` `log4net` conversion patterns for accurate chronological ordering in log aggregators.
+
 ## V6.7.3
 
 ### Fixed

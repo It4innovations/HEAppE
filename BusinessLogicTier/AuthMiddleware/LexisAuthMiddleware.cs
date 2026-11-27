@@ -49,6 +49,16 @@ public class LexisAuthMiddleware
             return;
         }
 
+        if (context.User?.Identity?.IsAuthenticated == true &&
+            (keys.Context.AdaptorUserId > 0 || !string.IsNullOrEmpty(keys.Context.UserName) || keys.Context.ClaimsPrincipal != null))
+        {
+            HEAppE.Utils.LoggingUtils.AddUserPropertiesToLogThreadContext(
+                keys.Context.AdaptorUserId,
+                keys.Context.UserName,
+                keys.Context.Email,
+                keys.Context.CurrentUser?.IdpSid ?? keys.Context.ClaimsPrincipal?.FindFirst("sub")?.Value);
+        }
+
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         _logger.LogInformation($"Auth Check - UseBearer: {LexisAuthenticationConfiguration.UseBearerAuth}, IntrospectionEnabled: {JwtTokenIntrospectionConfiguration.IsEnabled}, HeaderPresent: {authHeader != null}");
 
