@@ -10,7 +10,7 @@
         <None Remove="SchedulerAdapters\LinuxLocal\Configuration\**" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.4.0" />
+        <PackageReference Include="log4net" Version="3.6.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     </ItemGroup>
     <ItemGroup>

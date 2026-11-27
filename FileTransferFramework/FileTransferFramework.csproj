@@ -5,7 +5,7 @@
         <RootNamespace>HEAppE.FileTransferFramework</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.4.0" />
+        <PackageReference Include="log4net" Version="3.6.0" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
     </ItemGroup>

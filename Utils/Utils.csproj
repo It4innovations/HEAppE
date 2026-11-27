@@ -6,11 +6,11 @@
         <RootNamespace>HEAppE.Utils</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.4.0" />
+        <PackageReference Include="log4net" Version="3.6.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
-        <PackageReference Include="NodaTime" Version="3.2.2" />
-        <PackageReference Include="SSH.NET" Version="2026.0.0" />
+        <PackageReference Include="NodaTime" Version="3.3.7" />
+        <PackageReference Include="SSH.NET" Version="2026.0.1" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.3" />
     </ItemGroup>
     <ItemGroup>
