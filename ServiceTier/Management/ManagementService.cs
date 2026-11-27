@@ -229,7 +229,7 @@ public class ManagementService : IManagementService
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogWarning(ex, "Failed to evict SessionUser from cache for session code {SessionCode}", sessionCode);
+                    _logger?.LogWarning(ex, "Failed to evict SessionUser from cache.");
                 }
             }
             

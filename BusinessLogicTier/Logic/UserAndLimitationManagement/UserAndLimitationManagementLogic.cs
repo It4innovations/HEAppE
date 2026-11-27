@@ -904,7 +904,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
         if (hash != user.Password)
         {
-            _logger.LogWarning($"Password mismatch for {user.Username}. CreatedAt={user.CreatedAt:yyyy-MM-dd HH:mm:ss}, ExpectedHash={user.Password}, ComputedHash={hash}");
+            _logger.LogWarning($"Password mismatch for {user.Username}.");
             throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
         }
         return CreateSessionCode(user).UniqueCode;

@@ -37,6 +37,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
             ReferenceHandler = ReferenceHandler.IgnoreCycles,
             MaxDepth = 32,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            Converters = { new SensitiveDictionaryConverterFactory() },
             TypeInfoResolver = new DefaultJsonTypeInfoResolver
             {
                 Modifiers = { ConfigureTypeInfo }
@@ -135,7 +136,14 @@ public class LogRequestModelFilter : IAsyncActionFilter
             if (IsUnsafeType(value)) continue;
 
             writer.WritePropertyName(key);
-            JsonSerializer.Serialize(writer, value, value.GetType(), JsonOptions);
+            if (IsSensitiveKey(key))
+            {
+                writer.WriteStringValue(SensitiveDataRedactor.RedactedValue);
+            }
+            else
+            {
+                JsonSerializer.Serialize(writer, value, value.GetType(), JsonOptions);
+            }
         }
 
         writer.WriteEndObject();
@@ -177,7 +185,54 @@ public class LogRequestModelFilter : IAsyncActionFilter
         public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => null;
         public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
-            writer.WriteStringValue("***REDACTED***");
+            writer.WriteStringValue(SensitiveDataRedactor.RedactedValue);
+        }
+    }
+
+    private sealed class SensitiveDictionaryConverterFactory : JsonConverterFactory
+    {
+        public override bool CanConvert(Type typeToConvert)
+        {
+            if (!typeToConvert.IsGenericType) return false;
+            var genericDef = typeToConvert.GetGenericTypeDefinition();
+            if (genericDef != typeof(Dictionary<,>) &&
+                genericDef != typeof(IDictionary<,>) &&
+                genericDef != typeof(IReadOnlyDictionary<,>))
+            {
+                return false;
+            }
+            return typeToConvert.GetGenericArguments()[0] == typeof(string);
+        }
+
+        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+        {
+            var valueType = typeToConvert.GetGenericArguments()[1];
+            var converterType = typeof(SensitiveDictionaryConverter<,>).MakeGenericType(typeToConvert, valueType);
+            return (JsonConverter)Activator.CreateInstance(converterType)!;
+        }
+    }
+
+    private sealed class SensitiveDictionaryConverter<TDict, TValue> : JsonConverter<TDict>
+        where TDict : IEnumerable<KeyValuePair<string, TValue>>
+    {
+        public override TDict? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => default;
+
+        public override void Write(Utf8JsonWriter writer, TDict value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            foreach (var kvp in value)
+            {
+                writer.WritePropertyName(kvp.Key);
+                if (kvp.Value != null && IsSensitiveKey(kvp.Key))
+                {
+                    writer.WriteStringValue(SensitiveDataRedactor.RedactedValue);
+                }
+                else
+                {
+                    JsonSerializer.Serialize(writer, kvp.Value, options);
+                }
+            }
+            writer.WriteEndObject();
         }
     }
 }
