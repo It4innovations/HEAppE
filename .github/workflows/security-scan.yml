@@ -68,6 +68,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,misconfig'
           trivyignores: '.trivyignore'
+          skip-dirs: 'Tmds.Ssh/test'
 
       - name: Publish Trivy FS Summary to Job Summary
         if: always()
