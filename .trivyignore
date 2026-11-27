@@ -6,3 +6,7 @@ AVD-DS-0002
 # DS-0026 / AVD-DS-0026: No HEALTHCHECK defined (healthchecks configured in docker-compose.yml)
 DS-0026
 AVD-DS-0026
+
+# DS-0004 / AVD-DS-0004: Port 22 exposed in CI mock SSH/PBS/Slurm containers
+DS-0004
+AVD-DS-0004

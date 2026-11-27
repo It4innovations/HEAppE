@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.7.5
+
+### Fixed
+- **Sensitive Data Redaction in Logs:** Redacted sensitive action parameters and dictionary keys in `LogRequestModelFilter`, enforced `HeadersOnly` under `Trace` logging, and removed password/hash/session leaks from auth, proxy, and cache warnings.
+- **Docker & SAST Hardening:** Combined `apt-get` layers with `--no-install-recommends` and `apt-get upgrade` in `RestApi`/`DataStagingAPI` Dockerfiles, added regex timeout in `FireCrestDataConvertor`, and ignored CI mock SSH port in `.trivyignore`.
+
+### Changed
+- **Dependencies:** Updated patch and minor NuGet packages across projects (`log4net`, `RestSharp`, `System.IdentityModel.Tokens.Jwt`, `FluentValidation`, `BouncyCastle.Cryptography`, `Polly`, `NodaTime`, `SSH.NET`, `Newtonsoft.Json`, `Moq`, `xunit`).
+
 ## V6.7.4
 
 ### Fixed

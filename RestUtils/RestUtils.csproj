@@ -5,10 +5,10 @@
         <RootNamespace>HEAppE.RestUtils</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-        <PackageReference Include="RestSharp" Version="112.1.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>
+        <PackageReference Include="RestSharp" Version="114.1.0"/>
         <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.0" />
-        <PackageReference Include="log4net" Version="3.3.1" />
+        <PackageReference Include="log4net" Version="3.6.0" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Exceptions\Exceptions.csproj"/>

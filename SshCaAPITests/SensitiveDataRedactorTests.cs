@@ -1,3 +1,4 @@
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.RestUtils;
 
 namespace SshCaAPITests;
@@ -67,5 +68,25 @@ public class SensitiveDataRedactorTests
         Assert.DoesNotContain("supersecret", redacted);
         Assert.Contains("grant_type=token-exchange", redacted);
         Assert.Contains(SensitiveDataRedactor.RedactedValue, redacted);
+    }
+
+    [Fact]
+    public void ClusterProxyConnection_ToString_RedactsPassword()
+    {
+        var proxy = new ClusterProxyConnection
+        {
+            Id = 1,
+            Host = "proxy.example.com",
+            Port = 1080,
+            Type = ProxyType.Socks5,
+            Username = "proxyuser",
+            Password = "super-secret-proxy-password"
+        };
+
+        var text = proxy.ToString();
+
+        Assert.DoesNotContain("super-secret-proxy-password", text);
+        Assert.Contains("proxyuser", text);
+        Assert.Contains("***REDACTED***", text);
     }
 }

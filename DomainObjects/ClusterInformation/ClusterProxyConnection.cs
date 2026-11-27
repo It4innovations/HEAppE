@@ -11,7 +11,7 @@ public class ClusterProxyConnection : IdentifiableDbEntity, ISoftDeletableEntity
     public override string ToString()
     {
         return
-            $"ClusterProxyConnection: Id={Id}, Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={Password}";
+            $"ClusterProxyConnection: Id={Id}, Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={(string.IsNullOrEmpty(Password) ? "<empty>" : "***REDACTED***")}";
     }
 
     #endregion

@@ -28,6 +28,7 @@ static class AesCtr
         {
             // .NET Does not have a CTR mode but we can use ECB with out own
             // iv/counter manipulation between blocks.
+            // nosemgrep: csharp.dotnet.security.use_ecb_mode.use_ecb_mode
             aes.EncryptEcb(counter, temp, PaddingMode.None);
 
             // Increment the counter that is treated as a big endian uint128

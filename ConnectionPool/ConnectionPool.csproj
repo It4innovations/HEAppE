@@ -6,7 +6,7 @@
         <Nullable>annotations</Nullable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.4.0" />
+        <PackageReference Include="log4net" Version="3.6.0" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />

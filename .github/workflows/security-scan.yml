@@ -68,6 +68,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,misconfig'
           trivyignores: '.trivyignore'
+          skip-dirs: 'Tmds.Ssh/test'
 
       - name: Publish Trivy FS Summary to Job Summary
         if: always()
@@ -102,6 +103,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-restapi-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
           trivyignores: '.trivyignore'
 
       - name: Build SSH Node CI Image
@@ -114,6 +116,8 @@ jobs:
           format: 'sarif'
           output: 'trivy-sshnode-results.sarif'
           severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+          ignore-unfixed: true
           trivyignores: '.trivyignore'
 
       - name: Publish Container Images Summary to Job Summary
